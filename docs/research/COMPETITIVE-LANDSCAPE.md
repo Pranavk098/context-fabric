@@ -120,7 +120,7 @@ Basis: public docs/papers/pricing as of 2026-10-16, plus our own Stage-B audit (
 1. **Cross-agent CoW sharing under role divergence.** 9.5× on role-divergent children is our strongest number. Neither prefix caching (different prompts), nor memory layers (per-query retrieval), nor compaction (per-session) can share a byte-identical Tier 0/1 prefix across 50 different agents.
 2. **Negative knowledge as a first-class, shared artifact.** 16.7% → 0% repeated failures in our eval. ReFold/CliffCompaction discard; Mem0/Zep store facts, not falsifications; ACON learns guidelines, not a ledger. This is genuinely novel and demo-able in five minutes.
 3. **Deterministic, replayable, auditable packets.** Cryptographic receipts + pinned determinism is enterprise/regulated value that probabilistic summarizers cannot offer. No competitor in this list ships this.
-4. **Local-first vLLM/LMCache economics.** 20× lower KV at 16 agents on an 8GB RTX 5070 is a real, differentiated on-prem story for sovereign/air-gapped teams who cannot use provider caching.
+4. **Local-first vLLM/LMCache economics.** 20× lower KV at 16 agents (vs unshared raw broadcast; only ~2× vs a shared raw prefix) on an 8GB RTX 5070 is a real, differentiated on-prem story for sovereign/air-gapped teams who cannot use provider caching.
 5. **Framework-agnostic protocol.** Google ADK and LangChain are frameworks; Mem0/Letta are products. A neutral CPP schema can become the interchange format for "what an agent sees," the way AGENTS.md became the context-file convention.
 
 ## Where we are weaker (blunt)
@@ -133,7 +133,7 @@ Basis: public docs/papers/pricing as of 2026-10-16, plus our own Stage-B audit (
 - **No KV-engine control.** We align tokens but do not pin, evict, prefetch, or move tensors. CacheScout/LMCache can invalidate our core claim with an LRU policy.
 - **Adoption and team surface are tiny.** No integrations ecosystem, no funding signal, no community. Google/LangChain/Mem0/Letta can out-ship and out-market us.
 - **Protocol complexity is a adoption tax.** Schema + canonicalization + signing + determinism is heavier than `pip install mem0ai` or one middleware file. Every invariant must pay for itself in a demo.
-- **The 20× KV and 8.6× throughput numbers are single-node, 8GB, workload-specific.** They will not replicate unchanged on a 70B model or a cloud fleet; we need error bars and cross-engine results.
+- **The 20× KV (vs unshared raw broadcast) and 8.6× throughput numbers are single-node, 8GB, workload-specific.** They will not replicate unchanged on a 70B model or a cloud fleet; we need error bars and cross-engine results.
 
 ## Concrete moves (ranked)
 

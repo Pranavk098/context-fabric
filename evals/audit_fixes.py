@@ -96,7 +96,7 @@ def agg(values: list[float]) -> dict[str, float]:
 # ------------------------------------------------------------------------------- sections
 def section_claim_15x(client: OpenAICompatibleClient) -> dict[str, Any]:
     """F8: single request vs N sub-agents carrying the same context."""
-    ctx = "\n".join(obs_step(i) for i in range(15))
+    ctx = "\n".join(obs_step(i) for i in range(1, 16))
     single = [
         {"role": "system", "content": INSTRUCTION},
         {"role": "user", "content": f"CONTEXT:\n{ctx}\nTASK: summarize\nNext action?"},
@@ -210,7 +210,7 @@ def _ask(client: OpenAICompatibleClient, msgs: Messages, question: str) -> str:
 def section_fork_fair(client: OpenAICompatibleClient, scraper: MetricsScraper) -> dict[str, Any]:
     """F5: fair fork arms with error bars. Adds adaptive-cartridge CPP_v2."""
     steps, n_children = 15, 8
-    raw = "\n".join(obs_step(i) for i in range(steps))
+    raw = "\n".join(obs_step(i) for i in range(1, steps + 1))
     tasks = [
         f"sub-task {i}: {'audit' if i % 2 else 'implement'} the retrieval path"
         for i in range(n_children)
@@ -322,7 +322,7 @@ def _parse(text: str) -> dict[str, float]:
 def section_concurrency(base_url: str, metrics_url: str) -> list[dict[str, Any]]:
     """F6: add B0_tail (shared raw prefix) to isolate sharing vs compression."""
     k = 16
-    raw = "\n".join(obs_step(i) for i in range(15))
+    raw = "\n".join(obs_step(i) for i in range(1, 16))
     prefix = f"{CARTRIDGE}\n{INSTRUCTION}\n{facts(15)}\n{pointers(15)}"
     arms = {
         "B0_divergent": [

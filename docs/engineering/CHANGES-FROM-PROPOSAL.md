@@ -144,7 +144,7 @@ bounded context**. Gate B2/B3 = **PASS**.
   lost answer). **Caveat:** the task is trivial; the real quality benchmark needs the actual
   compiler (GAP-22/25).
 - **B5 concurrency/VRAM:** at 16 concurrent agents CPP held **~1.4% KV cache vs B0's 28%
-  (20× lower)**, delivered **8.6× throughput** (44.8 vs 5.2 req/s), and never queued. This
+  (20× lower, vs unshared raw broadcast; ~2× vs shared)**, delivered **8.6× throughput** (44.8 vs 5.2 req/s), and never queued. This
   **closes GAP-07** (the KV/VRAM-wall claim). Caveats: prefill-vs-KV attribution and no
   error bars (GAP-26/27).
 

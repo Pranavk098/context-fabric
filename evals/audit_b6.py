@@ -16,6 +16,7 @@ from __future__ import annotations
 import ast
 import json
 import os
+import re
 import time
 from pathlib import Path
 from typing import Any
@@ -72,35 +73,62 @@ def section_realrepo() -> dict[str, Any]:
 
 
 # --------------------------------------------------------------------------------- B6.2
-def section_coldboot(client: OpenAICompatibleClient) -> dict[str, Any]:
+def section_coldboot(client: OpenAICompatibleClient, reps: int = 1) -> dict[str, Any]:
     holo = "\n".join(f"module_{i} exports symbol_{i}" for i in range(40))
-    raw = "\n".join(f"# module_{i}.py\n" for i in range(40)) + "\n".join(
-        f"  line: helper_{j}()  # unrelated body content {j}" for j in range(220)
+    # Fairness fix (2026-10-17, VERIFICATION-REPORT N6): the raw listing must carry the same
+    # symbol->module mapping as the hologram -- each file shows its `def symbol_i` -- or the
+    # raw arm is unanswerable by construction. Body noise stays: that is what raw costs.
+    raw = "\n".join(
+        f"# module_{i}.py\n  def symbol_{i}(): ...\n"
+        + "\n".join(f"  line: helper_{i * 5 + j}()  # unrelated body content" for j in range(5))
+        for i in range(40)
     )
     qs = [17, 3, 19, 31]
-    sys_holo = (
+    base_holo = (
         f"{INSTRUCTION}\nAnswer with the module identifier, e.g. module_17.\n\nHOLOGRAM:\n{holo}"
     )
-    sys_raw = f"{INSTRUCTION}\nAnswer with the module identifier, e.g. module_17.\n\nFILES:\n{raw}"
+    base_raw = f"{INSTRUCTION}\nAnswer with the module identifier, e.g. module_17.\n\nFILES:\n{raw}"
+    per_rep: list[dict[str, float]] = []
     samples: list[dict[str, str]] = []
-    holo_ok = raw_ok = 0
-    for s in qs:
-        a = _ask(
-            client, [{"role": "system", "content": sys_holo}], f"Which module exports symbol_{s}?"
-        )
-        b = _ask(
-            client, [{"role": "system", "content": sys_raw}], f"Which module exports symbol_{s}?"
-        )
-        holo_ok += f"module{s}" in "".join(c for c in a.lower() if c.isalnum())
-        raw_ok += f"module{s}" in "".join(c for c in b.lower() if c.isalnum())
-        samples.append(
-            {"q": f"symbol_{s}", "hologram_out": a.strip()[:60], "raw_out": b.strip()[:60]}
-        )
+    holo_ok = raw_ok = total = 0
+
+    def correct(answer: str, s: int) -> bool:
+        # Exact identifier: "module_39.py" must NOT count as an answer for symbol_3.
+        norm = "".join(c for c in answer.lower() if c.isalnum())
+        return bool(re.search(rf"module{s}(?!\d)", norm))
+
+    for rep in range(reps):
+        tag = f"REP {rep}\n" if reps > 1 else ""  # unique per-rep prompts: no prefix-cache reuse
+        sys_holo, sys_raw = tag + base_holo, tag + base_raw
+        rep_holo = rep_raw = 0
+        for s in qs:
+            a = _ask(
+                client,
+                [{"role": "system", "content": sys_holo}],
+                f"Which module exports symbol_{s}?",
+            )
+            b = _ask(
+                client,
+                [{"role": "system", "content": sys_raw}],
+                f"Which module exports symbol_{s}?",
+            )
+            rep_holo += correct(a, s)
+            rep_raw += correct(b, s)
+            if rep == 0:
+                samples.append(
+                    {"q": f"symbol_{s}", "hologram_out": a.strip()[:60], "raw_out": b.strip()[:60]}
+                )
+        per_rep.append({"hologram_accuracy": rep_holo / len(qs), "raw_accuracy": rep_raw / len(qs)})
+        holo_ok += rep_holo
+        raw_ok += rep_raw
+        total += len(qs)
     return {
-        "hologram_tokens": count_tokens(sys_holo),
-        "raw_tokens": count_tokens(sys_raw),
-        "hologram_accuracy": holo_ok / len(qs),
-        "raw_accuracy": raw_ok / len(qs),
+        "reps": reps,
+        "hologram_tokens": count_tokens(base_holo),
+        "raw_tokens": count_tokens(base_raw),
+        "hologram_accuracy": holo_ok / total,
+        "raw_accuracy": raw_ok / total,
+        "per_rep": per_rep,
         "samples": samples,
     }
 
@@ -246,12 +274,17 @@ def _picked_bad(answer: str, bad: str, options: list[str]) -> int:
 def main() -> int:
     base_url = os.environ.get("CF_BASE_URL", "http://localhost:8000/v1")
     model = os.environ.get("CF_MODEL", "Qwen/Qwen2.5-1.5B-Instruct")
+    reps = int(os.environ.get("CF_REPEATS", "1"))
     want = set(os.environ.get("CF_SECTION", "all").split(","))
 
     def on(n: str) -> bool:
         return "all" in want or n in want
 
-    report: dict[str, Any] = {"ts": time.strftime("%Y-%m-%dT%H:%M:%S"), "model": model}
+    report: dict[str, Any] = {
+        "ts": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "model": model,
+        "repeats": reps,
+    }
     if on("realrepo"):
         report["realrepo"] = section_realrepo()
         report["realrepo_flops_note"] = (
@@ -278,7 +311,7 @@ def main() -> int:
             report[f"{name}_error"] = f"{type(e).__name__}: {e}"
 
     try:
-        guarded("coldboot", lambda: section_coldboot(client))
+        guarded("coldboot", lambda: section_coldboot(client, reps))
         guarded("quality", lambda: section_quality(client))
         guarded("negknowledge", lambda: section_negknowledge(client))
     finally:

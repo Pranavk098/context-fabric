@@ -10,6 +10,7 @@ Legend: ✅ implemented · 🟡 partial · ⬜ pending.
 | CPP v1.0 models + frozen schema | ADR-0005 | ✅ | `protocol/models.py` |
 | RFC 8785 JCS canonicalization | ADR-0003 | ✅ | `protocol/canonical.py` |
 | Ed25519 packet signing | Invariant 10 | ✅ | `protocol/signing.py` |
+| Signed epoch chain / receipts (`verify` CLI) | §5 rec. 1–2 | ✅ | `protocol/epoch.py` (v0: correct Merkle root + membership check; compact inclusion proofs pending) |
 | `.cfx` cartridge (ast + PageRank hologram) | Module A | ✅ | `kernel/cartridge/` |
 | Hard policy engine (trust/RBAC/lifecycle/freshness) | Invariant 2 | ✅ | `kernel/router/policy_engine.py` |
 | Lexical recall | Stage 1 | 🟡 | `kernel/router/recall.py` (BM25/embeddings pending) |
@@ -19,12 +20,14 @@ Legend: ✅ implemented · 🟡 partial · ⬜ pending.
 | U-curve attention placement | Stage 7 | 🟡 | recency anchor emitted; placement not enforced |
 | Verify/hash/sign | Stage 8 | ✅ | `kernel/router/compiler.py` |
 | Adaptive cartridge + watermark/trust gates | ADR-0002/0004 | ✅ | `kernel/router/` |
-| `EPOCH_FOLD` / `COW_FORK` | Module D | ⬜ | pending |
+| `EPOCH_FOLD` / `COW_FORK` (memory-state v0) | Module D | ✅ | `kernel/epochs.py` (O(1) fork, private edits, explicit fold + conflict contract; packet-level k-step tool-output fold per Build-Plan §44 pending) |
 | Shadow Cortex probes | Module B | ⬜ | pending |
-| PostgreSQL append-only store + migrations | Db-Storage-Spec | 🟡 | `kernel/migrations/001_*.sql` (driver pending) |
-| Sidecar REST API + adapters (raw_llm / vLLM / LMCache) | Plane 2 | ⬜ | pending |
+| Durable store | Db-Storage-Spec | 🟡 | `kernel/store/` SQLite v0 (+ sidecar `.db` loading); Postgres migration + driver pending |
+| Sidecar REST API ("the plug") | Plane 2 | 🟡 | `sidecar/` OpenAI-compatible proxy (compile/passthrough, SSE streaming); raw_llm/LMCache `agent_hint` adapter pending |
 | Deterministic-core tests | — | ✅ | `tests/` |
 
 **Realized core:** deterministic cartridge + policy + scoring + closure + 4-tier packing +
-hashing + signing, all tested and type-checked. **Next:** routing into a live adapter,
-epoch folding / CoW forking, and the Postgres-backed store.
+hashing + signing, plus the v0 product shell — OpenAI-compatible sidecar ("plug"), signed
+epoch receipts ("seal"), memory-state CoW/fold ("shared copy"), and a SQLite store ("filing
+cabinet") — all tested and type-checked. **Next:** LMCache/`agent_hint` integration, thin MCP
+surface, packet-level epoch folding, and the Postgres-backed store.

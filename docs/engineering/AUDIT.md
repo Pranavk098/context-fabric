@@ -57,7 +57,7 @@ Severity: **S1** = threatens the core value proposition; **S2** = weakens a spec
 
 | ID | Where | Outcome | Status |
 | :--- | :--- | :--- | :--- |
-| **GAP-07** | B5 | CPP held **1.4%** KV usage vs B0 **28%** at 16 concurrent (**20Ã— lower**); 8.6Ã— throughput; no queueing | **RESOLVED (positive)** |
+| **GAP-07** | B5 | CPP held **1.4%** KV usage vs B0 **28%** at 16 concurrent (**20Ã— lower** vs unshared raw broadcast; ~2Ã— vs shared raw); 8.6Ã— throughput; no queueing | **RESOLVED (positive)** |
 | **GAP-11** | B4 | Faithful compile = 100% accuracy at 6.1Ã— fewer tokens; quality tracks *retention* exactly | **PARTIALLY CLOSED** |
 | **GAP-22** | B4 | Labeled set is **trivial** (copy-a-value, 572-tok context, weak model). Does not test reasoning over compiled facts or long-context distraction. The real quality benchmark needs the actual compiler (Stage C). | **OPEN** |
 | **GAP-23** | B5 | Initially read 0 because the gauge was misnamed `gpu_cache_usage_perc`; correct name is `kv_cache_usage_perc`. Fixed. | **RESOLVED (measurement bug)** |
@@ -97,8 +97,8 @@ Details + numbers: `docs/AUDIT-FIXES-RESULTS.md`.
 | GAP-04 compression 2â€“3Ã— | ART | **FIXED** | Realistic extractor â†’ **27.2Ã—**; prior figure was a toy-workload artifact. |
 | GAP-05 TTFT | ART | **FIXED** | Steady-state TTFT (`ttft_ss_ms`) added. |
 | GAP-06 crossover | DES | **FIXED** | Adaptive cartridge removes it: CPP_adaptive wins at every size (4.1Ã—â€“5.4Ã—); CPP_full crosses at ~7 steps. |
-| GAP-07 KV/VRAM | â€” | **FIXED** | 20Ã— lower KV; attribution: sharing dominates, compression adds ~1.4Ã—. |
-| GAP-08/09/10 arbitrage/cold-boot/negative | â€” | 09/10 fixed; 08 open | Cold-boot **fixed** (hologram 348 tok/100% vs raw 3,566/50%); negative-knowledge **fixed** (16.7%â†’0%); arbitrage **undemonstrated** (task saturated). |
+| GAP-07 KV/VRAM | â€” | **FIXED** | 20Ã— lower KV vs unshared raw broadcast (~2Ã— vs shared raw); attribution: sharing dominates, compression adds ~1.4Ã—. |
+| GAP-08/09/10 arbitrage/cold-boot/negative | â€” | 09/10 fixed; 08 open | Cold-boot **fixed** (hologram 348 tok/100% vs raw 3,566/50%; superseded 2026-10-17 by the information-equal re-run: 3,146 tok / 25% — see VERIFICATION-REPORT N6); negative-knowledge **fixed** (16.7%â†’0%); arbitrage **undemonstrated** (task saturated). |
 | GAP-11 quality | â€” | **FIXED** | Parity at ~5.6Ã— compression (B6.3). |
 | GAP-12 baseline fairness | CNF | **FIXED** | Report B0_top + B0_tail; honest win 2.0Ã—/9.0Ã—. |
 | GAP-13 synthetic | LIM | **FIXED** | Real package (`httpx`): **16.8Ã—** compression. |
@@ -148,7 +148,7 @@ constraint of the approach (try to fix; only then rescope); **CLAIM** = the stat
 | **GAP-04** compression ~2â€“3Ã— | ARTIFACT+LIMITATION | FIX (realistic data) | Replace fabricated 1-line facts with a **realistic deterministic extractor** over synthetic code; recompute the honest ratio. |
 | **GAP-05** TTFT modest | ARTIFACT | FIX (measure) | Report steady-state TTFT (exclude warm-up turn). |
 | **GAP-06** crossover ~10 steps | DESIGN | FIX (code) | **Adaptive cartridge**: omit Tier 0 below a size threshold; recompute crossover. |
-| **GAP-07** KV/VRAM | â€” | RESOLVED | B5: 20Ã— lower KV. |
+| **GAP-07** KV/VRAM | â€” | RESOLVED | B5: 20Ã— lower KV vs unshared raw broadcast (~2Ã— vs shared). |
 | **GAP-08/09/10** arbitrage/cold-boot/negative | UNMEASURED | FIX (simulate) | Add cold-boot orientation-token measurement; keep arbitrage/negative as planned components. |
 | **GAP-11** quality regression | â€” | PARTIAL | B4 shows retention-bound quality; needs harder set (GAP-22). |
 | **GAP-12** baseline fairness | CONFOUND | FIX (arms) | Report vs `B0_tail` (strong) and `B0_top` (weak); add `B0_trunc` (naive+truncation). |
@@ -190,5 +190,5 @@ Full results: **`docs/AUDIT-FIXES-RESULTS.md`** Â· code: `evals/audit_fixes.py
 **Headline reconciliation:** the "15Ã— tax" is real; the earlier *deflating* results were mostly
 measurement artifacts (wrong axis, cache carryover, toy compression). With fixes, the honest
 product wins are **~2Ã— (best-case) to ~9Ã— (realistic) across agents**, **1.4â€“2Ã— additional at
-concurrency**, **20Ã— lower KV**, and **bounded+non-lossy context intra-agent**.
+concurrency**, **20Ã— lower KV vs unshared raw broadcast (~2Ã— vs shared)**, and **bounded+non-lossy context intra-agent**.
 

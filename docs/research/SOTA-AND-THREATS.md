@@ -59,7 +59,7 @@ Legend: **S** = supports, **T** = threatens, **N** = novelty threat (does the sa
 | Source | Key claim | Verdict |
 |---|---|---|
 | Don't Break the Cache — [2601.06007](https://arxiv.org/abs/2601.06007) | Prompt caching cuts API cost **41–80%**, TTFT **13–31%**; boundary control (stable prefix, dynamic content last, exclude tool results) beats naive full-context caching | **S — strongest.** Quantifies CPP's whole value proposition on agentic workloads. |
-| Same Request, Different Answer — [2609.04748](https://arxiv.org/abs/2609.04748) | Prefix caching changes agent trajectory on **36.2% (16-bit)** and **75.0% (4-bit)** of episodes; cached serving is *deterministic given cache state* but **irreproducible in practice because cache state is absent from the request** | **T — critical.** A "deterministic core" must serialize/replay cache state, or it is not reproducible. |
+| Same Request, Different Answer — [2609.04748](https://arxiv.org/abs/2609.04748) | Prefix caching changes agent trajectory on **37.4% (16-bit)** and **82.5% (4-bit)** of episodes; cached serving is *deterministic given cache state* but **irreproducible in practice because cache state is absent from the request** | **T — critical.** A "deterministic core" must serialize/replay cache state, or it is not reproducible. |
 | ACE — [2510.04618](https://arxiv.org/abs/2510.04618) (ICLR'26) | Evolving "playbooks" with structured incremental updates avoid **context collapse**; +10.6% agents | **S/T** — validates append-only increments; "playbook" overlaps shared project state. |
 | Negative Knowledge as Failure-aware Shared Memory — [2606.21024](https://arxiv.org/abs/2606.21024) | **Curator agent writes typed negative-knowledge records** to a shared bank; agents adopt/reject before next experiment; fewer tokens, solves tasks baselines fail | **N — priority.** First-class `negative_knowledge` is already published. |
 
@@ -67,7 +67,7 @@ Legend: **S** = supports, **T** = threatens, **N** = novelty threat (does the sa
 
 ## 2. Top 5 risks to our current claims
 
-1. **"Deterministic core" is contradicted by cache-history sensitivity.** [2610.05833] shows the *same prompt → different answer* under persistent selective-reuse; [2609.04748] shows 36–75% trajectory divergence from prefix caching alone. **Claim at risk: deterministic/auditable core.** Mitigation: define determinism as *given a serialized cache-state epoch*, and make the epoch (not the prompt) the auditable unit. Anything else is false advertising.
+1. **"Deterministic core" is contradicted by cache-history sensitivity.** [2610.05833] shows the *same prompt → different answer* under persistent selective-reuse; [2609.04748] shows 37–83% trajectory divergence from prefix caching alone. **Claim at risk: deterministic/auditable core.** Mitigation: define determinism as *given a serialized cache-state epoch*, and make the epoch (not the prompt) the auditable unit. Anything else is false advertising.
 
 2. **CoW sub-agent forking is not novel — it is shipping.** [2604.06370] ForkKV already does `fork + copy-on-write disaggregated KV` with a shared base + per-agent residual; [2607.10987] AAFLOW+ exposes `fork`/`compose` KV operators; SGLang's Unified Radix Cache uses CoW for MAMBA checkpoints. **Claim at risk: "Copy-on-Write sub-agent forking that shares immutable Tier 0."** Differentiator must be *auditable* fork lineage, not the fork mechanism.
 

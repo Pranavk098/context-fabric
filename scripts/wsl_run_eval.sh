@@ -34,6 +34,15 @@ for i in $(seq 1 90); do
 done
 [ "$ready" -eq 1 ] || { echo "timeout"; tail -40 "$LOG"; exit 1; }
 
+# The first inference request after boot can take >120 s (JIT/CUDA warm-up) and would
+# otherwise time out the eval's first call or pollute TTFT/wall metrics. Warm it here.
+echo "[$(date +%T)] warming engine"
+curl -s -m 300 http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"warmup\"}],\"max_tokens\":1,\"temperature\":0.0}" \
+  >/dev/null || echo "warmup request failed; continuing"
+echo "[$(date +%T)] engine warm"
+
 echo "[$(date +%T)] running $MODULE"
 export CF_BASE_URL="http://localhost:8000/v1" CF_MODEL="$MODEL" PYTHONPATH="$REPO"
 cd "$REPO"

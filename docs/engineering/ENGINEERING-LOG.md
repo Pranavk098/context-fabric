@@ -262,7 +262,8 @@ Raw report: `evals/reports/stage_b5_20260316_153211.json`(see file). Correct met
 | CPP_shared | 16 | 357 | **44.76** | **1.4%** | **0** |
 
 **J1 â€” KV footprint:** at 16 concurrent agents CPP holds **~1.4%** of the KV cache vs B0's
-**28.0%** â€” **20Ã— lower**. Directly validates the VRAM/KV-wall claim (closes GAP-07).
+**28.0%** â€” **20Ã— lower** vs unshared raw broadcast (~2Ã— vs shared). Directly validates the VRAM/KV-wall claim (closes GAP-07).
+*(2026-10-17: 20.2x reproduces on the fixed gauge vs unshared raw; baseline/workload-dependent -- see "Honest re-run" section at the end.)*
 **J2 â€” Throughput:** **8.6Ã—** higher at k=16 (44.8 vs 5.2 req/s); CPP scales ~linearly
 (12â†’23â†’45), B0 saturates (2.8â†’4.9â†’5.2).
 **J3 â€” Queueing:** B0 queues (1/6/13 waiting); CPP never queues. Wall time is flat (~330 ms).
@@ -506,6 +507,9 @@ With a clear hologram format (`module_17 exports symbol_17`) + explicit answer f
 **10.2Ã— fewer tokens AND 2Ã— the accuracy.** The earlier 0.33 was a format/scoring artifact.
 The zero-token cold-boot claim is now **supported**.
 
+*(Superseded 2026-10-17: raw arm now carries the same mapping and scoring is exact-identifier;
+348 vs 3,146 tokens (9.0x), hologram 100% vs raw 25% -- see "Honest re-run" at the end.)*
+
 ## B6.3 Quality parity (GAP-22/11)  âœ… FIXED
 Lookup + comparison questions (no arithmetic), raw vs compiled:
 
@@ -556,4 +560,55 @@ metric, corroborating the token story.
 
 **Only one gap remains genuinely open (GAP-08, and only because our task saturated), plus the
 accepted GAP-18 (provider metric portability). No claim was ever rescoped.**
+
+---
+
+# Honest re-run -- cold-boot fairness + KV gauge (2026-10-17)
+
+**Trigger:** `docs/engineering/VERIFICATION-REPORT.md` P0 items 1 and 3 (N6 cold-boot confound;
+N4 KV gauge/baseline). Hardware: local RTX 5070 Laptop (WSL2, vLLM 0.31.0, `--enforce-eager`),
+each run via `scripts/wsl_run_eval.sh` (boot + warm + eval + kill in one WSL session).
+Total GPU wall-clock for all runs below: ~2.5 min.
+
+## Cold boot (N6) -- fixed and re-run
+
+**Fix (`evals/audit_b6.py` `section_coldboot`):** the raw arm now renders each file with its own
+`def symbol_{i}(): ...` line -- the same symbol->module mapping the hologram states -- plus body
+noise (that noise is what raw costs). Scorer also fixed: `"module3" in answer` counted a wrong
+`module_39` as correct for `symbol_3`; it now matches the identifier exactly (`module{s}(?!\d)`).
+
+**Run:** `CF_SECTION=coldboot CF_REPEATS=3 bash scripts/wsl_run_eval.sh evals.audit_b6`
+(3 = the `audit_fixes.py` REPEATS convention; B6's own default is 1).
+
+| | tokens | accuracy |
+| :--- | ---: | ---: |
+| hologram | 348 | **100%** (12/12) |
+| raw files (same mapping) | 3,146 | **25%** (3/12) |
+
+**Honest result: 9.0x fewer tokens for identical information; the 1.5B model answers the raw
+listing correctly 25% of the time vs 100% for the hologram** (identical across 3 reps;
+`evals/reports/audit_b6_20261017_124755.json`). The old "10.25x / 100% vs 50%" (B6.2 above) is
+**superseded**: raw drops 3,566 -> 3,146 tokens after the fairness fix, and on the same re-run
+answers the old substring scorer reports 50% where exact-identifier scoring reports 25%
+(`module_39` counted as an answer for `symbol_3`). *Still narrow:* n=4 questions x 3 reps, one
+1.5B model, synthetic listing; it shows the hologram format is usable and ~9x cheaper on this
+probe, not a general retrieval claim.
+
+## KV gauge (N4) -- verified + re-run on the fixed metric
+
+The misnamed gauge (`gpu_cache_usage_perc`) made B5 read **0** (`stage_b5_20261016_153023.json`);
+`vllm:kv_cache_usage_perc` has been in use since `stage_b5_20261016_153211.json`, so the 20x did
+**not** come from the wrong name -- it reproduces on the fixed gauge:
+
+| run | baseline at k=16 | peak KV | ratio |
+| :--- | :--- | ---: | ---: |
+| `stage_b5_20261017_124856.json` (fresh) | B0_divergent | 27.95% vs 1.38% | **20.2x** |
+| `audit_fixes_20261017_115748.json` (F6, verified) | B0_divergent | 13.48% vs 1.16% | 11.6x |
+| same F6 run | B0_tail_shared (shared raw prefix) | 2.48% vs 1.16% | **2.1x** |
+
+**Honest result: ~20x vs *unshared* raw broadcast under stage_b5's 100 ms peak sampler
+(byte-identical 27.95%/1.38% across three independent runs incl. 153211); ~9-12x under the
+finer-sampled F6 workload; only ~2x vs a *shared* raw prefix.** Baseline and workload/sampling
+drive the range, not the gauge. Throughput on the fresh run: **8.2x** at k=16 (43.3 vs 5.26 req/s).
+The README caveat "20x predates a metric-name fix" is wrong and has been corrected.
 
