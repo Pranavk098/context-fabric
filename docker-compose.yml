@@ -1,0 +1,41 @@
+services:
+  # vLLM OpenAI-compatible server with prefix caching enabled.
+  # This is the "hardware ally" for the Stage B spike. Bring up with:
+  #   docker compose up -d vllm
+  # then point the harness at http://localhost:8000/v1
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: cf-vllm
+    command: >
+      --model ${VLLM_MODEL:-Qwen/Qwen2.5-1.5B-Instruct}
+      --enable-prefix-caching
+      --max-model-len 4096
+      --gpu-memory-utilization 0.85
+      --port 8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - hf-cache:/root/.cache/huggingface
+    environment:
+      - HF_TOKEN=${HF_TOKEN:-}
+      - VLLM_ATTENTION_BACKEND=${VLLM_ATTENTION_BACKEND:-FLASH_ATTN}
+    ipc: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # LMCache-fronted vLLM (Tier-2 hardware path). LMCache runs as a Python
+  # service/plugin inside the vLLM process; the full multi-process variant is
+  # documented in docs/STAGE-B-RUNTIME.md. Left disabled until the baseline
+  # vLLM arm passes, so we measure the delta the cache layer actually buys.
+  #
+  # lmcache-vllm:
+  #   image: <build from lmcache docs>
+  #   ...
+
+volumes:
+  hf-cache:
