@@ -84,8 +84,9 @@ must not change.
 
 ### Rules
 
-1. `content_hash` = sha256 over RFC 8785 JCS of the packet **excluding** `hashes.signature`
-   (ADR-0003 §5).
+1. `content_hash` = sha256 over RFC 8785 JCS of the packet with the **entire `hashes` block
+   emptied** (excludes both `signature` and `content_hash` itself, so the hash is idempotent —
+   ADR-0003 §5), emitted `sha256:`-prefixed (consistent with block hashes).
 2. `total_tokens` counts Tiers 0–3; the packing assertion is
    `total_tokens + reserve_used <= hard_total_tokens`.
 3. `tier1.blocks` order is authoritative and ascending by `event_seq` (ADR-0002).

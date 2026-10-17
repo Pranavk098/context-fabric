@@ -10,22 +10,30 @@ forking, first-class negative knowledge, and bounded append-only epochs.
 
 ## Status
 
-Stage B (falsification) is **complete**. The load-bearing bet is validated on real hardware
-(vLLM + an 8 GB RTX 5070). Headline, reproducible results:
+Stage B (falsification) is **complete** and the Stage C kernel (deterministic `.cfx`
+cartridge + 9-stage router/compiler) is in place. Headline, reproducible results:
 
 | Result | Number |
 | :--- | :--- |
 | Cross-agent cost vs best-case naive broadcast | **~2×–9×** |
 | Role-divergent children (naive can't share) | **9.5×** |
 | Throughput at 16 concurrent agents | **~8.6×** (44.8 vs 5.2 req/s) |
-| KV-cache footprint at 16 concurrent | **20× lower** |
+| KV-cache footprint at 16 concurrent | **~9×–20× lower** |
 | Compression on real code (`httpx`) | **~17×** |
-| Cold-boot (hologram vs raw) | **10× fewer tokens, 2× accuracy** |
+| Cold-boot (hologram vs raw) | see caveat below |
 | Quality parity | **100% at ~5.6× compression** |
 
-Honest caveats: intra-agent is a *tie* (prefix caching already helps); there is a
-small-context crossover (fixed by an adaptive cartridge); model-tier arbitrage is
-undemonstrated. Full audit: `docs/engineering/AUDIT.md`.
+### Caveats (see `docs/engineering/VERIFICATION-REPORT.md`)
+
+- The **cold-boot** comparison is **confounded**: the raw arm contained no symbol→module
+  mapping while the hologram stated it — not a fair head-to-head.
+- The **20× KV** figure predates a metric-name fix; later runs show **~9×** (still large).
+- The **15× tax** is an arithmetic identity (15 agents × per-hop), not an independent result.
+- Intra-agent is a **tie**; there is a small-context crossover (mitigated by an adaptive
+  cartridge). Model-tier arbitrage is a **weak signal** (one task, 0.5B vs 1.5B).
+- Several spec features are **not yet implemented** (MMR diversity, U-curve placement,
+  embeddings, Postgres store, framework adapters); the kernel realizes the deterministic
+  core: cartridge, policy, scoring, closure, 4-tier packing, hashing, and Ed25519 signing.
 
 ## Quickstart
 
@@ -41,7 +49,8 @@ see `docs/engineering/RUNTIME.md`.
 ## Repository layout
 
 ```
-protocol/   CPP v1.0 immutable schemas + RFC 8785 canonicalization (deterministic core)
+protocol/   CPP v1.0 immutable schemas + RFC 8785 canonicalization + Ed25519 signing
+kernel/     deterministic cartridge compiler (.cfx) + 9-stage router/compiler
 evals/      telemetry harness + Stage-B / audit experiments
 tests/      unit tests for the deterministic core
 scripts/    WSL/GPU bring-up + runners

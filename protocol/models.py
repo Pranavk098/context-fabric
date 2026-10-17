@@ -171,6 +171,13 @@ class Tier1Ledger(BaseModel):
     model_config = _FROZEN
     blocks: tuple[ContextBlock, ...] = ()
 
+    @model_validator(mode="after")
+    def _ordered_by_event_seq(self) -> Tier1Ledger:
+        seqs = [b.source_event_seq for b in self.blocks]
+        if seqs != sorted(seqs):
+            raise ValueError("tier1 blocks must be ordered by ascending source_event_seq")
+        return self
+
 
 class Tier2Swap(BaseModel):
     model_config = _FROZEN
@@ -237,6 +244,15 @@ class ContextPacket(BaseModel):
     total_tokens: int = Field(ge=0)
     hashes: Hashes
     route_trace_ref: RouteTraceRef = RouteTraceRef()
+
+    @model_validator(mode="after")
+    def _within_budget(self) -> ContextPacket:
+        if self.total_tokens > self.budget.hard_total_tokens:
+            raise ValueError(
+                f"total_tokens ({self.total_tokens}) exceeds hard_total_tokens "
+                f"({self.budget.hard_total_tokens})"
+            )
+        return self
 
 
 class WorkflowEvent(BaseModel):

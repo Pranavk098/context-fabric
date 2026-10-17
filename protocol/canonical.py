@@ -11,8 +11,10 @@ values never reach that range. Upgrade to the `rfc8785` package if that ever cha
 
 from __future__ import annotations
 
+import enum
 import hashlib
 import math
+from decimal import Decimal
 from typing import Any
 
 _ESCAPES = {
@@ -39,17 +41,36 @@ def _escape_string(s: str) -> str:
     return "".join(out)
 
 
-def _dumps_number(n: int | float) -> str:
-    if isinstance(n, int):
-        return str(n)
-    if math.isnan(n) or math.isinf(n):
+def _dumps_int(n: int) -> str:
+    return str(n)
+
+
+def _dumps_float(x: float) -> str:
+    """ECMAScript Number::toString, as required by RFC 8785 (audit P-01)."""
+    if math.isnan(x) or math.isinf(x):
         raise ValueError("JCS forbids NaN/Infinity")
-    if n == 0:
-        return "0"  # normalizes -0.0 -> "0"
-    s = repr(float(n))
-    if s.endswith(".0"):
-        s = s[:-2]
-    return s
+    if x == 0:
+        return "0"  # normalizes -0.0
+    sign = "-" if x < 0 else ""
+    d = Decimal(repr(abs(x))).normalize()
+    _, digits, exp = d.as_tuple()
+    if not isinstance(exp, int):  # NaN/Inf sentinels are impossible here (checked above)
+        raise ValueError("JCS forbids non-finite numbers")
+    s = "".join(str(digit) for digit in digits)
+    k = len(s)
+    n = exp + k  # decimal point position
+    if k <= n <= 21:
+        return sign + s + "0" * (n - k)
+    if 0 < n <= 21:
+        return sign + s[:n] + "." + s[n:]
+    if -6 < n <= 0:
+        return sign + "0." + "0" * (-n) + s
+    exp_str = f"{n - 1:+d}"
+    return sign + s[0] + ("." + s[1:] if k > 1 else "") + "e" + exp_str
+
+
+def _dumps_number(n: int | float) -> str:
+    return _dumps_int(n) if isinstance(n, int) else _dumps_float(n)
 
 
 def _utf16_units(s: str) -> list[int]:
@@ -60,6 +81,8 @@ def _utf16_units(s: str) -> list[int]:
 def _serialize(obj: Any) -> str:
     if obj is None:
         return "null"
+    if isinstance(obj, enum.Enum):
+        obj = obj.value  # IntEnum/StrEnum -> raw value (audit P-02)
     if isinstance(obj, bool):  # must precede int (bool is subclass of int)
         return "true" if obj else "false"
     if isinstance(obj, int):
@@ -94,16 +117,15 @@ def content_hash(obj: Any) -> str:
 
 
 def packet_content_hash(packet: Any) -> str:
-    """Content hash of a ContextPacket (ADR-0003 §5).
+    """Content hash of a ContextPacket, ``sha256:``-prefixed (ADR-0005 rule 1).
 
-    The ``hashes`` block is emptied before hashing: both ``signature`` and the
-    ``content_hash`` field itself are excluded, otherwise the hash would depend on its
-    own value (a self-reference) and would not be idempotent. ``packet`` may be a
-    pydantic model or a plain dict.
+    The ``hashes`` block is emptied before hashing: ``signature`` and ``content_hash``
+    itself are excluded, otherwise the hash would depend on its own value. ``packet`` may
+    be a pydantic model or a plain dict.
     """
     payload = packet.model_dump(mode="json") if hasattr(packet, "model_dump") else dict(packet)
     payload["hashes"] = {}
-    return content_hash(payload)
+    return "sha256:" + content_hash(payload)
 
 
 if __name__ == "__main__":
@@ -113,6 +135,13 @@ if __name__ == "__main__":
     assert canonicalize(1.0) == b"1"
     assert canonicalize(0.5) == b"0.5"
     assert canonicalize(-0.0) == b"0"
+    # ECMAScript/RFC 8785 number formatting (audit P-01)
+    assert canonicalize(1e16) == b"10000000000000000"
+    assert canonicalize(1e21) == b"1e+21"
+    assert canonicalize(1e-5) == b"0.00001"
+    assert canonicalize(1.5e-5) == b"0.000015"
+    assert canonicalize(1e-7) == b"1e-7"
+    assert canonicalize(-2.5) == b"-2.5"
     assert canonicalize({"s": 'he said "hi"\n'}) == b'{"s":"he said \\"hi\\"\\n"}'
     assert canonicalize("\u20ac") == '"\u20ac"'.encode("utf-8")  # non-ASCII emitted literally
     # key order: UTF-16 code units ("\u20ac" is 0x20AC > 'z' 0x7A)

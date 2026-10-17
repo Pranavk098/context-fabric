@@ -15,6 +15,8 @@ Everything that matters is here. "Main" documents are marked ⭐.
 
 ## research/
 - `Approach-Comp-Research.md` — research foundation and competitive analysis.
+- `COMPETITIVE-LANDSCAPE.md` — 2026 competitor map: what they do better, where we win.
+- `SOTA-AND-THREATS.md` — current SOTA, novelty collisions, and risks to our claims.
 - `REFERENCES.md` — sourced-claims ledger (verified vs `[HYPOTHESIS]`).
 
 ## engineering/
@@ -22,6 +24,9 @@ Everything that matters is here. "Main" documents are marked ⭐.
 - ⭐ `AUDIT.md` — shortfall ledger + classification (every gap: artifact/design/limitation).
 - `CHANGES-FROM-PROPOSAL.md` — what changed from the original proposal and why.
 - `RUNTIME.md` — how to run the vLLM / LMCache experiments locally.
+- `VERIFICATION-REPORT.md` — claims vs code/results (what holds, what's overstated).
+- `PROTOCOL-REVIEW.md` — deterministic-core (protocol/) audit.
+- `KERNEL-REVIEW.md` — Stage C kernel code review.
 
 ## decisions/
 - `ADR-0001` packet size & tier budgets
