@@ -22,7 +22,7 @@ chasing nondeterministic runs) and, later, for AI Act / ISO 42001 evidence pipel
 
 Use this wording verbatim:
 
-> Context Fabric seals the context: every hand-off packet is canonically hashed, Ed25519-signed,
+> Context Fabric seals the context: every hand-off packet can be canonically hashed and Ed25519-signed,
 > and chained, so you can prove exactly which notes an agent received, that they were never
 > altered, and that a recompile from the same watermark reproduces them byte-for-byte. It does
 > not claim the model's answer is reproducible — model outputs depend on hardware, batching, and

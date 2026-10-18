@@ -151,3 +151,48 @@ def test_display_only_entry_needs_no_baseline(tmp_path: Path) -> None:
         ]
     }
     assert not [m for ok, m in _run(tmp_path, payload) if not ok]
+
+
+def test_symbol_exists_checks_module_and_attribute() -> None:
+    assert MOD._symbol_exists("pathlib:Path")
+    assert not MOD._symbol_exists("pathlib:DefinitelyMissing")
+    assert not MOD._symbol_exists("not_a_module:thing")
+    assert MOD._symbol_exists("pathlib")
+
+
+def test_capability_guard_passes_when_symbol_and_test_exist(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / "doc.md").write_text("This project uses lambda-MMR packing.\n", encoding="utf-8")
+    monkeypatch.setattr(
+        MOD,
+        "CAPABILITY_REGISTRY",
+        [
+            {
+                "phrase": "lambda-MMR",
+                "symbol": "kernel.router.packer:_mmr_order",
+                "test": "tests.test_packer:test_mmr_lowers_redundancy_at_equal_utility",
+            }
+        ],
+    )
+    report: list[tuple[bool, str]] = []
+    MOD._check_capabilities(tmp_path, report)
+    assert all(ok for ok, _ in report)
+    assert any("lambda-MMR" in message for _, message in report)
+
+
+def test_capability_guard_fails_when_symbol_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / "doc.md").write_text("We now support orbital mind control.\n", encoding="utf-8")
+    monkeypatch.setattr(
+        MOD,
+        "CAPABILITY_REGISTRY",
+        [{"phrase": "orbital mind control", "symbol": "no.such.module:Thing"}],
+    )
+    report: list[tuple[bool, str]] = []
+    MOD._check_capabilities(tmp_path, report)
+    failures = [message for ok, message in report if not ok]
+    assert failures
+    assert "orbital mind control" in failures[0]
+    assert "symbol no.such.module:Thing" in failures[0]

@@ -1,8 +1,9 @@
-"""Hard policy engine — deny-by-default RBAC / lifecycle / freshness gates.
+"""Hard policy engine — deny-by-default RBAC / lifecycle / freshness / purpose gates.
 
 Runs BEFORE scoring (invariant 2: policy-before-ranking). Role blindness (e.g. an auditor
 must not see an implementer's persuasive observations) is enforced via a block's
-``denied_roles`` field. Returns allowed blocks plus a full denial trace.
+``denied_roles`` field. Purpose compartments are enforced via ``allowed_purposes``.
+Returns allowed blocks plus a full denial trace.
 """
 
 from __future__ import annotations
@@ -26,12 +27,16 @@ def apply_policy(
     role: str,
     as_of: datetime | None = None,
     trust_domain: str | None = None,
+    purpose: str | None = None,
 ) -> tuple[list[ContextBlock], list[Denial]]:
     allowed: list[ContextBlock] = []
     denials: list[Denial] = []
     for b in blocks:
         if trust_domain is not None and b.trust_domain != trust_domain:
             denials.append(Denial(b.block_id, "trust_domain_mismatch"))
+            continue
+        if purpose is not None and b.allowed_purposes and purpose not in b.allowed_purposes:
+            denials.append(Denial(b.block_id, "purpose_not_allowed"))
             continue
         if b.lifecycle_status is not LifecycleStatus.routable:
             denials.append(Denial(b.block_id, f"lifecycle:{b.lifecycle_status.value}"))
