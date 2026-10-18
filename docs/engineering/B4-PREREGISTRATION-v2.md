@@ -69,14 +69,16 @@ deterministically (files in listed order, then source order):
   (`ast.get_docstring`);
 - **assignments** — one `fact` block per module-level and class-level `name = value`
   assignment (`ast.unparse`);
+- **import roots** — one `fact` block per file listing the root module name of every import
+  in the file (`ast.walk` over `Import`/`ImportFrom`, e.g. `_api.py: imports …, _client,
+  _models, _config, _urls, …`);
 - **cartridge** — one project-wide `artifact` block carrying the `.cfx` hologram
   (`build_cartridge`, `budget_tokens=600`), `ref_uri=None`.
 
-Import statements are **deliberately not** a block kind, so objectives that ask "which module
-is X imported from" have a genuine recall gap (an honest outcome, not a hidden answer). The
-ingester **never reads objectives or answer keys** — its only inputs are `(repo_root, files)`,
-and a test (`tests/test_b4_divergent.py`) proves this: it feeds the ingester a `src.py` and a
-separate `objectives.py`, and asserts no objective/key text from the latter enters the blocks.
+The ingester **never reads objectives or answer keys** — its only inputs are `(repo_root,
+files)`, and a test (`tests/test_b4_divergent.py`) proves this: it feeds the ingester a
+`src.py` and a separate `objectives.py`, and asserts no objective/key text from the latter
+enters the blocks.
 
 **Role divergence — a fixed file-ownership map, not per-answer.** Each role owns exactly one
 file; `evals/b4_divergent.build_mech_blocks` sets `denied_roles` mechanically so a block is
@@ -126,8 +128,8 @@ table, §6).
 Known limitation, stated up front (mirroring the pilot's honesty): required/forbidden are
 substring facts, so a verbose correct answer that mentions a forbidden distractor fails, and a
 wrong answer that happens to contain every required fact without any forbidden one passes;
-substring recall can false-positive (e.g. `_get_client_nonce` contains `_client`). These
-asymmetries apply equally to every arm.
+substring recall can false-positive when a required token appears inside an unrelated longer
+token. These asymmetries apply equally to every arm.
 
 ## 5. Arms (fixed now)
 
