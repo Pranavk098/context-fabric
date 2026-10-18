@@ -88,6 +88,7 @@ def compile_packet(
     as_of: datetime = DEFAULT_AS_OF,
     signer: Signer | None = None,
     purpose: str | None = None,
+    output_contract: str | None = None,
 ) -> CompileResult:
     budget = TokenBudget.from_base(budget_base)
 
@@ -146,6 +147,7 @@ def compile_packet(
         blocks=closure.blocks,
         budget=budget,
         cartridge_tokens=cart_tokens,
+        output_contract=output_contract,
     )
 
     probes = tuple(b for b in packed.tier3 if b.block_kind is BlockKind.shadow_probe)
