@@ -1,0 +1,810 @@
+[
+  {
+    "id": "b4v3-p1",
+    "role": "planner",
+    "objective": "What integer is the default value of max_redirects used by httpx clients? Answer with the number only.",
+    "required": [
+      "20"
+    ],
+    "forbidden": [
+      "5.0",
+      "100",
+      "None"
+    ],
+    "source": [
+      {
+        "file": "_config.py",
+        "line": 248,
+        "excerpt": "DEFAULT_MAX_REDIRECTS = 20"
+      },
+      {
+        "file": "_config.py",
+        "line": 246,
+        "excerpt": "DEFAULT_TIMEOUT_CONFIG = Timeout(timeout=5.0)"
+      },
+      {
+        "file": "_config.py",
+        "line": 247,
+        "excerpt": "DEFAULT_LIMITS = Limits(max_connections=100, max_keepalive_connections=20)"
+      },
+      {
+        "file": "_config.py",
+        "line": 79,
+        "excerpt": "    Timeout(5.0)                # 5s timeout on all operations."
+      },
+      {
+        "file": "_config.py",
+        "line": 25,
+        "excerpt": "    cert: CertTypes | None = None,"
+      }
+    ]
+  },
+  {
+    "id": "b4v3-p2",
+    "role": "planner",
+    "objective": "When Client.build_request() merges query parameters and falls back to a default timeout, what class from _urls.py and what constant from _config.py are used? Give the two identifiers separated by a comma.",
+    "required": [
+      "QueryParams",
+      "DEFAULT_TIMEOUT_CONFIG"
+    ],
+    "forbidden": [
+      "URL",
+      "DEFAULT_LIMITS",
+      "DEFAULT_MAX_REDIRECTS"
+    ],
+    "source": [
+      {
+        "file": "_client.py",
+        "line": 209,
+        "excerpt": "        self._params = QueryParams(params)"
+      },
+      {
+        "file": "_client.py",
+        "line": 196,
+        "excerpt": "        timeout: TimeoutTypes = DEFAULT_TIMEOUT_CONFIG,"
+      },
+      {
+        "file": "_config.py",
+        "line": 246,
+        "excerpt": "DEFAULT_TIMEOUT_CONFIG = Timeout(timeout=5.0)"
+      },
+      {
+        "file": "_client.py",
+        "line": 24,
+        "excerpt": "    InvalidURL,"
+      },
+      {
+        "file": "_client.py",
+        "line": 15,
+        "excerpt": "    DEFAULT_LIMITS,"
+      },
+      {
+        "file": "_client.py",
+        "line": 16,
+        "excerpt": "    DEFAULT_MAX_REDIRECTS,"
+      }
+    ]
+  },
+  {
+    "id": "b4v3-p3",
+    "role": "planner",
+    "objective": "In _transports/default.py, which base class defined in _transports/base.py does AsyncHTTPTransport inherit from? Give the class name only.",
+    "required": [
+      "AsyncBaseTransport"
+    ],
+    "forbidden": [
+      "BaseTransport",
+      "HTTPTransport",
+      "Client"
+    ],
+    "source": [
+      {
+        "file": "_transports/base.py",
+        "line": 65,
+        "excerpt": "class AsyncBaseTransport:"
+      },
+      {
+        "file": "_transports/default.py",
+        "line": 279,
+        "excerpt": "class AsyncHTTPTransport(AsyncBaseTransport):"
+      },
+      {
+        "file": "_transports/base.py",
+        "line": 8,
+        "excerpt": "T = typing.TypeVar(\"T\", bound=\"BaseTransport\")"
+      },
+      {
+        "file": "_transports/base.py",
+        "line": 42,
+        "excerpt": "            with httpx.HTTPTransport() as transport:"
+      },
+      {
+        "file": "_transports/base.py",
+        "line": 31,
+        "excerpt": "        since the Client class provides all the higher level user-facing API"
+      }
+    ]
+  },
+  {
+    "id": "b4v3-p4",
+    "role": "planner",
+    "objective": "In Client._redirect_method, which two status-code constants from _status_codes.py trigger a method change to GET when the original method is not HEAD? List both names.",
+    "required": [
+      "FOUND",
+      "SEE_OTHER"
+    ],
+    "forbidden": [
+      "MOVED_PERMANENTLY",
+      "TEMPORARY_REDIRECT",
+      "PERMANENT_REDIRECT"
+    ],
+    "source": [
+      {
+        "file": "_status_codes.py",
+        "line": 108,
+        "excerpt": "    FOUND = 302, \"Found\""
+      },
+      {
+        "file": "_status_codes.py",
+        "line": 109,
+        "excerpt": "    SEE_OTHER = 303, \"See Other\""
+      },
+      {
+        "file": "_client.py",
+        "line": 502,
+        "excerpt": "        if response.status_code == codes.SEE_OTHER and method != \"HEAD\":"
+      },
+      {
+        "file": "_client.py",
+        "line": 507,
+        "excerpt": "        if response.status_code == codes.FOUND and method != \"HEAD\":"
+      },
+      {
+        "file": "_status_codes.py",
+        "line": 107,
+        "excerpt": "    MOVED_PERMANENTLY = 301, \"Moved Permanently\""
+      },
+      {
+        "file": "_status_codes.py",
+        "line": 112,
+        "excerpt": "    TEMPORARY_REDIRECT = 307, \"Temporary Redirect\""
+      },
+      {
+        "file": "_status_codes.py",
+        "line": 113,
+        "excerpt": "    PERMANENT_REDIRECT = 308, \"Permanent Redirect\""
+      }
+    ]
+  },
+  {
+    "id": "b4v3-p5",
+    "role": "planner",
+    "objective": "In Client.__init__, what are the names of the two default config constants used for the limits and max_redirects parameters? List both identifiers.",
+    "required": [
+      "DEFAULT_LIMITS",
+      "DEFAULT_MAX_REDIRECTS"
+    ],
+    "forbidden": [
+      "DEFAULT_TIMEOUT_CONFIG",
+      "USE_CLIENT_DEFAULT",
+      "Limits"
+    ],
+    "source": [
+      {
+        "file": "_client.py",
+        "line": 655,
+        "excerpt": "        limits: Limits = DEFAULT_LIMITS,"
+      },
+      {
+        "file": "_client.py",
+        "line": 656,
+        "excerpt": "        max_redirects: int = DEFAULT_MAX_REDIRECTS,"
+      },
+      {
+        "file": "_client.py",
+        "line": 17,
+        "excerpt": "    DEFAULT_TIMEOUT_CONFIG,"
+      },
+      {
+        "file": "_client.py",
+        "line": 54,
+        "excerpt": "__all__ = [\"USE_CLIENT_DEFAULT\", \"AsyncClient\", \"Client\"]"
+      },
+      {
+        "file": "_client.py",
+        "line": 18,
+        "excerpt": "    Limits,"
+      }
+    ]
+  },
+  {
+    "id": "b4v3-i1",
+    "role": "implementer",
+    "objective": "Which ContentDecoder subclass in _decoders.py handles 'zstd' responses? Give the class name only.",
+    "required": [
+      "ZStandardDecoder"
+    ],
+    "forbidden": [
+      "BrotliDecoder",
+      "GZipDecoder",
+      "DeflateDecoder"
+    ],
+    "source": [
+      {
+        "file": "_decoders.py",
+        "line": 161,
+        "excerpt": "class ZStandardDecoder(ContentDecoder):"
+      },
+      {
+        "file": "_decoders.py",
+        "line": 108,
+        "excerpt": "class BrotliDecoder(ContentDecoder):"
+      },
+      {
+        "file": "_decoders.py",
+        "line": 85,
+        "excerpt": "class GZipDecoder(ContentDecoder):"
+      },
+      {
+        "file": "_decoders.py",
+        "line": 56,
+        "excerpt": "class DeflateDecoder(ContentDecoder):"
+      }
+    ]
+  },
+  {
+    "id": "b4v3-i2",
+    "role": "implementer",
+    "objective": "In the URL class, which property returns the URL-decoded path as a string, and which returns the raw bytes of the path plus query? List both property names.",
+    "required": [
+      "path",
+      "raw_path"
+    ],
+    "forbidden": [
+      "query",
+      "netloc",
+      "host"
+    ],
+    "source": [
+      {
+        "file": "_urls.py",
+        "line": 245,
+        "excerpt": "    def path(self) -> str:"
+      },
+      {
+        "file": "_urls.py",
+        "line": 283,
+        "excerpt": "    def raw_path(self) -> bytes:"
+      },
+      {
+        "file": "_urls.py",
+        "line": 28,
+        "excerpt": "    assert url.query == b\"?search=ab\""
+      },
+      {
+        "file": "_urls.py",
+        "line": 26,
+        "excerpt": "    assert url.netloc == b\"xn--mller-kva.de:1234\""
+      },
+      {
+        "file": "_urls.py",
+        "line": 23,
+        "excerpt": "    assert url.host == \"m\u00fcller.de\""
+      }
+    ]
+  },
+  {
+    "id": "b4v3-i3",
+    "role": "implementer",
+    "objective": "When the optional brotli and zstandard packages are not installed, which two keys are removed from SUPPORTED_DECODERS in _decoders.py? List both keys.",
+    "required": [
+      "br",
+      "zstd"
+    ],
+    "forbidden": [
+      "gzip",
+      "deflate",
+      "identity"
+    ],
+    "source": [
+      {
+        "file": "_decoders.py",
+        "line": 391,
+        "excerpt": "    SUPPORTED_DECODERS.pop(\"br\")  # pragma: no cover"
+      },
+      {
+        "file": "_decoders.py",
+        "line": 392,
+        "excerpt": "if zstandard is None:"
+      },
+      {
+        "file": "_decoders.py",
+        "line": 87,
+        "excerpt": "    Handle 'gzip' decoding."
+      },
+      {
+        "file": "_decoders.py",
+        "line": 58,
+        "excerpt": "    Handle 'deflate' decoding."
+      },
+      {
+        "file": "_decoders.py",
+        "line": 382,
+        "excerpt": "    \"identity\": IdentityDecoder,"
+      }
+    ]
+  },
+  {
+    "id": "b4v3-i4",
+    "role": "implementer",
+    "objective": "Which property on URL returns the IDNA-encoded host as bytes, and which class in _models.py stores HTTP headers as a case-insensitive multi-dict? Give both identifiers.",
+    "required": [
+      "raw_host",
+      "Headers"
+    ],
+    "forbidden": [
+      "host",
+      "netloc",
+      "QueryParams"
+    ],
+    "source": [
+      {
+        "file": "_urls.py",
+        "line": 196,
+        "excerpt": "    def raw_host(self) -> bytes:"
+      },
+      {
+        "file": "_models.py",
+        "line": 139,
+        "excerpt": "class Headers(typing.MutableMapping[str, str]):"
+      },
+      {
+        "file": "_urls.py",
+        "line": 23,
+        "excerpt": "    assert url.host == \"m\u00fcller.de\""
+      },
+      {
+        "file": "_urls.py",
+        "line": 26,
+        "excerpt": "    assert url.netloc == b\"xn--mller-kva.de:1234\""
+      },
+      {
+        "file": "_urls.py",
+        "line": 12,
+        "excerpt": "__all__ = [\"URL\", \"QueryParams\"]"
+      }
+    ]
+  },
+  {
+    "id": "b4v3-i5",
+    "role": "implementer",
+    "objective": "Which two ContentDecoder subclasses in _decoders.py handle 'gzip' and 'deflate' content encodings? List both class names.",
+    "required": [
+      "GZipDecoder",
+      "DeflateDecoder"
+    ],
+    "forbidden": [
+      "BrotliDecoder",
+      "ZStandardDecoder",
+      "IdentityDecoder"
+    ],
+    "source": [
+      {
+        "file": "_decoders.py",
+        "line": 56,
+        "excerpt": "class DeflateDecoder(ContentDecoder):"
+      },
+      {
+        "file": "_decoders.py",
+        "line": 85,
+        "excerpt": "class GZipDecoder(ContentDecoder):"
+      },
+      {
+        "file": "_decoders.py",
+        "line": 108,
+        "excerpt": "class BrotliDecoder(ContentDecoder):"
+      },
+      {
+        "file": "_decoders.py",
+        "line": 161,
+        "excerpt": "class ZStandardDecoder(ContentDecoder):"
+      },
+      {
+        "file": "_decoders.py",
+        "line": 44,
+        "excerpt": "class IdentityDecoder(ContentDecoder):"
+      }
+    ]
+  },
+  {
+    "id": "b4v3-t1",
+    "role": "tester",
+    "objective": "What is the constant name for HTTP status 418 in httpx._status_codes? Give the identifier only.",
+    "required": [
+      "IM_A_TEAPOT"
+    ],
+    "forbidden": [
+      "IM_USED",
+      "TOO_EARLY",
+      "GONE"
+    ],
+    "source": [
+      {
+        "file": "_status_codes.py",
+        "line": 134,
+        "excerpt": "    IM_A_TEAPOT = 418, \"I'm a teapot\""
+      },
+      {
+        "file": "_status_codes.py",
+        "line": 103,
+        "excerpt": "    IM_USED = 226, \"IM Used\""
+      },
+      {
+        "file": "_status_codes.py",
+        "line": 139,
+        "excerpt": "    TOO_EARLY = 425, \"Too Early\""
+      },
+      {
+        "file": "_status_codes.py",
+        "line": 126,
+        "excerpt": "    GONE = 410, \"Gone\""
+      }
+    ]
+  },
+  {
+    "id": "b4v3-t2",
+    "role": "tester",
+    "objective": "Which two methods on Request read the entire body into memory, one synchronous and one asynchronous? List both method names.",
+    "required": [
+      "read",
+      "aread"
+    ],
+    "forbidden": [
+      "iter_bytes",
+      "aiter_bytes",
+      "content"
+    ],
+    "source": [
+      {
+        "file": "_models.py",
+        "line": 468,
+        "excerpt": "    def read(self) -> bytes:"
+      },
+      {
+        "file": "_models.py",
+        "line": 482,
+        "excerpt": "    async def aread(self) -> bytes:"
+      },
+      {
+        "file": "_models.py",
+        "line": 881,
+        "excerpt": "            self._content = b\"\".join(self.iter_bytes())"
+      },
+      {
+        "file": "_models.py",
+        "line": 979,
+        "excerpt": "            self._content = b\"\".join([part async for part in self.aiter_bytes()])"
+      },
+      {
+        "file": "_models.py",
+        "line": 13,
+        "excerpt": "from ._content import ByteStream, UnattachedStream, encode_request, encode_response"
+      }
+    ]
+  },
+  {
+    "id": "b4v3-t3",
+    "role": "tester",
+    "objective": "Which Response property is True for 4xx or 5xx status codes, and which method raises HTTPStatusError for them? Give both identifiers.",
+    "required": [
+      "is_error",
+      "raise_for_status"
+    ],
+    "forbidden": [
+      "is_success",
+      "is_redirect",
+      "has_redirect_location"
+    ],
+    "source": [
+      {
+        "file": "_models.py",
+        "line": 765,
+        "excerpt": "    def is_error(self) -> bool:"
+      },
+      {
+        "file": "_models.py",
+        "line": 794,
+        "excerpt": "    def raise_for_status(self) -> Response:"
+      },
+      {
+        "file": "_models.py",
+        "line": 732,
+        "excerpt": "    def is_success(self) -> bool:"
+      },
+      {
+        "file": "_models.py",
+        "line": 739,
+        "excerpt": "    def is_redirect(self) -> bool:"
+      },
+      {
+        "file": "_models.py",
+        "line": 745,
+        "excerpt": "        Use `response.has_redirect_location` to determine responses with a properly"
+      }
+    ]
+  },
+  {
+    "id": "b4v3-t4",
+    "role": "tester",
+    "objective": "Which exception from _exceptions.py is raised when Request.content is accessed before the stream has been read? Give the class name only.",
+    "required": [
+      "RequestNotRead"
+    ],
+    "forbidden": [
+      "ResponseNotRead",
+      "StreamClosed",
+      "StreamConsumed"
+    ],
+    "source": [
+      {
+        "file": "_models.py",
+        "line": 465,
+        "excerpt": "            raise RequestNotRead()"
+      },
+      {
+        "file": "_exceptions.py",
+        "line": 351,
+        "excerpt": "class RequestNotRead(StreamError):"
+      },
+      {
+        "file": "_models.py",
+        "line": 28,
+        "excerpt": "    ResponseNotRead,"
+      },
+      {
+        "file": "_models.py",
+        "line": 29,
+        "excerpt": "    StreamClosed,"
+      },
+      {
+        "file": "_models.py",
+        "line": 30,
+        "excerpt": "    StreamConsumed,"
+      }
+    ]
+  },
+  {
+    "id": "b4v3-t5",
+    "role": "tester",
+    "objective": "Which class in _exceptions.py is the base for request-level errors, and which top-level helper in _api.py creates a Client to issue a request? Give both identifiers.",
+    "required": [
+      "RequestError",
+      "request"
+    ],
+    "forbidden": [
+      "HTTPError",
+      "TransportError",
+      "get"
+    ],
+    "source": [
+      {
+        "file": "_exceptions.py",
+        "line": 107,
+        "excerpt": "class RequestError(HTTPError):"
+      },
+      {
+        "file": "_api.py",
+        "line": 39,
+        "excerpt": "def request("
+      },
+      {
+        "file": "_exceptions.py",
+        "line": 4,
+        "excerpt": "* HTTPError"
+      },
+      {
+        "file": "_exceptions.py",
+        "line": 6,
+        "excerpt": "    + TransportError"
+      },
+      {
+        "file": "_exceptions.py",
+        "line": 85,
+        "excerpt": "        response = httpx.get(\"https://www.example.com\")"
+      }
+    ]
+  },
+  {
+    "id": "b4v3-r1",
+    "role": "reviewer",
+    "objective": "What is the default numeric value of keepalive_expiry in the Limits class? Give the value only.",
+    "required": [
+      "5.0"
+    ],
+    "forbidden": [
+      "None",
+      "100",
+      "20"
+    ],
+    "source": [
+      {
+        "file": "_config.py",
+        "line": 178,
+        "excerpt": "        keepalive_expiry: float | None = 5.0,"
+      },
+      {
+        "file": "_config.py",
+        "line": 25,
+        "excerpt": "    cert: CertTypes | None = None,"
+      },
+      {
+        "file": "_config.py",
+        "line": 247,
+        "excerpt": "DEFAULT_LIMITS = Limits(max_connections=100, max_keepalive_connections=20)"
+      }
+    ]
+  },
+  {
+    "id": "b4v3-r2",
+    "role": "reviewer",
+    "objective": "Which exception class in _exceptions.py is the base of RequestError, which is imported by _main.py? Give the class name only.",
+    "required": [
+      "HTTPError"
+    ],
+    "forbidden": [
+      "RequestError",
+      "TransportError",
+      "ValueError"
+    ],
+    "source": [
+      {
+        "file": "_exceptions.py",
+        "line": 74,
+        "excerpt": "class HTTPError(Exception):"
+      },
+      {
+        "file": "_main.py",
+        "line": 18,
+        "excerpt": "from ._exceptions import RequestError"
+      },
+      {
+        "file": "_exceptions.py",
+        "line": 5,
+        "excerpt": "  x RequestError"
+      },
+      {
+        "file": "_exceptions.py",
+        "line": 6,
+        "excerpt": "    + TransportError"
+      },
+      {
+        "file": "_main.py",
+        "line": 178,
+        "excerpt": "            except ValueError:  # pragma: no cover"
+      }
+    ]
+  },
+  {
+    "id": "b4v3-r3",
+    "role": "reviewer",
+    "objective": "In DigestAuth, which two algorithm names map to hashlib.md5? List both names.",
+    "required": [
+      "MD5",
+      "MD5-SESS"
+    ],
+    "forbidden": [
+      "SHA",
+      "SHA-256",
+      "SHA-512"
+    ],
+    "source": [
+      {
+        "file": "_auth.py",
+        "line": 177,
+        "excerpt": "        \"MD5\": hashlib.md5,"
+      },
+      {
+        "file": "_auth.py",
+        "line": 178,
+        "excerpt": "        \"MD5-SESS\": hashlib.md5,"
+      },
+      {
+        "file": "_auth.py",
+        "line": 179,
+        "excerpt": "        \"SHA\": hashlib.sha1,"
+      },
+      {
+        "file": "_auth.py",
+        "line": 181,
+        "excerpt": "        \"SHA-256\": hashlib.sha256,"
+      },
+      {
+        "file": "_auth.py",
+        "line": 183,
+        "excerpt": "        \"SHA-512\": hashlib.sha512,"
+      }
+    ]
+  },
+  {
+    "id": "b4v3-r4",
+    "role": "reviewer",
+    "objective": "Which exception class in _exceptions.py is the base for stream errors, and which class in _models.py raises StreamConsumed when raw response iteration is attempted twice? Give both identifiers.",
+    "required": [
+      "StreamError",
+      "Response"
+    ],
+    "forbidden": [
+      "StreamClosed",
+      "RequestError",
+      "HTTPError"
+    ],
+    "source": [
+      {
+        "file": "_exceptions.py",
+        "line": 297,
+        "excerpt": "class StreamError(RuntimeError):"
+      },
+      {
+        "file": "_models.py",
+        "line": 940,
+        "excerpt": "            raise StreamConsumed()"
+      },
+      {
+        "file": "_exceptions.py",
+        "line": 29,
+        "excerpt": "  x StreamClosed"
+      },
+      {
+        "file": "_exceptions.py",
+        "line": 5,
+        "excerpt": "  x RequestError"
+      },
+      {
+        "file": "_exceptions.py",
+        "line": 4,
+        "excerpt": "* HTTPError"
+      }
+    ]
+  },
+  {
+    "id": "b4v3-r5",
+    "role": "reviewer",
+    "objective": "In _multipart.py, which helper function guesses a file's mimetype, and what fallback string does it return when guessing yields None? Give both.",
+    "required": [
+      "_guess_content_type",
+      "application/octet-stream"
+    ],
+    "forbidden": [
+      "_format_form_param",
+      "multipart/form-data",
+      "text/plain"
+    ],
+    "source": [
+      {
+        "file": "_multipart.py",
+        "line": 45,
+        "excerpt": "def _guess_content_type(filename: str | None) -> str | None:"
+      },
+      {
+        "file": "_multipart.py",
+        "line": 52,
+        "excerpt": "        return mimetypes.guess_type(filename)[0] or \"application/octet-stream\""
+      },
+      {
+        "file": "_content.py",
+        "line": 163,
+        "excerpt": "    content_type = \"text/plain; charset=utf-8\""
+      },
+      {
+        "file": "_multipart.py",
+        "line": 33,
+        "excerpt": "def _format_form_param(name: str, value: str) -> bytes:"
+      },
+      {
+        "file": "_multipart.py",
+        "line": 59,
+        "excerpt": "    if not content_type or not content_type.startswith(b\"multipart/form-data\"):"
+      }
+    ]
+  }
+]
