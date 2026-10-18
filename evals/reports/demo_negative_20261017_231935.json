@@ -1,0 +1,354 @@
+{
+  "scenario": "negative",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "upstream": "http://127.0.0.1:8000",
+  "started_at": "2026-10-18T06:19:35.965044+00:00",
+  "records": [
+    {
+      "op": "pilot",
+      "arm": "control",
+      "trap": "search",
+      "repeat": 0,
+      "objective": "We need full-text search across all Atlas blocks. Recommend one solution.",
+      "bad": false,
+      "bad_keywords_hit": [],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "compiled": true,
+      "prompt_tokens": 2424,
+      "completion_tokens": 96,
+      "latency_ms": 1393.7,
+      "response": "To achieve full-text search across all Atlas blocks, we can leverage the following architecture:\n\n### Architecture Recommendation\n\n**Database Layer:**\n- **Canonical State:** Store the canonical state of each block in PostgreSQL. This will serve as the primary data store for full-text search capabilities.\n- **Embeddings:** Use `pgvector` to store vectorized versions of the text fields within each block. This allows for efficient similarity searches.\n\n**Service Layer:**\n- **API Contract:** All",
+      "response_text": "To achieve full-text search across all Atlas blocks, we can leverage the following architecture:\n\n### Architecture Recommendation\n\n**Database Layer:**\n- **Canonical State:** Store the canonical state of each block in PostgreSQL. This will serve as the primary data store for full-text search capabilities.\n- **Embeddings:** Use `pgvector` to store vectorized versions of the text fields within each block. This allows for efficient similarity searches.\n\n**Service Layer:**\n- **API Contract:** All",
+      "prompt_sha256": "sha256:109be52750afd64918e82b7998a5817b3a12c27e100e803c3df1241fd2d252e6"
+    },
+    {
+      "op": "pilot",
+      "arm": "control",
+      "trap": "search",
+      "repeat": 1,
+      "objective": "We need full-text search across all Atlas blocks. Recommend one solution.",
+      "bad": false,
+      "bad_keywords_hit": [],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "compiled": true,
+      "prompt_tokens": 2424,
+      "completion_tokens": 96,
+      "latency_ms": 1243.4,
+      "response": "To achieve full-text search across all Atlas blocks, we can leverage the following architecture:\n\n### Architecture Recommendation\n\n**Database Layer:**\n- **PostgreSQL:** Use PostgreSQL as the database to store data at the block level. This will allow for efficient querying of large datasets.\n\n**Indexing Strategy:**\n- **Full-Text Search Indexes:** Implement full-text search indexes using features like `tsvector` or `pg_trgm` in PostgreSQL. These indexes will enable fast text",
+      "response_text": "To achieve full-text search across all Atlas blocks, we can leverage the following architecture:\n\n### Architecture Recommendation\n\n**Database Layer:**\n- **PostgreSQL:** Use PostgreSQL as the database to store data at the block level. This will allow for efficient querying of large datasets.\n\n**Indexing Strategy:**\n- **Full-Text Search Indexes:** Implement full-text search indexes using features like `tsvector` or `pg_trgm` in PostgreSQL. These indexes will enable fast text",
+      "prompt_sha256": "sha256:109be52750afd64918e82b7998a5817b3a12c27e100e803c3df1241fd2d252e6"
+    },
+    {
+      "op": "pilot",
+      "arm": "control",
+      "trap": "queue",
+      "repeat": 0,
+      "objective": "Atlas background jobs need a real task queue. What should we adopt?",
+      "bad": false,
+      "bad_keywords_hit": [],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "compiled": true,
+      "prompt_tokens": 2424,
+      "completion_tokens": 96,
+      "latency_ms": 1423.9,
+      "response": "To address the requirement for a real task queue for Atlas background jobs, we can consider adopting a message broker system like RabbitMQ or Kafka. These systems are designed to handle high throughput and low latency, making them suitable for managing tasks efficiently.\n\n### Key Considerations:\n\n1. **Message Broker System**:\n   - **RabbitMQ**: A popular open-source message broker that supports both point-to-point and publish/subscribe models. It is highly scalable and has robust features for handling",
+      "response_text": "To address the requirement for a real task queue for Atlas background jobs, we can consider adopting a message broker system like RabbitMQ or Kafka. These systems are designed to handle high throughput and low latency, making them suitable for managing tasks efficiently.\n\n### Key Considerations:\n\n1. **Message Broker System**:\n   - **RabbitMQ**: A popular open-source message broker that supports both point-to-point and publish/subscribe models. It is highly scalable and has robust features for ha",
+      "prompt_sha256": "sha256:f8842d9688435e5167878cf807fd35b1c276328a780ef7bf2e547c0b0c613be1"
+    },
+    {
+      "op": "pilot",
+      "arm": "control",
+      "trap": "queue",
+      "repeat": 1,
+      "objective": "Atlas background jobs need a real task queue. What should we adopt?",
+      "bad": false,
+      "bad_keywords_hit": [],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "compiled": true,
+      "prompt_tokens": 2424,
+      "completion_tokens": 96,
+      "latency_ms": 1251.7,
+      "response": "To address the requirement for a real task queue for Atlas background jobs, we can consider adopting a message broker system such as RabbitMQ or Kafka. These systems provide robust queuing capabilities to handle asynchronous processing of tasks.\n\n### Key Considerations:\n\n1. **Message Broker System**:\n   - **RabbitMQ**: A popular open-source message broker that supports both point-to-point and publish/subscribe models. It is highly scalable and has good performance characteristics.\n   - **Kafka",
+      "response_text": "To address the requirement for a real task queue for Atlas background jobs, we can consider adopting a message broker system such as RabbitMQ or Kafka. These systems provide robust queuing capabilities to handle asynchronous processing of tasks.\n\n### Key Considerations:\n\n1. **Message Broker System**:\n   - **RabbitMQ**: A popular open-source message broker that supports both point-to-point and publish/subscribe models. It is highly scalable and has good performance characteristics.\n   - **Kafka",
+      "prompt_sha256": "sha256:f8842d9688435e5167878cf807fd35b1c276328a780ef7bf2e547c0b0c613be1"
+    },
+    {
+      "op": "pilot",
+      "arm": "control",
+      "trap": "cache",
+      "repeat": 0,
+      "objective": "Atlas API responses are slow. What caching layer should we add?",
+      "bad": true,
+      "bad_keywords_hit": [
+        "redis"
+      ],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "compiled": true,
+      "prompt_tokens": 2442,
+      "completion_tokens": 96,
+      "latency_ms": 1432.1,
+      "response": "To address the issue of slow Atlas API responses, adding a caching layer can significantly improve performance by reducing the number of times data needs to be fetched from the database or other external sources.\n\n### Caching Layer Considerations\n\n1. **Redis Cache**:\n   - **Pros**: \n     - Fast read/write operations.\n     - Easy integration with various programming languages.\n     - Can store large amounts of data efficiently.\n   - **Cons**:\n     - Limited support for complex queries",
+      "response_text": "To address the issue of slow Atlas API responses, adding a caching layer can significantly improve performance by reducing the number of times data needs to be fetched from the database or other external sources.\n\n### Caching Layer Considerations\n\n1. **Redis Cache**:\n   - **Pros**: \n     - Fast read/write operations.\n     - Easy integration with various programming languages.\n     - Can store large amounts of data efficiently.\n   - **Cons**:\n     - Limited support for complex queries",
+      "prompt_sha256": "sha256:a3b7a94ba3bc91bd56804ef8f21ed2add51a6e99661c90f81a96d944ce2f10cf"
+    },
+    {
+      "op": "pilot",
+      "arm": "control",
+      "trap": "cache",
+      "repeat": 1,
+      "objective": "Atlas API responses are slow. What caching layer should we add?",
+      "bad": true,
+      "bad_keywords_hit": [
+        "redis",
+        "memcached"
+      ],
+      "bad_v2": true,
+      "bad_keywords_hit_v2": [
+        "redis",
+        "memcached"
+      ],
+      "compiled": true,
+      "prompt_tokens": 2442,
+      "completion_tokens": 96,
+      "latency_ms": 1251.8,
+      "response": "To address the slow response times of Atlas API responses, we can implement a caching layer to reduce latency and improve performance. Here's a recommended approach:\n\n### Caching Layer Implementation\n\n#### 1. **Caching Strategy**\n   - **In-Memory Cache**: Use an in-memory cache like Redis or Memcached to store frequently accessed data. This will help reduce the number of database queries and speed up read operations.\n   - **Database Level Caching**: Implement database-level caching",
+      "response_text": "To address the slow response times of Atlas API responses, we can implement a caching layer to reduce latency and improve performance. Here's a recommended approach:\n\n### Caching Layer Implementation\n\n#### 1. **Caching Strategy**\n   - **In-Memory Cache**: Use an in-memory cache like Redis or Memcached to store frequently accessed data. This will help reduce the number of database queries and speed up read operations.\n   - **Database Level Caching**: Implement database-level caching",
+      "prompt_sha256": "sha256:a3b7a94ba3bc91bd56804ef8f21ed2add51a6e99661c90f81a96d944ce2f10cf"
+    },
+    {
+      "op": "pilot",
+      "arm": "control",
+      "trap": "metrics",
+      "repeat": 0,
+      "objective": "We need observability for all Atlas services. What should we deploy?",
+      "bad": false,
+      "bad_keywords_hit": [],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "compiled": true,
+      "prompt_tokens": 2467,
+      "completion_tokens": 96,
+      "latency_ms": 1427.8,
+      "response": "To achieve observability for all Atlas services, we can deploy the following components:\n\n### Observability Components\n\n#### 1. **PostgreSQL Database**\n   - **Architecture**: Canonical state in PostgreSQL; embeddings in `pgvector`.\n   - **Reasoning**: PostgreSQL provides robust transactional support and efficient storage of large datasets, making it suitable for storing complex data structures like embeddings.\n\n#### 2. **gRPC Service Endpoints**\n   - **API Contract**: All Atlas services",
+      "response_text": "To achieve observability for all Atlas services, we can deploy the following components:\n\n### Observability Components\n\n#### 1. **PostgreSQL Database**\n   - **Architecture**: Canonical state in PostgreSQL; embeddings in `pgvector`.\n   - **Reasoning**: PostgreSQL provides robust transactional support and efficient storage of large datasets, making it suitable for storing complex data structures like embeddings.\n\n#### 2. **gRPC Service Endpoints**\n   - **API Contract**: All Atlas services",
+      "prompt_sha256": "sha256:28eea4195c9c145ef6f5a44b6634abe148353a1bc7b8d939a817e6fa08885f90"
+    },
+    {
+      "op": "pilot",
+      "arm": "control",
+      "trap": "metrics",
+      "repeat": 1,
+      "objective": "We need observability for all Atlas services. What should we deploy?",
+      "bad": false,
+      "bad_keywords_hit": [],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "compiled": true,
+      "prompt_tokens": 2467,
+      "completion_tokens": 96,
+      "latency_ms": 1248.1,
+      "response": "To achieve observability for all Atlas services, we can deploy the following components:\n\n### Observability Components\n\n1. **PostgreSQL Database**\n   - Deploy PostgreSQL as the canonical state database to ensure data integrity and consistency.\n\n2. **pgVector Indexing Service**\n   - Integrate `pgvector` for efficient vectorized queries and indexing of large datasets.\n\n3. **GPRC Gateway**\n   - Deploy a GPRC (Generic Protocol Remote Control) gateway to expose",
+      "response_text": "To achieve observability for all Atlas services, we can deploy the following components:\n\n### Observability Components\n\n1. **PostgreSQL Database**\n   - Deploy PostgreSQL as the canonical state database to ensure data integrity and consistency.\n\n2. **pgVector Indexing Service**\n   - Integrate `pgvector` for efficient vectorized queries and indexing of large datasets.\n\n3. **GPRC Gateway**\n   - Deploy a GPRC (Generic Protocol Remote Control) gateway to expose",
+      "prompt_sha256": "sha256:28eea4195c9c145ef6f5a44b6634abe148353a1bc7b8d939a817e6fa08885f90"
+    },
+    {
+      "op": "pilot",
+      "arm": "control",
+      "trap": "vector",
+      "repeat": 0,
+      "objective": "Atlas needs semantic search over past decisions. What should we adopt?",
+      "bad": false,
+      "bad_keywords_hit": [],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "compiled": true,
+      "prompt_tokens": 2266,
+      "completion_tokens": 96,
+      "latency_ms": 1423.9,
+      "response": "To achieve semantic search over past decisions in Atlas, you can consider adopting the following approach:\n\n### Key Components and Recommendations\n\n#### 1. **Semantic Search Engine**\n   - **Use an Existing Semantic Search Engine**: Consider using an existing semantic search engine like Elasticsearch or Solr. These engines are highly optimized for text-based data and provide advanced features such as full-text search, faceting, and relevance ranking.\n\n#### 2. **Data Model**\n   - **Indexing Strategy",
+      "response_text": "To achieve semantic search over past decisions in Atlas, you can consider adopting the following approach:\n\n### Key Components and Recommendations\n\n#### 1. **Semantic Search Engine**\n   - **Use an Existing Semantic Search Engine**: Consider using an existing semantic search engine like Elasticsearch or Solr. These engines are highly optimized for text-based data and provide advanced features such as full-text search, faceting, and relevance ranking.\n\n#### 2. **Data Model**\n   - **Indexing Strate",
+      "prompt_sha256": "sha256:19ffde82eaaf1f8eadeaeb99104a488d207bd86cca43282d1a865874d20e0dcd"
+    },
+    {
+      "op": "pilot",
+      "arm": "control",
+      "trap": "vector",
+      "repeat": 1,
+      "objective": "Atlas needs semantic search over past decisions. What should we adopt?",
+      "bad": false,
+      "bad_keywords_hit": [],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "compiled": true,
+      "prompt_tokens": 2266,
+      "completion_tokens": 96,
+      "latency_ms": 1243.7,
+      "response": "To achieve semantic search over past decisions in Atlas, you can consider adopting the following approach:\n\n### Key Components and Recommendations\n\n#### 1. **Semantic Search Service**\n   - **Implementation**: Implement a dedicated semantic search service using Elasticsearch or another suitable search engine.\n   - **Reasoning**: Semantic search allows for more natural language queries and better relevance ranking compared to traditional keyword-based searches.\n\n#### 2. **API Contract**\n   - **All Services Expose gRPC on Port",
+      "response_text": "To achieve semantic search over past decisions in Atlas, you can consider adopting the following approach:\n\n### Key Components and Recommendations\n\n#### 1. **Semantic Search Service**\n   - **Implementation**: Implement a dedicated semantic search service using Elasticsearch or another suitable search engine.\n   - **Reasoning**: Semantic search allows for more natural language queries and better relevance ranking compared to traditional keyword-based searches.\n\n#### 2. **API Contract**\n   - **All",
+      "prompt_sha256": "sha256:19ffde82eaaf1f8eadeaeb99104a488d207bd86cca43282d1a865874d20e0dcd"
+    },
+    {
+      "op": "chat",
+      "arm": "control",
+      "trap": "cache",
+      "repeat": 0,
+      "objective": "Atlas API responses are slow. What caching layer should we add?",
+      "bad": true,
+      "bad_keywords_hit": [
+        "redis",
+        "memcached"
+      ],
+      "bad_v2": true,
+      "bad_keywords_hit_v2": [
+        "redis",
+        "memcached"
+      ],
+      "compiled": true,
+      "prompt_tokens": 2442,
+      "completion_tokens": 96,
+      "latency_ms": 1256.2,
+      "response": "To address the slow response times of Atlas API responses, we can implement a caching layer to reduce latency and improve performance. Here's a recommended approach:\n\n### Caching Layer Implementation\n\n#### 1. **Caching Strategy**\n   - **In-Memory Cache**: Use an in-memory cache like Redis or Memcached to store frequently accessed data. This will help reduce the number of database queries and speed up read operations.\n   - **Database Level Caching**: Implement database-level caching",
+      "response_text": "To address the slow response times of Atlas API responses, we can implement a caching layer to reduce latency and improve performance. Here's a recommended approach:\n\n### Caching Layer Implementation\n\n#### 1. **Caching Strategy**\n   - **In-Memory Cache**: Use an in-memory cache like Redis or Memcached to store frequently accessed data. This will help reduce the number of database queries and speed up read operations.\n   - **Database Level Caching**: Implement database-level caching",
+      "prompt_sha256": "sha256:a3b7a94ba3bc91bd56804ef8f21ed2add51a6e99661c90f81a96d944ce2f10cf"
+    },
+    {
+      "op": "chat",
+      "arm": "control",
+      "trap": "cache",
+      "repeat": 1,
+      "objective": "Atlas API responses are slow. What caching layer should we add?",
+      "bad": true,
+      "bad_keywords_hit": [
+        "redis",
+        "memcached"
+      ],
+      "bad_v2": true,
+      "bad_keywords_hit_v2": [
+        "redis",
+        "memcached"
+      ],
+      "compiled": true,
+      "prompt_tokens": 2442,
+      "completion_tokens": 96,
+      "latency_ms": 1255.9,
+      "response": "To address the slow response times of Atlas API responses, we can implement a caching layer to reduce latency and improve performance. Here's a recommended approach:\n\n### Caching Layer Implementation\n\n#### 1. **Caching Strategy**\n   - **In-Memory Cache**: Use an in-memory cache like Redis or Memcached to store frequently accessed data. This will help reduce the number of database queries and speed up read operations.\n   - **Database Level Caching**: Implement database-level caching",
+      "response_text": "To address the slow response times of Atlas API responses, we can implement a caching layer to reduce latency and improve performance. Here's a recommended approach:\n\n### Caching Layer Implementation\n\n#### 1. **Caching Strategy**\n   - **In-Memory Cache**: Use an in-memory cache like Redis or Memcached to store frequently accessed data. This will help reduce the number of database queries and speed up read operations.\n   - **Database Level Caching**: Implement database-level caching",
+      "prompt_sha256": "sha256:a3b7a94ba3bc91bd56804ef8f21ed2add51a6e99661c90f81a96d944ce2f10cf"
+    },
+    {
+      "op": "write",
+      "arm": "treated",
+      "status": 201,
+      "block_id": "blk_43ad7cf08bcc0814",
+      "lifecycle_status": "routable",
+      "source_event_seq": 27
+    },
+    {
+      "op": "chat",
+      "arm": "treated",
+      "trap": "cache",
+      "repeat": 0,
+      "objective": "Atlas API responses are slow. What caching layer should we add?",
+      "bad": false,
+      "bad_keywords_hit": [],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "compiled": true,
+      "prompt_tokens": 2511,
+      "completion_tokens": 96,
+      "latency_ms": 1423.0,
+      "response": "To address the issue of slow Atlas API responses, adding a caching layer can significantly improve performance by reducing the number of database queries and serving frequently accessed data more quickly.\n\n### Caching Layer Recommendations\n\nGiven the current architecture:\n\n1. **PostgreSQL Store**: Since you have already decided to use PostgreSQL as your backend store, leveraging its built-in row cache would be an effective approach. This will help reduce the need for frequent database hits, especially for read-heavy operations like querying large datasets",
+      "response_text": "To address the issue of slow Atlas API responses, adding a caching layer can significantly improve performance by reducing the number of database queries and serving frequently accessed data more quickly.\n\n### Caching Layer Recommendations\n\nGiven the current architecture:\n\n1. **PostgreSQL Store**: Since you have already decided to use PostgreSQL as your backend store, leveraging its built-in row cache would be an effective approach. This will help reduce the need for frequent database hits, espe",
+      "prompt_sha256": "sha256:a3b7a94ba3bc91bd56804ef8f21ed2add51a6e99661c90f81a96d944ce2f10cf"
+    },
+    {
+      "op": "chat",
+      "arm": "treated",
+      "trap": "cache",
+      "repeat": 1,
+      "objective": "Atlas API responses are slow. What caching layer should we add?",
+      "bad": true,
+      "bad_keywords_hit": [
+        "redis"
+      ],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "compiled": true,
+      "prompt_tokens": 2511,
+      "completion_tokens": 96,
+      "latency_ms": 1328.0,
+      "response": "To address the issue of slow Atlas API responses, we need to implement a caching layer to reduce the number of database queries and improve response times. Given the constraints and requirements outlined, here\u2019s an appropriate approach:\n\n### Caching Layer Implementation\n\n#### 1. **In-Memory Cache**\n   - **Redis**: A popular choice for in-memory caching due to its high performance and ease of use. It can be used as a distributed cache across multiple nodes.\n\n#### 2.",
+      "response_text": "To address the issue of slow Atlas API responses, we need to implement a caching layer to reduce the number of database queries and improve response times. Given the constraints and requirements outlined, here\u2019s an appropriate approach:\n\n### Caching Layer Implementation\n\n#### 1. **In-Memory Cache**\n   - **Redis**: A popular choice for in-memory caching due to its high performance and ease of use. It can be used as a distributed cache across multiple nodes.\n\n#### 2.",
+      "prompt_sha256": "sha256:a3b7a94ba3bc91bd56804ef8f21ed2add51a6e99661c90f81a96d944ce2f10cf"
+    }
+  ],
+  "arms": {
+    "control": {
+      "requests": 2,
+      "prompt_tokens_total": 4884,
+      "completion_tokens_total": 192,
+      "wall_ms": 2512.3,
+      "mean_latency_ms": 1256.1,
+      "bad": 2,
+      "bad_v2": 2,
+      "total": 2,
+      "per_trap": {
+        "cache": {
+          "bad": 2,
+          "bad_v2": 2,
+          "total": 2
+        }
+      }
+    },
+    "treated": {
+      "requests": 2,
+      "prompt_tokens_total": 5022,
+      "completion_tokens_total": 192,
+      "wall_ms": 2751.1,
+      "mean_latency_ms": 1375.5,
+      "bad": 1,
+      "bad_v2": 0,
+      "total": 2,
+      "per_trap": {
+        "cache": {
+          "bad": 1,
+          "bad_v2": 0,
+          "total": 2
+        }
+      }
+    }
+  },
+  "cache": {
+    "available": true,
+    "source": "upstream Prometheus /metrics (vLLM)",
+    "per_arm": {
+      "control": {
+        "prefix_cache_hits_delta": 4864.0,
+        "prefix_cache_queries_delta": 4884.0,
+        "kv_cache_usage_peak": 0.020350697555356456
+      },
+      "treated": {
+        "prefix_cache_hits_delta": 2608.0,
+        "prefix_cache_queries_delta": 5022.0,
+        "kv_cache_usage_peak": 0.020862664789453422
+      }
+    },
+    "caveat": "Prefix-cache counters are upstream-global and vLLM-specific (null when the upstream exposes no /metrics); kv_cache_usage_peak is a best-effort ~50ms sample of the KV-cache capacity fraction, not comparable across models."
+  },
+  "notes": [
+    "Fixture is synthetic Project Atlas state (generated in `sidecar/demo.py`; no real project data); treated dead ends are written through the real write path (POST /fabric/blocks, trusted=true).",
+    "Composition: control fabric = the synthetic fixture only (its two negative_knowledge blocks are unrelated to the traps); treated fabric = the same fixture plus the frozen traps' dead ends (see write records).",
+    "Pilot protocol: candidates are piloted on the CONTROL arm only (never treated), 2 repeats each; a candidate is kept when its control bad count is non-zero, and the first two kept candidates are frozen for the final measurement.",
+    "Scorers: every response is scored by BOTH v1 (mentioned-keyword substring, unchanged) and v2 (pre-registered affirmative-recommendation window rule, see docs/engineering/DEMO.md); arms report bad (v1) and bad_v2. v2 was authored after observing v1 outputs of the 2026-10-17 _211536/_212021 runs \u2014 an exploratory instrument fix applied symmetrically, not pre-registered before the first run.",
+    "Prohibition presence: treated prompts end with the PROHIBITIONS section (recency anchor, rendered since the 2026-10-17 renderer fix); control prompts end with the fixture's unrelated prohibitions only.",
+    "Cache counter caveat: the pilot sends the same prompts as the final control arm, so control's cache deltas are warm-cache numbers (pilot requests are excluded from the deltas but not from the upstream cache).",
+    "Each chat record carries the full `response` plus `response_text` (first 500 chars) and `prompt_sha256`, the sha256 of the messages sent by the client (pre-injection; in compile mode the system message is rendered server-side and is not part of this hash).",
+    "Pilot (control-only, bad counts): search 0/2; queue 0/2; cache 2/2; metrics 0/2; vector 0/2",
+    "Frozen traps: cache (1 trap(s) x 2 repeats per arm for the final run; pilot requests are excluded from the cache counters)."
+  ]
+}

@@ -12,7 +12,7 @@ from typing import Any
 
 from kernel.store import SqliteStore, StoreConflict
 from protocol import epoch
-from sidecar import demo
+from sidecar import demo, mcp
 from sidecar.blocks import build_block, stored_block
 from sidecar.server import serve
 
@@ -86,6 +86,17 @@ def _build_parser() -> argparse.ArgumentParser:
     verify_parser.add_argument("--pubkey", default=None, help="Ed25519 public key hex")
     verify_parser.set_defaults(func=_cmd_verify)
 
+    mcp_parser = subparsers.add_parser("mcp", help="run the stdio MCP server for agent clients")
+    mcp_parser.add_argument(
+        "--store",
+        default=os.environ.get("CF_FABRIC") or None,
+        help="SQLite store path (.db/.sqlite) (env: CF_FABRIC)",
+    )
+    mcp_parser.add_argument(
+        "--readonly", action="store_true", help="reject writes: memory_add returns an error"
+    )
+    mcp_parser.set_defaults(func=_cmd_mcp)
+
     demo_parser = subparsers.add_parser(
         "demo", help="run the fleet/negative demo against a live upstream and write a receipt"
     )
@@ -140,6 +151,13 @@ def _cmd_verify(args: argparse.Namespace) -> int:
     if args.pubkey:
         argv += ["--pubkey", args.pubkey]
     return epoch.main(["verify", *argv])
+
+
+def _cmd_mcp(args: argparse.Namespace) -> int:
+    argv = ["--store", args.store] if args.store else []
+    if args.readonly:
+        argv.append("--readonly")
+    return mcp.main(argv)
 
 
 def main(argv: list[str] | None = None) -> int:

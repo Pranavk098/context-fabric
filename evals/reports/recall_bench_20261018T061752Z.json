@@ -1,0 +1,1975 @@
+{
+  "benchmark": "recall_bench",
+  "generated_at_utc": "20261018T061752Z",
+  "deterministic": true,
+  "corpus": {
+    "blocks": 120,
+    "queries": 20,
+    "topics": 20,
+    "relevant_labels": 40,
+    "paraphrase_queries": 3
+  },
+  "modes": [
+    "lexical",
+    "bm25",
+    "embeddings",
+    "hybrid"
+  ],
+  "embedding_model": "BAAI/bge-small-en-v1.5",
+  "aggregates": {
+    "lexical": {
+      "precision@5": 0.34,
+      "recall@10": 0.875,
+      "reciprocal_rank": 0.28948382126348227,
+      "top1": 0.0
+    },
+    "bm25": {
+      "precision@5": 0.34,
+      "recall@10": 0.875,
+      "reciprocal_rank": 0.8593903318903319,
+      "top1": 0.85
+    },
+    "embeddings": {
+      "precision@5": 0.38,
+      "recall@10": 0.975,
+      "reciprocal_rank": 0.888888888888889,
+      "top1": 0.85
+    },
+    "hybrid": {
+      "precision@5": 0.38,
+      "recall@10": 0.95,
+      "reciprocal_rank": 0.8821078431372549,
+      "top1": 0.85
+    }
+  },
+  "per_query": {
+    "lexical": [
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 0.3333333333333333,
+        "top1": 0.0,
+        "first_relevant_rank": 3,
+        "ranked_top10": [
+          "blk_retry-backoff_neg_a",
+          "blk_retry-backoff_neg_b",
+          "blk_retry-backoff_rel_a",
+          "blk_retry-backoff_rel_b",
+          "blk_retry-backoff_dup_a",
+          "blk_retry-backoff_dup_b",
+          "blk_audit-ledger_dup_a",
+          "blk_audit-ledger_dup_b",
+          "blk_audit-ledger_neg_a",
+          "blk_audit-ledger_neg_b"
+        ],
+        "query": "retry backoff overflow",
+        "relevant": [
+          "blk_retry-backoff_rel_a",
+          "blk_retry-backoff_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 0.3333333333333333,
+        "top1": 0.0,
+        "first_relevant_rank": 3,
+        "ranked_top10": [
+          "blk_token-budget_neg_a",
+          "blk_token-budget_neg_b",
+          "blk_token-budget_rel_a",
+          "blk_token-budget_rel_b",
+          "blk_token-budget_dup_a",
+          "blk_token-budget_dup_b",
+          "blk_mmr-packing_dup_a",
+          "blk_mmr-packing_rel_b",
+          "blk_audit-ledger_dup_a",
+          "blk_audit-ledger_dup_b"
+        ],
+        "query": "token budget allocation",
+        "relevant": [
+          "blk_token-budget_rel_a",
+          "blk_token-budget_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 0.3333333333333333,
+        "top1": 0.0,
+        "first_relevant_rank": 3,
+        "ranked_top10": [
+          "blk_hnsw-index_neg_a",
+          "blk_hnsw-index_neg_b",
+          "blk_hnsw-index_rel_a",
+          "blk_hnsw-index_rel_b",
+          "blk_hnsw-index_dup_a",
+          "blk_hnsw-index_dup_b",
+          "blk_dense-vector_dup_a",
+          "blk_audit-ledger_dup_a",
+          "blk_audit-ledger_dup_b",
+          "blk_audit-ledger_neg_a"
+        ],
+        "query": "hnsw index recall",
+        "relevant": [
+          "blk_hnsw-index_rel_a",
+          "blk_hnsw-index_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 0.3333333333333333,
+        "top1": 0.0,
+        "first_relevant_rank": 3,
+        "ranked_top10": [
+          "blk_epoch-fold_neg_a",
+          "blk_epoch-fold_neg_b",
+          "blk_epoch-fold_rel_a",
+          "blk_epoch-fold_rel_b",
+          "blk_epoch-fold_dup_a",
+          "blk_audit-ledger_dup_a",
+          "blk_audit-ledger_rel_a",
+          "blk_audit-ledger_rel_b",
+          "blk_canary-rollout_rel_b",
+          "blk_epoch-fold_dup_b"
+        ],
+        "query": "epoch fold append",
+        "relevant": [
+          "blk_epoch-fold_rel_a",
+          "blk_epoch-fold_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 0.25,
+        "top1": 0.0,
+        "first_relevant_rank": 4,
+        "ranked_top10": [
+          "blk_packet-hash_dup_b",
+          "blk_packet-hash_neg_a",
+          "blk_packet-hash_neg_b",
+          "blk_packet-hash_rel_a",
+          "blk_packet-hash_rel_b",
+          "blk_packet-hash_dup_a",
+          "blk_audit-ledger_rel_a",
+          "blk_audit-ledger_rel_b",
+          "blk_cartridge-prefix_rel_a",
+          "blk_shadow-probe_dup_b"
+        ],
+        "query": "packet content hash",
+        "relevant": [
+          "blk_packet-hash_rel_a",
+          "blk_packet-hash_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 0.3333333333333333,
+        "top1": 0.0,
+        "first_relevant_rank": 3,
+        "ranked_top10": [
+          "blk_deny-default_neg_a",
+          "blk_deny-default_neg_b",
+          "blk_deny-default_rel_a",
+          "blk_deny-default_rel_b",
+          "blk_deny-default_dup_a",
+          "blk_deny-default_dup_b",
+          "blk_trust-domain_dup_a",
+          "blk_trust-domain_rel_b",
+          "blk_audit-ledger_dup_a",
+          "blk_audit-ledger_dup_b"
+        ],
+        "query": "policy deny default",
+        "relevant": [
+          "blk_deny-default_rel_a",
+          "blk_deny-default_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 0.3333333333333333,
+        "top1": 0.0,
+        "first_relevant_rank": 3,
+        "ranked_top10": [
+          "blk_watermark_neg_a",
+          "blk_watermark_neg_b",
+          "blk_watermark_rel_a",
+          "blk_watermark_rel_b",
+          "blk_watermark_dup_a",
+          "blk_watermark_dup_b",
+          "blk_cartridge-prefix_dup_b",
+          "blk_epoch-fold_rel_b",
+          "blk_audit-ledger_dup_a",
+          "blk_audit-ledger_dup_b"
+        ],
+        "query": "watermark event sequence",
+        "relevant": [
+          "blk_watermark_rel_a",
+          "blk_watermark_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 0.3333333333333333,
+        "top1": 0.0,
+        "first_relevant_rank": 3,
+        "ranked_top10": [
+          "blk_cartridge-prefix_neg_a",
+          "blk_cartridge-prefix_neg_b",
+          "blk_cartridge-prefix_rel_a",
+          "blk_cartridge-prefix_rel_b",
+          "blk_cartridge-prefix_dup_a",
+          "blk_cartridge-prefix_dup_b",
+          "blk_token-budget_rel_a",
+          "blk_audit-ledger_dup_a",
+          "blk_audit-ledger_dup_b",
+          "blk_audit-ledger_neg_a"
+        ],
+        "query": "cartridge prefix cache",
+        "relevant": [
+          "blk_cartridge-prefix_rel_a",
+          "blk_cartridge-prefix_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 0.3333333333333333,
+        "top1": 0.0,
+        "first_relevant_rank": 3,
+        "ranked_top10": [
+          "blk_mmr-packing_neg_a",
+          "blk_mmr-packing_neg_b",
+          "blk_mmr-packing_rel_a",
+          "blk_mmr-packing_rel_b",
+          "blk_mmr-packing_dup_a",
+          "blk_mmr-packing_dup_b",
+          "blk_token-budget_dup_a",
+          "blk_token-budget_dup_b",
+          "blk_audit-ledger_dup_a",
+          "blk_audit-ledger_dup_b"
+        ],
+        "query": "mmr packing diversity",
+        "relevant": [
+          "blk_mmr-packing_rel_a",
+          "blk_mmr-packing_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 0.3333333333333333,
+        "top1": 0.0,
+        "first_relevant_rank": 3,
+        "ranked_top10": [
+          "blk_u-curve_neg_a",
+          "blk_u-curve_neg_b",
+          "blk_u-curve_rel_b",
+          "blk_u-curve_rel_a",
+          "blk_u-curve_dup_a",
+          "blk_u-curve_dup_b",
+          "blk_audit-ledger_dup_a",
+          "blk_audit-ledger_dup_b",
+          "blk_audit-ledger_neg_a",
+          "blk_audit-ledger_neg_b"
+        ],
+        "query": "u-curve anchor placement",
+        "relevant": [
+          "blk_u-curve_rel_a",
+          "blk_u-curve_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 0.3333333333333333,
+        "top1": 0.0,
+        "first_relevant_rank": 3,
+        "ranked_top10": [
+          "blk_nk-closure_neg_a",
+          "blk_nk-closure_neg_b",
+          "blk_nk-closure_rel_a",
+          "blk_nk-closure_rel_b",
+          "blk_nk-closure_dup_a",
+          "blk_nk-closure_dup_b",
+          "blk_dep-closure_dup_b",
+          "blk_dep-closure_neg_a",
+          "blk_dep-closure_neg_b",
+          "blk_dep-closure_rel_a"
+        ],
+        "query": "negative knowledge closure",
+        "relevant": [
+          "blk_nk-closure_rel_a",
+          "blk_nk-closure_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 0.3333333333333333,
+        "top1": 0.0,
+        "first_relevant_rank": 3,
+        "ranked_top10": [
+          "blk_dep-closure_neg_a",
+          "blk_dep-closure_neg_b",
+          "blk_dep-closure_rel_a",
+          "blk_dep-closure_rel_b",
+          "blk_dep-closure_dup_a",
+          "blk_dep-closure_dup_b",
+          "blk_nk-closure_dup_a",
+          "blk_nk-closure_dup_b",
+          "blk_nk-closure_neg_a",
+          "blk_nk-closure_neg_b"
+        ],
+        "query": "dependency closure parent",
+        "relevant": [
+          "blk_dep-closure_rel_a",
+          "blk_dep-closure_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 0.3333333333333333,
+        "top1": 0.0,
+        "first_relevant_rank": 3,
+        "ranked_top10": [
+          "blk_shadow-probe_neg_a",
+          "blk_shadow-probe_neg_b",
+          "blk_shadow-probe_rel_a",
+          "blk_shadow-probe_rel_b",
+          "blk_shadow-probe_dup_a",
+          "blk_shadow-probe_dup_b",
+          "blk_canary-rollout_dup_b",
+          "blk_canary-rollout_rel_a",
+          "blk_packet-hash_rel_a",
+          "blk_audit-ledger_dup_a"
+        ],
+        "query": "shadow probe verification",
+        "relevant": [
+          "blk_shadow-probe_rel_a",
+          "blk_shadow-probe_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 0.3333333333333333,
+        "top1": 0.0,
+        "first_relevant_rank": 3,
+        "ranked_top10": [
+          "blk_trust-domain_neg_a",
+          "blk_trust-domain_neg_b",
+          "blk_trust-domain_rel_a",
+          "blk_trust-domain_rel_b",
+          "blk_trust-domain_dup_a",
+          "blk_deny-default_dup_a",
+          "blk_trust-domain_dup_b",
+          "blk_audit-ledger_dup_a",
+          "blk_audit-ledger_dup_b",
+          "blk_audit-ledger_neg_a"
+        ],
+        "query": "trust domain isolation",
+        "relevant": [
+          "blk_trust-domain_rel_a",
+          "blk_trust-domain_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.0,
+        "recall@10": 0.0,
+        "reciprocal_rank": 0.022727272727272728,
+        "top1": 0.0,
+        "first_relevant_rank": 44,
+        "ranked_top10": [
+          "blk_dense-vector_neg_a",
+          "blk_dense-vector_neg_b",
+          "blk_dense-vector_dup_b",
+          "blk_audit-ledger_dup_a",
+          "blk_canary-rollout_dup_a",
+          "blk_cartridge-prefix_dup_a",
+          "blk_conflict-alert_dup_a",
+          "blk_dense-vector_dup_a",
+          "blk_deny-default_dup_a",
+          "blk_dep-closure_dup_a"
+        ],
+        "query": "how do we find semantically similar notes without keyword overlap",
+        "relevant": [
+          "blk_dense-vector_rel_a",
+          "blk_dense-vector_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 0.3333333333333333,
+        "top1": 0.0,
+        "first_relevant_rank": 3,
+        "ranked_top10": [
+          "blk_audit-ledger_neg_a",
+          "blk_audit-ledger_neg_b",
+          "blk_audit-ledger_rel_a",
+          "blk_audit-ledger_rel_b",
+          "blk_audit-ledger_dup_a",
+          "blk_audit-ledger_dup_b",
+          "blk_conflict-alert_dup_b",
+          "blk_epoch-fold_rel_b",
+          "blk_canary-rollout_dup_a",
+          "blk_canary-rollout_dup_b"
+        ],
+        "query": "audit ledger replay",
+        "relevant": [
+          "blk_audit-ledger_rel_a",
+          "blk_audit-ledger_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.0,
+        "recall@10": 0.0,
+        "reciprocal_rank": 0.01694915254237288,
+        "top1": 0.0,
+        "first_relevant_rank": 59,
+        "ranked_top10": [
+          "blk_single-writer_neg_a",
+          "blk_single-writer_neg_b",
+          "blk_single-writer_dup_a",
+          "blk_watermark_rel_a",
+          "blk_canary-rollout_neg_b",
+          "blk_canary-rollout_rel_b",
+          "blk_deny-default_neg_b",
+          "blk_dep-closure_neg_b",
+          "blk_retry-backoff_neg_b",
+          "blk_shadow-probe_neg_b"
+        ],
+        "query": "who may write to a shared block at the same time",
+        "relevant": [
+          "blk_single-writer_rel_a",
+          "blk_single-writer_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 0.3333333333333333,
+        "top1": 0.0,
+        "first_relevant_rank": 3,
+        "ranked_top10": [
+          "blk_canary-rollout_neg_a",
+          "blk_canary-rollout_neg_b",
+          "blk_canary-rollout_rel_a",
+          "blk_canary-rollout_rel_b",
+          "blk_canary-rollout_dup_a",
+          "blk_canary-rollout_dup_b",
+          "blk_shadow-probe_dup_a",
+          "blk_shadow-probe_rel_a",
+          "blk_audit-ledger_dup_a",
+          "blk_audit-ledger_dup_b"
+        ],
+        "query": "canary rollout migration",
+        "relevant": [
+          "blk_canary-rollout_rel_a",
+          "blk_canary-rollout_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 0.3333333333333333,
+        "top1": 0.0,
+        "first_relevant_rank": 3,
+        "ranked_top10": [
+          "blk_sqlite-journal_neg_a",
+          "blk_sqlite-journal_neg_b",
+          "blk_sqlite-journal_rel_a",
+          "blk_sqlite-journal_dup_a",
+          "blk_sqlite-journal_rel_b",
+          "blk_sqlite-journal_dup_b",
+          "blk_audit-ledger_dup_a",
+          "blk_audit-ledger_dup_b",
+          "blk_audit-ledger_neg_a",
+          "blk_audit-ledger_neg_b"
+        ],
+        "query": "sqlite journal checkpoint",
+        "relevant": [
+          "blk_sqlite-journal_rel_a",
+          "blk_sqlite-journal_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.0,
+        "recall@10": 0.5,
+        "reciprocal_rank": 0.16666666666666666,
+        "top1": 0.0,
+        "first_relevant_rank": 6,
+        "ranked_top10": [
+          "blk_conflict-alert_neg_a",
+          "blk_conflict-alert_neg_b",
+          "blk_canary-rollout_rel_b",
+          "blk_conflict-alert_dup_a",
+          "blk_conflict-alert_dup_b",
+          "blk_conflict-alert_rel_b",
+          "blk_hnsw-index_rel_a",
+          "blk_mmr-packing_rel_a",
+          "blk_retry-backoff_rel_a",
+          "blk_audit-ledger_dup_a"
+        ],
+        "query": "what happens when two facts disagree about current state",
+        "relevant": [
+          "blk_conflict-alert_rel_a",
+          "blk_conflict-alert_rel_b"
+        ]
+      }
+    ],
+    "bm25": [
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_retry-backoff_rel_a",
+          "blk_retry-backoff_rel_b",
+          "blk_retry-backoff_neg_b",
+          "blk_retry-backoff_neg_a",
+          "blk_retry-backoff_dup_b",
+          "blk_retry-backoff_dup_a",
+          "blk_audit-ledger_dup_a",
+          "blk_audit-ledger_dup_b",
+          "blk_audit-ledger_neg_a",
+          "blk_audit-ledger_neg_b"
+        ],
+        "query": "retry backoff overflow",
+        "relevant": [
+          "blk_retry-backoff_rel_a",
+          "blk_retry-backoff_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_token-budget_rel_b",
+          "blk_token-budget_rel_a",
+          "blk_token-budget_neg_b",
+          "blk_token-budget_neg_a",
+          "blk_token-budget_dup_a",
+          "blk_token-budget_dup_b",
+          "blk_mmr-packing_dup_a",
+          "blk_mmr-packing_rel_b",
+          "blk_audit-ledger_dup_a",
+          "blk_audit-ledger_dup_b"
+        ],
+        "query": "token budget allocation",
+        "relevant": [
+          "blk_token-budget_rel_a",
+          "blk_token-budget_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_hnsw-index_rel_a",
+          "blk_hnsw-index_rel_b",
+          "blk_hnsw-index_neg_b",
+          "blk_hnsw-index_neg_a",
+          "blk_hnsw-index_dup_b",
+          "blk_hnsw-index_dup_a",
+          "blk_dense-vector_dup_a",
+          "blk_audit-ledger_dup_a",
+          "blk_audit-ledger_dup_b",
+          "blk_audit-ledger_neg_a"
+        ],
+        "query": "hnsw index recall",
+        "relevant": [
+          "blk_hnsw-index_rel_a",
+          "blk_hnsw-index_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_epoch-fold_rel_b",
+          "blk_epoch-fold_rel_a",
+          "blk_epoch-fold_neg_b",
+          "blk_epoch-fold_neg_a",
+          "blk_epoch-fold_dup_a",
+          "blk_watermark_dup_b",
+          "blk_epoch-fold_dup_b",
+          "blk_single-writer_dup_b",
+          "blk_canary-rollout_rel_b",
+          "blk_audit-ledger_dup_a"
+        ],
+        "query": "epoch fold append",
+        "relevant": [
+          "blk_epoch-fold_rel_a",
+          "blk_epoch-fold_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_packet-hash_rel_a",
+          "blk_packet-hash_dup_b",
+          "blk_packet-hash_rel_b",
+          "blk_packet-hash_neg_b",
+          "blk_packet-hash_neg_a",
+          "blk_packet-hash_dup_a",
+          "blk_audit-ledger_rel_b",
+          "blk_cartridge-prefix_rel_a",
+          "blk_audit-ledger_rel_a",
+          "blk_shadow-probe_dup_b"
+        ],
+        "query": "packet content hash",
+        "relevant": [
+          "blk_packet-hash_rel_a",
+          "blk_packet-hash_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_deny-default_rel_b",
+          "blk_deny-default_rel_a",
+          "blk_deny-default_neg_b",
+          "blk_deny-default_neg_a",
+          "blk_deny-default_dup_b",
+          "blk_deny-default_dup_a",
+          "blk_trust-domain_dup_a",
+          "blk_trust-domain_rel_b",
+          "blk_audit-ledger_dup_a",
+          "blk_audit-ledger_dup_b"
+        ],
+        "query": "policy deny default",
+        "relevant": [
+          "blk_deny-default_rel_a",
+          "blk_deny-default_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_watermark_rel_a",
+          "blk_watermark_rel_b",
+          "blk_watermark_neg_b",
+          "blk_watermark_neg_a",
+          "blk_watermark_dup_b",
+          "blk_watermark_dup_a",
+          "blk_cartridge-prefix_dup_b",
+          "blk_epoch-fold_rel_b",
+          "blk_audit-ledger_dup_a",
+          "blk_audit-ledger_dup_b"
+        ],
+        "query": "watermark event sequence",
+        "relevant": [
+          "blk_watermark_rel_a",
+          "blk_watermark_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_cartridge-prefix_rel_a",
+          "blk_cartridge-prefix_rel_b",
+          "blk_cartridge-prefix_neg_b",
+          "blk_cartridge-prefix_neg_a",
+          "blk_cartridge-prefix_dup_b",
+          "blk_cartridge-prefix_dup_a",
+          "blk_token-budget_rel_a",
+          "blk_audit-ledger_dup_a",
+          "blk_audit-ledger_dup_b",
+          "blk_audit-ledger_neg_a"
+        ],
+        "query": "cartridge prefix cache",
+        "relevant": [
+          "blk_cartridge-prefix_rel_a",
+          "blk_cartridge-prefix_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_mmr-packing_rel_a",
+          "blk_mmr-packing_rel_b",
+          "blk_mmr-packing_neg_b",
+          "blk_mmr-packing_neg_a",
+          "blk_mmr-packing_dup_b",
+          "blk_mmr-packing_dup_a",
+          "blk_token-budget_dup_b",
+          "blk_token-budget_dup_a",
+          "blk_audit-ledger_dup_a",
+          "blk_audit-ledger_dup_b"
+        ],
+        "query": "mmr packing diversity",
+        "relevant": [
+          "blk_mmr-packing_rel_a",
+          "blk_mmr-packing_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_u-curve_rel_b",
+          "blk_u-curve_neg_b",
+          "blk_u-curve_neg_a",
+          "blk_u-curve_rel_a",
+          "blk_u-curve_dup_b",
+          "blk_u-curve_dup_a",
+          "blk_audit-ledger_dup_a",
+          "blk_audit-ledger_dup_b",
+          "blk_audit-ledger_neg_a",
+          "blk_audit-ledger_neg_b"
+        ],
+        "query": "u-curve anchor placement",
+        "relevant": [
+          "blk_u-curve_rel_a",
+          "blk_u-curve_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_nk-closure_rel_b",
+          "blk_nk-closure_rel_a",
+          "blk_nk-closure_neg_b",
+          "blk_nk-closure_neg_a",
+          "blk_nk-closure_dup_a",
+          "blk_nk-closure_dup_b",
+          "blk_dep-closure_rel_b",
+          "blk_dep-closure_rel_a",
+          "blk_dep-closure_dup_b",
+          "blk_dep-closure_neg_b"
+        ],
+        "query": "negative knowledge closure",
+        "relevant": [
+          "blk_nk-closure_rel_a",
+          "blk_nk-closure_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_dep-closure_rel_b",
+          "blk_dep-closure_rel_a",
+          "blk_dep-closure_neg_b",
+          "blk_dep-closure_neg_a",
+          "blk_dep-closure_dup_a",
+          "blk_dep-closure_dup_b",
+          "blk_nk-closure_rel_b",
+          "blk_nk-closure_dup_a",
+          "blk_nk-closure_dup_b",
+          "blk_nk-closure_rel_a"
+        ],
+        "query": "dependency closure parent",
+        "relevant": [
+          "blk_dep-closure_rel_a",
+          "blk_dep-closure_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_shadow-probe_rel_a",
+          "blk_shadow-probe_rel_b",
+          "blk_shadow-probe_neg_b",
+          "blk_shadow-probe_neg_a",
+          "blk_shadow-probe_dup_b",
+          "blk_shadow-probe_dup_a",
+          "blk_canary-rollout_dup_b",
+          "blk_canary-rollout_rel_a",
+          "blk_packet-hash_rel_a",
+          "blk_audit-ledger_dup_a"
+        ],
+        "query": "shadow probe verification",
+        "relevant": [
+          "blk_shadow-probe_rel_a",
+          "blk_shadow-probe_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_trust-domain_rel_a",
+          "blk_trust-domain_rel_b",
+          "blk_trust-domain_neg_b",
+          "blk_trust-domain_neg_a",
+          "blk_trust-domain_dup_a",
+          "blk_deny-default_dup_a",
+          "blk_trust-domain_dup_b",
+          "blk_audit-ledger_dup_a",
+          "blk_audit-ledger_dup_b",
+          "blk_audit-ledger_neg_a"
+        ],
+        "query": "trust domain isolation",
+        "relevant": [
+          "blk_trust-domain_rel_a",
+          "blk_trust-domain_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.0,
+        "recall@10": 0.0,
+        "reciprocal_rank": 0.022727272727272728,
+        "top1": 0.0,
+        "first_relevant_rank": 44,
+        "ranked_top10": [
+          "blk_dense-vector_neg_b",
+          "blk_dense-vector_neg_a",
+          "blk_dense-vector_dup_b",
+          "blk_audit-ledger_dup_a",
+          "blk_canary-rollout_dup_a",
+          "blk_cartridge-prefix_dup_a",
+          "blk_conflict-alert_dup_a",
+          "blk_dense-vector_dup_a",
+          "blk_deny-default_dup_a",
+          "blk_dep-closure_dup_a"
+        ],
+        "query": "how do we find semantically similar notes without keyword overlap",
+        "relevant": [
+          "blk_dense-vector_rel_a",
+          "blk_dense-vector_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_audit-ledger_rel_a",
+          "blk_audit-ledger_rel_b",
+          "blk_audit-ledger_neg_b",
+          "blk_audit-ledger_neg_a",
+          "blk_audit-ledger_dup_b",
+          "blk_audit-ledger_dup_a",
+          "blk_conflict-alert_dup_b",
+          "blk_epoch-fold_rel_b",
+          "blk_canary-rollout_dup_a",
+          "blk_canary-rollout_dup_b"
+        ],
+        "query": "audit ledger replay",
+        "relevant": [
+          "blk_audit-ledger_rel_a",
+          "blk_audit-ledger_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.0,
+        "recall@10": 0.0,
+        "reciprocal_rank": 0.022222222222222223,
+        "top1": 0.0,
+        "first_relevant_rank": 45,
+        "ranked_top10": [
+          "blk_single-writer_neg_b",
+          "blk_single-writer_neg_a",
+          "blk_single-writer_dup_a",
+          "blk_canary-rollout_rel_b",
+          "blk_watermark_rel_a",
+          "blk_conflict-alert_rel_b",
+          "blk_cartridge-prefix_rel_b",
+          "blk_nk-closure_rel_a",
+          "blk_u-curve_rel_a",
+          "blk_retry-backoff_neg_b"
+        ],
+        "query": "who may write to a shared block at the same time",
+        "relevant": [
+          "blk_single-writer_rel_a",
+          "blk_single-writer_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_canary-rollout_rel_a",
+          "blk_canary-rollout_rel_b",
+          "blk_canary-rollout_neg_b",
+          "blk_canary-rollout_neg_a",
+          "blk_canary-rollout_dup_a",
+          "blk_canary-rollout_dup_b",
+          "blk_shadow-probe_rel_a",
+          "blk_shadow-probe_dup_a",
+          "blk_audit-ledger_dup_a",
+          "blk_audit-ledger_dup_b"
+        ],
+        "query": "canary rollout migration",
+        "relevant": [
+          "blk_canary-rollout_rel_a",
+          "blk_canary-rollout_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_sqlite-journal_rel_a",
+          "blk_sqlite-journal_neg_b",
+          "blk_sqlite-journal_neg_a",
+          "blk_sqlite-journal_rel_b",
+          "blk_sqlite-journal_dup_a",
+          "blk_sqlite-journal_dup_b",
+          "blk_audit-ledger_dup_a",
+          "blk_audit-ledger_dup_b",
+          "blk_audit-ledger_neg_a",
+          "blk_audit-ledger_neg_b"
+        ],
+        "query": "sqlite journal checkpoint",
+        "relevant": [
+          "blk_sqlite-journal_rel_a",
+          "blk_sqlite-journal_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.0,
+        "recall@10": 0.5,
+        "reciprocal_rank": 0.14285714285714285,
+        "top1": 0.0,
+        "first_relevant_rank": 7,
+        "ranked_top10": [
+          "blk_conflict-alert_neg_b",
+          "blk_conflict-alert_neg_a",
+          "blk_conflict-alert_dup_a",
+          "blk_canary-rollout_rel_b",
+          "blk_conflict-alert_dup_b",
+          "blk_mmr-packing_rel_a",
+          "blk_conflict-alert_rel_b",
+          "blk_retry-backoff_rel_a",
+          "blk_hnsw-index_rel_a",
+          "blk_audit-ledger_dup_a"
+        ],
+        "query": "what happens when two facts disagree about current state",
+        "relevant": [
+          "blk_conflict-alert_rel_a",
+          "blk_conflict-alert_rel_b"
+        ]
+      }
+    ],
+    "embeddings": [
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_retry-backoff_rel_a",
+          "blk_retry-backoff_rel_b",
+          "blk_retry-backoff_neg_a",
+          "blk_retry-backoff_neg_b",
+          "blk_sqlite-journal_rel_a",
+          "blk_retry-backoff_dup_b",
+          "blk_retry-backoff_dup_a",
+          "blk_hnsw-index_rel_a",
+          "blk_audit-ledger_rel_a",
+          "blk_canary-rollout_neg_a"
+        ],
+        "query": "retry backoff overflow",
+        "relevant": [
+          "blk_retry-backoff_rel_a",
+          "blk_retry-backoff_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_token-budget_rel_b",
+          "blk_token-budget_neg_a",
+          "blk_token-budget_rel_a",
+          "blk_token-budget_neg_b",
+          "blk_packet-hash_rel_b",
+          "blk_audit-ledger_rel_b",
+          "blk_mmr-packing_rel_a",
+          "blk_dep-closure_rel_a",
+          "blk_packet-hash_neg_a",
+          "blk_watermark_neg_a"
+        ],
+        "query": "token budget allocation",
+        "relevant": [
+          "blk_token-budget_rel_a",
+          "blk_token-budget_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_hnsw-index_rel_a",
+          "blk_hnsw-index_dup_b",
+          "blk_hnsw-index_rel_b",
+          "blk_hnsw-index_neg_a",
+          "blk_hnsw-index_neg_b",
+          "blk_nk-closure_rel_a",
+          "blk_audit-ledger_rel_b",
+          "blk_retry-backoff_neg_a",
+          "blk_hnsw-index_dup_a",
+          "blk_packet-hash_neg_a"
+        ],
+        "query": "hnsw index recall",
+        "relevant": [
+          "blk_hnsw-index_rel_a",
+          "blk_hnsw-index_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_epoch-fold_rel_a",
+          "blk_epoch-fold_rel_b",
+          "blk_epoch-fold_neg_b",
+          "blk_epoch-fold_neg_a",
+          "blk_epoch-fold_dup_b",
+          "blk_audit-ledger_rel_b",
+          "blk_epoch-fold_dup_a",
+          "blk_audit-ledger_rel_a",
+          "blk_retry-backoff_neg_a",
+          "blk_watermark_dup_b"
+        ],
+        "query": "epoch fold append",
+        "relevant": [
+          "blk_epoch-fold_rel_a",
+          "blk_epoch-fold_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_packet-hash_rel_b",
+          "blk_packet-hash_rel_a",
+          "blk_packet-hash_dup_b",
+          "blk_packet-hash_neg_a",
+          "blk_packet-hash_dup_a",
+          "blk_audit-ledger_rel_b",
+          "blk_packet-hash_neg_b",
+          "blk_watermark_rel_b",
+          "blk_shadow-probe_rel_b",
+          "blk_audit-ledger_rel_a"
+        ],
+        "query": "packet content hash",
+        "relevant": [
+          "blk_packet-hash_rel_a",
+          "blk_packet-hash_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_deny-default_rel_b",
+          "blk_deny-default_rel_a",
+          "blk_deny-default_dup_b",
+          "blk_trust-domain_rel_a",
+          "blk_nk-closure_rel_a",
+          "blk_deny-default_neg_a",
+          "blk_trust-domain_rel_b",
+          "blk_deny-default_neg_b",
+          "blk_sqlite-journal_rel_a",
+          "blk_trust-domain_neg_a"
+        ],
+        "query": "policy deny default",
+        "relevant": [
+          "blk_deny-default_rel_a",
+          "blk_deny-default_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_watermark_rel_b",
+          "blk_watermark_rel_a",
+          "blk_watermark_neg_a",
+          "blk_watermark_dup_b",
+          "blk_packet-hash_rel_b",
+          "blk_audit-ledger_rel_b",
+          "blk_packet-hash_neg_a",
+          "blk_watermark_dup_a",
+          "blk_epoch-fold_rel_a",
+          "blk_packet-hash_rel_a"
+        ],
+        "query": "watermark event sequence",
+        "relevant": [
+          "blk_watermark_rel_a",
+          "blk_watermark_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_cartridge-prefix_rel_b",
+          "blk_cartridge-prefix_rel_a",
+          "blk_cartridge-prefix_neg_b",
+          "blk_sqlite-journal_rel_a",
+          "blk_cartridge-prefix_neg_a",
+          "blk_packet-hash_rel_b",
+          "blk_cartridge-prefix_dup_b",
+          "blk_shadow-probe_rel_a",
+          "blk_epoch-fold_rel_a",
+          "blk_packet-hash_rel_a"
+        ],
+        "query": "cartridge prefix cache",
+        "relevant": [
+          "blk_cartridge-prefix_rel_a",
+          "blk_cartridge-prefix_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_mmr-packing_rel_a",
+          "blk_mmr-packing_rel_b",
+          "blk_mmr-packing_neg_a",
+          "blk_packet-hash_rel_b",
+          "blk_mmr-packing_dup_b",
+          "blk_dense-vector_rel_a",
+          "blk_packet-hash_rel_a",
+          "blk_mmr-packing_dup_a",
+          "blk_watermark_rel_b",
+          "blk_shadow-probe_rel_a"
+        ],
+        "query": "mmr packing diversity",
+        "relevant": [
+          "blk_mmr-packing_rel_a",
+          "blk_mmr-packing_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_u-curve_rel_a",
+          "blk_u-curve_rel_b",
+          "blk_u-curve_neg_a",
+          "blk_u-curve_dup_b",
+          "blk_dep-closure_rel_a",
+          "blk_u-curve_neg_b",
+          "blk_watermark_rel_b",
+          "blk_packet-hash_rel_b",
+          "blk_u-curve_dup_a",
+          "blk_nk-closure_rel_a"
+        ],
+        "query": "u-curve anchor placement",
+        "relevant": [
+          "blk_u-curve_rel_a",
+          "blk_u-curve_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_nk-closure_rel_a",
+          "blk_nk-closure_rel_b",
+          "blk_nk-closure_neg_a",
+          "blk_dense-vector_rel_b",
+          "blk_nk-closure_dup_a",
+          "blk_dense-vector_neg_a",
+          "blk_dense-vector_rel_a",
+          "blk_packet-hash_rel_b",
+          "blk_shadow-probe_rel_a",
+          "blk_sqlite-journal_rel_a"
+        ],
+        "query": "negative knowledge closure",
+        "relevant": [
+          "blk_nk-closure_rel_a",
+          "blk_nk-closure_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_dep-closure_rel_a",
+          "blk_dep-closure_rel_b",
+          "blk_nk-closure_rel_a",
+          "blk_dep-closure_neg_a",
+          "blk_dep-closure_dup_b",
+          "blk_shadow-probe_rel_a",
+          "blk_packet-hash_rel_b",
+          "blk_epoch-fold_rel_a",
+          "blk_nk-closure_rel_b",
+          "blk_cartridge-prefix_rel_b"
+        ],
+        "query": "dependency closure parent",
+        "relevant": [
+          "blk_dep-closure_rel_a",
+          "blk_dep-closure_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_shadow-probe_rel_a",
+          "blk_shadow-probe_rel_b",
+          "blk_shadow-probe_neg_a",
+          "blk_packet-hash_rel_b",
+          "blk_shadow-probe_dup_b",
+          "blk_watermark_dup_b",
+          "blk_watermark_rel_b",
+          "blk_packet-hash_rel_a",
+          "blk_dense-vector_neg_a",
+          "blk_audit-ledger_rel_b"
+        ],
+        "query": "shadow probe verification",
+        "relevant": [
+          "blk_shadow-probe_rel_a",
+          "blk_shadow-probe_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_trust-domain_rel_a",
+          "blk_packet-hash_rel_b",
+          "blk_trust-domain_rel_b",
+          "blk_trust-domain_dup_b",
+          "blk_trust-domain_neg_a",
+          "blk_shadow-probe_rel_a",
+          "blk_deny-default_rel_b",
+          "blk_watermark_rel_b",
+          "blk_nk-closure_rel_b",
+          "blk_audit-ledger_rel_b"
+        ],
+        "query": "trust domain isolation",
+        "relevant": [
+          "blk_trust-domain_rel_a",
+          "blk_trust-domain_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 0.3333333333333333,
+        "top1": 0.0,
+        "first_relevant_rank": 3,
+        "ranked_top10": [
+          "blk_dense-vector_neg_a",
+          "blk_dense-vector_neg_b",
+          "blk_dense-vector_rel_b",
+          "blk_dense-vector_rel_a",
+          "blk_dense-vector_dup_b",
+          "blk_nk-closure_rel_a",
+          "blk_dense-vector_dup_a",
+          "blk_packet-hash_rel_b",
+          "blk_hnsw-index_rel_a",
+          "blk_shadow-probe_rel_a"
+        ],
+        "query": "how do we find semantically similar notes without keyword overlap",
+        "relevant": [
+          "blk_dense-vector_rel_a",
+          "blk_dense-vector_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_audit-ledger_rel_b",
+          "blk_audit-ledger_rel_a",
+          "blk_audit-ledger_dup_b",
+          "blk_audit-ledger_neg_b",
+          "blk_audit-ledger_neg_a",
+          "blk_packet-hash_neg_a",
+          "blk_sqlite-journal_rel_a",
+          "blk_sqlite-journal_neg_a",
+          "blk_watermark_neg_a",
+          "blk_packet-hash_rel_b"
+        ],
+        "query": "audit ledger replay",
+        "relevant": [
+          "blk_audit-ledger_rel_a",
+          "blk_audit-ledger_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.0,
+        "recall@10": 0.5,
+        "reciprocal_rank": 0.1111111111111111,
+        "top1": 0.0,
+        "first_relevant_rank": 9,
+        "ranked_top10": [
+          "blk_single-writer_neg_a",
+          "blk_single-writer_neg_b",
+          "blk_packet-hash_rel_b",
+          "blk_single-writer_dup_b",
+          "blk_dep-closure_rel_a",
+          "blk_sqlite-journal_rel_a",
+          "blk_nk-closure_rel_a",
+          "blk_audit-ledger_rel_b",
+          "blk_single-writer_rel_b",
+          "blk_single-writer_dup_a"
+        ],
+        "query": "who may write to a shared block at the same time",
+        "relevant": [
+          "blk_single-writer_rel_a",
+          "blk_single-writer_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_canary-rollout_rel_b",
+          "blk_canary-rollout_rel_a",
+          "blk_canary-rollout_neg_a",
+          "blk_shadow-probe_rel_a",
+          "blk_canary-rollout_dup_a",
+          "blk_canary-rollout_dup_b",
+          "blk_shadow-probe_dup_a",
+          "blk_canary-rollout_neg_b",
+          "blk_sqlite-journal_rel_a",
+          "blk_retry-backoff_neg_a"
+        ],
+        "query": "canary rollout migration",
+        "relevant": [
+          "blk_canary-rollout_rel_a",
+          "blk_canary-rollout_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_sqlite-journal_rel_a",
+          "blk_sqlite-journal_neg_a",
+          "blk_sqlite-journal_dup_b",
+          "blk_sqlite-journal_neg_b",
+          "blk_sqlite-journal_rel_b",
+          "blk_shadow-probe_neg_a",
+          "blk_retry-backoff_neg_a",
+          "blk_watermark_neg_a",
+          "blk_shadow-probe_rel_a",
+          "blk_single-writer_neg_a"
+        ],
+        "query": "sqlite journal checkpoint",
+        "relevant": [
+          "blk_sqlite-journal_rel_a",
+          "blk_sqlite-journal_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 0.3333333333333333,
+        "top1": 0.0,
+        "first_relevant_rank": 3,
+        "ranked_top10": [
+          "blk_conflict-alert_neg_a",
+          "blk_conflict-alert_neg_b",
+          "blk_conflict-alert_rel_b",
+          "blk_conflict-alert_rel_a",
+          "blk_nk-closure_rel_a",
+          "blk_nk-closure_neg_a",
+          "blk_single-writer_neg_a",
+          "blk_retry-backoff_neg_a",
+          "blk_shadow-probe_neg_a",
+          "blk_packet-hash_neg_a"
+        ],
+        "query": "what happens when two facts disagree about current state",
+        "relevant": [
+          "blk_conflict-alert_rel_a",
+          "blk_conflict-alert_rel_b"
+        ]
+      }
+    ],
+    "hybrid": [
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_retry-backoff_rel_a",
+          "blk_retry-backoff_rel_b",
+          "blk_retry-backoff_neg_b",
+          "blk_retry-backoff_neg_a",
+          "blk_retry-backoff_dup_b",
+          "blk_retry-backoff_dup_a",
+          "blk_sqlite-journal_rel_a",
+          "blk_hnsw-index_rel_a",
+          "blk_audit-ledger_rel_a",
+          "blk_canary-rollout_neg_a"
+        ],
+        "query": "retry backoff overflow",
+        "relevant": [
+          "blk_retry-backoff_rel_a",
+          "blk_retry-backoff_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_token-budget_rel_b",
+          "blk_token-budget_rel_a",
+          "blk_token-budget_neg_b",
+          "blk_token-budget_neg_a",
+          "blk_token-budget_dup_b",
+          "blk_token-budget_dup_a",
+          "blk_mmr-packing_rel_b",
+          "blk_mmr-packing_dup_a",
+          "blk_packet-hash_rel_b",
+          "blk_audit-ledger_rel_b"
+        ],
+        "query": "token budget allocation",
+        "relevant": [
+          "blk_token-budget_rel_a",
+          "blk_token-budget_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_hnsw-index_rel_a",
+          "blk_hnsw-index_rel_b",
+          "blk_hnsw-index_neg_b",
+          "blk_hnsw-index_dup_b",
+          "blk_hnsw-index_neg_a",
+          "blk_hnsw-index_dup_a",
+          "blk_dense-vector_dup_a",
+          "blk_nk-closure_rel_a",
+          "blk_audit-ledger_rel_b",
+          "blk_retry-backoff_neg_a"
+        ],
+        "query": "hnsw index recall",
+        "relevant": [
+          "blk_hnsw-index_rel_a",
+          "blk_hnsw-index_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_epoch-fold_rel_a",
+          "blk_epoch-fold_rel_b",
+          "blk_epoch-fold_neg_b",
+          "blk_epoch-fold_neg_a",
+          "blk_epoch-fold_dup_a",
+          "blk_epoch-fold_dup_b",
+          "blk_watermark_dup_b",
+          "blk_audit-ledger_rel_b",
+          "blk_audit-ledger_rel_a",
+          "blk_single-writer_dup_b"
+        ],
+        "query": "epoch fold append",
+        "relevant": [
+          "blk_epoch-fold_rel_a",
+          "blk_epoch-fold_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_packet-hash_rel_a",
+          "blk_packet-hash_rel_b",
+          "blk_packet-hash_dup_b",
+          "blk_packet-hash_neg_a",
+          "blk_packet-hash_neg_b",
+          "blk_packet-hash_dup_a",
+          "blk_audit-ledger_rel_b",
+          "blk_shadow-probe_rel_b",
+          "blk_audit-ledger_rel_a",
+          "blk_cartridge-prefix_rel_a"
+        ],
+        "query": "packet content hash",
+        "relevant": [
+          "blk_packet-hash_rel_a",
+          "blk_packet-hash_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_deny-default_rel_b",
+          "blk_deny-default_rel_a",
+          "blk_deny-default_neg_b",
+          "blk_deny-default_dup_b",
+          "blk_deny-default_neg_a",
+          "blk_deny-default_dup_a",
+          "blk_trust-domain_rel_b",
+          "blk_trust-domain_dup_a",
+          "blk_trust-domain_rel_a",
+          "blk_nk-closure_rel_a"
+        ],
+        "query": "policy deny default",
+        "relevant": [
+          "blk_deny-default_rel_a",
+          "blk_deny-default_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_watermark_rel_b",
+          "blk_watermark_rel_a",
+          "blk_watermark_neg_a",
+          "blk_watermark_dup_b",
+          "blk_watermark_neg_b",
+          "blk_watermark_dup_a",
+          "blk_cartridge-prefix_dup_b",
+          "blk_epoch-fold_rel_b",
+          "blk_packet-hash_rel_b",
+          "blk_audit-ledger_rel_b"
+        ],
+        "query": "watermark event sequence",
+        "relevant": [
+          "blk_watermark_rel_a",
+          "blk_watermark_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_cartridge-prefix_rel_b",
+          "blk_cartridge-prefix_rel_a",
+          "blk_cartridge-prefix_neg_b",
+          "blk_cartridge-prefix_neg_a",
+          "blk_cartridge-prefix_dup_b",
+          "blk_cartridge-prefix_dup_a",
+          "blk_token-budget_rel_a",
+          "blk_sqlite-journal_rel_a",
+          "blk_packet-hash_rel_b",
+          "blk_shadow-probe_rel_a"
+        ],
+        "query": "cartridge prefix cache",
+        "relevant": [
+          "blk_cartridge-prefix_rel_a",
+          "blk_cartridge-prefix_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_mmr-packing_rel_a",
+          "blk_mmr-packing_rel_b",
+          "blk_mmr-packing_neg_a",
+          "blk_mmr-packing_neg_b",
+          "blk_mmr-packing_dup_b",
+          "blk_mmr-packing_dup_a",
+          "blk_token-budget_dup_b",
+          "blk_packet-hash_rel_b",
+          "blk_dense-vector_rel_a",
+          "blk_token-budget_dup_a"
+        ],
+        "query": "mmr packing diversity",
+        "relevant": [
+          "blk_mmr-packing_rel_a",
+          "blk_mmr-packing_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_u-curve_rel_b",
+          "blk_u-curve_rel_a",
+          "blk_u-curve_neg_a",
+          "blk_u-curve_neg_b",
+          "blk_u-curve_dup_b",
+          "blk_u-curve_dup_a",
+          "blk_dep-closure_rel_a",
+          "blk_watermark_rel_b",
+          "blk_packet-hash_rel_b",
+          "blk_nk-closure_rel_a"
+        ],
+        "query": "u-curve anchor placement",
+        "relevant": [
+          "blk_u-curve_rel_a",
+          "blk_u-curve_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_nk-closure_rel_b",
+          "blk_nk-closure_rel_a",
+          "blk_nk-closure_neg_a",
+          "blk_nk-closure_dup_a",
+          "blk_nk-closure_neg_b",
+          "blk_nk-closure_dup_b",
+          "blk_dep-closure_rel_a",
+          "blk_dep-closure_rel_b",
+          "blk_dep-closure_dup_b",
+          "blk_dep-closure_neg_a"
+        ],
+        "query": "negative knowledge closure",
+        "relevant": [
+          "blk_nk-closure_rel_a",
+          "blk_nk-closure_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_dep-closure_rel_a",
+          "blk_dep-closure_rel_b",
+          "blk_dep-closure_neg_a",
+          "blk_dep-closure_neg_b",
+          "blk_dep-closure_dup_a",
+          "blk_dep-closure_dup_b",
+          "blk_nk-closure_rel_b",
+          "blk_nk-closure_rel_a",
+          "blk_nk-closure_dup_a",
+          "blk_nk-closure_neg_a"
+        ],
+        "query": "dependency closure parent",
+        "relevant": [
+          "blk_dep-closure_rel_a",
+          "blk_dep-closure_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_shadow-probe_rel_a",
+          "blk_shadow-probe_rel_b",
+          "blk_shadow-probe_neg_a",
+          "blk_shadow-probe_neg_b",
+          "blk_shadow-probe_dup_b",
+          "blk_shadow-probe_dup_a",
+          "blk_packet-hash_rel_a",
+          "blk_canary-rollout_dup_b",
+          "blk_canary-rollout_rel_a",
+          "blk_packet-hash_rel_b"
+        ],
+        "query": "shadow probe verification",
+        "relevant": [
+          "blk_shadow-probe_rel_a",
+          "blk_shadow-probe_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_trust-domain_rel_a",
+          "blk_trust-domain_rel_b",
+          "blk_trust-domain_neg_a",
+          "blk_trust-domain_neg_b",
+          "blk_trust-domain_dup_a",
+          "blk_trust-domain_dup_b",
+          "blk_deny-default_dup_a",
+          "blk_packet-hash_rel_b",
+          "blk_shadow-probe_rel_a",
+          "blk_deny-default_rel_b"
+        ],
+        "query": "trust domain isolation",
+        "relevant": [
+          "blk_trust-domain_rel_a",
+          "blk_trust-domain_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 0.25,
+        "top1": 0.0,
+        "first_relevant_rank": 4,
+        "ranked_top10": [
+          "blk_dense-vector_neg_a",
+          "blk_dense-vector_neg_b",
+          "blk_dense-vector_dup_b",
+          "blk_dense-vector_rel_b",
+          "blk_dense-vector_rel_a",
+          "blk_dense-vector_dup_a",
+          "blk_nk-closure_rel_a",
+          "blk_packet-hash_rel_b",
+          "blk_hnsw-index_dup_a",
+          "blk_hnsw-index_rel_a"
+        ],
+        "query": "how do we find semantically similar notes without keyword overlap",
+        "relevant": [
+          "blk_dense-vector_rel_a",
+          "blk_dense-vector_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_audit-ledger_rel_b",
+          "blk_audit-ledger_rel_a",
+          "blk_audit-ledger_neg_b",
+          "blk_audit-ledger_neg_a",
+          "blk_audit-ledger_dup_b",
+          "blk_audit-ledger_dup_a",
+          "blk_epoch-fold_rel_b",
+          "blk_conflict-alert_dup_b",
+          "blk_packet-hash_neg_a",
+          "blk_sqlite-journal_rel_a"
+        ],
+        "query": "audit ledger replay",
+        "relevant": [
+          "blk_audit-ledger_rel_a",
+          "blk_audit-ledger_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.0,
+        "recall@10": 0.0,
+        "reciprocal_rank": 0.058823529411764705,
+        "top1": 0.0,
+        "first_relevant_rank": 17,
+        "ranked_top10": [
+          "blk_single-writer_neg_b",
+          "blk_single-writer_neg_a",
+          "blk_single-writer_dup_a",
+          "blk_watermark_rel_a",
+          "blk_canary-rollout_rel_b",
+          "blk_nk-closure_rel_a",
+          "blk_cartridge-prefix_rel_b",
+          "blk_sqlite-journal_rel_a",
+          "blk_single-writer_dup_b",
+          "blk_packet-hash_rel_b"
+        ],
+        "query": "who may write to a shared block at the same time",
+        "relevant": [
+          "blk_single-writer_rel_a",
+          "blk_single-writer_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_canary-rollout_rel_a",
+          "blk_canary-rollout_rel_b",
+          "blk_canary-rollout_neg_a",
+          "blk_canary-rollout_neg_b",
+          "blk_canary-rollout_dup_a",
+          "blk_canary-rollout_dup_b",
+          "blk_shadow-probe_rel_a",
+          "blk_shadow-probe_dup_a",
+          "blk_sqlite-journal_rel_a",
+          "blk_retry-backoff_neg_a"
+        ],
+        "query": "canary rollout migration",
+        "relevant": [
+          "blk_canary-rollout_rel_a",
+          "blk_canary-rollout_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 1.0,
+        "top1": 1.0,
+        "first_relevant_rank": 1,
+        "ranked_top10": [
+          "blk_sqlite-journal_rel_a",
+          "blk_sqlite-journal_neg_a",
+          "blk_sqlite-journal_neg_b",
+          "blk_sqlite-journal_rel_b",
+          "blk_sqlite-journal_dup_a",
+          "blk_sqlite-journal_dup_b",
+          "blk_shadow-probe_neg_a",
+          "blk_retry-backoff_neg_a",
+          "blk_watermark_neg_a",
+          "blk_shadow-probe_rel_a"
+        ],
+        "query": "sqlite journal checkpoint",
+        "relevant": [
+          "blk_sqlite-journal_rel_a",
+          "blk_sqlite-journal_rel_b"
+        ]
+      },
+      {
+        "precision@5": 0.4,
+        "recall@10": 1.0,
+        "reciprocal_rank": 0.3333333333333333,
+        "top1": 0.0,
+        "first_relevant_rank": 3,
+        "ranked_top10": [
+          "blk_conflict-alert_neg_b",
+          "blk_conflict-alert_neg_a",
+          "blk_conflict-alert_rel_b",
+          "blk_conflict-alert_rel_a",
+          "blk_conflict-alert_dup_b",
+          "blk_mmr-packing_rel_a",
+          "blk_conflict-alert_dup_a",
+          "blk_nk-closure_rel_a",
+          "blk_hnsw-index_rel_a",
+          "blk_nk-closure_neg_a"
+        ],
+        "query": "what happens when two facts disagree about current state",
+        "relevant": [
+          "blk_conflict-alert_rel_a",
+          "blk_conflict-alert_rel_b"
+        ]
+      }
+    ]
+  }
+}

@@ -30,7 +30,7 @@ import httpx
 
 from kernel.cartridge.serializer import count_tokens
 from kernel.store import SqliteStore
-from protocol.canonical import sha256_hex
+from protocol.canonical import content_hash, sha256_hex
 from protocol.models import (
     BlockKind,
     ContextBlock,
@@ -310,6 +310,7 @@ class _Completion(NamedTuple):
     completion_tokens: int
     latency_ms: float
     compiled: bool
+    prompt_sha256: str
 
 
 class _Counters(NamedTuple):
@@ -408,6 +409,7 @@ def _chat(
         int(usage.get("completion_tokens") or 0),
         round(latency_ms, 1),
         response.headers.get("x-fabric-compiled") == "1",
+        "sha256:" + content_hash(messages),
     )
 
 
@@ -499,6 +501,8 @@ def _chat_record(
         "completion_tokens": completion.completion_tokens,
         "latency_ms": completion.latency_ms,
         "response": completion.text,
+        "response_text": completion.text[:500],
+        "prompt_sha256": completion.prompt_sha256,
     }
 
 
@@ -644,6 +648,8 @@ def run_fleet(
                         "completion_tokens": completion.completion_tokens,
                         "latency_ms": completion.latency_ms,
                         "response": completion.text,
+                        "response_text": completion.text[:500],
+                        "prompt_sha256": completion.prompt_sha256,
                     }
                 )
             records.extend(arm_records)
@@ -680,6 +686,10 @@ def run_fleet(
             f"Broadcast renders all stored blocks ({count_tokens(blob)} tokens) including the "
             "quarantined draft (the baseline applies no policy); compiled packets deny the "
             "draft (lifecycle:draft) and include only relevant blocks.",
+            "Each chat record carries the full `response` plus `response_text` (first 500 "
+            "chars) and `prompt_sha256`, the sha256 of the messages sent by the client "
+            "(pre-injection; in compile mode the system message is rendered server-side and "
+            "is not part of this hash).",
         ],
     }
 
@@ -729,6 +739,10 @@ def run_negative(
         "Cache counter caveat: the pilot sends the same prompts as the final control arm, so "
         "control's cache deltas are warm-cache numbers (pilot requests are excluded from the "
         "deltas but not from the upstream cache).",
+        "Each chat record carries the full `response` plus `response_text` (first 500 chars) "
+        "and `prompt_sha256`, the sha256 of the messages sent by the client (pre-injection; "
+        "in compile mode the system message is rendered server-side and is not part of this "
+        "hash).",
     ]
     try:
         pilot_pairs = [(candidate, repeat) for candidate in candidates for repeat in range(repeats)]

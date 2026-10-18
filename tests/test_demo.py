@@ -190,6 +190,22 @@ def test_fleet_receipt_schema_and_symmetric_scoring(
     assert broadcast_cache["kv_cache_usage_peak"] == 0.5
     assert any("synthetic" in note for note in receipt["notes"])
     assert any("substring check" in note for note in receipt["notes"])
+    for record in receipt["records"]:
+        assert record["response"].startswith(record["response_text"])
+        assert len(record["response_text"]) <= 500
+        assert record["prompt_sha256"].startswith("sha256:")
+    broadcast_hashes = {
+        record["objective"]: record["prompt_sha256"]
+        for record in receipt["records"]
+        if record["arm"] == "broadcast"
+    }
+    compile_hashes = {
+        record["objective"]: record["prompt_sha256"]
+        for record in receipt["records"]
+        if record["arm"] == "compile"
+    }
+    assert broadcast_hashes.keys() == compile_hashes.keys()
+    assert all(broadcast_hashes[obj] != compile_hashes[obj] for obj in broadcast_hashes)
 
 
 def test_fleet_failing_arm_fails_identically(
@@ -238,6 +254,8 @@ def test_negative_pilot_freezes_traps_and_measures_control_vs_treated(
     assert treated.count() == control.count() + 2
     chat = [record for record in receipt["records"] if record["op"] == "chat"]
     assert all(record["compiled"] for record in chat)
+    assert all(record["response"].startswith(record["response_text"]) for record in chat)
+    assert all(record["prompt_sha256"].startswith("sha256:") for record in chat)
 
 
 def test_negative_reports_null_result_when_pilot_finds_no_bad_control(

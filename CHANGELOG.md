@@ -6,6 +6,17 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Added
+- **Recall upgrade** — BM25 (k1=1.2/b=0.75) replaces naive lexical overlap; optional embeddings
+  extra (`[embeddings]`, fastembed/bge-small) with `CF_RECALL=bm25|hybrid|embeddings`. Benchmark:
+  top-1 0.00→0.85, MRR 0.29→0.86 vs the old baseline (`docs/engineering/RECALL-BENCH.md`).
+- **λ-MMR packing + U-curve recap** — diversity-aware selection in the packer (−13.4% redundancy
+  vs greedy; coverage trade-off 5/6 vs 6/6 — corrected by audit) and a KEY CONSTRAINTS tail
+  recap; position probe was a null, documented (`docs/engineering/PACKING-QUALITY.md`).
+- **MCP stdio server** — `cfx mcp` (search / receipt verify / quarantine-aware add; spec
+  2025-11-25) (`docs/engineering/MCP.md`).
+- **Perf budget gate + agent-hint producer** — `tests/test_perf.py` (compile <250 ms at 1000
+  blocks; measured ~61 ms post-MMR); `kernel/router/hints.py` (RFC #52113-shaped, trace-only)
+  (`docs/engineering/PERFORMANCE.md`, `AGENT-HINTS.md`).
 - **The plug** — OpenAI-compatible sidecar proxy (`sidecar/`): compile/passthrough modes, SSE
   streaming, stats; ~10-minute setup (`docs/engineering/SIDECAR.md`).
 - **`cfx` CLI + writable memory** — `cfx serve|add|verify`; `POST /fabric/blocks` with
@@ -18,8 +29,9 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - **`cfx demo` — the receipt demo** (`sidecar/demo.py`): one command runs a 6-agent fleet in two
   arms (best-case broadcast vs compile) against any OpenAI-compatible endpoint and prints a
   receipt (tokens, accuracy, cache, KV, cost if priced); negative-knowledge scenario with
-  control/treated traps and v1+v2 scorers. GPU-verified: **3.39× fewer prompt tokens at equal
-  accuracy, ~2× faster** (`docs/engineering/DEMO.md`; audit: `DEMO-REVIEW.md`).
+  control/treated traps and v1+v2 scorers. GPU-verified (regenerated post-audit set): **3.17×
+  fewer prompt tokens at equal accuracy**, wall 2.80 s → 2.08 s; receipts now embed raw
+  responses and prompt hashes (`docs/engineering/DEMO.md`; audit: `DEMO-REVIEW.md`).
 - **The seal** — signed epoch chain + receipts (`protocol/epoch.py`, `verify` CLI), cross-process
   determinism spike, tamper tests (`docs/engineering/SEAL.md`).
 - **The shared copy** — memory-state copy-on-write (`kernel/epochs.py`): O(1) fork, private
@@ -50,6 +62,14 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   `sidecar/render.py` never delivered them; negative knowledge now lands at the tail of the
   injected context (U-curve position). Found by the demo's negative-knowledge scenario,
   verified in the rerun (`docs/engineering/DEMO.md` §Results).
+
+### Fixed (gap-wave audits)
+- MCP stdin crashes on malformed UTF-8 and lone-surrogate epoch payloads (S1).
+- `pack(mmr_lambda=1.0)` control-fidelity bug — the packing bench's greedy arm had measured the
+  wrong algorithm; corrected numbers: −13.4% redundancy, coverage 5/6 vs 6/6 (S2).
+- Render recap duplicated long negative-knowledge blocks already covered by prohibitions;
+  hybrid scoring dropped a legitimate block with id `"idf"`; stale `PERFORMANCE.md` numbers.
+  Full audits: `docs/engineering/GAP-WAVE-REVIEW.md`, `GAP-WAVE-MEASUREMENTS.md`.
 
 ### Fixed (protocol audit)
 - RFC 8785 number formatting (ECMAScript form: `1e16`, `1e-5`, `1e-7`), enum serialization,

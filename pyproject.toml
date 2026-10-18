@@ -15,6 +15,7 @@ cfx = "sidecar.cli:main"
 
 [project.optional-dependencies]
 observability = ["opentelemetry-api>=1.25", "opentelemetry-sdk>=1.25"]
+embeddings = ["fastembed>=0.4"]
 dev = ["pytest>=8", "mypy>=1.11", "ruff>=0.6"]
 
 [tool.uv]
@@ -32,9 +33,18 @@ python_version = "3.12"
 strict = true
 warn_unused_ignores = true
 
+# fastembed is an optional extra: type-check must pass whether or not it is installed.
+[[tool.mypy.overrides]]
+module = ["fastembed", "fastembed.*"]
+ignore_missing_imports = true
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# Synthetic corpus notes are long single-line string literals by design.
+"evals/recall_bench.py" = ["E501"]

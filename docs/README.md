@@ -40,6 +40,14 @@ Everything that matters is here. "Main" documents are marked ⭐.
 - `TRACK-A-REVIEW.md` — audit of the cfx CLI / writable memory / store relations (4 S2 + 9 S3 fixed, 0 S1).
 - `DEMO.md` — `cfx demo`: fleet + negative-knowledge receipts, method, measured results.
 - `DEMO-REVIEW.md` — independent audit of the demo fairness/numbers (0 blockers).
+- `RECALL-BENCH.md` — BM25/hybrid recall benchmark + construction.
+- `PACKING-QUALITY.md` — MMR + U-curve evidence (null probe stated).
+- `MCP.md` — MCP stdio server reference (`cfx mcp`).
+- `PERFORMANCE.md` — compile/render numbers + budget policy.
+- `AGENT-HINTS.md` — RFC #52113-shaped hint producer (trace-only).
+- `GAP-WAVE-REVIEW.md` — code audit of the gap wave (2 S1 + 3 S2 fixed, 0 open S1).
+- `GAP-WAVE-MEASUREMENTS.md` — measurement audit (every number re-derived).
+- `ROADMAP-DECISIONS.md` — deliberate deferrals with triggers.
 - `PROTOCOL-REVIEW.md` — deterministic-core (protocol/) audit.
 - `KERNEL-REVIEW.md` — Stage C kernel code review.
 

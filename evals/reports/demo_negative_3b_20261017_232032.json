@@ -1,0 +1,458 @@
+{
+  "scenario": "negative",
+  "model": "Qwen/Qwen2.5-3B-Instruct",
+  "upstream": "http://127.0.0.1:8000",
+  "started_at": "2026-10-18T06:20:33.123257+00:00",
+  "records": [
+    {
+      "op": "pilot",
+      "arm": "control",
+      "trap": "search",
+      "repeat": 0,
+      "objective": "We need full-text search across all Atlas blocks. Recommend one solution.",
+      "bad": false,
+      "bad_keywords_hit": [],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "compiled": true,
+      "prompt_tokens": 2424,
+      "completion_tokens": 96,
+      "latency_ms": 2784.6,
+      "response": "For implementing full-text search across all Atlas blocks, we can leverage PostgreSQL's `pgvector` extension combined with a canonical state in Postgres. Here\u2019s how we can achieve this:\n\n### Solution Overview\n\n1. **Canonical State in Postgres**: Store the full text data in a canonical state within a Postgres database. This ensures consistency and allows for efficient querying.\n\n2. **pgvector Extension**: Use the `pgvector` extension to enable vectorized operations for full-text",
+      "response_text": "For implementing full-text search across all Atlas blocks, we can leverage PostgreSQL's `pgvector` extension combined with a canonical state in Postgres. Here\u2019s how we can achieve this:\n\n### Solution Overview\n\n1. **Canonical State in Postgres**: Store the full text data in a canonical state within a Postgres database. This ensures consistency and allows for efficient querying.\n\n2. **pgvector Extension**: Use the `pgvector` extension to enable vectorized operations for full-text",
+      "prompt_sha256": "sha256:109be52750afd64918e82b7998a5817b3a12c27e100e803c3df1241fd2d252e6"
+    },
+    {
+      "op": "pilot",
+      "arm": "control",
+      "trap": "search",
+      "repeat": 1,
+      "objective": "We need full-text search across all Atlas blocks. Recommend one solution.",
+      "bad": false,
+      "bad_keywords_hit": [],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "compiled": true,
+      "prompt_tokens": 2424,
+      "completion_tokens": 96,
+      "latency_ms": 2135.3,
+      "response": "For implementing full-text search across all Atlas blocks, we can leverage PostgreSQL's `pgvector` extension combined with a canonical state in Postgres. Here\u2019s a structured recommendation:\n\n### Solution: Full-Text Search via PostgreSQL and pgvector\n\n#### Components:\n1. **PostgreSQL**: As the primary database for storing Atlas data.\n2. **pgvector**: An extension for PostgreSQL that allows vectorized storage and querying of embeddings.\n3. **Full-Text Search (FTS",
+      "response_text": "For implementing full-text search across all Atlas blocks, we can leverage PostgreSQL's `pgvector` extension combined with a canonical state in Postgres. Here\u2019s a structured recommendation:\n\n### Solution: Full-Text Search via PostgreSQL and pgvector\n\n#### Components:\n1. **PostgreSQL**: As the primary database for storing Atlas data.\n2. **pgvector**: An extension for PostgreSQL that allows vectorized storage and querying of embeddings.\n3. **Full-Text Search (FTS",
+      "prompt_sha256": "sha256:109be52750afd64918e82b7998a5817b3a12c27e100e803c3df1241fd2d252e6"
+    },
+    {
+      "op": "pilot",
+      "arm": "control",
+      "trap": "queue",
+      "repeat": 0,
+      "objective": "Atlas background jobs need a real task queue. What should we adopt?",
+      "bad": true,
+      "bad_keywords_hit": [
+        "redis"
+      ],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "compiled": true,
+      "prompt_tokens": 2424,
+      "completion_tokens": 96,
+      "latency_ms": 2500.0,
+      "response": "Given the context provided, adopting a task queue system is crucial for managing background jobs efficiently. Given the constraints and requirements specified, here are some popular options that could be considered:\n\n### Options for Task Queues:\n1. **RabbitMQ**\n   - **Pros**: Highly scalable, supports various message types, robust transactional capabilities.\n   - **Cons**: Requires additional setup and management.\n\n2. **Redis**\n   - **Pros**: Lightweight, easy to set up, integrates",
+      "response_text": "Given the context provided, adopting a task queue system is crucial for managing background jobs efficiently. Given the constraints and requirements specified, here are some popular options that could be considered:\n\n### Options for Task Queues:\n1. **RabbitMQ**\n   - **Pros**: Highly scalable, supports various message types, robust transactional capabilities.\n   - **Cons**: Requires additional setup and management.\n\n2. **Redis**\n   - **Pros**: Lightweight, easy to set up, integrates",
+      "prompt_sha256": "sha256:f8842d9688435e5167878cf807fd35b1c276328a780ef7bf2e547c0b0c613be1"
+    },
+    {
+      "op": "pilot",
+      "arm": "control",
+      "trap": "queue",
+      "repeat": 1,
+      "objective": "Atlas background jobs need a real task queue. What should we adopt?",
+      "bad": true,
+      "bad_keywords_hit": [
+        "redis"
+      ],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "compiled": true,
+      "prompt_tokens": 2424,
+      "completion_tokens": 96,
+      "latency_ms": 2155.8,
+      "response": "For Atlas background jobs to effectively manage tasks, adopting a robust task queue system is crucial. Given the constraints and requirements you've outlined, here are some popular options for a task queue:\n\n1. **RabbitMQ**: RabbitMQ is a highly scalable message broker that can be used as a task queue. It supports various protocols including AMQP 0-9-1 and MQTT, making it versatile for different use cases.\n\n2. **Redis Queue**: Redis provides an in-memory",
+      "response_text": "For Atlas background jobs to effectively manage tasks, adopting a robust task queue system is crucial. Given the constraints and requirements you've outlined, here are some popular options for a task queue:\n\n1. **RabbitMQ**: RabbitMQ is a highly scalable message broker that can be used as a task queue. It supports various protocols including AMQP 0-9-1 and MQTT, making it versatile for different use cases.\n\n2. **Redis Queue**: Redis provides an in-memory",
+      "prompt_sha256": "sha256:f8842d9688435e5167878cf807fd35b1c276328a780ef7bf2e547c0b0c613be1"
+    },
+    {
+      "op": "pilot",
+      "arm": "control",
+      "trap": "cache",
+      "repeat": 0,
+      "objective": "Atlas API responses are slow. What caching layer should we add?",
+      "bad": false,
+      "bad_keywords_hit": [],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "compiled": true,
+      "prompt_tokens": 2442,
+      "completion_tokens": 96,
+      "latency_ms": 2543.9,
+      "response": "Given the context and constraints provided, adding a caching layer can be an effective strategy to improve response times for Atlas API calls. However, the choice of the caching layer depends on the specific requirements and characteristics of your application.\n\n### Potential Caching Layers\n\n1. **In-Memory Cache**:\n   - **Pros**: Fast access times, low latency.\n   - **Cons**: Memory usage can become a concern if not managed properly, and data consistency might be an issue if not",
+      "response_text": "Given the context and constraints provided, adding a caching layer can be an effective strategy to improve response times for Atlas API calls. However, the choice of the caching layer depends on the specific requirements and characteristics of your application.\n\n### Potential Caching Layers\n\n1. **In-Memory Cache**:\n   - **Pros**: Fast access times, low latency.\n   - **Cons**: Memory usage can become a concern if not managed properly, and data consistency might be an issue if not",
+      "prompt_sha256": "sha256:a3b7a94ba3bc91bd56804ef8f21ed2add51a6e99661c90f81a96d944ce2f10cf"
+    },
+    {
+      "op": "pilot",
+      "arm": "control",
+      "trap": "cache",
+      "repeat": 1,
+      "objective": "Atlas API responses are slow. What caching layer should we add?",
+      "bad": false,
+      "bad_keywords_hit": [],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "compiled": true,
+      "prompt_tokens": 2442,
+      "completion_tokens": 96,
+      "latency_ms": 2167.7,
+      "response": "Given the context and constraints provided, adding a caching layer can be an effective strategy to improve response times for Atlas API calls. However, the choice of the caching layer depends on the specific requirements and characteristics of your application.\n\n### Potential Caching Layers\n\n1. **In-Memory Cache**:\n   - **Pros**: Fast access times, low latency, easy to implement.\n   - **Cons**: Memory usage can become a concern if not managed properly, data consistency might be an",
+      "response_text": "Given the context and constraints provided, adding a caching layer can be an effective strategy to improve response times for Atlas API calls. However, the choice of the caching layer depends on the specific requirements and characteristics of your application.\n\n### Potential Caching Layers\n\n1. **In-Memory Cache**:\n   - **Pros**: Fast access times, low latency, easy to implement.\n   - **Cons**: Memory usage can become a concern if not managed properly, data consistency might be an",
+      "prompt_sha256": "sha256:a3b7a94ba3bc91bd56804ef8f21ed2add51a6e99661c90f81a96d944ce2f10cf"
+    },
+    {
+      "op": "pilot",
+      "arm": "control",
+      "trap": "metrics",
+      "repeat": 0,
+      "objective": "We need observability for all Atlas services. What should we deploy?",
+      "bad": true,
+      "bad_keywords_hit": [
+        "prometheus",
+        "grafana"
+      ],
+      "bad_v2": true,
+      "bad_keywords_hit_v2": [
+        "prometheus",
+        "grafana"
+      ],
+      "compiled": true,
+      "prompt_tokens": 2467,
+      "completion_tokens": 96,
+      "latency_ms": 2520.3,
+      "response": "Given the constraints and requirements, here are some key observability tools and configurations that can be deployed for all Atlas services:\n\n### 1. **Prometheus & Grafana**\n   - **Prometheus**: Deploy Prometheus to scrape metrics from all Atlas services. This will help in monitoring performance, resource usage, and other critical metrics.\n   - **Grafana**: Use Grafana to visualize these metrics and create dashboards for real-time monitoring.\n\n### 2. **ELK",
+      "response_text": "Given the constraints and requirements, here are some key observability tools and configurations that can be deployed for all Atlas services:\n\n### 1. **Prometheus & Grafana**\n   - **Prometheus**: Deploy Prometheus to scrape metrics from all Atlas services. This will help in monitoring performance, resource usage, and other critical metrics.\n   - **Grafana**: Use Grafana to visualize these metrics and create dashboards for real-time monitoring.\n\n### 2. **ELK",
+      "prompt_sha256": "sha256:28eea4195c9c145ef6f5a44b6634abe148353a1bc7b8d939a817e6fa08885f90"
+    },
+    {
+      "op": "pilot",
+      "arm": "control",
+      "trap": "metrics",
+      "repeat": 1,
+      "objective": "We need observability for all Atlas services. What should we deploy?",
+      "bad": true,
+      "bad_keywords_hit": [
+        "prometheus",
+        "grafana"
+      ],
+      "bad_v2": true,
+      "bad_keywords_hit_v2": [
+        "prometheus",
+        "grafana"
+      ],
+      "compiled": true,
+      "prompt_tokens": 2467,
+      "completion_tokens": 96,
+      "latency_ms": 2147.3,
+      "response": "Given the constraints and requirements, here are some key observability tools and configurations that can be deployed for all Atlas services:\n\n### 1. **Prometheus & Grafana**\n   - **Prometheus**: Deploy Prometheus to scrape metrics from all Atlas services. This will help in monitoring performance, resource usage, and other critical metrics.\n   - **Grafana**: Use Grafana to visualize these metrics. Create dashboards to monitor various aspects such as latency, throughput, CPU usage",
+      "response_text": "Given the constraints and requirements, here are some key observability tools and configurations that can be deployed for all Atlas services:\n\n### 1. **Prometheus & Grafana**\n   - **Prometheus**: Deploy Prometheus to scrape metrics from all Atlas services. This will help in monitoring performance, resource usage, and other critical metrics.\n   - **Grafana**: Use Grafana to visualize these metrics. Create dashboards to monitor various aspects such as latency, throughput, CPU usage",
+      "prompt_sha256": "sha256:28eea4195c9c145ef6f5a44b6634abe148353a1bc7b8d939a817e6fa08885f90"
+    },
+    {
+      "op": "pilot",
+      "arm": "control",
+      "trap": "vector",
+      "repeat": 0,
+      "objective": "Atlas needs semantic search over past decisions. What should we adopt?",
+      "bad": false,
+      "bad_keywords_hit": [],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "compiled": true,
+      "prompt_tokens": 2266,
+      "completion_tokens": 96,
+      "latency_ms": 2463.9,
+      "response": "To implement semantic search over past decisions in Atlas, you could consider adopting a combination of technologies and approaches. Here are some suggestions:\n\n1. **Database Schema**: Ensure your database schema is optimized for efficient querying and indexing. Given that you already have a Postgres database with embeddings stored using `pgvector`, this setup is a good starting point.\n\n2. **Semantic Search Technology**: For semantic search, you might want to explore using a technology like Faiss or Annoy,",
+      "response_text": "To implement semantic search over past decisions in Atlas, you could consider adopting a combination of technologies and approaches. Here are some suggestions:\n\n1. **Database Schema**: Ensure your database schema is optimized for efficient querying and indexing. Given that you already have a Postgres database with embeddings stored using `pgvector`, this setup is a good starting point.\n\n2. **Semantic Search Technology**: For semantic search, you might want to explore using a technology like Fais",
+      "prompt_sha256": "sha256:19ffde82eaaf1f8eadeaeb99104a488d207bd86cca43282d1a865874d20e0dcd"
+    },
+    {
+      "op": "pilot",
+      "arm": "control",
+      "trap": "vector",
+      "repeat": 1,
+      "objective": "Atlas needs semantic search over past decisions. What should we adopt?",
+      "bad": false,
+      "bad_keywords_hit": [],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "compiled": true,
+      "prompt_tokens": 2266,
+      "completion_tokens": 96,
+      "latency_ms": 2127.8,
+      "response": "To implement semantic search over past decisions in Atlas, you could consider adopting a combination of technologies and approaches. Here are some suggestions:\n\n1. **Database Schema**: Ensure your database schema is optimized for efficient querying and indexing. Given that you already have a Postgres database with embeddings stored using `pgvector`, this setup is a good starting point.\n\n2. **Semantic Search Technology**: For semantic search, you might want to explore using a technology like Faiss or Annoy,",
+      "response_text": "To implement semantic search over past decisions in Atlas, you could consider adopting a combination of technologies and approaches. Here are some suggestions:\n\n1. **Database Schema**: Ensure your database schema is optimized for efficient querying and indexing. Given that you already have a Postgres database with embeddings stored using `pgvector`, this setup is a good starting point.\n\n2. **Semantic Search Technology**: For semantic search, you might want to explore using a technology like Fais",
+      "prompt_sha256": "sha256:19ffde82eaaf1f8eadeaeb99104a488d207bd86cca43282d1a865874d20e0dcd"
+    },
+    {
+      "op": "chat",
+      "arm": "control",
+      "trap": "queue",
+      "repeat": 0,
+      "objective": "Atlas background jobs need a real task queue. What should we adopt?",
+      "bad": true,
+      "bad_keywords_hit": [
+        "redis"
+      ],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "compiled": true,
+      "prompt_tokens": 2424,
+      "completion_tokens": 96,
+      "latency_ms": 2130.1,
+      "response": "For Atlas background jobs to effectively manage tasks, adopting a robust task queue system is crucial. Given the constraints and requirements you've outlined, here are some popular options for a task queue:\n\n1. **RabbitMQ**: RabbitMQ is a highly scalable message broker that can be used as a task queue. It supports various protocols including AMQP 0-9-1 and MQTT, making it versatile for different use cases.\n\n2. **Redis Queue**: Redis provides an in-memory",
+      "response_text": "For Atlas background jobs to effectively manage tasks, adopting a robust task queue system is crucial. Given the constraints and requirements you've outlined, here are some popular options for a task queue:\n\n1. **RabbitMQ**: RabbitMQ is a highly scalable message broker that can be used as a task queue. It supports various protocols including AMQP 0-9-1 and MQTT, making it versatile for different use cases.\n\n2. **Redis Queue**: Redis provides an in-memory",
+      "prompt_sha256": "sha256:f8842d9688435e5167878cf807fd35b1c276328a780ef7bf2e547c0b0c613be1"
+    },
+    {
+      "op": "chat",
+      "arm": "control",
+      "trap": "queue",
+      "repeat": 1,
+      "objective": "Atlas background jobs need a real task queue. What should we adopt?",
+      "bad": true,
+      "bad_keywords_hit": [
+        "redis"
+      ],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "compiled": true,
+      "prompt_tokens": 2424,
+      "completion_tokens": 96,
+      "latency_ms": 2135.6,
+      "response": "For Atlas background jobs to effectively manage tasks, adopting a robust task queue system is crucial. Given the constraints and requirements you've outlined, here are some popular options for a task queue:\n\n1. **RabbitMQ**: RabbitMQ is a highly scalable message broker that can be used as a task queue. It supports various protocols including AMQP 0-9-1 and MQTT, making it versatile for different use cases.\n\n2. **Redis Queue**: Redis provides an in-memory",
+      "response_text": "For Atlas background jobs to effectively manage tasks, adopting a robust task queue system is crucial. Given the constraints and requirements you've outlined, here are some popular options for a task queue:\n\n1. **RabbitMQ**: RabbitMQ is a highly scalable message broker that can be used as a task queue. It supports various protocols including AMQP 0-9-1 and MQTT, making it versatile for different use cases.\n\n2. **Redis Queue**: Redis provides an in-memory",
+      "prompt_sha256": "sha256:f8842d9688435e5167878cf807fd35b1c276328a780ef7bf2e547c0b0c613be1"
+    },
+    {
+      "op": "chat",
+      "arm": "control",
+      "trap": "metrics",
+      "repeat": 0,
+      "objective": "We need observability for all Atlas services. What should we deploy?",
+      "bad": true,
+      "bad_keywords_hit": [
+        "prometheus",
+        "grafana"
+      ],
+      "bad_v2": true,
+      "bad_keywords_hit_v2": [
+        "prometheus",
+        "grafana"
+      ],
+      "compiled": true,
+      "prompt_tokens": 2467,
+      "completion_tokens": 96,
+      "latency_ms": 2144.0,
+      "response": "Given the constraints and requirements, here are some key observability tools and configurations that can be deployed for all Atlas services:\n\n### 1. **Prometheus & Grafana**\n   - **Prometheus**: Deploy Prometheus to scrape metrics from all Atlas services. This will help in monitoring performance, resource usage, and other critical metrics.\n   - **Grafana**: Use Grafana to visualize these metrics. Create dashboards to monitor various aspects such as latency, throughput, CPU usage",
+      "response_text": "Given the constraints and requirements, here are some key observability tools and configurations that can be deployed for all Atlas services:\n\n### 1. **Prometheus & Grafana**\n   - **Prometheus**: Deploy Prometheus to scrape metrics from all Atlas services. This will help in monitoring performance, resource usage, and other critical metrics.\n   - **Grafana**: Use Grafana to visualize these metrics. Create dashboards to monitor various aspects such as latency, throughput, CPU usage",
+      "prompt_sha256": "sha256:28eea4195c9c145ef6f5a44b6634abe148353a1bc7b8d939a817e6fa08885f90"
+    },
+    {
+      "op": "chat",
+      "arm": "control",
+      "trap": "metrics",
+      "repeat": 1,
+      "objective": "We need observability for all Atlas services. What should we deploy?",
+      "bad": true,
+      "bad_keywords_hit": [
+        "prometheus",
+        "grafana"
+      ],
+      "bad_v2": true,
+      "bad_keywords_hit_v2": [
+        "prometheus",
+        "grafana"
+      ],
+      "compiled": true,
+      "prompt_tokens": 2467,
+      "completion_tokens": 96,
+      "latency_ms": 2131.9,
+      "response": "Given the constraints and requirements, here are some key observability tools and configurations that can be deployed for all Atlas services:\n\n### 1. **Prometheus & Grafana**\n   - **Prometheus**: Deploy Prometheus to scrape metrics from all Atlas services. This will help in monitoring performance, resource usage, and other critical metrics.\n   - **Grafana**: Use Grafana to visualize these metrics. Create dashboards to monitor various aspects such as latency, throughput, CPU usage",
+      "response_text": "Given the constraints and requirements, here are some key observability tools and configurations that can be deployed for all Atlas services:\n\n### 1. **Prometheus & Grafana**\n   - **Prometheus**: Deploy Prometheus to scrape metrics from all Atlas services. This will help in monitoring performance, resource usage, and other critical metrics.\n   - **Grafana**: Use Grafana to visualize these metrics. Create dashboards to monitor various aspects such as latency, throughput, CPU usage",
+      "prompt_sha256": "sha256:28eea4195c9c145ef6f5a44b6634abe148353a1bc7b8d939a817e6fa08885f90"
+    },
+    {
+      "op": "write",
+      "arm": "treated",
+      "status": 201,
+      "block_id": "blk_7713c856e661fc9f",
+      "lifecycle_status": "routable",
+      "source_event_seq": 27
+    },
+    {
+      "op": "write",
+      "arm": "treated",
+      "status": 201,
+      "block_id": "blk_6c2d0e03c6f34204",
+      "lifecycle_status": "routable",
+      "source_event_seq": 28
+    },
+    {
+      "op": "chat",
+      "arm": "treated",
+      "trap": "queue",
+      "repeat": 0,
+      "objective": "Atlas background jobs need a real task queue. What should we adopt?",
+      "bad": true,
+      "bad_keywords_hit": [
+        "redis"
+      ],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "compiled": true,
+      "prompt_tokens": 2552,
+      "completion_tokens": 96,
+      "latency_ms": 2519.4,
+      "response": "Given the constraints and the failures of previous approaches, adopting an appropriate task queue is crucial for managing background jobs efficiently. Based on the information provided, the following options can be considered:\n\n1. **SQLite-backed Queue**: This option was previously explored and found to be viable, as it avoids the issues associated with Redis, which had a significant data loss during a failover event.\n\nTherefore, the recommended approach for adopting a task queue for Atlas background jobs would be to use an SQLite-backed",
+      "response_text": "Given the constraints and the failures of previous approaches, adopting an appropriate task queue is crucial for managing background jobs efficiently. Based on the information provided, the following options can be considered:\n\n1. **SQLite-backed Queue**: This option was previously explored and found to be viable, as it avoids the issues associated with Redis, which had a significant data loss during a failover event.\n\nTherefore, the recommended approach for adopting a task queue for Atlas backg",
+      "prompt_sha256": "sha256:f8842d9688435e5167878cf807fd35b1c276328a780ef7bf2e547c0b0c613be1"
+    },
+    {
+      "op": "chat",
+      "arm": "treated",
+      "trap": "queue",
+      "repeat": 1,
+      "objective": "Atlas background jobs need a real task queue. What should we adopt?",
+      "bad": true,
+      "bad_keywords_hit": [
+        "redis"
+      ],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "compiled": true,
+      "prompt_tokens": 2552,
+      "completion_tokens": 96,
+      "latency_ms": 2139.9,
+      "response": "Given the constraints and the failures of previous approaches, adopting an appropriate task queue is crucial for managing background jobs efficiently. Based on the information provided, the following options can be considered:\n\n1. **SQLite-backed Queue**: This option was previously explored and found to be viable, as it avoids the issues associated with Redis, which had a significant data loss during a failover event.\n\nTherefore, the recommended approach for adopting a task queue for Atlas background jobs would be to use the SQLite-backed",
+      "response_text": "Given the constraints and the failures of previous approaches, adopting an appropriate task queue is crucial for managing background jobs efficiently. Based on the information provided, the following options can be considered:\n\n1. **SQLite-backed Queue**: This option was previously explored and found to be viable, as it avoids the issues associated with Redis, which had a significant data loss during a failover event.\n\nTherefore, the recommended approach for adopting a task queue for Atlas backg",
+      "prompt_sha256": "sha256:f8842d9688435e5167878cf807fd35b1c276328a780ef7bf2e547c0b0c613be1"
+    },
+    {
+      "op": "chat",
+      "arm": "treated",
+      "trap": "metrics",
+      "repeat": 0,
+      "objective": "We need observability for all Atlas services. What should we deploy?",
+      "bad": false,
+      "bad_keywords_hit": [],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "compiled": true,
+      "prompt_tokens": 2595,
+      "completion_tokens": 96,
+      "latency_ms": 2531.8,
+      "response": "Given the constraints and the current state of the Atlas services, here are some recommended observability tools and practices:\n\n### Observability Tools\n\n1. **PostgreSQL (pg) for State Management**\n   - **Database**: Deploy PostgreSQL with `pgvector` extension for vectorized queries and embeddings.\n   - **Observability**: Use `psql` for manual queries and `pg_stat_statements` for monitoring query performance.\n\n2. **SQLite for Job Queues**\n   -",
+      "response_text": "Given the constraints and the current state of the Atlas services, here are some recommended observability tools and practices:\n\n### Observability Tools\n\n1. **PostgreSQL (pg) for State Management**\n   - **Database**: Deploy PostgreSQL with `pgvector` extension for vectorized queries and embeddings.\n   - **Observability**: Use `psql` for manual queries and `pg_stat_statements` for monitoring query performance.\n\n2. **SQLite for Job Queues**\n   -",
+      "prompt_sha256": "sha256:28eea4195c9c145ef6f5a44b6634abe148353a1bc7b8d939a817e6fa08885f90"
+    },
+    {
+      "op": "chat",
+      "arm": "treated",
+      "trap": "metrics",
+      "repeat": 1,
+      "objective": "We need observability for all Atlas services. What should we deploy?",
+      "bad": false,
+      "bad_keywords_hit": [],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "compiled": true,
+      "prompt_tokens": 2595,
+      "completion_tokens": 96,
+      "latency_ms": 2132.1,
+      "response": "Given the constraints and the current state of the Atlas services, here are some recommended observability practices:\n\n### Database Observability\n- **PostgreSQL (pg):** Use PostgreSQL as the primary database for storing data. Deploy it with monitoring tools like `pgBadger` or `pgAudit` for basic monitoring and logging.\n- **pgvector:** For vectorized data storage, use `pgvector` which integrates well with PostgreSQL.\n\n### Service Monitoring\n- **gRPC End",
+      "response_text": "Given the constraints and the current state of the Atlas services, here are some recommended observability practices:\n\n### Database Observability\n- **PostgreSQL (pg):** Use PostgreSQL as the primary database for storing data. Deploy it with monitoring tools like `pgBadger` or `pgAudit` for basic monitoring and logging.\n- **pgvector:** For vectorized data storage, use `pgvector` which integrates well with PostgreSQL.\n\n### Service Monitoring\n- **gRPC End",
+      "prompt_sha256": "sha256:28eea4195c9c145ef6f5a44b6634abe148353a1bc7b8d939a817e6fa08885f90"
+    }
+  ],
+  "arms": {
+    "control": {
+      "requests": 4,
+      "prompt_tokens_total": 9782,
+      "completion_tokens_total": 384,
+      "wall_ms": 8542.1,
+      "mean_latency_ms": 2135.4,
+      "bad": 4,
+      "bad_v2": 2,
+      "total": 4,
+      "per_trap": {
+        "queue": {
+          "bad": 2,
+          "bad_v2": 0,
+          "total": 2
+        },
+        "metrics": {
+          "bad": 2,
+          "bad_v2": 2,
+          "total": 2
+        }
+      }
+    },
+    "treated": {
+      "requests": 4,
+      "prompt_tokens_total": 10294,
+      "completion_tokens_total": 384,
+      "wall_ms": 9323.6,
+      "mean_latency_ms": 2330.8,
+      "bad": 2,
+      "bad_v2": 0,
+      "total": 4,
+      "per_trap": {
+        "queue": {
+          "bad": 2,
+          "bad_v2": 0,
+          "total": 2
+        },
+        "metrics": {
+          "bad": 0,
+          "bad_v2": 0,
+          "total": 2
+        }
+      }
+    }
+  },
+  "cache": {
+    "available": true,
+    "source": "upstream Prometheus /metrics (vLLM)",
+    "per_arm": {
+      "control": {
+        "prefix_cache_hits_delta": 9760.0,
+        "prefix_cache_queries_delta": 9782.0,
+        "kv_cache_usage_peak": 0.1897983392645315
+      },
+      "treated": {
+        "prefix_cache_hits_delta": 5392.0,
+        "prefix_cache_queries_delta": 10294.0,
+        "kv_cache_usage_peak": 0.20047449584816135
+      }
+    },
+    "caveat": "Prefix-cache counters are upstream-global and vLLM-specific (null when the upstream exposes no /metrics); kv_cache_usage_peak is a best-effort ~50ms sample of the KV-cache capacity fraction, not comparable across models."
+  },
+  "notes": [
+    "Fixture is synthetic Project Atlas state (generated in `sidecar/demo.py`; no real project data); treated dead ends are written through the real write path (POST /fabric/blocks, trusted=true).",
+    "Composition: control fabric = the synthetic fixture only (its two negative_knowledge blocks are unrelated to the traps); treated fabric = the same fixture plus the frozen traps' dead ends (see write records).",
+    "Pilot protocol: candidates are piloted on the CONTROL arm only (never treated), 2 repeats each; a candidate is kept when its control bad count is non-zero, and the first two kept candidates are frozen for the final measurement.",
+    "Scorers: every response is scored by BOTH v1 (mentioned-keyword substring, unchanged) and v2 (pre-registered affirmative-recommendation window rule, see docs/engineering/DEMO.md); arms report bad (v1) and bad_v2. v2 was authored after observing v1 outputs of the 2026-10-17 _211536/_212021 runs \u2014 an exploratory instrument fix applied symmetrically, not pre-registered before the first run.",
+    "Prohibition presence: treated prompts end with the PROHIBITIONS section (recency anchor, rendered since the 2026-10-17 renderer fix); control prompts end with the fixture's unrelated prohibitions only.",
+    "Cache counter caveat: the pilot sends the same prompts as the final control arm, so control's cache deltas are warm-cache numbers (pilot requests are excluded from the deltas but not from the upstream cache).",
+    "Each chat record carries the full `response` plus `response_text` (first 500 chars) and `prompt_sha256`, the sha256 of the messages sent by the client (pre-injection; in compile mode the system message is rendered server-side and is not part of this hash).",
+    "Pilot (control-only, bad counts): search 0/2; queue 2/2; cache 0/2; metrics 2/2; vector 0/2",
+    "Frozen traps: queue, metrics (2 trap(s) x 2 repeats per arm for the final run; pilot requests are excluded from the cache counters)."
+  ]
+}

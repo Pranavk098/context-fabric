@@ -1,5 +1,10 @@
 # DEMO-REVIEW — adversarial audit of `cfx demo` evidence (2026-10-17)
 
+> **Historical snapshot.** This review audited the `_211536` / `_213038` receipts, which were
+> replaced twice since (renderer `KEY CONSTRAINTS` recap + `response_text`/`prompt_sha256`
+> fields, then post-audit-fix regeneration — current set in `docs/engineering/DEMO.md`
+> §Results). The audit method and scorer findings still apply; the numbers below are historical.
+
 Auditor: independent verification pass (adversarial). Scope: `sidecar/demo.py`, `sidecar/render.py`,
 scorer v1/v2, `tests/test_demo.py`, `tests/test_render.py`, `tests/test_scorer.py`,
 `docs/engineering/DEMO.md`, and the four live receipts in `evals/reports/`. No GPU was used; no

@@ -249,7 +249,7 @@ GAP-11 is only partially closed.
 
 ## 10. Stage B5 â€” concurrency / VRAM
 
-Raw report: `evals/reports/stage_b5_20260316_153211.json`(see file). Correct metric:
+Raw report: `evals/reports/stage_b5_20261016_153211.json`(see file). Correct metric:
 `vllm:kv_cache_usage_perc`.
 
 | arm | k | wall ms | req/s | peak KV% | waiting |

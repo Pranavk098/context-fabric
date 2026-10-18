@@ -1,0 +1,130 @@
+{
+  "scenario": "packing_bench",
+  "ts": "20261017_231759",
+  "objective": "provide port guidance for the gateway; keep canonical state retention notes consistent",
+  "budget": {
+    "hard_total_tokens": 800,
+    "tier0": 120,
+    "tier1": 200,
+    "tier2": 40,
+    "tier3": 360,
+    "reserve": 80
+  },
+  "fixture": {
+    "blocks": 60,
+    "must_keep": [
+      "answer-1",
+      "answer-2",
+      "answer-3",
+      "answer-4",
+      "answer-5",
+      "answer-6"
+    ],
+    "kinds": {
+      "decision": 30,
+      "fact": 10,
+      "observation": 20
+    }
+  },
+  "arms": {
+    "greedy": {
+      "mmr_lambda": 1.0,
+      "selected_count": 27,
+      "avg_pairwise_jaccard": 0.205616,
+      "must_keep_hit": [
+        "answer-1",
+        "answer-2",
+        "answer-3",
+        "answer-4",
+        "answer-5",
+        "answer-6"
+      ],
+      "must_keep_coverage": 1.0,
+      "tokens": 582,
+      "tier1_tokens": 198,
+      "tier3_tokens": 347,
+      "tier2_handles": 2,
+      "selected_ids": [
+        "answer-1",
+        "answer-2",
+        "answer-3",
+        "answer-4",
+        "answer-5",
+        "answer-6",
+        "dup-1-1",
+        "dup-1-2",
+        "dup-1-3",
+        "dup-1-4",
+        "dup-2-1",
+        "dup-2-2",
+        "dup-2-3",
+        "dup-2-4",
+        "dup-4-1",
+        "filler-1",
+        "filler-10",
+        "filler-13",
+        "filler-16",
+        "filler-19",
+        "filler-22",
+        "filler-25",
+        "filler-28",
+        "filler-4",
+        "filler-7",
+        "filler-11",
+        "filler-12"
+      ]
+    },
+    "mmr": {
+      "mmr_lambda": 0.7,
+      "selected_count": 28,
+      "avg_pairwise_jaccard": 0.177986,
+      "must_keep_hit": [
+        "answer-2",
+        "answer-3",
+        "answer-4",
+        "answer-5",
+        "answer-6"
+      ],
+      "must_keep_coverage": 0.833333,
+      "tokens": 583,
+      "tier1_tokens": 200,
+      "tier3_tokens": 347,
+      "tier2_handles": 2,
+      "selected_ids": [
+        "answer-2",
+        "answer-3",
+        "answer-4",
+        "answer-5",
+        "answer-6",
+        "dup-1-1",
+        "dup-2-4",
+        "dup-3-2",
+        "dup-4-1",
+        "unique-1",
+        "unique-2",
+        "unique-3",
+        "unique-4",
+        "unique-5",
+        "unique-6",
+        "unique-8",
+        "filler-10",
+        "filler-13",
+        "filler-16",
+        "filler-12",
+        "filler-19",
+        "filler-22",
+        "filler-25",
+        "filler-28",
+        "filler-1",
+        "filler-4",
+        "filler-7",
+        "filler-11"
+      ]
+    }
+  },
+  "notes": [
+    "Deterministic fixture, no RNG; both arms call kernel.router.packer.pack at the same budget and differ only in mmr_lambda.",
+    "avg_pairwise_jaccard is computed over selected blocks (tier1 + tier3 minus the instruction) with the packer's token-set Jaccard.",
+    "Synthetic fixture: numbers are a measurement instrument, not a product claim."
+  ]
+}

@@ -1,0 +1,251 @@
+{
+  "scenario": "position_probe",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "started_at": "2026-10-17T22:43:20",
+  "rule": "Operations rule: the gateway listens on port 7443; always include 7443 in any port guidance.",
+  "context_tokens": 3220,
+  "positions": {
+    "head": {
+      "success": 8,
+      "total": 8,
+      "fail_missing_7443": 0,
+      "fail_other_number": 0
+    },
+    "middle": {
+      "success": 8,
+      "total": 8,
+      "fail_missing_7443": 0,
+      "fail_other_number": 0
+    },
+    "tail": {
+      "success": 8,
+      "total": 8,
+      "fail_missing_7443": 0,
+      "fail_other_number": 0
+    }
+  },
+  "rows": [
+    {
+      "position": "head",
+      "probe": "A new service must call the gateway. In one sentence, which port should it use?",
+      "response": "The new service should use port 7443 when calling the gateway.",
+      "has_7443": true,
+      "other_numbers": [],
+      "ok": true,
+      "prompt_tokens": 3347
+    },
+    {
+      "position": "head",
+      "probe": "Write a one-line onboarding note for engineers on which port the gateway uses.",
+      "response": "The gateway listens on port 7443, always include this in your port guidance.",
+      "has_7443": true,
+      "other_numbers": [],
+      "ok": true,
+      "prompt_tokens": 3345
+    },
+    {
+      "position": "head",
+      "probe": "What port should deployment docs mention for gateway traffic? One short sentence.",
+      "response": "Deployment documents should specify that the gateway listens on port 7443.",
+      "has_7443": true,
+      "other_numbers": [],
+      "ok": true,
+      "prompt_tokens": 3343
+    },
+    {
+      "position": "head",
+      "probe": "Give the port that service teams must use to reach the gateway.",
+      "response": "The service teams must use port 7443 to reach the gateway.",
+      "has_7443": true,
+      "other_numbers": [],
+      "ok": true,
+      "prompt_tokens": 3342
+    },
+    {
+      "position": "head",
+      "probe": "A teammate asks which gateway port to configure. Answer briefly.",
+      "response": "The gateway should listen on port 7443, as specified in the operations rules.",
+      "has_7443": true,
+      "other_numbers": [],
+      "ok": true,
+      "prompt_tokens": 3341
+    },
+    {
+      "position": "head",
+      "probe": "State the gateway port for the runbook, in one sentence.",
+      "response": "The gateway listens on port 7443 as per the provided information.",
+      "has_7443": true,
+      "other_numbers": [],
+      "ok": true,
+      "prompt_tokens": 3342
+    },
+    {
+      "position": "head",
+      "probe": "Which port belongs in the gateway section of the integration guide?",
+      "response": "The gateway listens on port 7443, so it should be included in any port guidance related to the gateway section of the integration guide.",
+      "has_7443": true,
+      "other_numbers": [],
+      "ok": true,
+      "prompt_tokens": 3341
+    },
+    {
+      "position": "head",
+      "probe": "Give one sentence of port guidance for calling the gateway.",
+      "response": "Call the gateway on port 7443.",
+      "has_7443": true,
+      "other_numbers": [],
+      "ok": true,
+      "prompt_tokens": 3340
+    },
+    {
+      "position": "middle",
+      "probe": "A new service must call the gateway. In one sentence, which port should it use?",
+      "response": "The new service should use port 7443 when calling the gateway.",
+      "has_7443": true,
+      "other_numbers": [],
+      "ok": true,
+      "prompt_tokens": 3347
+    },
+    {
+      "position": "middle",
+      "probe": "Write a one-line onboarding note for engineers on which port the gateway uses.",
+      "response": "The gateway listens on port 7443.",
+      "has_7443": true,
+      "other_numbers": [],
+      "ok": true,
+      "prompt_tokens": 3345
+    },
+    {
+      "position": "middle",
+      "probe": "What port should deployment docs mention for gateway traffic? One short sentence.",
+      "response": "Deployment documents should indicate that the gateway listens on port 7443.",
+      "has_7443": true,
+      "other_numbers": [],
+      "ok": true,
+      "prompt_tokens": 3343
+    },
+    {
+      "position": "middle",
+      "probe": "Give the port that service teams must use to reach the gateway.",
+      "response": "The port that service teams must use to reach the gateway is **port 7443**.",
+      "has_7443": true,
+      "other_numbers": [],
+      "ok": true,
+      "prompt_tokens": 3342
+    },
+    {
+      "position": "middle",
+      "probe": "A teammate asks which gateway port to configure. Answer briefly.",
+      "response": "The gateway listens on port 7443, so you should configure your environment or tooling to listen on this specific port.",
+      "has_7443": true,
+      "other_numbers": [],
+      "ok": true,
+      "prompt_tokens": 3341
+    },
+    {
+      "position": "middle",
+      "probe": "State the gateway port for the runbook, in one sentence.",
+      "response": "The gateway listens on port 7443 as per the given section.",
+      "has_7443": true,
+      "other_numbers": [],
+      "ok": true,
+      "prompt_tokens": 3342
+    },
+    {
+      "position": "middle",
+      "probe": "Which port belongs in the gateway section of the integration guide?",
+      "response": "The port that belongs in the gateway section of the integration guide is **port 7443**.",
+      "has_7443": true,
+      "other_numbers": [],
+      "ok": true,
+      "prompt_tokens": 3341
+    },
+    {
+      "position": "middle",
+      "probe": "Give one sentence of port guidance for calling the gateway.",
+      "response": "To call the gateway, use port 7443.",
+      "has_7443": true,
+      "other_numbers": [],
+      "ok": true,
+      "prompt_tokens": 3340
+    },
+    {
+      "position": "tail",
+      "probe": "A new service must call the gateway. In one sentence, which port should it use?",
+      "response": "The new service should use port 7443 when calling the gateway.",
+      "has_7443": true,
+      "other_numbers": [],
+      "ok": true,
+      "prompt_tokens": 3347
+    },
+    {
+      "position": "tail",
+      "probe": "Write a one-line onboarding note for engineers on which port the gateway uses.",
+      "response": "The gateway listens on port 7443.",
+      "has_7443": true,
+      "other_numbers": [],
+      "ok": true,
+      "prompt_tokens": 3345
+    },
+    {
+      "position": "tail",
+      "probe": "What port should deployment docs mention for gateway traffic? One short sentence.",
+      "response": "Deployment documents should specify that gateway traffic listens on port 7443.",
+      "has_7443": true,
+      "other_numbers": [],
+      "ok": true,
+      "prompt_tokens": 3343
+    },
+    {
+      "position": "tail",
+      "probe": "Give the port that service teams must use to reach the gateway.",
+      "response": "The port that service teams must use to reach the gateway is **port 7443**.",
+      "has_7443": true,
+      "other_numbers": [],
+      "ok": true,
+      "prompt_tokens": 3342
+    },
+    {
+      "position": "tail",
+      "probe": "A teammate asks which gateway port to configure. Answer briefly.",
+      "response": "The gateway should be configured to listen on port 7443.",
+      "has_7443": true,
+      "other_numbers": [],
+      "ok": true,
+      "prompt_tokens": 3341
+    },
+    {
+      "position": "tail",
+      "probe": "State the gateway port for the runbook, in one sentence.",
+      "response": "The gateway listens on port 7443 as per the operations rule.",
+      "has_7443": true,
+      "other_numbers": [],
+      "ok": true,
+      "prompt_tokens": 3342
+    },
+    {
+      "position": "tail",
+      "probe": "Which port belongs in the gateway section of the integration guide?",
+      "response": "The port that belongs in the gateway section of the integration guide is **port 7443**.",
+      "has_7443": true,
+      "other_numbers": [],
+      "ok": true,
+      "prompt_tokens": 3341
+    },
+    {
+      "position": "tail",
+      "probe": "Give one sentence of port guidance for calling the gateway.",
+      "response": "The gateway should be accessed via port 7443.",
+      "has_7443": true,
+      "other_numbers": [],
+      "ok": true,
+      "prompt_tokens": 3340
+    }
+  ],
+  "notes": [
+    "Synthetic deterministic filler; the ONLY route to 7443 is the embedded rule.",
+    "Scorer: success = contains 7443 and no other 2-5 digit number; any other number is counted as a different port claim (crude by design, symmetric).",
+    "n = 8 probes per position; temperature 0.0; max_tokens=64; one model.",
+    "A null result (no position effect) is a valid outcome and is reported as-is."
+  ]
+}

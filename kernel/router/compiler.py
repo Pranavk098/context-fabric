@@ -14,9 +14,10 @@ from typing import Any
 
 from kernel.cartridge.serializer import Cartridge, count_tokens
 from kernel.router.dependency_closer import Relation, close
+from kernel.router.hints import packet_cache_hints
 from kernel.router.packer import pack
 from kernel.router.policy_engine import Denial, apply_policy
-from kernel.router.recall import lexical_relevance
+from kernel.router.recall import relevance_scores
 from kernel.router.scorer import utility
 from protocol.canonical import canonicalize, packet_content_hash, sha256_hex
 from protocol.models import (
@@ -106,8 +107,13 @@ def compile_packet(
 
     # Stage 4: closure. Seed = objective-relevant blocks + always-kept kinds; the closer then
     # force-includes depends_on parents, contradiction counterparts, and negative knowledge.
+    # Recall mode is CF_RECALL (bm25 default | hybrid | embeddings); BM25 > 0 iff a query
+    # token occurs in the block, preserving the old lexical seed predicate (the shared
+    # tokenizer drops 1-char tokens and splits underscores, so edges differ from the
+    # pre-BM25 tokenizer).
     always = {BlockKind.decision, BlockKind.negative_knowledge, BlockKind.shadow_probe}
-    seed = [b for b in allowed if b.block_kind in always or lexical_relevance(objective, b) > 0.0]
+    relevance = relevance_scores(objective, allowed)
+    seed = [b for b in allowed if b.block_kind in always or relevance.get(b.block_id, 0.0) > 0.0]
     closure = close(seed, {b.block_id: b for b in allowed}, relations, objective)
 
     # Stages 5/6: 4-tier allocation + packing.
@@ -206,4 +212,5 @@ def compile_packet(
         "total_tokens": packet.total_tokens,
         "content_hash": content_hash,
     }
+    trace["cache_hints"] = packet_cache_hints(packet)
     return CompileResult(packet=packet, trace=trace)
