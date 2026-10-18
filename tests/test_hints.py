@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from kernel.cartridge.serializer import Cartridge, count_tokens
+from kernel.router import compile_packet
 from kernel.router.hints import HINT_VERSION, packet_cache_hints
+from protocol.canonical import sha256_hex
 from protocol.models import (
     BlockKind,
     ContextBlock,
@@ -20,6 +23,8 @@ from protocol.models import (
     Tiers,
     TokenBudget,
 )
+
+_TIER0_MARKDOWN = "# Hologram\n- core.py: shared()"
 
 
 def _block(block_id: str, kind: BlockKind, content: str) -> ContextBlock:
@@ -39,7 +44,7 @@ def _block(block_id: str, kind: BlockKind, content: str) -> ContextBlock:
 
 def _packet(
     *,
-    tier0_markdown: str = "# Hologram\n- core.py: shared()",
+    tier0_markdown: str = _TIER0_MARKDOWN,
     instruction: str = "OBJECTIVE: test\nSTAGE: implement\nROLE: implementer",
     observation: str = "observation one",
     total_tokens: int = 10,
@@ -66,6 +71,29 @@ def _packet(
     )
 
 
+def _cartridge() -> Cartridge:
+    return Cartridge(
+        cartridge_id="cfx_p1_deadbeef",
+        tenant_id="t1",
+        project_id="p1",
+        commit_hash="deadbeef00",
+        hologram_markdown=_TIER0_MARKDOWN,
+        token_count=count_tokens(_TIER0_MARKDOWN),
+        kv_prefix_hash="sha256:" + sha256_hex(_TIER0_MARKDOWN.encode("utf-8")),
+    )
+
+
+def _compiled(objective: str) -> ContextPacket:
+    return compile_packet(
+        scope=Scope(tenant_id="t1", project_id="p1", workflow_id="w1", task_id="task1"),
+        recipient=Recipient(agent_id="a1", role="implementer", stage="implement"),
+        objective=objective,
+        stage="implement",
+        blocks=[],
+        cartridge=_cartridge(),
+    ).packet
+
+
 def test_hints_are_deterministic() -> None:
     packet = _packet()
     assert packet_cache_hints(packet) == packet_cache_hints(packet)
@@ -85,11 +113,37 @@ def test_prefix_hash_ignores_tier3_observations() -> None:
     assert base["prefix_hash"] == changed["prefix_hash"]
 
 
+def test_shared_prefix_hash_is_sha256_of_tier0_markdown_alone() -> None:
+    hints = packet_cache_hints(_packet())
+    assert hints["shared_prefix_hash"] == "sha256:" + sha256_hex(_TIER0_MARKDOWN.encode("utf-8"))
+    assert hints["shared_prefix_hash"] == _cartridge().kv_prefix_hash  # serializer-consistent
+    assert (
+        packet_cache_hints(_packet(instruction="OBJECTIVE: different"))["shared_prefix_hash"]
+        == hints["shared_prefix_hash"]
+    )
+    assert (
+        packet_cache_hints(_packet(tier0_markdown="# Other hologram"))["shared_prefix_hash"]
+        != hints["shared_prefix_hash"]
+    )
+
+
+def test_shared_prefix_hash_is_empty_without_tier0() -> None:
+    assert packet_cache_hints(_packet(tier0_markdown=""))["shared_prefix_hash"] == ""
+
+
+def test_agents_sharing_a_cartridge_share_shared_prefix_hash_not_prefix_hash() -> None:
+    first = packet_cache_hints(_compiled("OBJECTIVE_ALPHA_SENTINEL: pick A"))
+    second = packet_cache_hints(_compiled("OBJECTIVE_BETA_SENTINEL: pick B"))
+    assert first["shared_prefix_hash"] == second["shared_prefix_hash"] != ""
+    assert first["prefix_hash"] != second["prefix_hash"]  # per-agent head, honest distinction
+
+
 def test_field_types_and_version() -> None:
     hints = packet_cache_hints(_packet())
     assert set(hints) == {
         "session_id",
         "prefix_hash",
+        "shared_prefix_hash",
         "ttl_seconds",
         "evict_priority",
         "hint_version",
@@ -97,6 +151,8 @@ def test_field_types_and_version() -> None:
     assert hints["session_id"] == "w1:task1"
     assert isinstance(hints["prefix_hash"], str)
     assert hints["prefix_hash"].startswith("sha256:")
+    assert isinstance(hints["shared_prefix_hash"], str)
+    assert hints["shared_prefix_hash"].startswith("sha256:")
     assert isinstance(hints["ttl_seconds"], int) and not isinstance(hints["ttl_seconds"], bool)
     assert hints["ttl_seconds"] == 3600
     assert hints["evict_priority"] in {"low", "normal", "high"}

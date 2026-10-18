@@ -14,9 +14,10 @@ Signing payload = the UTF-8 bytes of the content hash string (same convention as
 signing in kernel/router/compiler.py).
 
 Merkle rule: leaf digest = ``sha256(utf8(content-hash string))``; a parent is
-``sha256(left_digest + right_digest)`` over raw 32-byte digests; an odd node at a level
-is carried up unchanged; the root of a single leaf is that leaf's digest. All digest
-bytes are concatenated raw (not hex/lowercase strings).
+``sha256(left_digest + right_digest)`` over raw 32-byte digests; at an odd level the last
+node is duplicated (paired with itself) before hashing the next level; the root of a
+single leaf is that leaf's digest. All digest bytes are concatenated raw (not
+hex/lowercase strings).
 """
 
 from __future__ import annotations
@@ -84,6 +85,62 @@ def merkle_root(hashes: tuple[str, ...]) -> str:
     return "sha256:" + level[0].hex()
 
 
+def merkle_proof(epoch: Epoch, packet_hash: str) -> tuple[str, ...] | None:
+    """Compact inclusion proof for ``packet_hash`` under ``epoch.merkle_root``.
+
+    Returns the sibling path in leaf -> root order, or ``None`` when the hash is not in
+    ``epoch.packet_hashes``. Each element is ``"L:sha256:<hex>"`` or ``"R:sha256:<hex>"``:
+    the digest is the sibling node (same ``sha256:``-prefixed hex format as the root) and
+    the side is that sibling's position, so the leaf index is implicit in the L/R sequence
+    (``L``: parent = sha256(sibling + node), ``R``: parent = sha256(node + sibling)). A
+    single leaf has the empty proof. Follows ``merkle_root``'s rules exactly: leaves sorted,
+    raw 32-byte digests concatenated, an odd level duplicates its last node.
+    """
+    leaves = sorted(epoch.packet_hashes)
+    if packet_hash not in leaves:
+        return None
+    index = leaves.index(packet_hash)
+    level = [hashlib.sha256(leaf.encode("utf-8")).digest() for leaf in leaves]
+    proof: list[str] = []
+    while len(level) > 1:
+        if index % 2:
+            proof.append("L:sha256:" + level[index - 1].hex())
+        else:
+            sibling = level[index + 1] if index + 1 < len(level) else level[index]
+            proof.append("R:sha256:" + sibling.hex())
+        if len(level) % 2:
+            level = level + [level[-1]]
+        level = [hashlib.sha256(level[i] + level[i + 1]).digest() for i in range(0, len(level), 2)]
+        index //= 2
+    return tuple(proof)
+
+
+def verify_merkle_proof(packet_hash: str, proof: Sequence[str], root: str) -> bool:
+    """Recompute the ``merkle_proof`` path for ``packet_hash`` and compare with ``root``.
+
+    ``proof`` must use the ``"L:sha256:<hex>"`` / ``"R:sha256:<hex>"`` encoding. The empty
+    proof is valid only when ``root`` is exactly the leaf digest (a single-leaf epoch). Any
+    malformed, flipped, or reordered element fails. An odd-carry self-pair is always emitted
+    as ``R`` (sibling equal to the node); ``L`` with an equal sibling never comes from the
+    tree and is rejected as tampered.
+    """
+    node = hashlib.sha256(packet_hash.encode("utf-8")).digest()
+    for element in proof:
+        if not isinstance(element, str):
+            return False
+        side, _, digest = element.partition(":")
+        if side not in ("L", "R") or not digest.startswith("sha256:"):
+            return False
+        try:
+            sibling = bytes.fromhex(digest.removeprefix("sha256:"))
+        except ValueError:
+            return False
+        if len(sibling) != 32 or (side == "L" and sibling == node):
+            return False
+        node = hashlib.sha256(sibling + node if side == "L" else node + sibling).digest()
+    return root == "sha256:" + node.hex()
+
+
 def _epoch_id(content_hash: str) -> str:
     return "epc_" + sha256_hex(content_hash.encode("ascii"))[:16]
 
@@ -144,6 +201,8 @@ def verify_epoch(epoch: Epoch, public_key_bytes: bytes) -> bool:
     """Recompute the content hash + Merkle root and verify the Ed25519 signature."""
     if epoch.signature is None:
         return False
+    if not epoch.packet_hashes:
+        return False
     if epoch.key_id is not None and epoch.key_id != sha256_hex(public_key_bytes)[:16]:
         return False
     if epoch.merkle_root != merkle_root(epoch.packet_hashes):
@@ -168,6 +227,8 @@ def verify_chain(epochs: Sequence[Epoch], public_key_bytes: bytes) -> bool:
                 return False
             if ep.tenant_id != prev.tenant_id:
                 return False
+            if (ep.created_at.tzinfo is None) != (prev.created_at.tzinfo is None):
+                return False  # mixed naive/aware timestamps cannot be ordered
             if ep.created_at < prev.created_at:
                 return False
             if ep.watermark_event_seq < prev.watermark_event_seq:
@@ -179,8 +240,8 @@ def verify_chain(epochs: Sequence[Epoch], public_key_bytes: bytes) -> bool:
 def verify_packet_in_epoch(epoch: Epoch, packet: ContextPacket) -> bool:
     """Membership check: recompute the packet hash and locate it under the epoch root.
 
-    ponytail: membership, not a compact inclusion proof — a full proof path is the
-    documented next step (SEAL.md), not needed to prove inclusion at this size.
+    One root recomputation answers "does this epoch commit this packet?"; use
+    ``merkle_proof`` / ``verify_merkle_proof`` for the compact O(log n) inclusion path.
     """
     recomputed = packet_content_hash(packet)
     if recomputed not in epoch.packet_hashes:

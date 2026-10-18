@@ -63,6 +63,10 @@ uv run cfx add --store fabric.db --file -              # read block JSON from st
 uv run cfx verify receipts.json --pubkey <hex>         # epoch-chain check (delegates to protocol/epoch.py)
 ```
 
+Compiles against a `.db` fabric are recorded as replayable compile manifests in the store;
+`cfx replay` / `cfx seal` turn them into recompile checks and signed epoch receipts — see
+docs/engineering/SEAL.md, "Replay & epoch sealing over real traffic".
+
 `cfx add` prints `block_id`, `content_hash`, and `lifecycle_status`; re-adding an
 identical block prints `already present` (exit 0), and reusing a `block_id` with different
 content exits 1 with a conflict message. Invalid payloads exit 2, as does a store that

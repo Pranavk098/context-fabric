@@ -8,8 +8,8 @@
 from kernel.router.hints import packet_cache_hints
 
 hints = packet_cache_hints(packet)
-# {"session_id": "w1:task1", "prefix_hash": "sha256:...", "ttl_seconds": 3600,
-#  "evict_priority": "normal", "hint_version": "0.1"}
+# {"session_id": "w1:task1", "prefix_hash": "sha256:...", "shared_prefix_hash": "sha256:...",
+#  "ttl_seconds": 3600, "evict_priority": "normal", "hint_version": "0.1"}
 ```
 
 `compile_packet` records the same dict in its trace under `cache_hints`, so every
@@ -43,31 +43,49 @@ issue, not to a frozen wire schema:
 | Our field | RFC #52113 concept | Value here |
 | :--- | :--- | :--- |
 | `session_id` | session identity, groups requests that may reuse context | `"<workflow_id>:<task_id>"` from the packet scope |
-| `prefix_hash` | identity of the reusable prefix | `sha256:` over the RFC 8785 canonical form of `{"tier0": <cartridge markdown>, "instruction": <instruction content>}` |
+| `prefix_hash` | identity of the reusable rendered prompt head (per-agent) | `sha256:` over the RFC 8785 canonical form of `{"tier0": <cartridge markdown>, "instruction": <instruction content>}` |
+| `shared_prefix_hash` | identity of the token prefix agents on the same cartridge can actually share | `sha256:` over the Tier 0 cartridge markdown bytes alone (same encoding the serializer uses, so it equals `Tier0Cartridge.kv_prefix_hash` for a compiled cartridge); `""` when there is no Tier 0 (small projects) |
 | `ttl_seconds` | retention TTL | default `3600`, keyword-parameterizable |
 | `evict_priority` | explicit eviction hint | `"low"` / `"normal"` / `"high"`, from `total_tokens / hard_total_tokens` (>= 75% high, >= 25% normal; large cached contexts are the most expensive to rebuild) |
 | `hint_version` | schema version for forward compatibility | `"0.1"` |
 
-### What `prefix_hash` covers, and why
+### What the prefix hashes cover, and why
 
-Only the **stable prefix**: Tier 0 cartridge markdown plus the instruction block's
-content, canonicalized (RFC 8785) and hashed. Everything else is excluded on purpose:
+The renderer emits the shared Tier 0 cartridge markdown first (it is identical for every
+agent on the same store/cartridge), then the per-agent instruction. Two hashes reflect
+that two-level identity:
+
+- `prefix_hash`: Tier 0 cartridge markdown plus the instruction block's content,
+  canonicalized (RFC 8785) and hashed as a pair. This is the identity of the rendered
+  prompt head; it is per-agent because the instruction is.
+- `shared_prefix_hash`: the Tier 0 cartridge markdown bytes alone. This is the token
+  prefix two agents could actually share in a KV cache, and it is stable across
+  objectives and agents on the same cartridge. Empty string when there is no Tier 0, so
+  "no shared prefix" is explicit rather than a hash of nothing.
+
+Everything else is excluded from both, on purpose:
 
 - Tier 3 observations and Tier 1 blocks are per-agent, per-step suffixes. Including
-  them would make the hash change on every turn, destroying the prefix identity that a
+  them would make the hashes change on every turn, destroying the prefix identity that a
   KV cache needs to hit.
-- The instruction renders first and Tier 0 second, so these two byte strings are
-  genuinely the leading bytes of every rendered prompt for the session.
+- Tier 0 renders first and the instruction immediately after, so these two byte strings
+  are genuinely the leading bytes of every rendered prompt for the session.
 
-Note this is *our* packet-level prefix identity, not an engine KV block hash. When wired
-into an engine it must be reconciled with the engine's own prefix hashing (vLLM hashes
-token blocks; it cannot consume our JSON hash directly).
+Note these are *our* packet-level prefix identities, not engine KV block hashes. When
+wired into an engine they must be reconciled with the engine's own prefix hashing (vLLM
+hashes token blocks; it cannot consume our JSON hash directly).
 
 ## Tests
 
 `tests/test_hints.py`: determinism (same packet -> identical hints), prefix hash changes
 when instruction or Tier 0 changes and stays stable when Tier 3 observations change,
-field types and version, TTL default/override, and the eviction priority rule.
+`shared_prefix_hash` equals the sha256 of the Tier 0 markdown (and the cartridge's own
+`kv_prefix_hash`), is empty without Tier 0, and is equal for two agents compiled with
+different objectives while `prefix_hash` differs, field types and version, TTL
+default/override, and the eviction priority rule. `tests/test_render.py` proves the byte
+guarantee: two agents on one store/cartridge render identical leading bytes up to the end
+of the Tier 0 markdown (no objective text inside), divergence starting exactly after it,
+and the empty-Tier 0 render byte-identical to the old instruction-first order.
 
 ## Trigger to complete the loop
 

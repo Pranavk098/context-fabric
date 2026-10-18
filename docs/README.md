@@ -48,6 +48,8 @@ Everything that matters is here. "Main" documents are marked ⭐.
 - `GAP-WAVE-REVIEW.md` — code audit of the gap wave (2 S1 + 3 S2 fixed, 0 open S1).
 - `GAP-WAVE-MEASUREMENTS.md` — measurement audit (every number re-derived).
 - `ROADMAP-DECISIONS.md` — deliberate deferrals with triggers.
+- `MMU-FOLD-FORK.md` — packet-level EPOCH_FOLD / COW_FORK semantics.
+- `TRACK-CD-REVIEW.md` — code audit of Tracks C+D (3 S1 + 2 S2 fixed, verifiers hardened).
 - `PROTOCOL-REVIEW.md` — deterministic-core (protocol/) audit.
 - `KERNEL-REVIEW.md` — Stage C kernel code review.
 

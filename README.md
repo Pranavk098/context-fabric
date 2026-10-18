@@ -77,6 +77,8 @@ uv run cfx add --store fabric.db --file block.json                    # quaranti
 uv run cfx add --store fabric.db --file block.json --trusted          # routable
 uv run cfx verify epochs.json --pubkey <hex>                          # verify signed receipts
 uv run cfx mcp --store fabric.db                                      # MCP tools (search/verify/add)
+uv run cfx replay --store fabric.db --packet-id <cpk_...>             # prove a past hand-off
+uv run cfx seal --store fabric.db --private-key <hex> --out epochs.json  # seal real traffic
 ```
 
 See `docs/engineering/SIDECAR.md` for the 10-minute setup and the A/B recipe. KV-cache /

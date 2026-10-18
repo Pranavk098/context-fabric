@@ -1,9 +1,12 @@
-"""Renderer tests — explicit order: instruction head, prohibitions/contract/recap tail."""
+"""Renderer tests — order: shared Tier 0 head, instruction, prohibitions/contract/recap tail."""
 
 from __future__ import annotations
 
 import pytest
 
+from kernel.cartridge.serializer import Cartridge, count_tokens
+from kernel.router import compile_packet
+from protocol.canonical import sha256_hex
 from protocol.models import (
     BlockKind,
     ContextBlock,
@@ -46,6 +49,7 @@ def _block(block_id: str, kind: BlockKind, content: str, seq: int = 1) -> Contex
 def _packet(
     anchor: RecencyAnchor | None,
     tier1: tuple[ContextBlock, ...] = (_block("d1", BlockKind.decision, "Use Postgres", seq=1),),
+    tier0_markdown: str = "",
 ) -> ContextPacket:
     return ContextPacket(
         packet_id="cpk_t",
@@ -55,7 +59,9 @@ def _packet(
         recipient=Recipient(agent_id="a", role="user", stage="chat"),
         budget=TokenBudget(),
         tiers=Tiers(
-            tier0=Tier0Cartridge(cartridge_id="c", kv_prefix_hash="sha256:x", content_markdown=""),
+            tier0=Tier0Cartridge(
+                cartridge_id="c", kv_prefix_hash="sha256:x", content_markdown=tier0_markdown
+            ),
             tier1=Tier1Ledger(blocks=tier1),
             tier3=Tier3Register(
                 instruction=_block("blk_i", BlockKind.instruction, "OBJECTIVE: test"),
@@ -65,6 +71,62 @@ def _packet(
         total_tokens=10,
         hashes=Hashes(content_hash="sha256:y"),
     )
+
+
+def test_tier0_renders_before_instruction(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CF_RECAP", "0")
+    markdown = "# Project Hologram: p @ deadbeef\n- core.py: shared()"
+    lines = render_packet(
+        _packet(RecencyAnchor(output_contract="Contract."), tier0_markdown=markdown)
+    ).splitlines()
+    assert lines[:3] == markdown.splitlines() + ["OBJECTIVE: test"]
+
+
+def test_empty_tier0_render_is_byte_identical_to_old_instruction_first_order(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CF_RECAP", "0")
+    assert render_packet(_packet(RecencyAnchor(output_contract="Contract."))) == (
+        "OBJECTIVE: test\n[decision] Use Postgres\nContract."
+    )
+
+
+def test_shared_tier0_prefix_identical_across_agents_and_objectives() -> None:
+    """Two agents, one store: the first len(tier0 markdown) bytes are byte-identical."""
+    markdown = "# Project Hologram: p @ deadbeef\n- core.py: shared()"
+    cartridge = Cartridge(
+        cartridge_id="cfx_p_deadbeef",
+        tenant_id="t",
+        project_id="p",
+        commit_hash="deadbeef00",
+        hologram_markdown=markdown,
+        token_count=count_tokens(markdown),
+        kv_prefix_hash="sha256:" + sha256_hex(markdown.encode("utf-8")),
+    )
+    blocks = [_block("d1", BlockKind.decision, "Use Postgres", seq=1)]
+    renders = [
+        render_packet(
+            compile_packet(
+                scope=Scope(tenant_id="t", project_id="p", workflow_id="w", task_id="k"),
+                recipient=Recipient(agent_id=agent, role=role, stage="chat"),
+                objective=objective,
+                stage="chat",
+                blocks=blocks,
+                cartridge=cartridge,
+                watermark_event_seq=1,
+            ).packet
+        )
+        for agent, role, objective in (
+            ("a1", "implementer", "OBJECTIVE_ALPHA_SENTINEL: pick A"),
+            ("a2", "reviewer", "OBJECTIVE_BETA_SENTINEL: pick B"),
+        )
+    ]
+    prefix_len = len(markdown.encode("utf-8"))
+    first, second = (text.encode("utf-8") for text in renders)
+    assert first[:prefix_len] == second[:prefix_len] == markdown.encode("utf-8")
+    assert b"SENTINEL" not in first[:prefix_len]  # no objective text inside the shared prefix
+    assert first[prefix_len:] != second[prefix_len:]  # divergence starts after the shared block
+    assert first != second
 
 
 def test_tail_order_is_prohibitions_contract_then_recap_last(

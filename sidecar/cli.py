@@ -14,6 +14,7 @@ from kernel.store import SqliteStore, StoreConflict
 from protocol import epoch
 from sidecar import demo, mcp
 from sidecar.blocks import build_block, stored_block
+from sidecar.replay import replay, seal
 from sidecar.server import serve
 
 
@@ -86,6 +87,33 @@ def _build_parser() -> argparse.ArgumentParser:
     verify_parser.add_argument("--pubkey", default=None, help="Ed25519 public key hex")
     verify_parser.set_defaults(func=_cmd_verify)
 
+    replay_parser = subparsers.add_parser(
+        "replay", help="recompile a logged packet from its manifest and compare hashes"
+    )
+    replay_parser.add_argument("--store", required=True, help="SQLite store path (.db/.sqlite)")
+    replay_parser.add_argument(
+        "--packet-id", required=True, help="packet id (the X-Fabric-Packet-Id header value)"
+    )
+    replay_parser.set_defaults(func=_cmd_replay)
+
+    seal_parser = subparsers.add_parser(
+        "seal", help="commit the compile log as a signed epoch receipt chain"
+    )
+    seal_parser.add_argument("--store", required=True, help="SQLite store path (.db/.sqlite)")
+    seal_parser.add_argument("--private-key", required=True, help="Ed25519 32-byte seed hex")
+    seal_parser.add_argument(
+        "--out", required=True, help="epochs JSON file (appended if it already exists)"
+    )
+    seal_parser.add_argument(
+        "--model", default=os.environ.get("CF_MODEL", ""), help="model id metadata (env: CF_MODEL)"
+    )
+    seal_parser.add_argument(
+        "--engine",
+        default=os.environ.get("CF_ENGINE", ""),
+        help="engine metadata (env: CF_ENGINE)",
+    )
+    seal_parser.set_defaults(func=_cmd_seal)
+
     mcp_parser = subparsers.add_parser("mcp", help="run the stdio MCP server for agent clients")
     mcp_parser.add_argument(
         "--store",
@@ -151,6 +179,14 @@ def _cmd_verify(args: argparse.Namespace) -> int:
     if args.pubkey:
         argv += ["--pubkey", args.pubkey]
     return epoch.main(["verify", *argv])
+
+
+def _cmd_replay(args: argparse.Namespace) -> int:
+    return replay(args.store, args.packet_id)
+
+
+def _cmd_seal(args: argparse.Namespace) -> int:
+    return seal(args.store, args.private_key, args.out, model=args.model, engine=args.engine)
 
 
 def _cmd_mcp(args: argparse.Namespace) -> int:

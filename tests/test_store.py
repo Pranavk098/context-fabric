@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from kernel.store.__main__ import main
-from kernel.store.sqlite_store import SqliteStore, StoreConflict
+from kernel.store.sqlite_store import CompileManifest, SqliteStore, StoreConflict
 from protocol.models import (
     BlockKind,
     ContextBlock,
@@ -20,6 +20,8 @@ from protocol.models import (
     Fidelity,
     LifecycleStatus,
     MemoryTier,
+    Recipient,
+    Scope,
 )
 
 
@@ -136,6 +138,70 @@ def test_cli_ingest_and_info(
     out = capsys.readouterr().out
     assert "blocks=1" in out
     assert "max_source_event_seq=1" in out
+
+
+def manifest(packet_id: str, content_hash: str, *, seq: int = 0) -> CompileManifest:
+    return CompileManifest(
+        packet_id=packet_id,
+        content_hash=content_hash,
+        scope=Scope(tenant_id="t1", project_id="p1", workflow_id="w1", task_id="task1"),
+        recipient=Recipient(agent_id="a1", role="user", stage="chat"),
+        objective="hello fabric",
+        stage="chat",
+        as_of=datetime(2026, 1, 1, tzinfo=UTC),
+        watermark_event_seq=seq,
+        budget_base=4000,
+        block_ids=("d1", "d2"),
+        block_hashes=("sha256:d1", "sha256:d2"),
+        model="test-model",
+        engine="test-engine",
+        created_at=datetime(2026, 1, 2, tzinfo=UTC),
+    )
+
+
+def test_compile_log_roundtrip_and_ordering(tmp_path: Path) -> None:
+    store = SqliteStore(tmp_path / "store.db")
+    first = manifest("cpk_1", "sha256:h1", seq=1)
+    second = manifest("cpk_2", "sha256:h2", seq=2)
+    store.log_compile(first)
+    store.log_compile(second)
+    assert store.get_compile("cpk_1") == first
+    assert store.get_compile("cpk_2") == second
+    assert store.get_compile("cpk_missing") is None
+    assert store.load_compile_log() == [first, second]
+    assert store.load_compile_log(limit=1) == [first]
+    assert store.load_compile_log(limit=None) == [first, second]
+
+
+def test_compile_log_relog_same_id_is_first_write_wins(tmp_path: Path) -> None:
+    store = SqliteStore(tmp_path / "store.db")
+    first = manifest("cpk_1", "sha256:first")
+    store.log_compile(first)
+    store.log_compile(first)
+    store.log_compile(manifest("cpk_1", "sha256:divergent", seq=2))
+    assert store.load_compile_log() == [first]
+
+
+def test_compile_log_rejects_mismatched_block_lists(tmp_path: Path) -> None:
+    store = SqliteStore(tmp_path / "store.db")
+    bad = CompileManifest(
+        packet_id="cpk_1",
+        content_hash="sha256:h",
+        scope=Scope(tenant_id="t1", project_id="p1", workflow_id="w1", task_id="task1"),
+        recipient=Recipient(agent_id="a1", role="user", stage="chat"),
+        objective="o",
+        stage="chat",
+        as_of=datetime(2026, 1, 1, tzinfo=UTC),
+        watermark_event_seq=0,
+        budget_base=4000,
+        block_ids=("d1",),
+        block_hashes=(),
+        model="",
+        engine="",
+        created_at=datetime(2026, 1, 2, tzinfo=UTC),
+    )
+    with pytest.raises(ValueError):
+        store.log_compile(bad)
 
 
 def test_default_thread_affinity_and_check_same_thread_opt_in(tmp_path: Path) -> None:

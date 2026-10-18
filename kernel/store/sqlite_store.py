@@ -4,6 +4,9 @@ Stdlib ``sqlite3`` only: append-only rows, canonical-JSON payloads, WAL for
 crash-safe writes. The Postgres schema (``kernel/migrations/001_initial_fabric_schema.sql``)
 is the future path; this store is deliberately the smaller contract.
 
+The same file also carries ``compile_log`` — one ``CompileManifest`` per successful sidecar
+compile, the replayable receipt of what was handed to ``compile_packet`` (``cfx replay``).
+
 Parallel contract: ``kernel/epochs.py`` (EPOCH_FOLD) defines ``FoldConflict`` for the
 same reason this module defines ``StoreConflict`` — a reused id with divergent content
 is a hard error, never a silent overwrite. The two types are independent; neither
@@ -15,13 +18,16 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections.abc import Iterable
+from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from pydantic import ValidationError
 
 from kernel.router.dependency_closer import Relation
 from protocol.canonical import canonicalize
-from protocol.models import ContextBlock
+from protocol.models import ContextBlock, Recipient, Scope
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS blocks (
@@ -43,7 +49,29 @@ CREATE TABLE IF NOT EXISTS relations (
 );
 CREATE INDEX IF NOT EXISTS idx_relations_parent_id ON relations (parent_id);
 CREATE INDEX IF NOT EXISTS idx_relations_child_id ON relations (child_id);
+CREATE TABLE IF NOT EXISTS compile_log (
+    log_seq             INTEGER PRIMARY KEY AUTOINCREMENT,
+    packet_id           TEXT UNIQUE NOT NULL,
+    content_hash        TEXT NOT NULL,
+    scope_json          TEXT NOT NULL,
+    recipient_json      TEXT NOT NULL,
+    objective           TEXT NOT NULL,
+    stage               TEXT NOT NULL,
+    as_of               TEXT NOT NULL,
+    watermark_event_seq INTEGER NOT NULL,
+    budget_base         INTEGER NOT NULL,
+    block_ids           TEXT NOT NULL,
+    block_hashes        TEXT NOT NULL,
+    model               TEXT,
+    engine              TEXT,
+    created_at          TEXT NOT NULL
+);
 """
+
+_MANIFEST_COLUMNS = (
+    "packet_id, content_hash, scope_json, recipient_json, objective, stage, as_of,"
+    " watermark_event_seq, budget_base, block_ids, block_hashes, model, engine, created_at"
+)
 
 
 def _relation_payload(relation: Relation) -> str:
@@ -68,6 +96,68 @@ def _relation_from_json(text: str) -> Relation:
 
 class StoreConflict(Exception):
     """A ``block_id`` was appended twice with different content hashes."""
+
+
+@dataclass(frozen=True)
+class CompileManifest:
+    """The exact inputs of one successful ``compile_packet`` run — a replay receipt.
+
+    ``block_ids``/``block_hashes`` are parallel, sorted tuples naming every block handed
+    to the compiler, so ``cfx replay`` can rebuild that input from the store and recompile
+    byte-for-byte. ``as_of`` is the value actually passed to the compiler, not a new
+    wall-clock read. ``model``/``engine`` are operator-reported stack metadata ("" when
+    unknown); the manifest never invents a model name.
+    """
+
+    packet_id: str
+    content_hash: str
+    scope: Scope
+    recipient: Recipient
+    objective: str
+    stage: str
+    as_of: datetime
+    watermark_event_seq: int
+    budget_base: int
+    block_ids: tuple[str, ...]
+    block_hashes: tuple[str, ...]
+    model: str
+    engine: str
+    created_at: datetime
+
+
+def _manifest_from_row(row: tuple[Any, ...]) -> CompileManifest:
+    (
+        packet_id,
+        content_hash,
+        scope_json,
+        recipient_json,
+        objective,
+        stage,
+        as_of,
+        watermark_event_seq,
+        budget_base,
+        block_ids,
+        block_hashes,
+        model,
+        engine,
+        created_at,
+    ) = row
+    return CompileManifest(
+        packet_id=packet_id,
+        content_hash=content_hash,
+        scope=Scope.model_validate_json(scope_json),
+        recipient=Recipient.model_validate_json(recipient_json),
+        objective=objective,
+        stage=stage,
+        as_of=datetime.fromisoformat(as_of),
+        watermark_event_seq=int(watermark_event_seq),
+        budget_base=int(budget_base),
+        block_ids=tuple(json.loads(block_ids)),
+        block_hashes=tuple(json.loads(block_hashes)),
+        model=model or "",
+        engine=engine or "",
+        created_at=datetime.fromisoformat(created_at),
+    )
 
 
 class SqliteStore:
@@ -208,3 +298,53 @@ class SqliteStore:
                 except (ValueError, KeyError, TypeError) as exc:
                     raise ValueError(f"{path}:{lineno}: {exc}") from exc
         return self.append_relations_many(relations)
+
+    def log_compile(self, manifest: CompileManifest) -> None:
+        """Record ``manifest``; first write for a ``packet_id`` wins.
+
+        ``packet_id`` is UNIQUE: a later log for an already-recorded ``packet_id`` —
+        identical or divergent — is silently ignored, so the first compile logged for a
+        packet identity stays the receipt and re-logging is idempotent.
+        """
+        if len(manifest.block_ids) != len(manifest.block_hashes):
+            raise ValueError("block_ids and block_hashes must have the same length")
+        self._conn.execute(
+            "INSERT OR IGNORE INTO compile_log"
+            " (packet_id, content_hash, scope_json, recipient_json, objective, stage, as_of,"
+            " watermark_event_seq, budget_base, block_ids, block_hashes, model, engine,"
+            " created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                manifest.packet_id,
+                manifest.content_hash,
+                canonicalize(manifest.scope.model_dump(mode="json")).decode("utf-8"),
+                canonicalize(manifest.recipient.model_dump(mode="json")).decode("utf-8"),
+                manifest.objective,
+                manifest.stage,
+                manifest.as_of.isoformat(),
+                manifest.watermark_event_seq,
+                manifest.budget_base,
+                json.dumps(list(manifest.block_ids)),
+                json.dumps(list(manifest.block_hashes)),
+                manifest.model,
+                manifest.engine,
+                manifest.created_at.isoformat(),
+            ),
+        )
+        self._conn.commit()
+
+    def get_compile(self, packet_id: str) -> CompileManifest | None:
+        """The logged manifest for ``packet_id``, or ``None``."""
+        row = self._conn.execute(
+            f"SELECT {_MANIFEST_COLUMNS} FROM compile_log WHERE packet_id = ?", (packet_id,)
+        ).fetchone()
+        return None if row is None else _manifest_from_row(row)
+
+    def load_compile_log(self, limit: int | None = 100) -> list[CompileManifest]:
+        """Manifests in append order (``log_seq``), capped at ``limit``; ``None`` = all."""
+        sql = f"SELECT {_MANIFEST_COLUMNS} FROM compile_log ORDER BY log_seq"
+        if limit is not None:
+            sql += " LIMIT ?"
+            rows = self._conn.execute(sql, (limit,)).fetchall()
+        else:
+            rows = self._conn.execute(sql).fetchall()
+        return [_manifest_from_row(row) for row in rows]

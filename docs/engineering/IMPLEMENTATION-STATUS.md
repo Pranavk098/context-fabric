@@ -10,7 +10,7 @@ Legend: ✅ implemented · 🟡 partial · ⬜ pending.
 | CPP v1.0 models + frozen schema | ADR-0005 | ✅ | `protocol/models.py` |
 | RFC 8785 JCS canonicalization | ADR-0003 | ✅ | `protocol/canonical.py` |
 | Ed25519 packet signing | Invariant 10 | ✅ | `protocol/signing.py` |
-| Signed epoch chain / receipts (`verify` CLI) | §5 rec. 1–2 | ✅ | `protocol/epoch.py` (v0: correct Merkle root + membership check; compact inclusion proofs pending) |
+| Signed epoch chain / receipts (`verify` CLI) | §5 rec. 1–2 | ✅ | `protocol/epoch.py` (Merkle root, membership, compact inclusion proofs, chain verify) |
 | `.cfx` cartridge (ast + PageRank hologram) | Module A | ✅ | `kernel/cartridge/` |
 | Hard policy engine (trust/RBAC/lifecycle/freshness) | Invariant 2 | ✅ | `kernel/router/policy_engine.py` |
 | Recall (BM25 + optional embeddings) | Stage 1 | ✅ | `kernel/router/recall.py` BM25 default; hybrid via optional `embeddings` extra (`CF_RECALL`) |
@@ -20,7 +20,10 @@ Legend: ✅ implemented · 🟡 partial · ⬜ pending.
 | U-curve attention placement | Stage 7 | 🟡 | tail recap + recency anchor rendered; position probe null (n=8) — benefit not demonstrated |
 | Verify/hash/sign | Stage 8 | ✅ | `kernel/router/compiler.py` |
 | Adaptive cartridge + watermark/trust gates | ADR-0002/0004 | ✅ | `kernel/router/` |
-| `EPOCH_FOLD` / `COW_FORK` (memory-state v0) | Module D | ✅ | `kernel/epochs.py` (O(1) fork, private edits, explicit fold + conflict contract; packet-level k-step tool-output fold per Build-Plan §44 pending) |
+| `EPOCH_FOLD` / `COW_FORK` — memory-state v0 | Module D | ✅ | `kernel/epochs.py` (O(1) fork, private edits, explicit fold + conflict contract) |
+| Packet-level `EPOCH_FOLD` / `COW_FORK` | Module D | ✅ | `kernel/mmu/` (k-step fold → Tier 1 facts + `ctx://` handles; fork shares Tier 0/1/2, fresh Tier 3; not yet wired into the sidecar compile path) |
+| Replayable receipts (`cfx replay` / `cfx seal`) | §5 rec. 2 | ✅ | compile manifests (`compile_log`) + recompile-and-verify + epoch sealing over real traffic (`SEAL.md`) |
+| Cache alignment (shared prefix first) | plug rec. #4 | ✅ | `sidecar/render.py` tier0-first; `hints.shared_prefix_hash` == cartridge `kv_prefix_hash` |
 | Shadow Cortex probes | Module B | ⬜ | pending |
 | Durable store | Db-Storage-Spec | 🟡 | `kernel/store/` SQLite v0 (blocks + relations, WAL; sidecar reads and writes); Postgres migration + driver pending |
 | Sidecar REST API ("the plug") | Plane 2 | 🟡 | `sidecar/` OpenAI-compatible proxy: compile/passthrough, SSE, `cfx` CLI, writable memory (`POST /fabric/blocks`, quarantine=draft), CORS + size cap, `cfx demo`, MCP stdio (`cfx mcp`); LMCache `agent_hint` wiring pending |
@@ -30,8 +33,7 @@ Legend: ✅ implemented · 🟡 partial · ⬜ pending.
 | Deterministic-core tests | — | ✅ | `tests/` |
 
 **Realized core:** deterministic cartridge + policy + BM25/hybrid recall + λ-MMR packing +
-closure + hashing + signing, plus the product shell — sidecar ("plug"), MCP surface, signed
-epoch receipts ("seal"), memory-state CoW/fold ("shared copy"), SQLite store ("filing
-cabinet"), demo receipts, and a perf budget gate. **Next:** Track C (packet-level
-`EPOCH_FOLD`/`COW_FORK`, cache alignment) and Track D (replay CLI, Merkle proofs, stack
-metadata); then Postgres + engine wiring. Deliberate deferrals: `ROADMAP-DECISIONS.md`.
+closure + hashing + signing, packet-level fold/fork, replayable + sealed receipts — plus the
+product shell: sidecar ("plug"), MCP surface, writable quarantined memory, SQLite store,
+demo receipts, and a perf budget gate. **Next:** wire `kernel/mmu` into the compile path,
+Shadow Cortex probes, Postgres + engine wiring (triggers in `ROADMAP-DECISIONS.md`).

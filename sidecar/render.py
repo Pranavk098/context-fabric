@@ -3,8 +3,8 @@
 Explicit render order (attention U-curve: critical constraints sit at the start AND the
 end of the prompt):
 
-1. instruction (head)
-2. tier-0 cartridge hologram
+1. tier-0 cartridge hologram (the shared, byte-stable head)
+2. instruction (immediately after the shared head)
 3. tier-1 blocks in packed order (ascending ``source_event_seq`` — the CPP
    ``Tier1Ledger`` invariant; the packer selects by lambda-MMR but the ledger order is
    schema-fixed and prefix-stable)
@@ -17,6 +17,13 @@ end of the prompt):
    truncated to ~64 whitespace tokens (with an ellipsis), skipping blocks whose full text
    (or first 12 words, the prohibition distillate) is already rendered under
    ``PROHIBITIONS``. The recap is on by default; ``CF_RECAP=0`` disables it.
+
+Why Tier 0 leads: cross-agent KV prefix sharing requires identical leading bytes. Tier 0
+is shared across every agent on the same store/cartridge, while the instruction is
+per-agent; instruction-first would make agents' prompts diverge at token 0 and defeat
+the shared prefix. The per-agent instruction follows the shared block immediately; with
+no cartridge (empty Tier 0) the render is instruction-first, byte-identical to the
+previous order.
 """
 
 from __future__ import annotations
@@ -60,13 +67,14 @@ def _recap_lines(packet: ContextPacket) -> list[str]:
 
 
 def render_packet(packet: ContextPacket) -> str:
-    """Instruction first, constraints (prohibitions, contract, recap) last; no JSON blobs."""
+    """Shared Tier 0 head first, instruction next, constraints (prohibitions, contract,
+    recap) last; no JSON blobs."""
     parts: list[str] = []
+    if packet.tiers.tier0.content_markdown:
+        parts.append(packet.tiers.tier0.content_markdown)
     instruction = packet.tiers.tier3.instruction
     if instruction is not None and instruction.content:
         parts.append(instruction.content)
-    if packet.tiers.tier0.content_markdown:
-        parts.append(packet.tiers.tier0.content_markdown)
     parts.extend(_line(b) for b in packet.tiers.tier1.blocks)
     parts.extend(_line(b) for b in packet.tiers.tier3.shadow_probes)
     parts.extend(_line(b) for b in packet.tiers.tier3.observations)

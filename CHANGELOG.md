@@ -6,6 +6,17 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Added
+- **Packet-level fold/fork** — `kernel/mmu/`: k-step `EPOCH_FOLD` (raw tool outputs → Tier 1
+  facts + `ctx://` handles, append-only, deterministic) and `COW_FORK` (children share Tier
+  0/1/2, fresh Tier 3, lineage via `parent_packet_id`); not yet wired into the sidecar
+  (`docs/engineering/MMU-FOLD-FORK.md`).
+- **Cache-alignment fix** — the renderer now puts the shared Tier 0 cartridge first (per-agent
+  instruction second), so cross-agent KV prefix sharing is possible; byte-identity tests +
+  `hints.shared_prefix_hash` (`AGENT-HINTS.md`).
+- **Replayable receipts** — compile manifests (`compile_log`), `cfx replay` (recompiles from the
+  recorded block set; detects store drift) and `cfx seal` (signed epoch over real traffic with
+  stack metadata) (`docs/engineering/SEAL.md`).
+- **Merkle inclusion proofs** — `merkle_proof` / `verify_merkle_proof` (`protocol/epoch.py`).
 - **Recall upgrade** — BM25 (k1=1.2/b=0.75) replaces naive lexical overlap; optional embeddings
   extra (`[embeddings]`, fastembed/bge-small) with `CF_RECALL=bm25|hybrid|embeddings`. Benchmark:
   top-1 0.00→0.85, MRR 0.29→0.86 vs the old baseline (`docs/engineering/RECALL-BENCH.md`).
@@ -70,6 +81,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - Render recap duplicated long negative-knowledge blocks already covered by prohibitions;
   hybrid scoring dropped a legitimate block with id `"idf"`; stale `PERFORMANCE.md` numbers.
   Full audits: `docs/engineering/GAP-WAVE-REVIEW.md`, `GAP-WAVE-MEASUREMENTS.md`.
+
+### Fixed (Tracks C+D audit)
+- Verifier fail-closed guards: malformed `verify_merkle_proof` input, empty-epoch `verify_epoch`,
+  mixed naive/aware `verify_chain` (S1); manifest/fabric write race and fold lifecycle
+  promotion (S2); doc falsehoods corrected (`docs/engineering/TRACK-CD-REVIEW.md`).
 
 ### Fixed (protocol audit)
 - RFC 8785 number formatting (ECMAScript form: `1e16`, `1e-5`, `1e-7`), enum serialization,

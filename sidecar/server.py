@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import sys
 import threading
 from collections.abc import Sequence
 from datetime import UTC, datetime
@@ -24,8 +25,8 @@ from typing import Any
 import httpx
 from pydantic import ValidationError
 
-from kernel.router.compiler import compile_packet
-from kernel.store import SqliteStore, StoreConflict
+from kernel.router.compiler import CompileResult, compile_packet
+from kernel.store import CompileManifest, SqliteStore, StoreConflict
 from protocol.models import ContextBlock, Recipient, Scope
 from sidecar.blocks import build_block, stored_block
 from sidecar.render import render_packet
@@ -363,18 +364,25 @@ def _make_handler(
             objective = _objective(payload.get("messages"))
             if not objective:
                 return body, {}
+            as_of = datetime.now(tz=UTC)
+            recipient = Recipient(
+                agent_id=self.headers.get("X-Fabric-Agent", "default-agent"),
+                role=self.headers.get("X-Fabric-Role", "user"),
+                stage="chat",
+            )
+            with write_lock:
+                snapshot = tuple(fabric)
             result = compile_packet(
                 scope=_SCOPE,
-                recipient=Recipient(
-                    agent_id=self.headers.get("X-Fabric-Agent", "default-agent"),
-                    role=self.headers.get("X-Fabric-Role", "user"),
-                    stage="chat",
-                ),
+                recipient=recipient,
                 objective=objective,
                 stage="chat",
-                blocks=list(fabric),
-                as_of=datetime.now(tz=UTC),
+                blocks=snapshot,
+                watermark_event_seq=0,
+                budget_base=4000,
+                as_of=as_of,
             )
+            self._log_compile(result, recipient, objective, as_of, snapshot)
             payload.setdefault("messages", []).insert(
                 0, {"role": "system", "content": render_packet(result.packet)}
             )
@@ -383,6 +391,51 @@ def _make_handler(
                 json.dumps(payload).encode("utf-8"),
                 {"X-Fabric-Compiled": "1", "X-Fabric-Packet-Id": result.packet.packet_id},
             )
+
+        def _log_compile(
+            self,
+            result: CompileResult,
+            recipient: Recipient,
+            objective: str,
+            as_of: datetime,
+            blocks: Sequence[ContextBlock],
+        ) -> None:
+            """Record the compile manifest for ``cfx replay``; failure never breaks proxying.
+
+            ``blocks`` is the exact snapshot passed to ``compile_packet`` (never the live
+            ``fabric`` list), so a concurrent ``POST /fabric/blocks`` cannot make the
+            manifest disagree with what was compiled. Only a writable store has somewhere
+            to log: JSONL fabrics and no-fabric runs skip silently. ``model``/``engine`` are
+            operator metadata (``CF_MODEL``/``CF_ENGINE``, "" when unset), not probed from
+            the upstream.
+            """
+            if store is None:
+                return
+            pairs = sorted({block.block_id: block.content_hash for block in blocks}.items())
+            manifest = CompileManifest(
+                packet_id=result.packet.packet_id,
+                content_hash=result.packet.hashes.content_hash,
+                scope=_SCOPE,
+                recipient=recipient,
+                objective=objective,
+                stage="chat",
+                as_of=as_of,
+                watermark_event_seq=0,
+                budget_base=4000,
+                block_ids=tuple(block_id for block_id, _ in pairs),
+                block_hashes=tuple(content_hash for _, content_hash in pairs),
+                model=os.environ.get("CF_MODEL", ""),
+                engine=os.environ.get("CF_ENGINE", ""),
+                created_at=datetime.now(tz=UTC),
+            )
+            try:
+                with write_lock:
+                    store.log_compile(manifest)
+            except Exception as exc:  # a log failure must never break proxying
+                print(
+                    f"sidecar: compile log write failed for {manifest.packet_id}: {exc}",
+                    file=sys.stderr,
+                )
 
         def _proxy(self, method: str, url: str, body: bytes | None, extra: dict[str, str]) -> None:
             skip = _SKIP_HEADERS | {

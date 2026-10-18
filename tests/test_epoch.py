@@ -165,3 +165,36 @@ def test_merkle_root_rules() -> None:
         hashlib.sha256(leaf(c) + leaf(c)).digest(),
     )
     assert merkle_root((a, b, c)) == merkle_root((c, a, b))
+
+
+def test_verify_epoch_rejects_empty_packet_set_without_crashing() -> None:
+    empty = Epoch(
+        epoch_id="epc_x",
+        created_at=AS_OF,
+        tenant_id="t1",
+        watermark_event_seq=0,
+        packet_hashes=(),
+        merkle_root="sha256:" + "00" * 32,
+        packet_count=0,
+        signature="00",
+    )
+    assert verify_epoch(empty, PUB) is False
+
+
+def test_verify_chain_rejects_mixed_naive_and_aware_timestamps() -> None:
+    naive = create_epoch(
+        tenant_id="t1",
+        watermark_event_seq=0,
+        packet_hashes=(packet("alpha").hashes.content_hash,),
+        created_at=datetime(2026, 1, 1),
+        signer=SIG,
+    )
+    aware = create_epoch(
+        tenant_id="t1",
+        watermark_event_seq=1,
+        packet_hashes=(packet("beta").hashes.content_hash,),
+        created_at=datetime(2026, 1, 2, tzinfo=UTC),
+        signer=SIG,
+        prev_epoch_hash=epoch_content_hash(naive),
+    )
+    assert verify_chain([naive, aware], PUB) is False

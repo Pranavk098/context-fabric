@@ -22,12 +22,13 @@ DEFAULT_TTL_SECONDS = 3600
 def _prefix_material(packet: ContextPacket) -> dict[str, str]:
     """Exactly the bytes whose identity a KV/prefix cache can reuse across packets.
 
-    Only Tier 0 (the cartridge hologram) and the instruction block are included: they
-    form the stable head of the rendered prompt. Everything after them differs per agent,
-    per step, and per observation set, so including it would make the hash change on
-    every turn and destroy prefix identity. Tier 1 decisions could be appended in a
-    future format only if the renderer guaranteed them ahead of the instruction; it does
-    not (instruction renders first).
+    Tier 0 (the cartridge hologram) renders first and the instruction block immediately
+    after, so together they are the leading bytes of the rendered prompt. Everything after
+    them differs per agent, per step, and per observation set, so including it would make
+    the hash change on every turn and destroy prefix identity. Both strings are hashed as a
+    canonicalized pair, so ``prefix_hash`` is order-insensitive and per-agent (the
+    instruction differs across agents); ``shared_prefix_hash`` below isolates the Tier 0
+    part, which is what agents on the same store/cartridge actually share.
     """
     instruction = packet.tiers.tier3.instruction
     instruction_content = ""
@@ -45,11 +46,13 @@ def packet_cache_hints(
     """Deterministic agent hints for one compiled packet (RFC #52113 shaped).
 
     ``session_id`` scopes reuse to the workflow/task pair, ``prefix_hash`` identifies the
-    reusable prefix (sha256 over the RFC 8785 canonical form of
-    ``{"tier0": ..., "instruction": ...}``), ``ttl_seconds`` is the requested retention,
-    and ``evict_priority`` is derived from how much of the packet budget the packet used:
-    ``high`` at >= 75%, ``normal`` at >= 25%, else ``low`` (large cached contexts are the
-    most expensive to rebuild).
+    rendered prompt head (sha256 over the RFC 8785 canonical form of
+    ``{"tier0": ..., "instruction": ...}`` — per-agent), ``shared_prefix_hash`` is sha256
+    over the Tier 0 cartridge markdown alone — the token-prefix identity two agents on the
+    same store could actually share, and ``""`` when there is no Tier 0 (small projects).
+    ``ttl_seconds`` is the requested retention, and ``evict_priority`` is derived from how
+    much of the packet budget the packet used: ``high`` at >= 75%, ``normal`` at >= 25%,
+    else ``low`` (large cached contexts are the most expensive to rebuild).
     """
     usage = packet.total_tokens / max(packet.budget.hard_total_tokens, 1)
     if usage >= 0.75:
@@ -59,9 +62,17 @@ def packet_cache_hints(
     else:
         priority = "low"
 
+    tier0_markdown = packet.tiers.tier0.content_markdown
+    # Same bytes/encoding the cartridge serializer hashes (kernel/cartridge/serializer.py),
+    # so for a compiled cartridge this equals Tier0Cartridge.kv_prefix_hash.
+    shared_prefix_hash = (
+        "sha256:" + sha256_hex(tier0_markdown.encode("utf-8")) if tier0_markdown else ""
+    )
+
     return {
         "session_id": f"{packet.scope.workflow_id}:{packet.scope.task_id}",
         "prefix_hash": "sha256:" + sha256_hex(canonicalize(_prefix_material(packet))),
+        "shared_prefix_hash": shared_prefix_hash,
         "ttl_seconds": ttl_seconds,
         "evict_priority": priority,
         "hint_version": HINT_VERSION,
