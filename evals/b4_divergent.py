@@ -1,12 +1,19 @@
-"""Pre-registered B4 harness — divergent-role compiled context vs prefix-cache-only.
+"""Pre-registered B4 v2 harness — divergent-role compiled context vs prefix-cache-only.
 
 Design, roles, objectives, scorer, arms and success criteria are frozen in
-``docs/engineering/B4-PREREGISTRATION.md`` (2026-10-18) before any run. One fixture (the
+``docs/engineering/B4-PREREGISTRATION-v2.md`` (2026-10-18) before any run. One fixture (the
 ``encode/httpx`` clone at the pinned commit), one 4-file raw bundle (arms A/B's shared
-system content, sized < ``--max-model-len 8192``), four role fact blocks (arm C's fabric),
-one required+forbidden scorer for every arm, one GPU session.
+system content, sized < ``--max-model-len 8192``), a **mechanical** fabric built by
+``evals/mech_fabric.build_blocks`` from those same source files (never any objective or
+answer key), one required+forbidden scorer for every arm, one GPU session.
 
-Arms (all four roles x ``--repeats`` requests, in a fixed order):
+Role divergence comes **only** from a fixed file-ownership map (``OWNERSHIP``): each role
+owns one file, and blocks built from that file are denied to the other three roles. No
+per-question fact blocks. Whether a compiled packet ends up carrying a role's required
+facts is an OUTCOME (the dry-run prints a per-objective recall diagnostic), never a
+precondition.
+
+Arms (all objectives x ``--repeats`` requests, in a fixed order):
 
 * ``broadcast`` — full raw bundle to every agent (no role identity).
 * ``prefix``   — shared raw bundle + role instruction appended (the strongest naive
@@ -16,8 +23,9 @@ Arms (all four roles x ``--repeats`` requests, in a fixed order):
 
 Each arm's system content carries a unique leading tag so the persistent vLLM prefix cache
 cannot carry between arms. Run offline (``--dry-run``, no network) to build every arm's
-prompts and print per-arm prompt token counts + a sha256 of each prompt; ``--live`` sends
-them to a real OpenAI-compatible upstream and applies the frozen criteria.
+prompts, print per-arm prompt token counts + a per-objective recall diagnostic, and record
+a sha256 of each prompt; ``--live`` sends them to a real OpenAI-compatible upstream and
+applies the frozen criteria.
 
 Artifact: ``evals/reports/b4_divergent_<ts>.json``.
 """
@@ -26,6 +34,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import subprocess
 import sys
@@ -38,19 +47,11 @@ from typing import Any, NamedTuple
 import httpx
 
 from adapters.langgraph import compile_node_packet, node_model_input
+from evals.mech_fabric import build_blocks
 from kernel.cartridge.serializer import count_tokens
 from kernel.router.compiler import DEFAULT_AS_OF
 from protocol.canonical import content_hash, sha256_hex
-from protocol.models import (
-    BlockKind,
-    ContextBlock,
-    Creator,
-    CreatorType,
-    Fidelity,
-    MemoryTier,
-    Recipient,
-    Scope,
-)
+from protocol.models import ContextBlock, Recipient, Scope
 from sidecar.demo import (
     _Completion,
     _Counters,
@@ -63,19 +64,32 @@ from sidecar.demo import (
 REPORTS = Path(__file__).parent / "reports"
 PREGISTERED_COMMIT = "b5addb64f0161ff6bfe94c124ef76f6a1fba5254"
 PREGISTERED_REPO = "https://github.com/encode/httpx"
-PREREGISTRATION = "docs/engineering/B4-PREREGISTRATION.md"
+PREREGISTRATION = "docs/engineering/B4-PREREGISTRATION-v2.md"
 MAX_MODEL_LEN = 8192
+TOLERANCE_FRACTION = 0.1
 
 SCOPE = Scope(tenant_id="default", project_id="httpx-b4", workflow_id="divergent", task_id="t1")
 
-# The fixture bundle: an explicit 4-file slice (preregistration section 2), sized so every
-# raw arm fits --max-model-len 8192 (largest measured 6,220 tokens).
+ROLES = ("planner", "implementer", "tester", "reviewer")
+
+# The fixture bundle: an explicit 4-file slice (preregistration v2 section 2), sized so
+# every raw arm fits --max-model-len 8192 (largest measured ~7,880 tokens).
 BUNDLE_FILES: tuple[str, ...] = (
-    "httpx/__init__.py",
-    "httpx/__version__.py",
     "httpx/_api.py",
     "httpx/_auth.py",
+    "httpx/_status_codes.py",
+    "httpx/_types.py",
 )
+
+# File/area ownership map (fixed in advance): role -> files it owns. Divergence is applied
+# by denying every source-derived block to the three roles that do not own its file. This
+# is the ONLY source of role divergence; nothing is set per question.
+OWNERSHIP: dict[str, tuple[str, ...]] = {
+    "planner": ("httpx/_api.py",),
+    "implementer": ("httpx/_auth.py",),
+    "tester": ("httpx/_status_codes.py",),
+    "reviewer": ("httpx/_types.py",),
+}
 
 _RENDERING = (
     "files in listed order, raw bytes, joined by a blank line, each prefixed by "
@@ -90,120 +104,153 @@ _ARM_TAGS = {
 
 _ROLE_TASKS = {
     "planner": "Plan by locating the relevant module from the context above.",
-    "implementer": "Implement by naming the exact function from the context above.",
+    "implementer": "Implement by naming the exact symbol from the context above.",
     "tester": "Test by reading the exact value from the context above.",
-    "reviewer": "Review by naming the exact class from the context above.",
+    "reviewer": "Review by naming the exact type from the context above.",
+}
+
+_STAGES = {
+    "planner": "plan",
+    "implementer": "implement",
+    "tester": "test",
+    "reviewer": "review",
 }
 
 
 class AgentSpec(NamedTuple):
+    objective_id: str
     role: str
-    stage: str
     objective: str
     required: tuple[str, ...]
     forbidden: tuple[str, ...]
 
+    @property
+    def stage(self) -> str:
+        return _STAGES[self.role]
+
 
 # role, objective, required facts (all), forbidden wrong facts (none) — preregistration
-# section 3 (frozen). Required facts are answerable from the raw bundle AND the role's fact
-# block; forbidden facts never appear in any fact block or compiled packet.
+# v2 section 3 (frozen). Required facts are answerable from the RAW bundle (the only
+# construction guarantee); forbidden facts are plausible wrong answers also present in the
+# source. "2+" marks objectives that need two distinct facts (the "harder" half).
 _AGENTS: tuple[AgentSpec, ...] = (
+    # planner owns httpx/_api.py
     AgentSpec(
+        "planner-1",
         "planner",
-        "plan",
-        "Which module does `httpx/__init__.py` re-export that provides the synchronous "
-        "`Client` and asynchronous `AsyncClient` classes? Give the `_X` module name only.",
-        ("_client",),
-        ("_models",),
+        "Which two `_X` modules does `httpx/_api.py` import its `Client` and `Response` "
+        "classes from? Answer `_X, _Y`.",
+        ("_client", "_models"),
+        ("_urls",),
     ),
     AgentSpec(
+        "planner-2",
+        "planner",
+        "Which two `_X` modules does `httpx/_api.py` import `DEFAULT_TIMEOUT_CONFIG` and "
+        "`URL` from? Answer `_X, _Y`.",
+        ("_config", "_urls"),
+        ("_types",),
+    ),
+    AgentSpec(
+        "planner-3",
+        "planner",
+        "Which two functions in `_api.py` are the generic engine that every verb helper "
+        "delegates to, and the streaming context-manager alternative? Answer `name, name`.",
+        ("request", "stream"),
+        ("delete",),
+    ),
+    # implementer owns httpx/_auth.py
+    AgentSpec(
+        "implementer-1",
         "implementer",
-        "implement",
-        "In httpx, which function do the top-level helpers `get()` and `post()` delegate to? "
-        "Give the function name only.",
-        ("request",),
-        ("stream",),
+        "Which two class-level flags does the `Auth` base class in `_auth.py` declare, so "
+        "subclasses can signal that the request or response body must be read? "
+        "Answer `flag, flag`.",
+        ("requires_request_body", "requires_response_body"),
+        ("auth_flow",),
     ),
     AgentSpec(
-        "tester",
-        "test",
-        "What is the exact value of `__version__` in `httpx/__version__.py`?",
-        ("0.28.1",),
-        ("0.27", "0.28.0", "0.29"),
+        "implementer-2",
+        "implementer",
+        "Which two auth classes in `_auth.py` adapt a plain callable and a netrc file, "
+        "respectively? Answer `class, class`.",
+        ("functionauth", "netrcauth"),
+        ("digestauth",),
     ),
     AgentSpec(
-        "reviewer",
-        "review",
-        "Which auth class in `httpx/_auth.py` base64-encodes `username:password` and prefixes "
-        "it with `Basic `? Give the class name only.",
+        "implementer-3",
+        "implementer",
+        "Which auth class in `_auth.py` parses a `WWW-Authenticate: Digest` challenge and "
+        "supports the `MD5`, `SHA`, `SHA-256` and `SHA-512` algorithms?",
+        ("digestauth",),
         ("basicauth",),
-        ("digestauth", "netrcauth", "functionauth"),
+    ),
+    # tester owns httpx/_status_codes.py
+    AgentSpec(
+        "tester-1",
+        "tester",
+        "In `_status_codes.py`, give the two integer status codes for `IM_A_TEAPOT` and "
+        "`TOO_MANY_REQUESTS`. Answer `int, int`.",
+        ("418", "429"),
+        ("451",),
+    ),
+    AgentSpec(
+        "tester-2",
+        "tester",
+        "In `_status_codes.py`, give the reason phrases for status codes 404 and 503. "
+        "Answer `phrase, phrase`.",
+        ("not found", "service unavailable"),
+        ("bad gateway",),
+    ),
+    AgentSpec(
+        "tester-3",
+        "tester",
+        "Which `codes` classmethod in `_status_codes.py` returns `True` for both 4xx and "
+        "5xx status codes?",
+        ("is_error",),
+        ("is_client_error",),
+    ),
+    # reviewer owns httpx/_types.py
+    AgentSpec(
+        "reviewer-1",
+        "reviewer",
+        "Which two type aliases in `_types.py` name the accepted types for a request URL "
+        "and for request headers? Answer `alias, alias`.",
+        ("urltypes", "headertypes"),
+        ("cookietypes",),
+    ),
+    AgentSpec(
+        "reviewer-2",
+        "reviewer",
+        "Which two type aliases in `_types.py` are the request and response body types, "
+        "both `Union[str, bytes, Iterable[bytes], AsyncIterable[bytes]]`? "
+        "Answer `alias, alias`.",
+        ("requestcontent", "responsecontent"),
+        ("requestdata",),
+    ),
+    AgentSpec(
+        "reviewer-3",
+        "reviewer",
+        "Which class in `_types.py` is the synchronous byte-stream base, defining `__iter__` "
+        "and `close`?",
+        ("syncbytestream",),
+        ("asyncbytestream",),
     ),
 )
 
-AGENT_BY_ROLE = {agent.role: agent for agent in _AGENTS}
-
-# (block_id, content, denied_roles) — one fact block per role, in _AGENTS order
-# (preregistration section 4). Each block is denied to the three roles that must not see it.
-_FACTS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
-    (
-        "blk_init",
-        "httpx/__init__.py re-exports the package public API. It imports from ._api "
-        "import *, from ._auth import *, from ._client import *, from ._config import *, "
-        "from ._content import *, from ._exceptions import *, and from ._main import main. "
-        "The synchronous Client and asynchronous AsyncClient classes come from ._client.",
-        ("implementer", "tester", "reviewer"),
-    ),
-    (
-        "blk_api",
-        "httpx/_api.py defines request() and the verb helpers get(), options(), head(), "
-        "post(), put(), patch(), delete(). Each verb helper delegates to request() with its "
-        "HTTP method, e.g. get() returns request('GET', url, ...) and post() returns "
-        "request('POST', url, ...). request() defaults: follow_redirects=False, "
-        "trust_env=True, timeout=DEFAULT_TIMEOUT_CONFIG.",
-        ("planner", "tester", "reviewer"),
-    ),
-    (
-        "blk_version",
-        "httpx/__version__.py defines the package metadata: __title__ = 'httpx', "
-        "__description__ = 'A next generation HTTP client, for Python 3.', "
-        "__version__ = '0.28.1'.",
-        ("planner", "implementer", "reviewer"),
-    ),
-    (
-        "blk_auth",
-        "httpx/_auth.py defines the authentication classes. BasicAuth takes a "
-        "(username, password) pair and its _build_auth_header base64-encodes "
-        "'username:password' and prefixes the result with 'Basic '; the header sets the "
-        "Authorization header.",
-        ("planner", "implementer", "tester"),
-    ),
-)
+AGENT_BY_ID = {agent.objective_id: agent for agent in _AGENTS}
 
 
-def fact_blocks() -> tuple[ContextBlock, ...]:
-    """The four role fact blocks, in _AGENTS order, denied to the three other roles."""
-    as_of = DEFAULT_AS_OF
-    blocks: list[ContextBlock] = []
-    for seq, (block_id, content, denied) in enumerate(_FACTS, start=1):
-        blocks.append(
-            ContextBlock(
-                block_id=block_id,
-                block_kind=BlockKind.fact,
-                memory_tier=MemoryTier.ledger,
-                content=content,
-                content_hash="sha256:" + sha256_hex(content.encode("utf-8")),
-                token_estimate=count_tokens(content),
-                source_event_seq=seq,
-                creator=Creator(type=CreatorType.tool, id="b4-fixture"),
-                fidelity=Fidelity.extract,
-                trust_domain=SCOPE.tenant_id,
-                denied_roles=denied,
-                observed_at=as_of,
-                valid_from=as_of,
-            )
-        )
-    return tuple(blocks)
+def build_mech_blocks(root: Path) -> tuple[ContextBlock, ...]:
+    """Mechanical fabric for the fixture, with ownership applied (see module docstring)."""
+    owner_by_file = {rel: role for role, rels in OWNERSHIP.items() for rel in rels}
+    roles = tuple(OWNERSHIP)
+    owned: list[ContextBlock] = []
+    for block in build_blocks(root, BUNDLE_FILES):
+        owner = owner_by_file.get(block.ref_uri) if block.ref_uri is not None else None
+        denied = tuple(r for r in roles if r != owner) if owner else ()
+        owned.append(block.model_copy(update={"denied_roles": denied}))
+    return tuple(owned)
 
 
 def render_bundle(root: Path) -> tuple[str, list[dict[str, Any]]]:
@@ -233,20 +280,20 @@ def score_quality(text: str, agent: AgentSpec) -> tuple[bool, list[str], list[st
     return (not missing and not wrong, missing, wrong)
 
 
-def verify_keys(rendered: str) -> None:
-    """Construction checks 1-2 (preregistration section 3), aborting before any request."""
+def verify_raw_answerable(rendered: str) -> None:
+    """Construction check (preregistration v2): every required fact is in the raw bundle.
+
+    This is the ONLY construction check — it asserts arms A/B can answer, never that a
+    compiled packet carries the facts (that is an outcome, not a precondition).
+    """
     bundle = rendered.lower()
     problems: list[str] = []
-    for agent, (block_id, content, _denied) in zip(_AGENTS, _FACTS, strict=True):
-        fact = content.lower()
+    for agent in _AGENTS:
         for key in agent.required:
             if key.lower() not in bundle:
-                problems.append(f"required {key!r} missing from raw bundle")
-            if key.lower() not in fact:
-                problems.append(f"required {key!r} missing from fact block {block_id}")
-        for key in agent.forbidden:
-            if key.lower() in fact:
-                problems.append(f"forbidden {key!r} present in fact block {block_id}")
+                problems.append(
+                    f"required {key!r} for {agent.objective_id} missing from raw bundle"
+                )
     if problems:
         raise ValueError(
             "fixture/content error, run aborted before any request: " + "; ".join(problems)
@@ -275,7 +322,7 @@ def node_messages(
         result = compile_node_packet(
             {"objective": agent.objective, "blocks": blocks},
             scope=SCOPE,
-            recipient=Recipient(agent_id=agent.role, role=agent.role, stage=agent.stage),
+            recipient=Recipient(agent_id=agent.objective_id, role=agent.role, stage=agent.stage),
             as_of=as_of,
         )
         system = f"{tag}\n{node_model_input(result)['content']}"
@@ -289,36 +336,38 @@ def build_arms(
     blocks: tuple[ContextBlock, ...],
     *,
     as_of: datetime = DEFAULT_AS_OF,
-) -> dict[str, list[tuple[str, list[dict[str, str]]]]]:
-    """Every arm's prompts, in fixed role order; (role, messages) per request."""
+) -> dict[str, list[tuple[AgentSpec, list[dict[str, str]]]]]:
+    """Every arm's prompts, in fixed objective order; (agent, messages) per request."""
     return {
         arm: [
-            (
-                agent.role,
-                node_messages(arm, agent, raw_bundle=raw_bundle, blocks=blocks, as_of=as_of),
-            )
+            (agent, node_messages(arm, agent, raw_bundle=raw_bundle, blocks=blocks, as_of=as_of))
             for agent in _AGENTS
         ]
         for arm in ("broadcast", "prefix", "compile")
     }
 
 
-def verify_packets(arms: dict[str, list[tuple[str, list[dict[str, str]]]]]) -> None:
-    """Construction check 3: each compiled packet carries its required, not forbidden, fact."""
-    problems: list[str] = []
-    for role, messages in arms["compile"]:
-        agent = AGENT_BY_ROLE[role]
+def recall_report(
+    arms: dict[str, list[tuple[AgentSpec, list[dict[str, str]]]]],
+) -> list[dict[str, Any]]:
+    """Per-objective recall diagnostic: which required facts made it into the compiled packet.
+
+    Pure OUTCOME (no model, no abort) — the compiled packet is an input built offline.
+    """
+    rows: list[dict[str, Any]] = []
+    for agent, messages in arms["compile"]:
         rendered = messages[0]["content"].lower()
-        for key in agent.required:
-            if key.lower() not in rendered:
-                problems.append(f"required {key!r} missing from {role} compiled packet")
-        for key in agent.forbidden:
-            if key.lower() in rendered:
-                problems.append(f"forbidden {key!r} present in {role} compiled packet")
-    if problems:
-        raise ValueError(
-            "compiled-packet content error, run aborted before any request: " + "; ".join(problems)
+        facts = {fact: fact.lower() in rendered for fact in agent.required}
+        rows.append(
+            {
+                "objective_id": agent.objective_id,
+                "role": agent.role,
+                "required": list(agent.required),
+                "facts_in_packet": facts,
+                "all_in_packet": all(facts.values()),
+            }
         )
+    return rows
 
 
 def commit_of(root: Path) -> tuple[str, str]:
@@ -355,26 +404,26 @@ def dry_run_payload(
     as_of: datetime = DEFAULT_AS_OF,
 ) -> dict[str, Any]:
     """Deterministic offline build of every arm's prompts (no wall clock, no network)."""
-    verify_keys(raw_bundle)
+    verify_raw_answerable(raw_bundle)
     arms = build_arms(raw_bundle, blocks, as_of=as_of)
-    verify_packets(arms)
     per_arm: dict[str, dict[str, Any]] = {}
     for arm, pairs in arms.items():
         roles: dict[str, dict[str, Any]] = {}
         total = 0
-        for role, messages in pairs:
+        for agent, messages in pairs:
             stats = _prompt_stats(messages)
             total += int(stats["prompt_tokens"])
-            roles[role] = {
-                "objective": AGENT_BY_ROLE[role].objective,
+            roles[agent.objective_id] = {
+                "role": agent.role,
+                "objective": agent.objective,
                 **{k: v for k, v in stats.items() if k != "messages"},
                 "messages": stats["messages"],
             }
         per_arm[arm] = {
             "prompt_tokens_total": total,
-            "max_role_prompt_tokens": max(r["prompt_tokens"] for r in roles.values()),
+            "max_objective_prompt_tokens": max(r["prompt_tokens"] for r in roles.values()),
             "fits_max_model_len": all(r["prompt_tokens"] < MAX_MODEL_LEN for r in roles.values()),
-            "roles": roles,
+            "objectives": roles,
         }
     return {
         "scenario": "b4_divergent",
@@ -382,7 +431,10 @@ def dry_run_payload(
         "preregistration": PREREGISTRATION,
         "fixture": fixture,
         "max_model_len": MAX_MODEL_LEN,
+        "n_objectives": len(_AGENTS),
+        "repeats": 3,
         "arms": per_arm,
+        "recall": recall_report(arms),
     }
 
 
@@ -433,12 +485,15 @@ def _criteria(
     records: Sequence[dict[str, Any]],
     repeats: int,
 ) -> dict[str, Any]:
-    b = arms["prefix"]
-    c = arms["compile"]
-    b_passes = int(b["passed"])
-    c_passes = int(c["passed"])
-    b_uncached = _uncached(int(b["prompt_tokens_total"]), per_arm_cache["prefix"].hits)
-    c_uncached = _uncached(int(c["prompt_tokens_total"]), per_arm_cache["compile"].hits)
+    n = len(_AGENTS) * repeats
+    tolerance = math.ceil(TOLERANCE_FRACTION * n)
+    a_passes = int(arms["broadcast"]["passed"])
+    b_passes = int(arms["prefix"]["passed"])
+    c_passes = int(arms["compile"]["passed"])
+    b_uncached = _uncached(int(arms["prefix"]["prompt_tokens_total"]), per_arm_cache["prefix"].hits)
+    c_uncached = _uncached(
+        int(arms["compile"]["prompt_tokens_total"]), per_arm_cache["compile"].hits
+    )
 
     def error_rate(arm: str) -> float:
         total = int(arms[arm]["total"])
@@ -459,12 +514,12 @@ def _criteria(
             "prefix_uncached_tokens": b_uncached,
             "compile_uncached_tokens": c_uncached,
         }
-    quality_ok = c_passes >= b_passes - 1
+    quality_ok = c_passes >= b_passes - tolerance
     unreliable = error_rate("prefix") > 0.25 or error_rate("compile") > 0.25
     token_pass = token_criterion.get("pass")
     if unreliable:
         verdict = "INCONCLUSIVE"
-    elif c_passes < b_passes - 1:
+    elif c_passes < b_passes - tolerance:
         verdict = "KILL"
     elif quality_ok and token_pass is True:
         verdict = "PASS"
@@ -475,15 +530,18 @@ def _criteria(
     return {
         "verdict": verdict,
         "baseline": "prefix",
-        "n_roles": len(_AGENTS),
+        "n_objectives": len(_AGENTS),
         "repeats": repeats,
-        "tolerance_requests": 1,
+        "n": n,
+        "tolerance_fraction": TOLERANCE_FRACTION,
+        "tolerance_requests": tolerance,
         "quality": {
             "pass": quality_ok,
-            "requirement": "compile passes >= prefix passes - 1",
+            "requirement": f"compile passes >= prefix passes - {tolerance}",
+            "broadcast_passes": a_passes,
             "prefix_passes": b_passes,
             "compile_passes": c_passes,
-            "total": int(b["total"]),
+            "total": n,
         },
         "uncached_tokens": token_criterion,
         "unreliable_error_rate": unreliable,
@@ -503,11 +561,10 @@ def run(
     started_at = datetime.now(tz=UTC).isoformat()
     rendered, files = render_bundle(fixture)
     bundle_tokens = count_tokens(rendered)
-    blocks = fact_blocks()
-    verify_keys(rendered)
+    blocks = build_mech_blocks(fixture)
+    verify_raw_answerable(rendered)
     commit, commit_source = commit_of(fixture)
     arms = build_arms(rendered, blocks)
-    verify_packets(arms)
 
     fixture_manifest = {
         "repo": PREGISTERED_REPO,
@@ -517,6 +574,7 @@ def run(
         "rendering": _RENDERING,
         "files": files,
         "bundle_tokens_tiktoken": bundle_tokens,
+        "ownership": {role: list(rels) for role, rels in OWNERSHIP.items()},
         "preregistration": PREREGISTRATION,
     }
 
@@ -529,8 +587,7 @@ def run(
         stop_sampler = _start_kv_sampler(client, metrics_url)
         started = time.perf_counter()
         arm_records: list[dict[str, Any]] = []
-        for role, messages in arms[arm]:
-            agent = AGENT_BY_ROLE[role]
+        for agent, messages in arms[arm]:
             for repeat in range(repeats):
                 try:
                     completion = _chat(
@@ -546,7 +603,8 @@ def run(
                     {
                         "op": "chat",
                         "arm": arm,
-                        "agent": role,
+                        "objective_id": agent.objective_id,
+                        "agent": agent.role,
                         "repeat": repeat,
                         "objective": agent.objective,
                         "required": list(agent.required),
@@ -589,6 +647,7 @@ def run(
         "repeats": repeats,
         "records": records,
         "arms": arms_summary,
+        "recall": recall_report(arms),
         "cache": {
             "available": any(v is not None for c in per_arm_cache.values() for v in c),
             "source": "upstream Prometheus /metrics (vLLM)",
@@ -613,22 +672,28 @@ def run(
             f"bundle is the {len(files)}-file slice ({bundle_tokens} tiktoken) rendered with "
             "FILE headers (actual bytes, stable order); per-file sha256 in the fixture so a "
             "fresh clone can audit the exact bytes.",
-            "Three arms over one 4-agent (planner/implementer/tester/reviewer) workflow; "
-            "broadcast sends the full bundle to every agent, prefix appends a per-role "
-            "instruction after the shared bundle (vLLM prefix caching's best case), compile "
-            "sends each role's compiled packet via the LangGraph adapter.",
+            "The compile arm's fabric is built MECHANICALLY by evals/mech_fabric.build_blocks "
+            "from the same source files (signatures, docstrings, assignments, imports, "
+            "cartridge); it never reads any objective or answer key. Role divergence comes "
+            "only from the fixed file-ownership map (each role owns one file).",
+            "Three arms over a 12-objective, 4-role (planner/implementer/tester/reviewer) "
+            "workload; broadcast sends the full bundle to every agent, prefix appends a "
+            "per-role instruction after the shared bundle (vLLM prefix caching's best case), "
+            "compile sends each role's compiled packet via the LangGraph adapter.",
             "Each arm's system content is prefixed with a unique arm tag so the persistent "
             "vLLM prefix cache cannot carry between arms; within an arm the shared bytes "
             "(broadcast: whole system; prefix: bundle; compile: none) drive prefix reuse.",
             "Quality is the same deterministic required+forbidden scorer for every arm "
-            "(all required facts present, no forbidden fact present); every role, repeat and "
-            "response is reported, pass or fail.",
+            "(all required facts present, no forbidden fact present); every objective, "
+            "repeat and response is reported, pass or fail. Forbidden facts are plausible "
+            "wrong answers from the source; whether a compiled packet carries one is an "
+            "outcome, not a precondition.",
             "The compile arm compiles client-side (compile_node_packet), not through a "
             "sidecar; its 'compiled' flag is self-computed, not a server header.",
             "Prefix-cache counters come from the upstream Prometheus /metrics (vLLM), parsed "
             "tolerantly (null when unavailable); uncached tokens = billed prompt tokens minus "
             "the prefix-cache hit-token delta. The first request of each arm is a cold prefill.",
-            f"n={len(_AGENTS)} roles x {repeats} repeats per arm, temperature=0.0, "
+            f"n={len(_AGENTS)} objectives x {repeats} repeats per arm, temperature=0.0, "
             f"non-streaming, max_tokens={max_tokens}; single GPU, single 1.5B model.",
         ],
     }
@@ -647,16 +712,22 @@ def _print_dry_run(receipt: dict[str, Any]) -> None:
         f"fixture: {fixture['repo']} @ {fixture['commit']} "
         f"({len(fixture['files'])} files, {fixture['bundle_tokens_tiktoken']} tiktoken)"
     )
-    print(f"max_model_len: {receipt['max_model_len']}")
+    print(f"max_model_len: {receipt['max_model_len']}  n_objectives: {receipt['n_objectives']}")
     for arm, summary in receipt["arms"].items():
-        roles = summary["roles"]
+        objectives = summary["objectives"]
         print(
             f"{arm:<10} prompt_tokens_total={summary['prompt_tokens_total']:>6} "
-            f"max_role={summary['max_role_prompt_tokens']:>5} "
+            f"max_objective={summary['max_objective_prompt_tokens']:>5} "
             f"fits<{receipt['max_model_len']}={summary['fits_max_model_len']}"
         )
-        for role, stats in roles.items():
-            print(f"  {role:<12} {stats['prompt_tokens']:>5} tok  {stats['prompt_sha256']}")
+        for objective_id, stats in objectives.items():
+            print(f"  {objective_id:<14} {stats['prompt_tokens']:>5} tok  {stats['prompt_sha256']}")
+    print("recall (required facts present in the compiled packet — OUTCOME, not a gate):")
+    for row in receipt["recall"]:
+        marks = " ".join(
+            f"{fact}={'Y' if hit else 'N'}" for fact, hit in row["facts_in_packet"].items()
+        )
+        print(f"  {row['objective_id']:<14} [{row['role']:<11}] {marks}")
 
 
 def _print_receipt(receipt: dict[str, Any]) -> None:
@@ -694,7 +765,7 @@ def _print_receipt(receipt: dict[str, Any]) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m evals.b4_divergent",
-        description="Pre-registered B4: divergent-role compiled vs prefix-cache-only.",
+        description="Pre-registered B4 v2: divergent-role compiled vs prefix-cache-only.",
     )
     parser.add_argument(
         "--fixture",
@@ -711,7 +782,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--model", default=os.environ.get("CF_MODEL", "Qwen/Qwen2.5-1.5B-Instruct"))
     parser.add_argument("--dry-run", action="store_true", help="build prompts offline, no network")
     parser.add_argument("--live", action="store_true", help="run against the upstream (later)")
-    parser.add_argument("--repeats", type=int, default=3, help="repeats per role per arm")
+    parser.add_argument("--repeats", type=int, default=3, help="repeats per objective per arm")
     parser.add_argument("--max-tokens", type=int, default=48, help="max_tokens per request")
     parser.add_argument("--out", default="", help="receipt path override")
     args = parser.parse_args(argv)
@@ -728,7 +799,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     ts = time.strftime("%Y%m%d_%H%M%S")
-    blocks = fact_blocks()
+    blocks = build_mech_blocks(fixture)
     if args.dry_run:
         rendered, files = render_bundle(fixture)
         commit, commit_source = commit_of(fixture)
@@ -740,6 +811,7 @@ def main(argv: list[str] | None = None) -> int:
             "rendering": _RENDERING,
             "files": files,
             "bundle_tokens_tiktoken": count_tokens(rendered),
+            "ownership": {role: list(rels) for role, rels in OWNERSHIP.items()},
             "preregistration": PREREGISTRATION,
         }
         receipt = dry_run_payload(rendered, blocks, fixture=fixture_manifest)

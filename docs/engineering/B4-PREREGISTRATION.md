@@ -1,3 +1,9 @@
+> **SUPERSEDED before any run by `B4-PREREGISTRATION-v2.md` — reason: answer-carrying
+> hand-written blocks.** v1 hand-authored one fact block per question (each carrying its
+> answer) and tilted the comparison toward the compile arm by construction. No run was ever
+> performed under v1. See v2 for the mechanical-fabric design that replaces it. Kept for the
+> audit trail; do not implement.
+
 # B4 Pre-Registration — divergent-role compiled context vs prefix-cache-only, with a quality gate
 
 **Status: PRE-REGISTERED. Frozen 2026-10-18 20:44 UTC, before any model output or run on
