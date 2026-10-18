@@ -16,6 +16,7 @@ from protocol import epoch
 from sidecar import demo, foldfork, mcp
 from sidecar.blocks import build_block, stored_block
 from sidecar.replay import replay, seal
+from sidecar.repro import run_repro
 from sidecar.server import serve
 
 
@@ -160,6 +161,14 @@ def _build_parser() -> argparse.ArgumentParser:
     demo.add_arguments(demo_parser)
     demo_parser.set_defaults(func=demo.main_from_namespace)
 
+    repro_parser = subparsers.add_parser(
+        "repro", help="recompute the offline-verifiable numbers from their artifacts"
+    )
+    repro_parser.add_argument(
+        "--verbose", "-v", action="store_true", help="print every offline check, not just failures"
+    )
+    repro_parser.set_defaults(func=_cmd_repro)
+
     return parser
 
 
@@ -232,6 +241,10 @@ def _cmd_fork(args: argparse.Namespace) -> int:
 
 def _cmd_seal(args: argparse.Namespace) -> int:
     return seal(args.store, args.private_key, args.out, model=args.model, engine=args.engine)
+
+
+def _cmd_repro(args: argparse.Namespace) -> int:
+    return run_repro(verbose=args.verbose)
 
 
 def _cmd_mcp(args: argparse.Namespace) -> int:

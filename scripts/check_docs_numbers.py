@@ -8,7 +8,9 @@ one source for humans and this checker) and verifies, per entry:
   of ``a/b``, ``a-b``, ``a+b`` (hand-rolled, no ``eval()``) and
   ``round(value, round) == expect``;
 * ``must_appear_in``: the ``display`` string occurs in every listed doc after normalizing
-  ``×``/``x`` and Unicode minus/ASCII minus.
+  ``×``/``x`` and Unicode minus/ASCII minus;
+* ``baseline``: every ``strict`` entry must name the comparison it is measured against, so a
+  headline number can never ship without its strongest baseline.
 
 ``stale_patterns`` must not occur in their scoped docs (or, unscoped, anywhere under the
 repo except docs listed in ``historical_ok`` and the registry itself).
@@ -75,6 +77,8 @@ def load_registry(path: Path) -> dict[str, Any]:
 
 def check_entry(entry: dict[str, Any], root: Path, report: list[tuple[bool, str]]) -> None:
     eid = entry["id"]
+    if entry.get("kind") == "strict" and not entry.get("baseline"):
+        report.append((False, f"{eid}: strict entry must name its baseline"))
     artifact = entry.get("artifact")
     if artifact:
         path = root / artifact

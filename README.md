@@ -8,7 +8,7 @@ One shared memory. One small, cache-aligned packet per agent.
 Every hand-off hashed, signed, and replayable.
 
 [![CI](https://github.com/Pranavk098/context-fabric/actions/workflows/ci.yml/badge.svg)](https://github.com/Pranavk098/context-fabric/actions/workflows/ci.yml)
-![tests](https://img.shields.io/badge/tests-333%20total-brightgreen)
+![tests](https://img.shields.io/badge/tests-338%20total-brightgreen)
 ![python](https://img.shields.io/badge/python-3.12%2B-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
 ![status](https://img.shields.io/badge/status-v0.1%20local--first-orange)
@@ -97,7 +97,8 @@ from actual code): **35.87× fewer prompt tokens at parity (5/6 vs 5/6)** —
 ```bash
 uv sync --extra dev
 uv run python -m evals.spike_deterministic   # zero-GPU deterministic-core check
-uv run pytest -q                             # 333 tests (3 skip without the embeddings extra)
+uv run pytest -q                             # 338 tests (3 skip without the embeddings extra)
+uv run cfx repro                             # recompute every offline claim from its artifact
 
 # The plug, in front of your local model server
 uv run cfx serve --upstream http://127.0.0.1:8000 --fabric fabric.db
@@ -131,10 +132,14 @@ protocol/   CPP v1.0 frozen schemas · RFC 8785 canonicalization · Ed25519 · e
 kernel/     9-stage context compiler · .cfx cartridge · BM25/hybrid recall · λ-MMR packer · CoW epochs · SQLite store
 sidecar/    cfx CLI + OpenAI-compatible proxy · writable quarantined memory · MCP server · replay/seal · demo
 evals/      telemetry harness + every Stage-B experiment that produced a number in this README
-tests/      226 tests (deterministic core, verifiers, replay, MCP, perf budget)
+tests/      338 tests (deterministic core, verifiers, replay, MCP, perf budget)
 scripts/    WSL/GPU bring-up and runners
 docs/       the full record — see the index below
 ```
+
+**Reproduce it yourself:** [`REPRODUCE.md`](docs/engineering/REPRODUCE.md) — one offline command
+(`cfx repro`) recomputes every stored number, and the GPU/model runs that need a live engine are
+listed separately, never claimed as reproduced.
 
 **Documentation:** start at [`docs/README.md`](docs/README.md). The interesting parts:
 [`Arch-Spec.md`](docs/design/Arch-Spec.md) (normative design),

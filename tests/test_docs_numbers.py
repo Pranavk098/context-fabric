@@ -131,3 +131,23 @@ def test_unscoped_stale_scans_repo_but_not_registry(tmp_path: Path) -> None:
 
 def test_real_registry_passes() -> None:
     assert [message for ok, message in MOD.run() if not ok] == []
+
+
+def test_strict_entry_requires_baseline(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text("worth 1x\n", encoding="utf-8")
+    payload = {
+        "entries": [{"id": "s", "kind": "strict", "display": "1x", "must_appear_in": ["README.md"]}]
+    }
+    assert any(not ok and "must name its baseline" in m for ok, m in _run(tmp_path, payload))
+    payload["entries"][0]["baseline"] = "vs the strongest naive arm"
+    assert not [m for ok, m in _run(tmp_path, payload) if not ok]
+
+
+def test_display_only_entry_needs_no_baseline(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text("worth 1x\n", encoding="utf-8")
+    payload = {
+        "entries": [
+            {"id": "d", "kind": "display-only", "display": "1x", "must_appear_in": ["README.md"]}
+        ]
+    }
+    assert not [m for ok, m in _run(tmp_path, payload) if not ok]

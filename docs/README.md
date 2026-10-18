@@ -28,6 +28,7 @@ Everything that matters is here. "Main" documents are marked ⭐.
 - ⭐ `ROADMAP-DECISIONS.md` — deliberate deferrals with triggers.
 - ⭐ `ENGINEERING-LOG.md` — Stage-B findings + audit-fix results (what we built and measured).
 - ⭐ `AUDIT.md` — shortfall ledger + classification (every gap: artifact/design/limitation).
+- ⭐ `REPRODUCE.md` — the shortest path for a non-author to re-derive every number (`cfx repro`).
 - `CHANGES-FROM-PROPOSAL.md` — what changed from the original proposal and why.
 - `RUNTIME.md` — how to run the vLLM / LMCache experiments locally.
 - `VERIFICATION-REPORT.md` — claims vs code/results (what holds, what's overstated).

@@ -14,6 +14,10 @@ Legend
 - **display-only** — no machine artifact exists (or the number is not mechanically
   derivable); the checker only asserts the display string still appears in the listed docs.
   A human re-verifies these when they change.
+- **baseline** — every `strict` entry names the arm its value is measured against, and it is
+  the *strongest* naive arm, not a strawman. `scripts/check_docs_numbers.py` fails a strict
+  entry that omits it, so a headline cannot ship without its comparison (see the JSON
+  `baseline` field per entry).
 
 | id | Value as displayed | Type | Where it must appear | Artifact (source of truth) | How verified |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -35,7 +39,7 @@ Legend
 | `packing_redundancy` | `-13.4%` | strict | `README.md`, `CHANGELOG.md` | `evals/reports/packing_bench_20261017_231759.json` | (0.205616 − 0.177986) = 0.0276 jaccard delta; /0.205616 = 13.4% |
 | `quality_parity_ratio` | `~5.6x` | strict | `README.md`, `CHANGELOG.md` | `evals/reports/audit_b6_20261016_173804.json` | 408 / 73 = 5.589 → 5.6 (1.5B, lossless arm; N7 caveats) |
 | `httpx_compression` | `~17x` | display-only | `README.md`, `CHANGELOG.md` | — (N5: no stored report) | 64,066 → 3,806 tokens; drifts with the installed `httpx` version |
-| `test_count` | `333` | display-only | `README.md` | — | `uv run python -m pytest --collect-only -q` on the current tree (3 embedding/symlink tests skip without the extra/on Windows); recount and update README + this row together |
+| `test_count` | `338` | display-only | `README.md` | — | `uv run python -m pytest --collect-only -q` on the current tree (3 embedding/symlink tests skip without the extra/on Windows); recount and update README + this row together |
 
 Stale patterns (must never appear as current numbers in their scoped docs; historical
 docs that explicitly quote superseded runs are exempt via `historical_ok`):
@@ -52,6 +56,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
     {
       "id": "pilot_prompt_token_ratio",
       "claim": "real-repo pilot (pre-registered): compile vs raw prompt-token reduction",
+      "baseline": "raw arm: the full 32,259-token httpx bundle as one system message (strongest naive), same model",
       "display": "35.87x",
       "kind": "strict",
       "artifact": "evals/reports/pilot_20261018_013151.json",
@@ -67,6 +72,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
     {
       "id": "pilot_raw_tokens",
       "claim": "real-repo pilot: raw arm prompt tokens",
+      "baseline": "raw arm: full 32,259-token httpx bundle as one system message",
       "display": "193,366",
       "kind": "strict",
       "artifact": "evals/reports/pilot_20261018_013151.json",
@@ -75,6 +81,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
     {
       "id": "pilot_compile_tokens",
       "claim": "real-repo pilot: compile arm prompt tokens",
+      "baseline": "raw arm: full 32,259-token httpx bundle as one system message",
       "display": "5,391",
       "kind": "strict",
       "artifact": "evals/reports/pilot_20261018_013151.json",
@@ -83,6 +90,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
     {
       "id": "demo_prompt_token_ratio",
       "claim": "cfx demo fleet: compile vs broadcast prompt-token reduction",
+      "baseline": "broadcast arm: full raw state to every agent (strongest naive, prefix-cache friendly)",
       "display": "3.17x",
       "kind": "strict",
       "artifact": "evals/reports/demo_fleet_20261017_231929.json",
@@ -98,6 +106,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
     {
       "id": "demo_tokens_saved",
       "claim": "cfx demo fleet: prompt tokens saved across the 6 requests",
+      "baseline": "broadcast arm: full raw state to every agent (strongest naive)",
       "display": "30,684",
       "kind": "strict",
       "artifact": "evals/reports/demo_fleet_20261017_231929.json",
@@ -113,6 +122,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
     {
       "id": "demo_broadcast_tokens",
       "claim": "cfx demo fleet: broadcast arm prompt tokens",
+      "baseline": "broadcast arm itself: full raw state to every agent",
       "display": "44,854",
       "kind": "strict",
       "artifact": "evals/reports/demo_fleet_20261017_231929.json",
@@ -121,6 +131,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
     {
       "id": "demo_compile_tokens",
       "claim": "cfx demo fleet: compile arm prompt tokens",
+      "baseline": "broadcast arm: full raw state to every agent (strongest naive)",
       "display": "14,170",
       "kind": "strict",
       "artifact": "evals/reports/demo_fleet_20261017_231929.json",
@@ -129,6 +140,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
     {
       "id": "demo_accuracy_parity",
       "claim": "cfx demo fleet: identical accuracy both arms",
+      "baseline": "broadcast arm: full raw state to every agent (strongest naive)",
       "display": "6/6",
       "kind": "strict",
       "artifact": "evals/reports/demo_fleet_20261017_231929.json",
@@ -144,6 +156,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
     {
       "id": "kv_peak_ratio",
       "claim": "16 concurrent agents: KV peak ratio, unshared raw (B0_divergent) vs CPP shared",
+      "baseline": "B0_divergent (unshared raw broadcast, k=16); vs a shared raw prefix the win is only ~2x",
       "display": "20.2x",
       "kind": "strict",
       "artifact": "evals/reports/stage_b5_20261017_124856.json",
@@ -159,6 +172,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
     {
       "id": "kv_peak_percentages",
       "claim": "16 concurrent agents: KV peak percentages (unshared raw vs CPP shared)",
+      "baseline": "B0_divergent (unshared raw broadcast, k=16); ~2x vs a shared raw prefix",
       "display": "27.95% vs 1.38%",
       "kind": "strict",
       "artifact": "evals/reports/stage_b5_20261017_124856.json",
@@ -174,6 +188,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
     {
       "id": "throughput_ratio",
       "claim": "16 concurrent agents: throughput ratio, CPP shared vs unshared raw",
+      "baseline": "B0_divergent (unshared raw broadcast, k=16); vs a shared raw prefix the win is ~2x",
       "display": "8.23x",
       "kind": "strict",
       "artifact": "evals/reports/stage_b5_20261017_124856.json",
@@ -189,6 +204,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
     {
       "id": "throughput_detail",
       "claim": "16 concurrent agents: raw throughputs at k=16",
+      "baseline": "B0_divergent (unshared raw broadcast); shared raw prefix alone reaches ~35 req/s",
       "display": "43.25 vs 5.26 req/s",
       "kind": "strict",
       "artifact": "evals/reports/stage_b5_20261017_124856.json",
@@ -197,6 +213,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
     {
       "id": "coldboot_tokens",
       "claim": "cold boot (information-equal re-run): hologram vs raw file tokens",
+      "baseline": "raw arm: information-equal full file listing, same model",
       "display": "348 vs 3,146",
       "kind": "strict",
       "artifact": "evals/reports/audit_b6_20261017_124755.json",
@@ -212,6 +229,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
     {
       "id": "coldboot_ratio",
       "claim": "cold boot (information-equal re-run): token ratio raw / hologram",
+      "baseline": "raw arm: information-equal full file listing, same model",
       "display": "9.0x",
       "kind": "strict",
       "artifact": "evals/reports/audit_b6_20261017_124755.json",
@@ -227,6 +245,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
     {
       "id": "coldboot_accuracy",
       "claim": "cold boot (information-equal re-run): accuracy ratio hologram / raw",
+      "baseline": "raw arm: information-equal full file listing, same model",
       "display": "100% vs 25%",
       "kind": "strict",
       "artifact": "evals/reports/audit_b6_20261017_124755.json",
@@ -242,6 +261,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
     {
       "id": "recall_top1_delta",
       "claim": "recall bench: BM25 top-1 minus old lexical top-1",
+      "baseline": "old lexical recall baseline (pre-BM25)",
       "display": "0.00 → 0.85",
       "kind": "strict",
       "artifact": "evals/reports/recall_bench_20261018T061752Z.json",
@@ -257,6 +277,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
     {
       "id": "recall_top1_delta_compact",
       "claim": "recall bench: same top-1 delta, CHANGELOG renders it without spaces",
+      "baseline": "old lexical recall baseline (pre-BM25)",
       "display": "0.00→0.85",
       "kind": "strict",
       "artifact": "evals/reports/recall_bench_20261018T061752Z.json",
@@ -272,6 +293,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
     {
       "id": "packing_redundancy",
       "claim": "lambda-MMR packing: average pairwise Jaccard reduction vs greedy",
+      "baseline": "pre-MMR greedy packer (mmr_lambda=1.0), same budget; synthetic fixture",
       "display": "-13.4%",
       "kind": "strict",
       "artifact": "evals/reports/packing_bench_20261017_231759.json",
@@ -287,6 +309,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
     {
       "id": "quality_parity_ratio",
       "claim": "B6 quality: raw-full / lossless-compile token ratio at 100% accuracy",
+      "baseline": "raw-full context arm (lossless compile), same model",
       "display": "~5.6x",
       "kind": "strict",
       "artifact": "evals/reports/audit_b6_20261016_173804.json",
@@ -302,6 +325,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
     {
       "id": "httpx_compression",
       "claim": "real-code compression on httpx (N5: no stored report)",
+      "baseline": "raw httpx source (no stored report - re-verify by hand)",
       "display": "~17x",
       "kind": "display-only",
       "must_appear_in": ["README.md", "CHANGELOG.md"]
@@ -309,7 +333,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
     {
       "id": "test_count",
       "claim": "test-suite size badge (current tree; recount with pytest when tests change)",
-      "display": "333",
+      "display": "338",
       "kind": "display-only",
       "must_appear_in": ["README.md"]
     }

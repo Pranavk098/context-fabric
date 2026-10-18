@@ -57,6 +57,11 @@ def test_help_lists_subcommands(capsys: Any) -> None:
     assert "verify" in out
 
 
+def test_repro_recomputes_offline_claims(capsys: Any) -> None:
+    assert main(["repro"]) == 0
+    assert "cfx repro: OK" in capsys.readouterr().out
+
+
 def test_add_writes_draft_by_default(tmp_path: Path, capsys: Any) -> None:
     db = tmp_path / "fabric.db"
     src = _write_block(tmp_path, _payload())
