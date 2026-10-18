@@ -5,7 +5,7 @@ set -uo pipefail
 export PATH="$HOME/.local/bin:$PATH"
 export XDG_RUNTIME_DIR="/run/user/$(id -u)"
 VENV="$HOME/.venvs/vllm"
-REPO=/mnt/c/dev/Context-Fabric
+REPO="${CF_REPO:-/mnt/c/dev/Context-Fabric}"
 MODULE="${1:-evals.spike_kv_cache}"
 MODEL="${VLLM_MODEL:-Qwen/Qwen2.5-1.5B-Instruct}"
 LOG=/tmp/cf_vllm_run.log
@@ -20,7 +20,7 @@ sleep 4
 
 echo "[$(date +%T)] starting vllm serve"
 nohup "$VENV/bin/vllm" serve "$MODEL" \
-  --enable-prefix-caching --max-model-len 8192 --enforce-eager \
+  --enable-prefix-caching --max-model-len "${VLLM_MAX_LEN:-8192}" --enforce-eager \
   --gpu-memory-utilization 0.85 --port 8000 >"$LOG" 2>&1 &
 VLLM_PID=$!
 

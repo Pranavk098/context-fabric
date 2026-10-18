@@ -1,0 +1,3181 @@
+{
+  "scenario": "b4_divergent",
+  "kind": "live",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "upstream": "http://localhost:8000",
+  "started_at": "2026-10-18T21:57:19.267632+00:00",
+  "ts": "20261018_145719",
+  "preregistration": "docs/engineering/B4-PREREGISTRATION-v2.md",
+  "fixture": {
+    "repo": "https://github.com/encode/httpx",
+    "clone_path": "/mnt/c/Users/prana/AppData/Local/Temp/opencode/httpx_pilot",
+    "commit": "b5addb64f0161ff6bfe94c124ef76f6a1fba5254",
+    "commit_source": "git rev-parse HEAD",
+    "rendering": "files in listed order, raw bytes, joined by a blank line, each prefixed by '===== FILE: <path> ====='",
+    "files": [
+      {
+        "path": "httpx/_api.py",
+        "sha256": "sha256:8936fc710d8deeca17bfe6e8dc9f089231301b090e97dc0cf00e2e6249e6d79a",
+        "bytes": 12181,
+        "tiktoken": 2875
+      },
+      {
+        "path": "httpx/_auth.py",
+        "sha256": "sha256:82a26adfda516d0545288b1b37c6bd3a99d8bac56bfc53e1779571db3e1863fc",
+        "bytes": 12255,
+        "tiktoken": 2689
+      },
+      {
+        "path": "httpx/_status_codes.py",
+        "sha256": "sha256:565957cd1b5ca800b35f1aead5eab098993418218639c102bc6808f71a6a97da",
+        "bytes": 5801,
+        "tiktoken": 1533
+      },
+      {
+        "path": "httpx/_types.py",
+        "sha256": "sha256:661d3440e537d3d0e3f0d716e0df9380b80c8001536c41a16ba043c271cd8395",
+        "bytes": 3079,
+        "tiktoken": 759
+      }
+    ],
+    "bundle_tokens_tiktoken": 7902,
+    "ownership": {
+      "planner": [
+        "httpx/_api.py"
+      ],
+      "implementer": [
+        "httpx/_auth.py"
+      ],
+      "tester": [
+        "httpx/_status_codes.py"
+      ],
+      "reviewer": [
+        "httpx/_types.py"
+      ]
+    },
+    "preregistration": "docs/engineering/B4-PREREGISTRATION-v2.md"
+  },
+  "repeats": 3,
+  "records": [
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "planner-1",
+      "agent": "planner",
+      "repeat": 0,
+      "objective": "Which two `_X` modules does `httpx/_api.py` import its `Client` and `Response` classes from? Answer `_X, _Y`.",
+      "required": [
+        "_client",
+        "_models"
+      ],
+      "forbidden": [
+        "_urls"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8120,
+      "completion_tokens": 48,
+      "latency_ms": 1924.4,
+      "response": "Based on the provided information, the two `_X` modules that `httpx/_api.py` imports its `Client` and `Response` classes from are:\n\n1. `_client`\n2. `_models`\n\nThese names suggest that these",
+      "response_text": "Based on the provided information, the two `_X` modules that `httpx/_api.py` imports its `Client` and `Response` classes from are:\n\n1. `_client`\n2. `_models`\n\nThese names suggest that these",
+      "prompt_sha256": "sha256:ba5774d2c4631ad8f9698e2f657793de3f3ed3845fea00ac3e36994d3243120e"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "planner-1",
+      "agent": "planner",
+      "repeat": 1,
+      "objective": "Which two `_X` modules does `httpx/_api.py` import its `Client` and `Response` classes from? Answer `_X, _Y`.",
+      "required": [
+        "_client",
+        "_models"
+      ],
+      "forbidden": [
+        "_urls"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8120,
+      "completion_tokens": 48,
+      "latency_ms": 631.2,
+      "response": "Based on the provided information, the two `_X` modules that `httpx/_api.py` imports its `Client` and `Response` classes from are:\n\n1. `_client`\n2. `_models`\n\nThese names suggest that these",
+      "response_text": "Based on the provided information, the two `_X` modules that `httpx/_api.py` imports its `Client` and `Response` classes from are:\n\n1. `_client`\n2. `_models`\n\nThese names suggest that these",
+      "prompt_sha256": "sha256:ba5774d2c4631ad8f9698e2f657793de3f3ed3845fea00ac3e36994d3243120e"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "planner-1",
+      "agent": "planner",
+      "repeat": 2,
+      "objective": "Which two `_X` modules does `httpx/_api.py` import its `Client` and `Response` classes from? Answer `_X, _Y`.",
+      "required": [
+        "_client",
+        "_models"
+      ],
+      "forbidden": [
+        "_urls"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8120,
+      "completion_tokens": 48,
+      "latency_ms": 631.4,
+      "response": "Based on the provided information, the two `_X` modules that `httpx/_api.py` imports its `Client` and `Response` classes from are:\n\n1. `_client`\n2. `_models`\n\nThese names suggest that these",
+      "response_text": "Based on the provided information, the two `_X` modules that `httpx/_api.py` imports its `Client` and `Response` classes from are:\n\n1. `_client`\n2. `_models`\n\nThese names suggest that these",
+      "prompt_sha256": "sha256:ba5774d2c4631ad8f9698e2f657793de3f3ed3845fea00ac3e36994d3243120e"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "planner-2",
+      "agent": "planner",
+      "repeat": 0,
+      "objective": "Which two `_X` modules does `httpx/_api.py` import `DEFAULT_TIMEOUT_CONFIG` and `URL` from? Answer `_X, _Y`.",
+      "required": [
+        "_config",
+        "_urls"
+      ],
+      "forbidden": [
+        "_types"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8120,
+      "completion_tokens": 48,
+      "latency_ms": 656.5,
+      "response": "Based on the information provided in the question, the two `_X` modules that `httpx/_api.py` imports `DEFAULT_TIMEOUT_CONFIG` and `URL` from are:\n\n1. `_config`\n2. `_urls`\n\nSo the",
+      "response_text": "Based on the information provided in the question, the two `_X` modules that `httpx/_api.py` imports `DEFAULT_TIMEOUT_CONFIG` and `URL` from are:\n\n1. `_config`\n2. `_urls`\n\nSo the",
+      "prompt_sha256": "sha256:b7f7aacb6f0ac7d3b82506400b393de7bec2ff1969ffb106ec960bfb580582b5"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "planner-2",
+      "agent": "planner",
+      "repeat": 1,
+      "objective": "Which two `_X` modules does `httpx/_api.py` import `DEFAULT_TIMEOUT_CONFIG` and `URL` from? Answer `_X, _Y`.",
+      "required": [
+        "_config",
+        "_urls"
+      ],
+      "forbidden": [
+        "_types"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8120,
+      "completion_tokens": 48,
+      "latency_ms": 633.9,
+      "response": "Based on the information provided in the question, the two `_X` modules that `httpx/_api.py` imports `DEFAULT_TIMEOUT_CONFIG` and `URL` from are:\n\n1. `_config`\n2. `_urls`\n\nSo the",
+      "response_text": "Based on the information provided in the question, the two `_X` modules that `httpx/_api.py` imports `DEFAULT_TIMEOUT_CONFIG` and `URL` from are:\n\n1. `_config`\n2. `_urls`\n\nSo the",
+      "prompt_sha256": "sha256:b7f7aacb6f0ac7d3b82506400b393de7bec2ff1969ffb106ec960bfb580582b5"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "planner-2",
+      "agent": "planner",
+      "repeat": 2,
+      "objective": "Which two `_X` modules does `httpx/_api.py` import `DEFAULT_TIMEOUT_CONFIG` and `URL` from? Answer `_X, _Y`.",
+      "required": [
+        "_config",
+        "_urls"
+      ],
+      "forbidden": [
+        "_types"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8120,
+      "completion_tokens": 48,
+      "latency_ms": 627.0,
+      "response": "Based on the information provided in the question, the two `_X` modules that `httpx/_api.py` imports `DEFAULT_TIMEOUT_CONFIG` and `URL` from are:\n\n1. `_config`\n2. `_urls`\n\nSo the",
+      "response_text": "Based on the information provided in the question, the two `_X` modules that `httpx/_api.py` imports `DEFAULT_TIMEOUT_CONFIG` and `URL` from are:\n\n1. `_config`\n2. `_urls`\n\nSo the",
+      "prompt_sha256": "sha256:b7f7aacb6f0ac7d3b82506400b393de7bec2ff1969ffb106ec960bfb580582b5"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "planner-3",
+      "agent": "planner",
+      "repeat": 0,
+      "objective": "Which two functions in `_api.py` are the generic engine that every verb helper delegates to, and the streaming context-manager alternative? Answer `name, name`.",
+      "required": [
+        "request",
+        "stream"
+      ],
+      "forbidden": [
+        "delete"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8119,
+      "completion_tokens": 11,
+      "latency_ms": 171.1,
+      "response": "name: `request`\nname: `stream`",
+      "response_text": "name: `request`\nname: `stream`",
+      "prompt_sha256": "sha256:228112534c7a9ea7e611be1b7fab06466d440ee46304b13a468b811bc69be300"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "planner-3",
+      "agent": "planner",
+      "repeat": 1,
+      "objective": "Which two functions in `_api.py` are the generic engine that every verb helper delegates to, and the streaming context-manager alternative? Answer `name, name`.",
+      "required": [
+        "request",
+        "stream"
+      ],
+      "forbidden": [
+        "delete"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8119,
+      "completion_tokens": 11,
+      "latency_ms": 169.8,
+      "response": "name: `request`\nname: `stream`",
+      "response_text": "name: `request`\nname: `stream`",
+      "prompt_sha256": "sha256:228112534c7a9ea7e611be1b7fab06466d440ee46304b13a468b811bc69be300"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "planner-3",
+      "agent": "planner",
+      "repeat": 2,
+      "objective": "Which two functions in `_api.py` are the generic engine that every verb helper delegates to, and the streaming context-manager alternative? Answer `name, name`.",
+      "required": [
+        "request",
+        "stream"
+      ],
+      "forbidden": [
+        "delete"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8119,
+      "completion_tokens": 11,
+      "latency_ms": 171.7,
+      "response": "name: `request`\nname: `stream`",
+      "response_text": "name: `request`\nname: `stream`",
+      "prompt_sha256": "sha256:228112534c7a9ea7e611be1b7fab06466d440ee46304b13a468b811bc69be300"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "implementer-1",
+      "agent": "implementer",
+      "repeat": 0,
+      "objective": "Which two class-level flags does the `Auth` base class in `_auth.py` declare, so subclasses can signal that the request or response body must be read? Answer `flag, flag`.",
+      "required": [
+        "requires_request_body",
+        "requires_response_body"
+      ],
+      "forbidden": [
+        "auth_flow"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8126,
+      "completion_tokens": 48,
+      "latency_ms": 633.1,
+      "response": "The `Auth` base class in `_auth.py` declares two class-level flags:\n\n* `requires_request_body`: Indicates whether the request body must be read.\n* `requires_response_body`: Indicates whether the response body must be read.\n\nSub",
+      "response_text": "The `Auth` base class in `_auth.py` declares two class-level flags:\n\n* `requires_request_body`: Indicates whether the request body must be read.\n* `requires_response_body`: Indicates whether the response body must be read.\n\nSub",
+      "prompt_sha256": "sha256:2f1413670a028a30a56dc22dcd820fcfd721f89e4b94d3cdd905c23a6fc18586"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "implementer-1",
+      "agent": "implementer",
+      "repeat": 1,
+      "objective": "Which two class-level flags does the `Auth` base class in `_auth.py` declare, so subclasses can signal that the request or response body must be read? Answer `flag, flag`.",
+      "required": [
+        "requires_request_body",
+        "requires_response_body"
+      ],
+      "forbidden": [
+        "auth_flow"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8126,
+      "completion_tokens": 48,
+      "latency_ms": 634.2,
+      "response": "The `Auth` base class declares two class-level flags:\n\n* `requires_request_body`: set to `True` if the request body must be read.\n* `requires_response_body`: set to `True` if the response body must be",
+      "response_text": "The `Auth` base class declares two class-level flags:\n\n* `requires_request_body`: set to `True` if the request body must be read.\n* `requires_response_body`: set to `True` if the response body must be",
+      "prompt_sha256": "sha256:2f1413670a028a30a56dc22dcd820fcfd721f89e4b94d3cdd905c23a6fc18586"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "implementer-1",
+      "agent": "implementer",
+      "repeat": 2,
+      "objective": "Which two class-level flags does the `Auth` base class in `_auth.py` declare, so subclasses can signal that the request or response body must be read? Answer `flag, flag`.",
+      "required": [
+        "requires_request_body",
+        "requires_response_body"
+      ],
+      "forbidden": [
+        "auth_flow"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8126,
+      "completion_tokens": 48,
+      "latency_ms": 640.0,
+      "response": "The `Auth` base class declares two class-level flags:\n\n* `requires_request_body`: set to `True` if the request body must be read.\n* `requires_response_body`: set to `True` if the response body must be",
+      "response_text": "The `Auth` base class declares two class-level flags:\n\n* `requires_request_body`: set to `True` if the request body must be read.\n* `requires_response_body`: set to `True` if the response body must be",
+      "prompt_sha256": "sha256:2f1413670a028a30a56dc22dcd820fcfd721f89e4b94d3cdd905c23a6fc18586"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "implementer-2",
+      "agent": "implementer",
+      "repeat": 0,
+      "objective": "Which two auth classes in `_auth.py` adapt a plain callable and a netrc file, respectively? Answer `class, class`.",
+      "required": [
+        "functionauth",
+        "netrcauth"
+      ],
+      "forbidden": [
+        "digestauth"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8114,
+      "completion_tokens": 48,
+      "latency_ms": 650.2,
+      "response": "Based on the information provided in the documentation:\n\n1. The `FunctionAuth` class adapts a plain callable function.\n2. The `NetRCAuth` class adapts a netrc file.\n\nSo the correct answer is:\n``",
+      "response_text": "Based on the information provided in the documentation:\n\n1. The `FunctionAuth` class adapts a plain callable function.\n2. The `NetRCAuth` class adapts a netrc file.\n\nSo the correct answer is:\n``",
+      "prompt_sha256": "sha256:9970ba613ac230d5dad2eae4de9cf8d4658a5297a72238400738b3c435c08237"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "implementer-2",
+      "agent": "implementer",
+      "repeat": 1,
+      "objective": "Which two auth classes in `_auth.py` adapt a plain callable and a netrc file, respectively? Answer `class, class`.",
+      "required": [
+        "functionauth",
+        "netrcauth"
+      ],
+      "forbidden": [
+        "digestauth"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8114,
+      "completion_tokens": 48,
+      "latency_ms": 637.3,
+      "response": "Based on the information provided in the documentation:\n\n1. The `FunctionAuth` class adapts a plain callable function.\n2. The `NetRCAuth` class adapts a netrc file.\n\nSo the correct answer is:\n```",
+      "response_text": "Based on the information provided in the documentation:\n\n1. The `FunctionAuth` class adapts a plain callable function.\n2. The `NetRCAuth` class adapts a netrc file.\n\nSo the correct answer is:\n```",
+      "prompt_sha256": "sha256:9970ba613ac230d5dad2eae4de9cf8d4658a5297a72238400738b3c435c08237"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "implementer-2",
+      "agent": "implementer",
+      "repeat": 2,
+      "objective": "Which two auth classes in `_auth.py` adapt a plain callable and a netrc file, respectively? Answer `class, class`.",
+      "required": [
+        "functionauth",
+        "netrcauth"
+      ],
+      "forbidden": [
+        "digestauth"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8114,
+      "completion_tokens": 48,
+      "latency_ms": 634.2,
+      "response": "Based on the information provided in the documentation:\n\n1. The `FunctionAuth` class adapts a plain callable function.\n2. The `NetRCAuth` class adapts a netrc file.\n\nSo the correct answer is:\n```",
+      "response_text": "Based on the information provided in the documentation:\n\n1. The `FunctionAuth` class adapts a plain callable function.\n2. The `NetRCAuth` class adapts a netrc file.\n\nSo the correct answer is:\n```",
+      "prompt_sha256": "sha256:9970ba613ac230d5dad2eae4de9cf8d4658a5297a72238400738b3c435c08237"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "implementer-3",
+      "agent": "implementer",
+      "repeat": 0,
+      "objective": "Which auth class in `_auth.py` parses a `WWW-Authenticate: Digest` challenge and supports the `MD5`, `SHA`, `SHA-256` and `SHA-512` algorithms?",
+      "required": [
+        "digestauth"
+      ],
+      "forbidden": [
+        "basicauth"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8132,
+      "completion_tokens": 48,
+      "latency_ms": 633.7,
+      "response": "Based on the code in `_auth.py`, the `DigestAuth` class has the ability to parse a `WWW-Authenticate: Digest` challenge and supports the MD5, SHA, SHA-256, and SHA-51",
+      "response_text": "Based on the code in `_auth.py`, the `DigestAuth` class has the ability to parse a `WWW-Authenticate: Digest` challenge and supports the MD5, SHA, SHA-256, and SHA-51",
+      "prompt_sha256": "sha256:b485f7e53b1dcfcca4267b23da250a131992e273ae4d578e907aad7292f0d0da"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "implementer-3",
+      "agent": "implementer",
+      "repeat": 1,
+      "objective": "Which auth class in `_auth.py` parses a `WWW-Authenticate: Digest` challenge and supports the `MD5`, `SHA`, `SHA-256` and `SHA-512` algorithms?",
+      "required": [
+        "digestauth"
+      ],
+      "forbidden": [
+        "basicauth"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8132,
+      "completion_tokens": 48,
+      "latency_ms": 637.8,
+      "response": "Based on the code in `_auth.py`, the `DigestAuth` class has the ability to parse a `WWW-Authenticate: Digest` challenge and supports the MD5, SHA, SHA-256, and SHA-51",
+      "response_text": "Based on the code in `_auth.py`, the `DigestAuth` class has the ability to parse a `WWW-Authenticate: Digest` challenge and supports the MD5, SHA, SHA-256, and SHA-51",
+      "prompt_sha256": "sha256:b485f7e53b1dcfcca4267b23da250a131992e273ae4d578e907aad7292f0d0da"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "implementer-3",
+      "agent": "implementer",
+      "repeat": 2,
+      "objective": "Which auth class in `_auth.py` parses a `WWW-Authenticate: Digest` challenge and supports the `MD5`, `SHA`, `SHA-256` and `SHA-512` algorithms?",
+      "required": [
+        "digestauth"
+      ],
+      "forbidden": [
+        "basicauth"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8132,
+      "completion_tokens": 48,
+      "latency_ms": 635.8,
+      "response": "Based on the code in `_auth.py`, the `DigestAuth` class has the ability to parse a `WWW-Authenticate: Digest` challenge and supports the MD5, SHA, SHA-256, and SHA-51",
+      "response_text": "Based on the code in `_auth.py`, the `DigestAuth` class has the ability to parse a `WWW-Authenticate: Digest` challenge and supports the MD5, SHA, SHA-256, and SHA-51",
+      "prompt_sha256": "sha256:b485f7e53b1dcfcca4267b23da250a131992e273ae4d578e907aad7292f0d0da"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "tester-1",
+      "agent": "tester",
+      "repeat": 0,
+      "objective": "In `_status_codes.py`, give the two integer status codes for `IM_A_TEAPOT` and `TOO_MANY_REQUESTS`. Answer `int, int`.",
+      "required": [
+        "418",
+        "429"
+      ],
+      "forbidden": [
+        "451"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8121,
+      "completion_tokens": 48,
+      "latency_ms": 631.4,
+      "response": "The two integer status codes for `IM_A_TEAPOT` and `TOO_MANY_REQUESTS` are:\n\n- 418: IM_A_TEAPOT\n- 429: TOO_MANY_REQUESTS\n\nThese correspond",
+      "response_text": "The two integer status codes for `IM_A_TEAPOT` and `TOO_MANY_REQUESTS` are:\n\n- 418: IM_A_TEAPOT\n- 429: TOO_MANY_REQUESTS\n\nThese correspond",
+      "prompt_sha256": "sha256:fe83743b119c930365e93a7512f8d8ff7ad0e443fae487fffb231d267745f143"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "tester-1",
+      "agent": "tester",
+      "repeat": 1,
+      "objective": "In `_status_codes.py`, give the two integer status codes for `IM_A_TEAPOT` and `TOO_MANY_REQUESTS`. Answer `int, int`.",
+      "required": [
+        "418",
+        "429"
+      ],
+      "forbidden": [
+        "451"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8121,
+      "completion_tokens": 35,
+      "latency_ms": 478.8,
+      "response": "IM_A_TEAPOT: 418, \"I'm a teapot\"\nTOO_MANY_REQUESTS: 429, \"Too Many Requests\"",
+      "response_text": "IM_A_TEAPOT: 418, \"I'm a teapot\"\nTOO_MANY_REQUESTS: 429, \"Too Many Requests\"",
+      "prompt_sha256": "sha256:fe83743b119c930365e93a7512f8d8ff7ad0e443fae487fffb231d267745f143"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "tester-1",
+      "agent": "tester",
+      "repeat": 2,
+      "objective": "In `_status_codes.py`, give the two integer status codes for `IM_A_TEAPOT` and `TOO_MANY_REQUESTS`. Answer `int, int`.",
+      "required": [
+        "418",
+        "429"
+      ],
+      "forbidden": [
+        "451"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8121,
+      "completion_tokens": 35,
+      "latency_ms": 472.5,
+      "response": "IM_A_TEAPOT: 418, \"I'm a teapot\"\nTOO_MANY_REQUESTS: 429, \"Too Many Requests\"",
+      "response_text": "IM_A_TEAPOT: 418, \"I'm a teapot\"\nTOO_MANY_REQUESTS: 429, \"Too Many Requests\"",
+      "prompt_sha256": "sha256:fe83743b119c930365e93a7512f8d8ff7ad0e443fae487fffb231d267745f143"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "tester-2",
+      "agent": "tester",
+      "repeat": 0,
+      "objective": "In `_status_codes.py`, give the reason phrases for status codes 404 and 503. Answer `phrase, phrase`.",
+      "required": [
+        "not found",
+        "service unavailable"
+      ],
+      "forbidden": [
+        "bad gateway"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8116,
+      "completion_tokens": 27,
+      "latency_ms": 377.1,
+      "response": "For status code 404:\n\nPhrase: Not Found\n\nFor status code 503:\n\nPhrase: Service Unavailable",
+      "response_text": "For status code 404:\n\nPhrase: Not Found\n\nFor status code 503:\n\nPhrase: Service Unavailable",
+      "prompt_sha256": "sha256:4cfcc222986ceb2a2a81bdef02e63842f46839fafded0b979a77c9ddc8a7704d"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "tester-2",
+      "agent": "tester",
+      "repeat": 1,
+      "objective": "In `_status_codes.py`, give the reason phrases for status codes 404 and 503. Answer `phrase, phrase`.",
+      "required": [
+        "not found",
+        "service unavailable"
+      ],
+      "forbidden": [
+        "bad gateway"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8116,
+      "completion_tokens": 27,
+      "latency_ms": 372.6,
+      "response": "For status code 404:\n\nPhrase: NOT FOUND\n\nFor status code 503:\n\nPhrase: SERVICE UNAVAILABLE",
+      "response_text": "For status code 404:\n\nPhrase: NOT FOUND\n\nFor status code 503:\n\nPhrase: SERVICE UNAVAILABLE",
+      "prompt_sha256": "sha256:4cfcc222986ceb2a2a81bdef02e63842f46839fafded0b979a77c9ddc8a7704d"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "tester-2",
+      "agent": "tester",
+      "repeat": 2,
+      "objective": "In `_status_codes.py`, give the reason phrases for status codes 404 and 503. Answer `phrase, phrase`.",
+      "required": [
+        "not found",
+        "service unavailable"
+      ],
+      "forbidden": [
+        "bad gateway"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8116,
+      "completion_tokens": 27,
+      "latency_ms": 370.5,
+      "response": "For status code 404:\n\nPhrase: NOT FOUND\n\nFor status code 503:\n\nPhrase: SERVICE UNAVAILABLE",
+      "response_text": "For status code 404:\n\nPhrase: NOT FOUND\n\nFor status code 503:\n\nPhrase: SERVICE UNAVAILABLE",
+      "prompt_sha256": "sha256:4cfcc222986ceb2a2a81bdef02e63842f46839fafded0b979a77c9ddc8a7704d"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "tester-3",
+      "agent": "tester",
+      "repeat": 0,
+      "objective": "Which `codes` classmethod in `_status_codes.py` returns `True` for both 4xx and 5xx status codes?",
+      "required": [
+        "is_error"
+      ],
+      "forbidden": [
+        "is_client_error"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8115,
+      "completion_tokens": 48,
+      "latency_ms": 633.6,
+      "response": "The `codes.is_error` classmethod in `_status_codes.py` returns `True` for both 4xx and 5xx status codes. Specifically:\n\n```python\nis_error = lambda self, value: 400 <=",
+      "response_text": "The `codes.is_error` classmethod in `_status_codes.py` returns `True` for both 4xx and 5xx status codes. Specifically:\n\n```python\nis_error = lambda self, value: 400 <=",
+      "prompt_sha256": "sha256:67185c6e3e38b1d4f6c2e0cfe5b7d9225ba60f9e4cb225fdb7b7b910aa2e51a6"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "tester-3",
+      "agent": "tester",
+      "repeat": 1,
+      "objective": "Which `codes` classmethod in `_status_codes.py` returns `True` for both 4xx and 5xx status codes?",
+      "required": [
+        "is_error"
+      ],
+      "forbidden": [
+        "is_client_error"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8115,
+      "completion_tokens": 48,
+      "latency_ms": 633.0,
+      "response": "The `codes.is_error` classmethod in `_status_codes.py` returns `True` for both 4xx and 5xx status codes. Specifically:\n\n```python\nis_error = lambda self, value: 400 <=",
+      "response_text": "The `codes.is_error` classmethod in `_status_codes.py` returns `True` for both 4xx and 5xx status codes. Specifically:\n\n```python\nis_error = lambda self, value: 400 <=",
+      "prompt_sha256": "sha256:67185c6e3e38b1d4f6c2e0cfe5b7d9225ba60f9e4cb225fdb7b7b910aa2e51a6"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "tester-3",
+      "agent": "tester",
+      "repeat": 2,
+      "objective": "Which `codes` classmethod in `_status_codes.py` returns `True` for both 4xx and 5xx status codes?",
+      "required": [
+        "is_error"
+      ],
+      "forbidden": [
+        "is_client_error"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8115,
+      "completion_tokens": 48,
+      "latency_ms": 637.9,
+      "response": "The `codes.is_error` classmethod in `_status_codes.py` returns `True` for both 4xx and 5xx status codes. Specifically:\n\n```python\nis_error = lambda self, value: 400 <=",
+      "response_text": "The `codes.is_error` classmethod in `_status_codes.py` returns `True` for both 4xx and 5xx status codes. Specifically:\n\n```python\nis_error = lambda self, value: 400 <=",
+      "prompt_sha256": "sha256:67185c6e3e38b1d4f6c2e0cfe5b7d9225ba60f9e4cb225fdb7b7b910aa2e51a6"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "reviewer-1",
+      "agent": "reviewer",
+      "repeat": 0,
+      "objective": "Which two type aliases in `_types.py` name the accepted types for a request URL and for request headers? Answer `alias, alias`.",
+      "required": [
+        "urltypes",
+        "headertypes"
+      ],
+      "forbidden": [
+        "cookietypes"
+      ],
+      "missing": [
+        "urltypes",
+        "headertypes"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8115,
+      "completion_tokens": 20,
+      "latency_ms": 282.3,
+      "response": "Alias for the accepted types for a request URL.\n\nAlias for the accepted types for request headers.",
+      "response_text": "Alias for the accepted types for a request URL.\n\nAlias for the accepted types for request headers.",
+      "prompt_sha256": "sha256:975d21e31455bd31f177786adf2362d51905f0ad9293a535ad211af6f5028bc9"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "reviewer-1",
+      "agent": "reviewer",
+      "repeat": 1,
+      "objective": "Which two type aliases in `_types.py` name the accepted types for a request URL and for request headers? Answer `alias, alias`.",
+      "required": [
+        "urltypes",
+        "headertypes"
+      ],
+      "forbidden": [
+        "cookietypes"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8115,
+      "completion_tokens": 20,
+      "latency_ms": 283.2,
+      "response": "Alias for a request URL: `URLTypes`\n\nAlias for request headers: `HeaderTypes`",
+      "response_text": "Alias for a request URL: `URLTypes`\n\nAlias for request headers: `HeaderTypes`",
+      "prompt_sha256": "sha256:975d21e31455bd31f177786adf2362d51905f0ad9293a535ad211af6f5028bc9"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "reviewer-1",
+      "agent": "reviewer",
+      "repeat": 2,
+      "objective": "Which two type aliases in `_types.py` name the accepted types for a request URL and for request headers? Answer `alias, alias`.",
+      "required": [
+        "urltypes",
+        "headertypes"
+      ],
+      "forbidden": [
+        "cookietypes"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8115,
+      "completion_tokens": 20,
+      "latency_ms": 281.8,
+      "response": "Alias for a request URL: `URLTypes`\n\nAlias for request headers: `HeaderTypes`",
+      "response_text": "Alias for a request URL: `URLTypes`\n\nAlias for request headers: `HeaderTypes`",
+      "prompt_sha256": "sha256:975d21e31455bd31f177786adf2362d51905f0ad9293a535ad211af6f5028bc9"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "reviewer-2",
+      "agent": "reviewer",
+      "repeat": 0,
+      "objective": "Which two type aliases in `_types.py` are the request and response body types, both `Union[str, bytes, Iterable[bytes], AsyncIterable[bytes]]`? Answer `alias, alias`.",
+      "required": [
+        "requestcontent",
+        "responsecontent"
+      ],
+      "forbidden": [
+        "requestdata"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8128,
+      "completion_tokens": 9,
+      "latency_ms": 143.2,
+      "response": "`RequestContent`, `ResponseContent`",
+      "response_text": "`RequestContent`, `ResponseContent`",
+      "prompt_sha256": "sha256:1064020281a2cc6bda58a4ccd13cf5b0ebd5ffe6a2ee6a45fbe03c977aba7867"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "reviewer-2",
+      "agent": "reviewer",
+      "repeat": 1,
+      "objective": "Which two type aliases in `_types.py` are the request and response body types, both `Union[str, bytes, Iterable[bytes], AsyncIterable[bytes]]`? Answer `alias, alias`.",
+      "required": [
+        "requestcontent",
+        "responsecontent"
+      ],
+      "forbidden": [
+        "requestdata"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8128,
+      "completion_tokens": 9,
+      "latency_ms": 143.0,
+      "response": "`RequestContent`, `ResponseContent`",
+      "response_text": "`RequestContent`, `ResponseContent`",
+      "prompt_sha256": "sha256:1064020281a2cc6bda58a4ccd13cf5b0ebd5ffe6a2ee6a45fbe03c977aba7867"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "reviewer-2",
+      "agent": "reviewer",
+      "repeat": 2,
+      "objective": "Which two type aliases in `_types.py` are the request and response body types, both `Union[str, bytes, Iterable[bytes], AsyncIterable[bytes]]`? Answer `alias, alias`.",
+      "required": [
+        "requestcontent",
+        "responsecontent"
+      ],
+      "forbidden": [
+        "requestdata"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8128,
+      "completion_tokens": 9,
+      "latency_ms": 143.9,
+      "response": "`RequestContent`, `ResponseContent`",
+      "response_text": "`RequestContent`, `ResponseContent`",
+      "prompt_sha256": "sha256:1064020281a2cc6bda58a4ccd13cf5b0ebd5ffe6a2ee6a45fbe03c977aba7867"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "reviewer-3",
+      "agent": "reviewer",
+      "repeat": 0,
+      "objective": "Which class in `_types.py` is the synchronous byte-stream base, defining `__iter__` and `close`?",
+      "required": [
+        "syncbytestream"
+      ],
+      "forbidden": [
+        "asyncbytestream"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8112,
+      "completion_tokens": 48,
+      "latency_ms": 635.1,
+      "response": "The synchronous byte-stream base class defined in `_types.py` is:\n\n```python\nclass SyncByteStream:\n    def __iter__(self) -> Iterator[bytes]:\n        raise NotImplementedError(\n            \"'__iter__' method must be implemented",
+      "response_text": "The synchronous byte-stream base class defined in `_types.py` is:\n\n```python\nclass SyncByteStream:\n    def __iter__(self) -> Iterator[bytes]:\n        raise NotImplementedError(\n            \"'__iter__' method must be implemented",
+      "prompt_sha256": "sha256:c256cd3bcc7defb5e2b70c5993b16b78c8e5f0c30bce55edce5e78cc42e55502"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "reviewer-3",
+      "agent": "reviewer",
+      "repeat": 1,
+      "objective": "Which class in `_types.py` is the synchronous byte-stream base, defining `__iter__` and `close`?",
+      "required": [
+        "syncbytestream"
+      ],
+      "forbidden": [
+        "asyncbytestream"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8112,
+      "completion_tokens": 48,
+      "latency_ms": 629.2,
+      "response": "The synchronous byte-stream base class defined in `_types.py` is:\n\n```python\nclass SyncByteStream:\n    def __iter__(self) -> Iterator[bytes]:\n        raise NotImplementedError(\n            \"'__iter__' method must be implemented",
+      "response_text": "The synchronous byte-stream base class defined in `_types.py` is:\n\n```python\nclass SyncByteStream:\n    def __iter__(self) -> Iterator[bytes]:\n        raise NotImplementedError(\n            \"'__iter__' method must be implemented",
+      "prompt_sha256": "sha256:c256cd3bcc7defb5e2b70c5993b16b78c8e5f0c30bce55edce5e78cc42e55502"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "objective_id": "reviewer-3",
+      "agent": "reviewer",
+      "repeat": 2,
+      "objective": "Which class in `_types.py` is the synchronous byte-stream base, defining `__iter__` and `close`?",
+      "required": [
+        "syncbytestream"
+      ],
+      "forbidden": [
+        "asyncbytestream"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8112,
+      "completion_tokens": 48,
+      "latency_ms": 633.7,
+      "response": "The synchronous byte-stream base class defined in `_types.py` is:\n\n```python\nclass SyncByteStream:\n    def __iter__(self) -> Iterator[bytes]:\n        raise NotImplementedError(\n            \"'__iter__' method must be implemented",
+      "response_text": "The synchronous byte-stream base class defined in `_types.py` is:\n\n```python\nclass SyncByteStream:\n    def __iter__(self) -> Iterator[bytes]:\n        raise NotImplementedError(\n            \"'__iter__' method must be implemented",
+      "prompt_sha256": "sha256:c256cd3bcc7defb5e2b70c5993b16b78c8e5f0c30bce55edce5e78cc42e55502"
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "planner-1",
+      "agent": "planner",
+      "repeat": 0,
+      "objective": "Which two `_X` modules does `httpx/_api.py` import its `Client` and `Response` classes from? Answer `_X, _Y`.",
+      "required": [
+        "_client",
+        "_models"
+      ],
+      "forbidden": [
+        "_urls"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8141,
+      "completion_tokens": 48,
+      "latency_ms": 1329.6,
+      "response": "Based on the information provided in the question, the two `_X` modules that `httpx/_api.py` imports its `Client` and `Response` classes from are:\n\n1. `_client`\n2. `_models`\n\nThese names",
+      "response_text": "Based on the information provided in the question, the two `_X` modules that `httpx/_api.py` imports its `Client` and `Response` classes from are:\n\n1. `_client`\n2. `_models`\n\nThese names",
+      "prompt_sha256": "sha256:29e36d51cb8c756528195f50076fd54e0ba68498d368ac1039629974db20acda"
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "planner-1",
+      "agent": "planner",
+      "repeat": 1,
+      "objective": "Which two `_X` modules does `httpx/_api.py` import its `Client` and `Response` classes from? Answer `_X, _Y`.",
+      "required": [
+        "_client",
+        "_models"
+      ],
+      "forbidden": [
+        "_urls"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8141,
+      "completion_tokens": 48,
+      "latency_ms": 635.3,
+      "response": "Based on the information provided in the question, the two `_X` modules that `httpx/_api.py` imports its `Client` and `Response` classes from are:\n\n1. `_client`\n2. `_models`\n\nThese names",
+      "response_text": "Based on the information provided in the question, the two `_X` modules that `httpx/_api.py` imports its `Client` and `Response` classes from are:\n\n1. `_client`\n2. `_models`\n\nThese names",
+      "prompt_sha256": "sha256:29e36d51cb8c756528195f50076fd54e0ba68498d368ac1039629974db20acda"
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "planner-1",
+      "agent": "planner",
+      "repeat": 2,
+      "objective": "Which two `_X` modules does `httpx/_api.py` import its `Client` and `Response` classes from? Answer `_X, _Y`.",
+      "required": [
+        "_client",
+        "_models"
+      ],
+      "forbidden": [
+        "_urls"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8141,
+      "completion_tokens": 48,
+      "latency_ms": 630.7,
+      "response": "Based on the information provided in the question, the two `_X` modules that `httpx/_api.py` imports its `Client` and `Response` classes from are:\n\n1. `_client`\n2. `_models`\n\nThese names",
+      "response_text": "Based on the information provided in the question, the two `_X` modules that `httpx/_api.py` imports its `Client` and `Response` classes from are:\n\n1. `_client`\n2. `_models`\n\nThese names",
+      "prompt_sha256": "sha256:29e36d51cb8c756528195f50076fd54e0ba68498d368ac1039629974db20acda"
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "planner-2",
+      "agent": "planner",
+      "repeat": 0,
+      "objective": "Which two `_X` modules does `httpx/_api.py` import `DEFAULT_TIMEOUT_CONFIG` and `URL` from? Answer `_X, _Y`.",
+      "required": [
+        "_config",
+        "_urls"
+      ],
+      "forbidden": [
+        "_types"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8141,
+      "completion_tokens": 48,
+      "latency_ms": 642.0,
+      "response": "Based on the information provided in the question, the two `_X` modules that `httpx/_api.py` imports `DEFAULT_TIMEOUT_CONFIG` and `URL` from are:\n\n1. `_config`\n2. `_urls`\n\nSo the",
+      "response_text": "Based on the information provided in the question, the two `_X` modules that `httpx/_api.py` imports `DEFAULT_TIMEOUT_CONFIG` and `URL` from are:\n\n1. `_config`\n2. `_urls`\n\nSo the",
+      "prompt_sha256": "sha256:9c3cdee86578f4805d1181f9dc52c3d3c2e367b17022d7171cb2b426a12ac2a7"
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "planner-2",
+      "agent": "planner",
+      "repeat": 1,
+      "objective": "Which two `_X` modules does `httpx/_api.py` import `DEFAULT_TIMEOUT_CONFIG` and `URL` from? Answer `_X, _Y`.",
+      "required": [
+        "_config",
+        "_urls"
+      ],
+      "forbidden": [
+        "_types"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8141,
+      "completion_tokens": 48,
+      "latency_ms": 632.9,
+      "response": "Based on the information provided in the question, the two `_X` modules that `httpx/_api.py` imports `DEFAULT_TIMEOUT_CONFIG` and `URL` from are:\n\n1. `_config`\n2. `_urls`\n\nSo the",
+      "response_text": "Based on the information provided in the question, the two `_X` modules that `httpx/_api.py` imports `DEFAULT_TIMEOUT_CONFIG` and `URL` from are:\n\n1. `_config`\n2. `_urls`\n\nSo the",
+      "prompt_sha256": "sha256:9c3cdee86578f4805d1181f9dc52c3d3c2e367b17022d7171cb2b426a12ac2a7"
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "planner-2",
+      "agent": "planner",
+      "repeat": 2,
+      "objective": "Which two `_X` modules does `httpx/_api.py` import `DEFAULT_TIMEOUT_CONFIG` and `URL` from? Answer `_X, _Y`.",
+      "required": [
+        "_config",
+        "_urls"
+      ],
+      "forbidden": [
+        "_types"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8141,
+      "completion_tokens": 48,
+      "latency_ms": 630.7,
+      "response": "Based on the information provided in the question, the two `_X` modules that `httpx/_api.py` imports `DEFAULT_TIMEOUT_CONFIG` and `URL` from are:\n\n1. `_config`\n2. `_urls`\n\nSo the",
+      "response_text": "Based on the information provided in the question, the two `_X` modules that `httpx/_api.py` imports `DEFAULT_TIMEOUT_CONFIG` and `URL` from are:\n\n1. `_config`\n2. `_urls`\n\nSo the",
+      "prompt_sha256": "sha256:9c3cdee86578f4805d1181f9dc52c3d3c2e367b17022d7171cb2b426a12ac2a7"
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "planner-3",
+      "agent": "planner",
+      "repeat": 0,
+      "objective": "Which two functions in `_api.py` are the generic engine that every verb helper delegates to, and the streaming context-manager alternative? Answer `name, name`.",
+      "required": [
+        "request",
+        "stream"
+      ],
+      "forbidden": [
+        "delete"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8140,
+      "completion_tokens": 8,
+      "latency_ms": 135.9,
+      "response": "name: request\nname: stream",
+      "response_text": "name: request\nname: stream",
+      "prompt_sha256": "sha256:a6f8335b1a7770774ec0bc599aa1aefa8300997b0222bbfff3b9538c2ee2752e"
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "planner-3",
+      "agent": "planner",
+      "repeat": 1,
+      "objective": "Which two functions in `_api.py` are the generic engine that every verb helper delegates to, and the streaming context-manager alternative? Answer `name, name`.",
+      "required": [
+        "request",
+        "stream"
+      ],
+      "forbidden": [
+        "delete"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8140,
+      "completion_tokens": 8,
+      "latency_ms": 142.3,
+      "response": "name: request\nname: stream",
+      "response_text": "name: request\nname: stream",
+      "prompt_sha256": "sha256:a6f8335b1a7770774ec0bc599aa1aefa8300997b0222bbfff3b9538c2ee2752e"
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "planner-3",
+      "agent": "planner",
+      "repeat": 2,
+      "objective": "Which two functions in `_api.py` are the generic engine that every verb helper delegates to, and the streaming context-manager alternative? Answer `name, name`.",
+      "required": [
+        "request",
+        "stream"
+      ],
+      "forbidden": [
+        "delete"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8140,
+      "completion_tokens": 8,
+      "latency_ms": 133.5,
+      "response": "name: request\nname: stream",
+      "response_text": "name: request\nname: stream",
+      "prompt_sha256": "sha256:a6f8335b1a7770774ec0bc599aa1aefa8300997b0222bbfff3b9538c2ee2752e"
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "implementer-1",
+      "agent": "implementer",
+      "repeat": 0,
+      "objective": "Which two class-level flags does the `Auth` base class in `_auth.py` declare, so subclasses can signal that the request or response body must be read? Answer `flag, flag`.",
+      "required": [
+        "requires_request_body",
+        "requires_response_body"
+      ],
+      "forbidden": [
+        "auth_flow"
+      ],
+      "missing": [
+        "requires_request_body",
+        "requires_response_body"
+      ],
+      "wrong": [
+        "auth_flow"
+      ],
+      "passed": false,
+      "error": "Client error '400 Bad Request' for url 'http://localhost:8000/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400",
+      "compiled": false,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "latency_ms": 0.0,
+      "response": "",
+      "response_text": "",
+      "prompt_sha256": ""
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "implementer-1",
+      "agent": "implementer",
+      "repeat": 1,
+      "objective": "Which two class-level flags does the `Auth` base class in `_auth.py` declare, so subclasses can signal that the request or response body must be read? Answer `flag, flag`.",
+      "required": [
+        "requires_request_body",
+        "requires_response_body"
+      ],
+      "forbidden": [
+        "auth_flow"
+      ],
+      "missing": [
+        "requires_request_body",
+        "requires_response_body"
+      ],
+      "wrong": [
+        "auth_flow"
+      ],
+      "passed": false,
+      "error": "Client error '400 Bad Request' for url 'http://localhost:8000/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400",
+      "compiled": false,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "latency_ms": 0.0,
+      "response": "",
+      "response_text": "",
+      "prompt_sha256": ""
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "implementer-1",
+      "agent": "implementer",
+      "repeat": 2,
+      "objective": "Which two class-level flags does the `Auth` base class in `_auth.py` declare, so subclasses can signal that the request or response body must be read? Answer `flag, flag`.",
+      "required": [
+        "requires_request_body",
+        "requires_response_body"
+      ],
+      "forbidden": [
+        "auth_flow"
+      ],
+      "missing": [
+        "requires_request_body",
+        "requires_response_body"
+      ],
+      "wrong": [
+        "auth_flow"
+      ],
+      "passed": false,
+      "error": "Client error '400 Bad Request' for url 'http://localhost:8000/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400",
+      "compiled": false,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "latency_ms": 0.0,
+      "response": "",
+      "response_text": "",
+      "prompt_sha256": ""
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "implementer-2",
+      "agent": "implementer",
+      "repeat": 0,
+      "objective": "Which two auth classes in `_auth.py` adapt a plain callable and a netrc file, respectively? Answer `class, class`.",
+      "required": [
+        "functionauth",
+        "netrcauth"
+      ],
+      "forbidden": [
+        "digestauth"
+      ],
+      "missing": [
+        "functionauth"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8136,
+      "completion_tokens": 8,
+      "latency_ms": 133.3,
+      "response": "BasicAuth, NetRCAuth",
+      "response_text": "BasicAuth, NetRCAuth",
+      "prompt_sha256": "sha256:146cd518ebc31f1ef379d8a80141cdfb6cf38c89b142e61a8aa4daebfce96c28"
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "implementer-2",
+      "agent": "implementer",
+      "repeat": 1,
+      "objective": "Which two auth classes in `_auth.py` adapt a plain callable and a netrc file, respectively? Answer `class, class`.",
+      "required": [
+        "functionauth",
+        "netrcauth"
+      ],
+      "forbidden": [
+        "digestauth"
+      ],
+      "missing": [
+        "functionauth"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8136,
+      "completion_tokens": 8,
+      "latency_ms": 132.7,
+      "response": "BasicAuth, NetRCAuth",
+      "response_text": "BasicAuth, NetRCAuth",
+      "prompt_sha256": "sha256:146cd518ebc31f1ef379d8a80141cdfb6cf38c89b142e61a8aa4daebfce96c28"
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "implementer-2",
+      "agent": "implementer",
+      "repeat": 2,
+      "objective": "Which two auth classes in `_auth.py` adapt a plain callable and a netrc file, respectively? Answer `class, class`.",
+      "required": [
+        "functionauth",
+        "netrcauth"
+      ],
+      "forbidden": [
+        "digestauth"
+      ],
+      "missing": [
+        "functionauth"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8136,
+      "completion_tokens": 8,
+      "latency_ms": 138.8,
+      "response": "BasicAuth, NetRCAuth",
+      "response_text": "BasicAuth, NetRCAuth",
+      "prompt_sha256": "sha256:146cd518ebc31f1ef379d8a80141cdfb6cf38c89b142e61a8aa4daebfce96c28"
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "implementer-3",
+      "agent": "implementer",
+      "repeat": 0,
+      "objective": "Which auth class in `_auth.py` parses a `WWW-Authenticate: Digest` challenge and supports the `MD5`, `SHA`, `SHA-256` and `SHA-512` algorithms?",
+      "required": [
+        "digestauth"
+      ],
+      "forbidden": [
+        "basicauth"
+      ],
+      "missing": [
+        "digestauth"
+      ],
+      "wrong": [
+        "basicauth"
+      ],
+      "passed": false,
+      "error": "Client error '400 Bad Request' for url 'http://localhost:8000/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400",
+      "compiled": false,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "latency_ms": 0.0,
+      "response": "",
+      "response_text": "",
+      "prompt_sha256": ""
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "implementer-3",
+      "agent": "implementer",
+      "repeat": 1,
+      "objective": "Which auth class in `_auth.py` parses a `WWW-Authenticate: Digest` challenge and supports the `MD5`, `SHA`, `SHA-256` and `SHA-512` algorithms?",
+      "required": [
+        "digestauth"
+      ],
+      "forbidden": [
+        "basicauth"
+      ],
+      "missing": [
+        "digestauth"
+      ],
+      "wrong": [
+        "basicauth"
+      ],
+      "passed": false,
+      "error": "Client error '400 Bad Request' for url 'http://localhost:8000/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400",
+      "compiled": false,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "latency_ms": 0.0,
+      "response": "",
+      "response_text": "",
+      "prompt_sha256": ""
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "implementer-3",
+      "agent": "implementer",
+      "repeat": 2,
+      "objective": "Which auth class in `_auth.py` parses a `WWW-Authenticate: Digest` challenge and supports the `MD5`, `SHA`, `SHA-256` and `SHA-512` algorithms?",
+      "required": [
+        "digestauth"
+      ],
+      "forbidden": [
+        "basicauth"
+      ],
+      "missing": [
+        "digestauth"
+      ],
+      "wrong": [
+        "basicauth"
+      ],
+      "passed": false,
+      "error": "Client error '400 Bad Request' for url 'http://localhost:8000/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400",
+      "compiled": false,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "latency_ms": 0.0,
+      "response": "",
+      "response_text": "",
+      "prompt_sha256": ""
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "tester-1",
+      "agent": "tester",
+      "repeat": 0,
+      "objective": "In `_status_codes.py`, give the two integer status codes for `IM_A_TEAPOT` and `TOO_MANY_REQUESTS`. Answer `int, int`.",
+      "required": [
+        "418",
+        "429"
+      ],
+      "forbidden": [
+        "451"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8142,
+      "completion_tokens": 39,
+      "latency_ms": 540.9,
+      "response": "```python\nIM_A_TEAPOT = 418, \"I'm a teapot\"\nTOO_MANY_REQUESTS = 429, \"Too Many Requests\"\n```",
+      "response_text": "```python\nIM_A_TEAPOT = 418, \"I'm a teapot\"\nTOO_MANY_REQUESTS = 429, \"Too Many Requests\"\n```",
+      "prompt_sha256": "sha256:4e0c1b0b8132ade80a0c98d813c6bf49b515bf4ce7c7829aa9dab8e711892b7c"
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "tester-1",
+      "agent": "tester",
+      "repeat": 1,
+      "objective": "In `_status_codes.py`, give the two integer status codes for `IM_A_TEAPOT` and `TOO_MANY_REQUESTS`. Answer `int, int`.",
+      "required": [
+        "418",
+        "429"
+      ],
+      "forbidden": [
+        "451"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8142,
+      "completion_tokens": 48,
+      "latency_ms": 693.2,
+      "response": "The two integer status codes for `IM_A_TEAPOT` and `TOO_MANY_REQUESTS` are:\n\n- 418: IM_A_TEAPOT\n- 429: TOO_MANY_REQUESTS\n\nThese correspond",
+      "response_text": "The two integer status codes for `IM_A_TEAPOT` and `TOO_MANY_REQUESTS` are:\n\n- 418: IM_A_TEAPOT\n- 429: TOO_MANY_REQUESTS\n\nThese correspond",
+      "prompt_sha256": "sha256:4e0c1b0b8132ade80a0c98d813c6bf49b515bf4ce7c7829aa9dab8e711892b7c"
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "tester-1",
+      "agent": "tester",
+      "repeat": 2,
+      "objective": "In `_status_codes.py`, give the two integer status codes for `IM_A_TEAPOT` and `TOO_MANY_REQUESTS`. Answer `int, int`.",
+      "required": [
+        "418",
+        "429"
+      ],
+      "forbidden": [
+        "451"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8142,
+      "completion_tokens": 48,
+      "latency_ms": 665.3,
+      "response": "The two integer status codes for `IM_A_TEAPOT` and `TOO_MANY_REQUESTS` are:\n\n- 418: IM_A_TEAPOT\n- 429: TOO_MANY_REQUESTS\n\nThese correspond",
+      "response_text": "The two integer status codes for `IM_A_TEAPOT` and `TOO_MANY_REQUESTS` are:\n\n- 418: IM_A_TEAPOT\n- 429: TOO_MANY_REQUESTS\n\nThese correspond",
+      "prompt_sha256": "sha256:4e0c1b0b8132ade80a0c98d813c6bf49b515bf4ce7c7829aa9dab8e711892b7c"
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "tester-2",
+      "agent": "tester",
+      "repeat": 0,
+      "objective": "In `_status_codes.py`, give the reason phrases for status codes 404 and 503. Answer `phrase, phrase`.",
+      "required": [
+        "not found",
+        "service unavailable"
+      ],
+      "forbidden": [
+        "bad gateway"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8137,
+      "completion_tokens": 30,
+      "latency_ms": 416.0,
+      "response": "For status code 404:\nphrase: \"Not Found\"\n\nFor status code 503:\nphrase: \"Service Unavailable\"",
+      "response_text": "For status code 404:\nphrase: \"Not Found\"\n\nFor status code 503:\nphrase: \"Service Unavailable\"",
+      "prompt_sha256": "sha256:f396b8e407f730dde995e552a4db2b1f22222eb57b11a51a11e9dd0bd66cfa12"
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "tester-2",
+      "agent": "tester",
+      "repeat": 1,
+      "objective": "In `_status_codes.py`, give the reason phrases for status codes 404 and 503. Answer `phrase, phrase`.",
+      "required": [
+        "not found",
+        "service unavailable"
+      ],
+      "forbidden": [
+        "bad gateway"
+      ],
+      "missing": [
+        "not found",
+        "service unavailable"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8137,
+      "completion_tokens": 31,
+      "latency_ms": 469.0,
+      "response": "For status code 404:\n```\nNOT_FOUND\n``` \n\nFor status code 503:\n```\nSERVICE_UNAVAILABLE\n```",
+      "response_text": "For status code 404:\n```\nNOT_FOUND\n``` \n\nFor status code 503:\n```\nSERVICE_UNAVAILABLE\n```",
+      "prompt_sha256": "sha256:f396b8e407f730dde995e552a4db2b1f22222eb57b11a51a11e9dd0bd66cfa12"
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "tester-2",
+      "agent": "tester",
+      "repeat": 2,
+      "objective": "In `_status_codes.py`, give the reason phrases for status codes 404 and 503. Answer `phrase, phrase`.",
+      "required": [
+        "not found",
+        "service unavailable"
+      ],
+      "forbidden": [
+        "bad gateway"
+      ],
+      "missing": [
+        "not found",
+        "service unavailable"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8137,
+      "completion_tokens": 31,
+      "latency_ms": 458.8,
+      "response": "For status code 404:\n```\nNOT_FOUND\n``` \n\nFor status code 503:\n```\nSERVICE_UNAVAILABLE\n```",
+      "response_text": "For status code 404:\n```\nNOT_FOUND\n``` \n\nFor status code 503:\n```\nSERVICE_UNAVAILABLE\n```",
+      "prompt_sha256": "sha256:f396b8e407f730dde995e552a4db2b1f22222eb57b11a51a11e9dd0bd66cfa12"
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "tester-3",
+      "agent": "tester",
+      "repeat": 0,
+      "objective": "Which `codes` classmethod in `_status_codes.py` returns `True` for both 4xx and 5xx status codes?",
+      "required": [
+        "is_error"
+      ],
+      "forbidden": [
+        "is_client_error"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8136,
+      "completion_tokens": 48,
+      "latency_ms": 639.1,
+      "response": "The `codes.is_error` classmethod in `_status_codes.py` returns `True` for both 4xx and 5xx status codes. Specifically:\n\n```python\nis_error = lambda self, value: 400 <=",
+      "response_text": "The `codes.is_error` classmethod in `_status_codes.py` returns `True` for both 4xx and 5xx status codes. Specifically:\n\n```python\nis_error = lambda self, value: 400 <=",
+      "prompt_sha256": "sha256:aee0c2e58d388d56e4bff3caf601cb871324f44d179bc68cb07e48549bae3116"
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "tester-3",
+      "agent": "tester",
+      "repeat": 1,
+      "objective": "Which `codes` classmethod in `_status_codes.py` returns `True` for both 4xx and 5xx status codes?",
+      "required": [
+        "is_error"
+      ],
+      "forbidden": [
+        "is_client_error"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8136,
+      "completion_tokens": 48,
+      "latency_ms": 635.4,
+      "response": "The `codes.is_error` classmethod in `_status_codes.py` returns `True` for both 4xx and 5xx status codes. Specifically:\n\n```python\nis_error = lambda self, value: 400 <=",
+      "response_text": "The `codes.is_error` classmethod in `_status_codes.py` returns `True` for both 4xx and 5xx status codes. Specifically:\n\n```python\nis_error = lambda self, value: 400 <=",
+      "prompt_sha256": "sha256:aee0c2e58d388d56e4bff3caf601cb871324f44d179bc68cb07e48549bae3116"
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "tester-3",
+      "agent": "tester",
+      "repeat": 2,
+      "objective": "Which `codes` classmethod in `_status_codes.py` returns `True` for both 4xx and 5xx status codes?",
+      "required": [
+        "is_error"
+      ],
+      "forbidden": [
+        "is_client_error"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8136,
+      "completion_tokens": 48,
+      "latency_ms": 647.8,
+      "response": "The `codes.is_error` classmethod in `_status_codes.py` returns `True` for both 4xx and 5xx status codes. Specifically:\n\n```python\nis_error = lambda self, value: 400 <=",
+      "response_text": "The `codes.is_error` classmethod in `_status_codes.py` returns `True` for both 4xx and 5xx status codes. Specifically:\n\n```python\nis_error = lambda self, value: 400 <=",
+      "prompt_sha256": "sha256:aee0c2e58d388d56e4bff3caf601cb871324f44d179bc68cb07e48549bae3116"
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "reviewer-1",
+      "agent": "reviewer",
+      "repeat": 0,
+      "objective": "Which two type aliases in `_types.py` name the accepted types for a request URL and for request headers? Answer `alias, alias`.",
+      "required": [
+        "urltypes",
+        "headertypes"
+      ],
+      "forbidden": [
+        "cookietypes"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8136,
+      "completion_tokens": 17,
+      "latency_ms": 250.9,
+      "response": "Alias for URL: `URLTypes`\nAlias for headers: `HeaderTypes`",
+      "response_text": "Alias for URL: `URLTypes`\nAlias for headers: `HeaderTypes`",
+      "prompt_sha256": "sha256:36512239b9fe7ecd83e5583a2c8a22eee6ef664c8c5221077aef718a4fdd09aa"
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "reviewer-1",
+      "agent": "reviewer",
+      "repeat": 1,
+      "objective": "Which two type aliases in `_types.py` name the accepted types for a request URL and for request headers? Answer `alias, alias`.",
+      "required": [
+        "urltypes",
+        "headertypes"
+      ],
+      "forbidden": [
+        "cookietypes"
+      ],
+      "missing": [
+        "headertypes"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8136,
+      "completion_tokens": 16,
+      "latency_ms": 237.2,
+      "response": "Alias for URL: `URLTypes`\nAlias for headers: `Headers`",
+      "response_text": "Alias for URL: `URLTypes`\nAlias for headers: `Headers`",
+      "prompt_sha256": "sha256:36512239b9fe7ecd83e5583a2c8a22eee6ef664c8c5221077aef718a4fdd09aa"
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "reviewer-1",
+      "agent": "reviewer",
+      "repeat": 2,
+      "objective": "Which two type aliases in `_types.py` name the accepted types for a request URL and for request headers? Answer `alias, alias`.",
+      "required": [
+        "urltypes",
+        "headertypes"
+      ],
+      "forbidden": [
+        "cookietypes"
+      ],
+      "missing": [
+        "headertypes"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8136,
+      "completion_tokens": 16,
+      "latency_ms": 235.0,
+      "response": "Alias for URL: `URLTypes`\nAlias for headers: `Headers`",
+      "response_text": "Alias for URL: `URLTypes`\nAlias for headers: `Headers`",
+      "prompt_sha256": "sha256:36512239b9fe7ecd83e5583a2c8a22eee6ef664c8c5221077aef718a4fdd09aa"
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "reviewer-2",
+      "agent": "reviewer",
+      "repeat": 0,
+      "objective": "Which two type aliases in `_types.py` are the request and response body types, both `Union[str, bytes, Iterable[bytes], AsyncIterable[bytes]]`? Answer `alias, alias`.",
+      "required": [
+        "requestcontent",
+        "responsecontent"
+      ],
+      "forbidden": [
+        "requestdata"
+      ],
+      "missing": [
+        "requestcontent",
+        "responsecontent"
+      ],
+      "wrong": [
+        "requestdata"
+      ],
+      "passed": false,
+      "error": "Client error '400 Bad Request' for url 'http://localhost:8000/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400",
+      "compiled": false,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "latency_ms": 0.0,
+      "response": "",
+      "response_text": "",
+      "prompt_sha256": ""
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "reviewer-2",
+      "agent": "reviewer",
+      "repeat": 1,
+      "objective": "Which two type aliases in `_types.py` are the request and response body types, both `Union[str, bytes, Iterable[bytes], AsyncIterable[bytes]]`? Answer `alias, alias`.",
+      "required": [
+        "requestcontent",
+        "responsecontent"
+      ],
+      "forbidden": [
+        "requestdata"
+      ],
+      "missing": [
+        "requestcontent",
+        "responsecontent"
+      ],
+      "wrong": [
+        "requestdata"
+      ],
+      "passed": false,
+      "error": "Client error '400 Bad Request' for url 'http://localhost:8000/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400",
+      "compiled": false,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "latency_ms": 0.0,
+      "response": "",
+      "response_text": "",
+      "prompt_sha256": ""
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "reviewer-2",
+      "agent": "reviewer",
+      "repeat": 2,
+      "objective": "Which two type aliases in `_types.py` are the request and response body types, both `Union[str, bytes, Iterable[bytes], AsyncIterable[bytes]]`? Answer `alias, alias`.",
+      "required": [
+        "requestcontent",
+        "responsecontent"
+      ],
+      "forbidden": [
+        "requestdata"
+      ],
+      "missing": [
+        "requestcontent",
+        "responsecontent"
+      ],
+      "wrong": [
+        "requestdata"
+      ],
+      "passed": false,
+      "error": "Client error '400 Bad Request' for url 'http://localhost:8000/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400",
+      "compiled": false,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "latency_ms": 0.0,
+      "response": "",
+      "response_text": "",
+      "prompt_sha256": ""
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "reviewer-3",
+      "agent": "reviewer",
+      "repeat": 0,
+      "objective": "Which class in `_types.py` is the synchronous byte-stream base, defining `__iter__` and `close`?",
+      "required": [
+        "syncbytestream"
+      ],
+      "forbidden": [
+        "asyncbytestream"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8133,
+      "completion_tokens": 46,
+      "latency_ms": 633.4,
+      "response": "The synchronous byte-stream base class defined in `_types.py` is `SyncByteStream`. It has methods `__iter__` and `close` which subclasses can override to define their own iteration behavior and resource management logic.",
+      "response_text": "The synchronous byte-stream base class defined in `_types.py` is `SyncByteStream`. It has methods `__iter__` and `close` which subclasses can override to define their own iteration behavior and resource management logic.",
+      "prompt_sha256": "sha256:99f8995ad3ea327793f0db5f7ffc2072c8d5b0a641b2637915253db8e2e4d11e"
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "reviewer-3",
+      "agent": "reviewer",
+      "repeat": 1,
+      "objective": "Which class in `_types.py` is the synchronous byte-stream base, defining `__iter__` and `close`?",
+      "required": [
+        "syncbytestream"
+      ],
+      "forbidden": [
+        "asyncbytestream"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8133,
+      "completion_tokens": 46,
+      "latency_ms": 623.6,
+      "response": "The synchronous byte-stream base class defined in `_types.py` is `SyncByteStream`. It has methods `__iter__` and `close` which subclasses can override to define their own iteration behavior and resource management logic.",
+      "response_text": "The synchronous byte-stream base class defined in `_types.py` is `SyncByteStream`. It has methods `__iter__` and `close` which subclasses can override to define their own iteration behavior and resource management logic.",
+      "prompt_sha256": "sha256:99f8995ad3ea327793f0db5f7ffc2072c8d5b0a641b2637915253db8e2e4d11e"
+    },
+    {
+      "op": "chat",
+      "arm": "prefix",
+      "objective_id": "reviewer-3",
+      "agent": "reviewer",
+      "repeat": 2,
+      "objective": "Which class in `_types.py` is the synchronous byte-stream base, defining `__iter__` and `close`?",
+      "required": [
+        "syncbytestream"
+      ],
+      "forbidden": [
+        "asyncbytestream"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 8133,
+      "completion_tokens": 46,
+      "latency_ms": 618.0,
+      "response": "The synchronous byte-stream base class defined in `_types.py` is `SyncByteStream`. It has methods `__iter__` and `close` which subclasses can override to define their own iteration behavior and resource management logic.",
+      "response_text": "The synchronous byte-stream base class defined in `_types.py` is `SyncByteStream`. It has methods `__iter__` and `close` which subclasses can override to define their own iteration behavior and resource management logic.",
+      "prompt_sha256": "sha256:99f8995ad3ea327793f0db5f7ffc2072c8d5b0a641b2637915253db8e2e4d11e"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "planner-1",
+      "agent": "planner",
+      "repeat": 0,
+      "objective": "Which two `_X` modules does `httpx/_api.py` import its `Client` and `Response` classes from? Answer `_X, _Y`.",
+      "required": [
+        "_client",
+        "_models"
+      ],
+      "forbidden": [
+        "_urls"
+      ],
+      "missing": [
+        "_models"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 676,
+      "completion_tokens": 48,
+      "latency_ms": 622.4,
+      "response": "The `httpx/_api.py` module imports its `Client` and `Response` classes from the following two modules:\n\n1. **_client** - This likely contains the implementation of the `Client` class.\n2. **_",
+      "response_text": "The `httpx/_api.py` module imports its `Client` and `Response` classes from the following two modules:\n\n1. **_client** - This likely contains the implementation of the `Client` class.\n2. **_",
+      "prompt_sha256": "sha256:0c022b832cd6c09e4e89d379984b5c69a7163ef03f9c05e9d47cdf28fd93775f"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "planner-1",
+      "agent": "planner",
+      "repeat": 1,
+      "objective": "Which two `_X` modules does `httpx/_api.py` import its `Client` and `Response` classes from? Answer `_X, _Y`.",
+      "required": [
+        "_client",
+        "_models"
+      ],
+      "forbidden": [
+        "_urls"
+      ],
+      "missing": [
+        "_models"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 676,
+      "completion_tokens": 48,
+      "latency_ms": 579.7,
+      "response": "The `httpx/_api.py` module imports its `Client` and `Response` classes from the following two modules:\n\n1. **_client** - This likely contains the implementation of the `Client` class.\n2. **_",
+      "response_text": "The `httpx/_api.py` module imports its `Client` and `Response` classes from the following two modules:\n\n1. **_client** - This likely contains the implementation of the `Client` class.\n2. **_",
+      "prompt_sha256": "sha256:0c022b832cd6c09e4e89d379984b5c69a7163ef03f9c05e9d47cdf28fd93775f"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "planner-1",
+      "agent": "planner",
+      "repeat": 2,
+      "objective": "Which two `_X` modules does `httpx/_api.py` import its `Client` and `Response` classes from? Answer `_X, _Y`.",
+      "required": [
+        "_client",
+        "_models"
+      ],
+      "forbidden": [
+        "_urls"
+      ],
+      "missing": [
+        "_models"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 676,
+      "completion_tokens": 48,
+      "latency_ms": 642.6,
+      "response": "The `httpx/_api.py` module imports its `Client` and `Response` classes from the following two modules:\n\n1. **_client** - This likely contains the implementation of the `Client` class.\n2. **_",
+      "response_text": "The `httpx/_api.py` module imports its `Client` and `Response` classes from the following two modules:\n\n1. **_client** - This likely contains the implementation of the `Client` class.\n2. **_",
+      "prompt_sha256": "sha256:0c022b832cd6c09e4e89d379984b5c69a7163ef03f9c05e9d47cdf28fd93775f"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "planner-2",
+      "agent": "planner",
+      "repeat": 0,
+      "objective": "Which two `_X` modules does `httpx/_api.py` import `DEFAULT_TIMEOUT_CONFIG` and `URL` from? Answer `_X, _Y`.",
+      "required": [
+        "_config",
+        "_urls"
+      ],
+      "forbidden": [
+        "_types"
+      ],
+      "missing": [
+        "_config",
+        "_urls"
+      ],
+      "wrong": [
+        "_types"
+      ],
+      "passed": false,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 676,
+      "completion_tokens": 11,
+      "latency_ms": 194.7,
+      "response": "_httpx._client, _httpx._types",
+      "response_text": "_httpx._client, _httpx._types",
+      "prompt_sha256": "sha256:62cad5c58a3a45093e5176b600af905c83d9cdd49a8d83904ba2a2001da46b01"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "planner-2",
+      "agent": "planner",
+      "repeat": 1,
+      "objective": "Which two `_X` modules does `httpx/_api.py` import `DEFAULT_TIMEOUT_CONFIG` and `URL` from? Answer `_X, _Y`.",
+      "required": [
+        "_config",
+        "_urls"
+      ],
+      "forbidden": [
+        "_types"
+      ],
+      "missing": [
+        "_config",
+        "_urls"
+      ],
+      "wrong": [
+        "_types"
+      ],
+      "passed": false,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 676,
+      "completion_tokens": 11,
+      "latency_ms": 146.5,
+      "response": "_httpx._client, _httpx._types",
+      "response_text": "_httpx._client, _httpx._types",
+      "prompt_sha256": "sha256:62cad5c58a3a45093e5176b600af905c83d9cdd49a8d83904ba2a2001da46b01"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "planner-2",
+      "agent": "planner",
+      "repeat": 2,
+      "objective": "Which two `_X` modules does `httpx/_api.py` import `DEFAULT_TIMEOUT_CONFIG` and `URL` from? Answer `_X, _Y`.",
+      "required": [
+        "_config",
+        "_urls"
+      ],
+      "forbidden": [
+        "_types"
+      ],
+      "missing": [
+        "_config",
+        "_urls"
+      ],
+      "wrong": [
+        "_types"
+      ],
+      "passed": false,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 676,
+      "completion_tokens": 11,
+      "latency_ms": 150.9,
+      "response": "_httpx._client, _httpx._types",
+      "response_text": "_httpx._client, _httpx._types",
+      "prompt_sha256": "sha256:62cad5c58a3a45093e5176b600af905c83d9cdd49a8d83904ba2a2001da46b01"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "planner-3",
+      "agent": "planner",
+      "repeat": 0,
+      "objective": "Which two functions in `_api.py` are the generic engine that every verb helper delegates to, and the streaming context-manager alternative? Answer `name, name`.",
+      "required": [
+        "request",
+        "stream"
+      ],
+      "forbidden": [
+        "delete"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 674,
+      "completion_tokens": 4,
+      "latency_ms": 103.4,
+      "response": "stream, request",
+      "response_text": "stream, request",
+      "prompt_sha256": "sha256:94f6bbafe68f014f52d3271eb6caff9b4839707ff8b45c0e4cdd7203e44b8374"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "planner-3",
+      "agent": "planner",
+      "repeat": 1,
+      "objective": "Which two functions in `_api.py` are the generic engine that every verb helper delegates to, and the streaming context-manager alternative? Answer `name, name`.",
+      "required": [
+        "request",
+        "stream"
+      ],
+      "forbidden": [
+        "delete"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 674,
+      "completion_tokens": 4,
+      "latency_ms": 66.4,
+      "response": "stream, request",
+      "response_text": "stream, request",
+      "prompt_sha256": "sha256:94f6bbafe68f014f52d3271eb6caff9b4839707ff8b45c0e4cdd7203e44b8374"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "planner-3",
+      "agent": "planner",
+      "repeat": 2,
+      "objective": "Which two functions in `_api.py` are the generic engine that every verb helper delegates to, and the streaming context-manager alternative? Answer `name, name`.",
+      "required": [
+        "request",
+        "stream"
+      ],
+      "forbidden": [
+        "delete"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 674,
+      "completion_tokens": 4,
+      "latency_ms": 68.6,
+      "response": "stream, request",
+      "response_text": "stream, request",
+      "prompt_sha256": "sha256:94f6bbafe68f014f52d3271eb6caff9b4839707ff8b45c0e4cdd7203e44b8374"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "implementer-1",
+      "agent": "implementer",
+      "repeat": 0,
+      "objective": "Which two class-level flags does the `Auth` base class in `_auth.py` declare, so subclasses can signal that the request or response body must be read? Answer `flag, flag`.",
+      "required": [
+        "requires_request_body",
+        "requires_response_body"
+      ],
+      "forbidden": [
+        "auth_flow"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 910,
+      "completion_tokens": 10,
+      "latency_ms": 203.3,
+      "response": "Auth.requires_request_body\nAuth.requires_response_body",
+      "response_text": "Auth.requires_request_body\nAuth.requires_response_body",
+      "prompt_sha256": "sha256:8fc537d4ccad6717e1b28d7069e2a0089da871e94ce1923d409d9d46b980b92a"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "implementer-1",
+      "agent": "implementer",
+      "repeat": 1,
+      "objective": "Which two class-level flags does the `Auth` base class in `_auth.py` declare, so subclasses can signal that the request or response body must be read? Answer `flag, flag`.",
+      "required": [
+        "requires_request_body",
+        "requires_response_body"
+      ],
+      "forbidden": [
+        "auth_flow"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 910,
+      "completion_tokens": 10,
+      "latency_ms": 145.2,
+      "response": "Auth.requires_request_body\nAuth.requires_response_body",
+      "response_text": "Auth.requires_request_body\nAuth.requires_response_body",
+      "prompt_sha256": "sha256:8fc537d4ccad6717e1b28d7069e2a0089da871e94ce1923d409d9d46b980b92a"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "implementer-1",
+      "agent": "implementer",
+      "repeat": 2,
+      "objective": "Which two class-level flags does the `Auth` base class in `_auth.py` declare, so subclasses can signal that the request or response body must be read? Answer `flag, flag`.",
+      "required": [
+        "requires_request_body",
+        "requires_response_body"
+      ],
+      "forbidden": [
+        "auth_flow"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 910,
+      "completion_tokens": 10,
+      "latency_ms": 143.0,
+      "response": "Auth.requires_request_body\nAuth.requires_response_body",
+      "response_text": "Auth.requires_request_body\nAuth.requires_response_body",
+      "prompt_sha256": "sha256:8fc537d4ccad6717e1b28d7069e2a0089da871e94ce1923d409d9d46b980b92a"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "implementer-2",
+      "agent": "implementer",
+      "repeat": 0,
+      "objective": "Which two auth classes in `_auth.py` adapt a plain callable and a netrc file, respectively? Answer `class, class`.",
+      "required": [
+        "functionauth",
+        "netrcauth"
+      ],
+      "forbidden": [
+        "digestauth"
+      ],
+      "missing": [
+        "functionauth"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 886,
+      "completion_tokens": 7,
+      "latency_ms": 162.9,
+      "response": "class, NetRCAuth",
+      "response_text": "class, NetRCAuth",
+      "prompt_sha256": "sha256:5f30d75304218bdc17430b876acfeba2f18533cadebce68a291fc89132c4be0c"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "implementer-2",
+      "agent": "implementer",
+      "repeat": 1,
+      "objective": "Which two auth classes in `_auth.py` adapt a plain callable and a netrc file, respectively? Answer `class, class`.",
+      "required": [
+        "functionauth",
+        "netrcauth"
+      ],
+      "forbidden": [
+        "digestauth"
+      ],
+      "missing": [
+        "functionauth"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 886,
+      "completion_tokens": 7,
+      "latency_ms": 106.3,
+      "response": "class, NetRCAuth",
+      "response_text": "class, NetRCAuth",
+      "prompt_sha256": "sha256:5f30d75304218bdc17430b876acfeba2f18533cadebce68a291fc89132c4be0c"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "implementer-2",
+      "agent": "implementer",
+      "repeat": 2,
+      "objective": "Which two auth classes in `_auth.py` adapt a plain callable and a netrc file, respectively? Answer `class, class`.",
+      "required": [
+        "functionauth",
+        "netrcauth"
+      ],
+      "forbidden": [
+        "digestauth"
+      ],
+      "missing": [
+        "functionauth"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 886,
+      "completion_tokens": 7,
+      "latency_ms": 99.9,
+      "response": "class, NetRCAuth",
+      "response_text": "class, NetRCAuth",
+      "prompt_sha256": "sha256:5f30d75304218bdc17430b876acfeba2f18533cadebce68a291fc89132c4be0c"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "implementer-3",
+      "agent": "implementer",
+      "repeat": 0,
+      "objective": "Which auth class in `_auth.py` parses a `WWW-Authenticate: Digest` challenge and supports the `MD5`, `SHA`, `SHA-256` and `SHA-512` algorithms?",
+      "required": [
+        "digestauth"
+      ],
+      "forbidden": [
+        "basicauth"
+      ],
+      "missing": [
+        "digestauth"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 922,
+      "completion_tokens": 48,
+      "latency_ms": 653.0,
+      "response": "The auth class in `_auth.py` that parses a `WWW-Authenticate: Digest` challenge and supports the `MD5`, `SHA`, `SHA-256`, and `SHA-512` algorithms is `Digest",
+      "response_text": "The auth class in `_auth.py` that parses a `WWW-Authenticate: Digest` challenge and supports the `MD5`, `SHA`, `SHA-256`, and `SHA-512` algorithms is `Digest",
+      "prompt_sha256": "sha256:97ba82a59f8801e8a572c81a19b186d1e549388ed89a4549feb04cc685f79d05"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "implementer-3",
+      "agent": "implementer",
+      "repeat": 1,
+      "objective": "Which auth class in `_auth.py` parses a `WWW-Authenticate: Digest` challenge and supports the `MD5`, `SHA`, `SHA-256` and `SHA-512` algorithms?",
+      "required": [
+        "digestauth"
+      ],
+      "forbidden": [
+        "basicauth"
+      ],
+      "missing": [
+        "digestauth"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 922,
+      "completion_tokens": 48,
+      "latency_ms": 594.6,
+      "response": "The auth class in `_auth.py` that parses a `WWW-Authenticate: Digest` challenge and supports the `MD5`, `SHA`, `SHA-256`, and `SHA-512` algorithms is `Digest",
+      "response_text": "The auth class in `_auth.py` that parses a `WWW-Authenticate: Digest` challenge and supports the `MD5`, `SHA`, `SHA-256`, and `SHA-512` algorithms is `Digest",
+      "prompt_sha256": "sha256:97ba82a59f8801e8a572c81a19b186d1e549388ed89a4549feb04cc685f79d05"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "implementer-3",
+      "agent": "implementer",
+      "repeat": 2,
+      "objective": "Which auth class in `_auth.py` parses a `WWW-Authenticate: Digest` challenge and supports the `MD5`, `SHA`, `SHA-256` and `SHA-512` algorithms?",
+      "required": [
+        "digestauth"
+      ],
+      "forbidden": [
+        "basicauth"
+      ],
+      "missing": [
+        "digestauth"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 922,
+      "completion_tokens": 48,
+      "latency_ms": 768.3,
+      "response": "The auth class in `_auth.py` that parses a `WWW-Authenticate: Digest` challenge and supports the `MD5`, `SHA`, `SHA-256`, and `SHA-512` algorithms is `Digest",
+      "response_text": "The auth class in `_auth.py` that parses a `WWW-Authenticate: Digest` challenge and supports the `MD5`, `SHA`, `SHA-256`, and `SHA-512` algorithms is `Digest",
+      "prompt_sha256": "sha256:97ba82a59f8801e8a572c81a19b186d1e549388ed89a4549feb04cc685f79d05"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "tester-1",
+      "agent": "tester",
+      "repeat": 0,
+      "objective": "In `_status_codes.py`, give the two integer status codes for `IM_A_TEAPOT` and `TOO_MANY_REQUESTS`. Answer `int, int`.",
+      "required": [
+        "418",
+        "429"
+      ],
+      "forbidden": [
+        "451"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 2038,
+      "completion_tokens": 23,
+      "latency_ms": 545.8,
+      "response": "(418, \"I'm a teapot\"), (429, 'Too Many Requests')",
+      "response_text": "(418, \"I'm a teapot\"), (429, 'Too Many Requests')",
+      "prompt_sha256": "sha256:6ab9461babbf226c89518443f06357199eb54efdf51b799d474c173f60d4673c"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "tester-1",
+      "agent": "tester",
+      "repeat": 1,
+      "objective": "In `_status_codes.py`, give the two integer status codes for `IM_A_TEAPOT` and `TOO_MANY_REQUESTS`. Answer `int, int`.",
+      "required": [
+        "418",
+        "429"
+      ],
+      "forbidden": [
+        "451"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 2038,
+      "completion_tokens": 23,
+      "latency_ms": 334.5,
+      "response": "(418, \"I'm a teapot\"), (429, 'Too Many Requests')",
+      "response_text": "(418, \"I'm a teapot\"), (429, 'Too Many Requests')",
+      "prompt_sha256": "sha256:6ab9461babbf226c89518443f06357199eb54efdf51b799d474c173f60d4673c"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "tester-1",
+      "agent": "tester",
+      "repeat": 2,
+      "objective": "In `_status_codes.py`, give the two integer status codes for `IM_A_TEAPOT` and `TOO_MANY_REQUESTS`. Answer `int, int`.",
+      "required": [
+        "418",
+        "429"
+      ],
+      "forbidden": [
+        "451"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 2038,
+      "completion_tokens": 23,
+      "latency_ms": 369.5,
+      "response": "(418, \"I'm a teapot\"), (429, 'Too Many Requests')",
+      "response_text": "(418, \"I'm a teapot\"), (429, 'Too Many Requests')",
+      "prompt_sha256": "sha256:6ab9461babbf226c89518443f06357199eb54efdf51b799d474c173f60d4673c"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "tester-2",
+      "agent": "tester",
+      "repeat": 0,
+      "objective": "In `_status_codes.py`, give the reason phrases for status codes 404 and 503. Answer `phrase, phrase`.",
+      "required": [
+        "not found",
+        "service unavailable"
+      ],
+      "forbidden": [
+        "bad gateway"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 2028,
+      "completion_tokens": 21,
+      "latency_ms": 421.0,
+      "response": "Phrase for 404: Not Found\nPhrase for 503: Service Unavailable",
+      "response_text": "Phrase for 404: Not Found\nPhrase for 503: Service Unavailable",
+      "prompt_sha256": "sha256:4ff2dd23601f6192c78d9df17766e89f4439e34085c0110d9fb695f28831f260"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "tester-2",
+      "agent": "tester",
+      "repeat": 1,
+      "objective": "In `_status_codes.py`, give the reason phrases for status codes 404 and 503. Answer `phrase, phrase`.",
+      "required": [
+        "not found",
+        "service unavailable"
+      ],
+      "forbidden": [
+        "bad gateway"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 2028,
+      "completion_tokens": 21,
+      "latency_ms": 287.0,
+      "response": "Phrase for 404: Not Found\nPhrase for 503: Service Unavailable",
+      "response_text": "Phrase for 404: Not Found\nPhrase for 503: Service Unavailable",
+      "prompt_sha256": "sha256:4ff2dd23601f6192c78d9df17766e89f4439e34085c0110d9fb695f28831f260"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "tester-2",
+      "agent": "tester",
+      "repeat": 2,
+      "objective": "In `_status_codes.py`, give the reason phrases for status codes 404 and 503. Answer `phrase, phrase`.",
+      "required": [
+        "not found",
+        "service unavailable"
+      ],
+      "forbidden": [
+        "bad gateway"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 2028,
+      "completion_tokens": 21,
+      "latency_ms": 300.0,
+      "response": "Phrase for 404: Not Found\nPhrase for 503: Service Unavailable",
+      "response_text": "Phrase for 404: Not Found\nPhrase for 503: Service Unavailable",
+      "prompt_sha256": "sha256:4ff2dd23601f6192c78d9df17766e89f4439e34085c0110d9fb695f28831f260"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "tester-3",
+      "agent": "tester",
+      "repeat": 0,
+      "objective": "Which `codes` classmethod in `_status_codes.py` returns `True` for both 4xx and 5xx status codes?",
+      "required": [
+        "is_error"
+      ],
+      "forbidden": [
+        "is_client_error"
+      ],
+      "missing": [
+        "is_error"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 2026,
+      "completion_tokens": 48,
+      "latency_ms": 744.7,
+      "response": "The `is_server_error` method in the `codes` class in `_status_codes.py` returns `True` for both 4xx and 5xx status codes.\n\n```python\ndef is_server_error(self):\n    return self in",
+      "response_text": "The `is_server_error` method in the `codes` class in `_status_codes.py` returns `True` for both 4xx and 5xx status codes.\n\n```python\ndef is_server_error(self):\n    return self in",
+      "prompt_sha256": "sha256:21456436465b0a612634b3a5e49a66029dcb999042220a38d15f07652e04e3c3"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "tester-3",
+      "agent": "tester",
+      "repeat": 1,
+      "objective": "Which `codes` classmethod in `_status_codes.py` returns `True` for both 4xx and 5xx status codes?",
+      "required": [
+        "is_error"
+      ],
+      "forbidden": [
+        "is_client_error"
+      ],
+      "missing": [
+        "is_error"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 2026,
+      "completion_tokens": 48,
+      "latency_ms": 653.8,
+      "response": "The `is_server_error` method in the `codes` class in `_status_codes.py` returns `True` for both 4xx and 5xx status codes.\n\n```python\ndef is_server_error(self):\n    return self in",
+      "response_text": "The `is_server_error` method in the `codes` class in `_status_codes.py` returns `True` for both 4xx and 5xx status codes.\n\n```python\ndef is_server_error(self):\n    return self in",
+      "prompt_sha256": "sha256:21456436465b0a612634b3a5e49a66029dcb999042220a38d15f07652e04e3c3"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "tester-3",
+      "agent": "tester",
+      "repeat": 2,
+      "objective": "Which `codes` classmethod in `_status_codes.py` returns `True` for both 4xx and 5xx status codes?",
+      "required": [
+        "is_error"
+      ],
+      "forbidden": [
+        "is_client_error"
+      ],
+      "missing": [
+        "is_error"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 2026,
+      "completion_tokens": 48,
+      "latency_ms": 607.6,
+      "response": "The `is_server_error` method in the `codes` class in `_status_codes.py` returns `True` for both 4xx and 5xx status codes.\n\n```python\ndef is_server_error(self):\n    return self in",
+      "response_text": "The `is_server_error` method in the `codes` class in `_status_codes.py` returns `True` for both 4xx and 5xx status codes.\n\n```python\ndef is_server_error(self):\n    return self in",
+      "prompt_sha256": "sha256:21456436465b0a612634b3a5e49a66029dcb999042220a38d15f07652e04e3c3"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "reviewer-1",
+      "agent": "reviewer",
+      "repeat": 0,
+      "objective": "Which two type aliases in `_types.py` name the accepted types for a request URL and for request headers? Answer `alias, alias`.",
+      "required": [
+        "urltypes",
+        "headertypes"
+      ],
+      "forbidden": [
+        "cookietypes"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 956,
+      "completion_tokens": 6,
+      "latency_ms": 147.5,
+      "response": "URLTypes, HeaderTypes",
+      "response_text": "URLTypes, HeaderTypes",
+      "prompt_sha256": "sha256:a5ef120ebbfbed94354b2591601bd5418b64feaa623c62e4d2c827ed51c87c56"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "reviewer-1",
+      "agent": "reviewer",
+      "repeat": 1,
+      "objective": "Which two type aliases in `_types.py` name the accepted types for a request URL and for request headers? Answer `alias, alias`.",
+      "required": [
+        "urltypes",
+        "headertypes"
+      ],
+      "forbidden": [
+        "cookietypes"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 956,
+      "completion_tokens": 6,
+      "latency_ms": 90.5,
+      "response": "URLTypes, HeaderTypes",
+      "response_text": "URLTypes, HeaderTypes",
+      "prompt_sha256": "sha256:a5ef120ebbfbed94354b2591601bd5418b64feaa623c62e4d2c827ed51c87c56"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "reviewer-1",
+      "agent": "reviewer",
+      "repeat": 2,
+      "objective": "Which two type aliases in `_types.py` name the accepted types for a request URL and for request headers? Answer `alias, alias`.",
+      "required": [
+        "urltypes",
+        "headertypes"
+      ],
+      "forbidden": [
+        "cookietypes"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 956,
+      "completion_tokens": 6,
+      "latency_ms": 93.8,
+      "response": "URLTypes, HeaderTypes",
+      "response_text": "URLTypes, HeaderTypes",
+      "prompt_sha256": "sha256:a5ef120ebbfbed94354b2591601bd5418b64feaa623c62e4d2c827ed51c87c56"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "reviewer-2",
+      "agent": "reviewer",
+      "repeat": 0,
+      "objective": "Which two type aliases in `_types.py` are the request and response body types, both `Union[str, bytes, Iterable[bytes], AsyncIterable[bytes]]`? Answer `alias, alias`.",
+      "required": [
+        "requestcontent",
+        "responsecontent"
+      ],
+      "forbidden": [
+        "requestdata"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 982,
+      "completion_tokens": 6,
+      "latency_ms": 156.9,
+      "response": "ResponseContent, RequestContent",
+      "response_text": "ResponseContent, RequestContent",
+      "prompt_sha256": "sha256:f3be3d8c228492861a32f18dcb9fb9e38d65f06f6056e3e70517dbc2ec77b137"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "reviewer-2",
+      "agent": "reviewer",
+      "repeat": 1,
+      "objective": "Which two type aliases in `_types.py` are the request and response body types, both `Union[str, bytes, Iterable[bytes], AsyncIterable[bytes]]`? Answer `alias, alias`.",
+      "required": [
+        "requestcontent",
+        "responsecontent"
+      ],
+      "forbidden": [
+        "requestdata"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 982,
+      "completion_tokens": 6,
+      "latency_ms": 91.1,
+      "response": "ResponseContent, RequestContent",
+      "response_text": "ResponseContent, RequestContent",
+      "prompt_sha256": "sha256:f3be3d8c228492861a32f18dcb9fb9e38d65f06f6056e3e70517dbc2ec77b137"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "reviewer-2",
+      "agent": "reviewer",
+      "repeat": 2,
+      "objective": "Which two type aliases in `_types.py` are the request and response body types, both `Union[str, bytes, Iterable[bytes], AsyncIterable[bytes]]`? Answer `alias, alias`.",
+      "required": [
+        "requestcontent",
+        "responsecontent"
+      ],
+      "forbidden": [
+        "requestdata"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 982,
+      "completion_tokens": 6,
+      "latency_ms": 89.7,
+      "response": "ResponseContent, RequestContent",
+      "response_text": "ResponseContent, RequestContent",
+      "prompt_sha256": "sha256:f3be3d8c228492861a32f18dcb9fb9e38d65f06f6056e3e70517dbc2ec77b137"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "reviewer-3",
+      "agent": "reviewer",
+      "repeat": 0,
+      "objective": "Which class in `_types.py` is the synchronous byte-stream base, defining `__iter__` and `close`?",
+      "required": [
+        "syncbytestream"
+      ],
+      "forbidden": [
+        "asyncbytestream"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 950,
+      "completion_tokens": 48,
+      "latency_ms": 653.1,
+      "response": "The synchronous byte-stream base class defined by `__iter__` and `close` methods in `_types.py` is:\n\n```python\nclass SyncByteStream:\n    __iter__\n    close\n```\n\nThis class is used to represent",
+      "response_text": "The synchronous byte-stream base class defined by `__iter__` and `close` methods in `_types.py` is:\n\n```python\nclass SyncByteStream:\n    __iter__\n    close\n```\n\nThis class is used to represent",
+      "prompt_sha256": "sha256:40c7444b62251bd9da371ebc764a39cf5c2469fd7d28b2eacb496182118671cf"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "reviewer-3",
+      "agent": "reviewer",
+      "repeat": 1,
+      "objective": "Which class in `_types.py` is the synchronous byte-stream base, defining `__iter__` and `close`?",
+      "required": [
+        "syncbytestream"
+      ],
+      "forbidden": [
+        "asyncbytestream"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 950,
+      "completion_tokens": 48,
+      "latency_ms": 607.3,
+      "response": "The synchronous byte-stream base class defined by `__iter__` and `close` methods in `_types.py` is:\n\n```python\nclass SyncByteStream:\n    __iter__\n    close\n```\n\nThis class is used to represent",
+      "response_text": "The synchronous byte-stream base class defined by `__iter__` and `close` methods in `_types.py` is:\n\n```python\nclass SyncByteStream:\n    __iter__\n    close\n```\n\nThis class is used to represent",
+      "prompt_sha256": "sha256:40c7444b62251bd9da371ebc764a39cf5c2469fd7d28b2eacb496182118671cf"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "reviewer-3",
+      "agent": "reviewer",
+      "repeat": 2,
+      "objective": "Which class in `_types.py` is the synchronous byte-stream base, defining `__iter__` and `close`?",
+      "required": [
+        "syncbytestream"
+      ],
+      "forbidden": [
+        "asyncbytestream"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 950,
+      "completion_tokens": 48,
+      "latency_ms": 585.6,
+      "response": "The synchronous byte-stream base class defined by `__iter__` and `close` methods in `_types.py` is:\n\n```python\nclass SyncByteStream:\n    __iter__\n    close\n```\n\nThis class is used to represent",
+      "response_text": "The synchronous byte-stream base class defined by `__iter__` and `close` methods in `_types.py` is:\n\n```python\nclass SyncByteStream:\n    __iter__\n    close\n```\n\nThis class is used to represent",
+      "prompt_sha256": "sha256:40c7444b62251bd9da371ebc764a39cf5c2469fd7d28b2eacb496182118671cf"
+    }
+  ],
+  "arms": {
+    "broadcast": {
+      "requests": 36,
+      "prompt_tokens_total": 292314,
+      "completion_tokens_total": 1327,
+      "wall_ms": 19175.9,
+      "mean_latency_ms": 531.6,
+      "passed": 35,
+      "total": 36,
+      "quality": 0.9722
+    },
+    "prefix": {
+      "requests": 36,
+      "prompt_tokens_total": 219726,
+      "completion_tokens_total": 894,
+      "wall_ms": 13206.8,
+      "mean_latency_ms": 363.4,
+      "passed": 20,
+      "total": 36,
+      "quality": 0.5556
+    },
+    "compile": {
+      "requests": 36,
+      "prompt_tokens_total": 41172,
+      "completion_tokens_total": 840,
+      "wall_ms": 12240.0,
+      "mean_latency_ms": 339.8,
+      "passed": 21,
+      "total": 36,
+      "quality": 0.5833
+    }
+  },
+  "recall": [
+    {
+      "objective_id": "planner-1",
+      "role": "planner",
+      "required": [
+        "_client",
+        "_models"
+      ],
+      "facts_in_packet": {
+        "_client": true,
+        "_models": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "objective_id": "planner-2",
+      "role": "planner",
+      "required": [
+        "_config",
+        "_urls"
+      ],
+      "facts_in_packet": {
+        "_config": true,
+        "_urls": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "objective_id": "planner-3",
+      "role": "planner",
+      "required": [
+        "request",
+        "stream"
+      ],
+      "facts_in_packet": {
+        "request": true,
+        "stream": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "objective_id": "implementer-1",
+      "role": "implementer",
+      "required": [
+        "requires_request_body",
+        "requires_response_body"
+      ],
+      "facts_in_packet": {
+        "requires_request_body": true,
+        "requires_response_body": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "objective_id": "implementer-2",
+      "role": "implementer",
+      "required": [
+        "functionauth",
+        "netrcauth"
+      ],
+      "facts_in_packet": {
+        "functionauth": true,
+        "netrcauth": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "objective_id": "implementer-3",
+      "role": "implementer",
+      "required": [
+        "digestauth"
+      ],
+      "facts_in_packet": {
+        "digestauth": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "objective_id": "tester-1",
+      "role": "tester",
+      "required": [
+        "418",
+        "429"
+      ],
+      "facts_in_packet": {
+        "418": true,
+        "429": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "objective_id": "tester-2",
+      "role": "tester",
+      "required": [
+        "not found",
+        "service unavailable"
+      ],
+      "facts_in_packet": {
+        "not found": true,
+        "service unavailable": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "objective_id": "tester-3",
+      "role": "tester",
+      "required": [
+        "is_error"
+      ],
+      "facts_in_packet": {
+        "is_error": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "objective_id": "reviewer-1",
+      "role": "reviewer",
+      "required": [
+        "urltypes",
+        "headertypes"
+      ],
+      "facts_in_packet": {
+        "urltypes": true,
+        "headertypes": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "objective_id": "reviewer-2",
+      "role": "reviewer",
+      "required": [
+        "requestcontent",
+        "responsecontent"
+      ],
+      "facts_in_packet": {
+        "requestcontent": true,
+        "responsecontent": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "objective_id": "reviewer-3",
+      "role": "reviewer",
+      "required": [
+        "syncbytestream"
+      ],
+      "facts_in_packet": {
+        "syncbytestream": true
+      },
+      "all_in_packet": true
+    }
+  ],
+  "cache": {
+    "available": true,
+    "source": "upstream Prometheus /metrics (vLLM)",
+    "per_arm": {
+      "broadcast": {
+        "prefix_cache_hits_delta": 283584.0,
+        "prefix_cache_queries_delta": 292314.0,
+        "kv_cache_usage_peak": 0.06553180596441832
+      },
+      "prefix": {
+        "prefix_cache_hits_delta": 211040.0,
+        "prefix_cache_queries_delta": 219726.0,
+        "kv_cache_usage_peak": 0.06553180596441832
+      },
+      "compile": {
+        "prefix_cache_hits_delta": 27312.0,
+        "prefix_cache_queries_delta": 41172.0,
+        "kv_cache_usage_peak": 0.016638935108153063
+      }
+    }
+  },
+  "criteria": {
+    "verdict": "NO_TOKEN_WIN",
+    "baseline": "prefix",
+    "n_objectives": 12,
+    "repeats": 3,
+    "n": 36,
+    "tolerance_fraction": 0.1,
+    "tolerance_requests": 4,
+    "quality": {
+      "pass": true,
+      "requirement": "compile passes >= prefix passes - 4",
+      "broadcast_passes": 35,
+      "prefix_passes": 20,
+      "compile_passes": 21,
+      "total": 36
+    },
+    "uncached_tokens": {
+      "pass": false,
+      "requirement": "compile uncached tokens <= prefix uncached tokens (factor 1.0x)",
+      "prefix_uncached_tokens": 8686,
+      "compile_uncached_tokens": 13860
+    },
+    "unreliable_error_rate": false
+  },
+  "notes": [
+    "Fixture is REAL repository content: https://github.com/encode/httpx @ b5addb64f0161ff6bfe94c124ef76f6a1fba5254; the raw bundle is the 4-file slice (7902 tiktoken) rendered with FILE headers (actual bytes, stable order); per-file sha256 in the fixture so a fresh clone can audit the exact bytes.",
+    "The compile arm's fabric is built MECHANICALLY by evals/mech_fabric.build_blocks from the same source files (signatures, docstrings, assignments, imports, cartridge); it never reads any objective or answer key. Role divergence comes only from the fixed file-ownership map (each role owns one file).",
+    "Three arms over a 12-objective, 4-role (planner/implementer/tester/reviewer) workload; broadcast sends the full bundle to every agent, prefix appends a per-role instruction after the shared bundle (vLLM prefix caching's best case), compile sends each role's compiled packet via the LangGraph adapter.",
+    "Each arm's system content is prefixed with a unique arm tag so the persistent vLLM prefix cache cannot carry between arms; within an arm the shared bytes (broadcast: whole system; prefix: bundle; compile: none) drive prefix reuse.",
+    "Quality is the same deterministic required+forbidden scorer for every arm (all required facts present, no forbidden fact present); every objective, repeat and response is reported, pass or fail. Forbidden facts are plausible wrong answers from the source; whether a compiled packet carries one is an outcome, not a precondition.",
+    "The compile arm compiles client-side (compile_node_packet), not through a sidecar; its 'compiled' flag is self-computed, not a server header.",
+    "Prefix-cache counters come from the upstream Prometheus /metrics (vLLM), parsed tolerantly (null when unavailable); uncached tokens = billed prompt tokens minus the prefix-cache hit-token delta. The first request of each arm is a cold prefill.",
+    "n=12 objectives x 3 repeats per arm, temperature=0.0, non-streaming, max_tokens=48; single GPU, single 1.5B model."
+  ]
+}
