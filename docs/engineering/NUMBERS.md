@@ -21,7 +21,10 @@ Legend
 
 | id | Value as displayed | Type | Where it must appear | Artifact (source of truth) | How verified |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `pilot_prompt_token_ratio` | `35.87x` | strict | `README.md`, `docs/engineering/PILOT.md` | `evals/reports/pilot_20261018_013151.json` | 193366 / 5391 = 35.8683 → 35.87 (real httpx, 32k ctx) |
+| `pilot_mech_prompt_token_ratio` | `13.62x` | strict | `README.md`, `docs/engineering/PILOT-MECH-RESULT.md` | `evals/reports/pilot_20261018_151640.json` | 193366 / 14193 = 13.6239 → 13.62 (mechanical memory, the headline) |
+| `pilot_mech_raw_uncached` | `182` | strict | `README.md`, `docs/engineering/PILOT-MECH-RESULT.md` | same re-run receipt | raw queries 193366 − hits 193184 (warm prefix cache) |
+| `pilot_mech_compile_uncached` | `11,857` | strict | `README.md`, `docs/engineering/PILOT-MECH-RESULT.md` | same re-run receipt | compile queries 14193 − hits 2336 |
+| `pilot_prompt_token_ratio` | `35.87x` | strict | `docs/engineering/PILOT.md`, `docs/engineering/PILOT-MECH-RESULT.md` | `evals/reports/pilot_20261018_013151.json` | 193366 / 5391 = 35.8683 → 35.87 (real httpx, 32k ctx) |
 | `demo_prompt_token_ratio` | `3.17x` | strict | `README.md`, `docs/engineering/DEMO.md`, `CHANGELOG.md` | `evals/reports/demo_fleet_20261017_231929.json` | 44854 / 14170 = 3.1654 → 3.17 |
 | `demo_tokens_saved` | `30,684` | strict | `README.md` | same demo receipt | 44854 − 14170 = 30684 |
 | `demo_broadcast_tokens` | `44,854` | strict | `README.md` | same demo receipt | `arms.broadcast.prompt_tokens_total` |
@@ -39,7 +42,7 @@ Legend
 | `packing_redundancy` | `-13.4%` | strict | `README.md`, `CHANGELOG.md` | `evals/reports/packing_bench_20261017_231759.json` | (0.205616 − 0.177986) = 0.0276 jaccard delta; /0.205616 = 13.4% |
 | `quality_parity_ratio` | `~5.6x` | strict | `README.md`, `CHANGELOG.md` | `evals/reports/audit_b6_20261016_173804.json` | 408 / 73 = 5.589 → 5.6 (1.5B, lossless arm; N7 caveats) |
 | `httpx_compression` | `~17x` | display-only | `README.md`, `CHANGELOG.md` | — (N5: no stored report) | 64,066 → 3,806 tokens; drifts with the installed `httpx` version |
-| `test_count` | `364` | display-only | `README.md` | — | `uv run python -m pytest --collect-only -q` on the current tree (3 embedding/symlink tests skip without the extra/on Windows); recount and update README + this row together |
+| `test_count` | `371` | display-only | `README.md` | — | `uv run python -m pytest --collect-only -q` on the current tree (3 embedding/symlink tests skip without the extra/on Windows); recount and update README + this row together |
 
 Stale patterns (must never appear as current numbers in their scoped docs; historical
 docs that explicitly quote superseded runs are exempt via `historical_ok`):
@@ -67,7 +70,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 35.87,
         "round": 2
       },
-      "must_appear_in": ["README.md", "docs/engineering/PILOT.md"]
+      "must_appear_in": ["docs/engineering/PILOT.md", "docs/engineering/PILOT-MECH-RESULT.md"]
     },
     {
       "id": "pilot_raw_tokens",
@@ -86,6 +89,54 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "kind": "strict",
       "artifact": "evals/reports/pilot_20261018_013151.json",
       "must_appear_in": ["docs/engineering/PILOT.md"]
+    },
+    {
+      "id": "pilot_mech_prompt_token_ratio",
+      "claim": "real-repo pilot re-run on mechanical memory (pre-registered): compile vs raw billed prompt-token reduction",
+      "baseline": "raw arm: the full 32,259-token httpx bundle as one system message (strongest naive), same model",
+      "display": "13.62x",
+      "kind": "strict",
+      "artifact": "evals/reports/pilot_20261018_151640.json",
+      "recompute": {
+        "expr": "a/b",
+        "a": "arms.raw.prompt_tokens_total",
+        "b": "arms.compile.prompt_tokens_total",
+        "expect": 13.62,
+        "round": 2
+      },
+      "must_appear_in": ["README.md", "docs/engineering/PILOT-MECH-RESULT.md"]
+    },
+    {
+      "id": "pilot_mech_raw_uncached",
+      "claim": "pilot re-run: raw arm uncached prompt tokens (warm prefix cache)",
+      "baseline": "raw arm: the full 32,259-token httpx bundle as one system message (strongest naive), same model",
+      "display": "182",
+      "kind": "strict",
+      "artifact": "evals/reports/pilot_20261018_151640.json",
+      "recompute": {
+        "expr": "a-b",
+        "a": "cache.per_arm.raw.prefix_cache_queries_delta",
+        "b": "cache.per_arm.raw.prefix_cache_hits_delta",
+        "expect": 182,
+        "round": 0
+      },
+      "must_appear_in": ["README.md", "docs/engineering/PILOT-MECH-RESULT.md"]
+    },
+    {
+      "id": "pilot_mech_compile_uncached",
+      "claim": "pilot re-run: compile arm uncached prompt tokens",
+      "baseline": "raw arm: the full 32,259-token httpx bundle as one system message (strongest naive), same model",
+      "display": "11,857",
+      "kind": "strict",
+      "artifact": "evals/reports/pilot_20261018_151640.json",
+      "recompute": {
+        "expr": "a-b",
+        "a": "cache.per_arm.compile.prefix_cache_queries_delta",
+        "b": "cache.per_arm.compile.prefix_cache_hits_delta",
+        "expect": 11857,
+        "round": 0
+      },
+      "must_appear_in": ["README.md", "docs/engineering/PILOT-MECH-RESULT.md"]
     },
     {
       "id": "demo_prompt_token_ratio",
@@ -429,7 +480,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
     {
       "id": "test_count",
       "claim": "test-suite size badge (current tree; recount with pytest when tests change)",
-      "display": "364",
+      "display": "371",
       "kind": "display-only",
       "must_appear_in": ["README.md"]
     }

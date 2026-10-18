@@ -8,7 +8,7 @@ One shared memory. One small, cache-aligned packet per agent.
 Every hand-off hashed, signable, and replayable.
 
 [![CI](https://github.com/Pranavk098/context-fabric/actions/workflows/ci.yml/badge.svg)](https://github.com/Pranavk098/context-fabric/actions/workflows/ci.yml)
-![tests](https://img.shields.io/badge/tests-364%20total-brightgreen)
+![tests](https://img.shields.io/badge/tests-371%20total-brightgreen)
 ![python](https://img.shields.io/badge/python-3.12%2B-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
 ![status](https://img.shields.io/badge/status-v0.1%20local--first-orange)
@@ -54,9 +54,11 @@ receipt -> evals/reports/demo_fleet_20261017_231929.json
 identical every time, so the GPU's prefix cache helps it as much as possible.
 We still win by 3.17x on prompt tokens, at equal accuracy.
 
-Pre-registered pilot on the real `httpx` repository (32k-token contexts, answer keys derived
-from actual code): **35.87× fewer prompt tokens at parity (5/6 vs 5/6)** —
-[`PILOT.md`](docs/engineering/PILOT.md).
+Pre-registered pilot on the real `httpx` repository (32k-token contexts, memory built
+mechanically from the source): **13.62× fewer billed prompt tokens at parity (5/6 vs 5/6)** —
+[`PILOT-MECH-RESULT.md`](docs/engineering/PILOT-MECH-RESULT.md). On a warm prefix cache the raw
+prompt costs only 182 uncached tokens vs 11,857 for compile, so the win is context size and KV
+memory, not prefill.
 
 ## Numbers with receipts
 
@@ -66,7 +68,7 @@ from actual code): **35.87× fewer prompt tokens at parity (5/6 vs 5/6)** —
 
 | What | Result | Baseline & caveat | Receipt |
 | :--- | :--- | :--- | :--- |
-| **Real-repo pilot** | **35.87× fewer prompt tokens**, accuracy parity (5/6 vs 5/6) | real `httpx` @ `b5addb64`, 32k-token contexts, pre-registered criteria, one 1.5B model | [`PILOT.md`](docs/engineering/PILOT.md) |
+| **Real-repo pilot** | **13.62× fewer billed prompt tokens**, accuracy parity (5/6 vs 5/6) | real `httpx` @ `b5addb64`, 32k-token contexts, mechanical memory, one 1.5B model; uncached tokens 182 raw vs 11,857 compile on a warm cache. The earlier 35.87× used hand-written answer-carrying blocks | [`PILOT-MECH-RESULT.md`](docs/engineering/PILOT-MECH-RESULT.md) |
 | Multi-agent demo | **3.17× fewer prompt tokens**, same answers (6/6 both) | vs strongest naive broadcast; warm cache; synthetic fixture | [`DEMO.md`](docs/engineering/DEMO.md) |
 | Engine portability | **Ollama reproduces vLLM exactly** (16/16 byte-identical prompts, 3.17× holds) | no cache/KV telemetry on Ollama; Q4 vs fp16 | [`ENGINE-MATRIX.md`](docs/engineering/ENGINE-MATRIX.md) |
 | Cross-agent cost (Stage B) | **~2× best-case / ~9× realistic** | vs naive broadcast on one GPU | [`VERIFICATION-REPORT.md`](docs/engineering/VERIFICATION-REPORT.md) |

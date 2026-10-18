@@ -52,7 +52,9 @@ Everything that matters is here. "Main" documents are marked ⭐.
 - `GAP-WAVE-MEASUREMENTS.md` — measurement audit (every number re-derived).
 - `MMU-FOLD-FORK.md` — packet-level EPOCH_FOLD / COW_FORK semantics.
 - `TRACK-CD-REVIEW.md` — code audit of Tracks C+D (3 S1 + 2 S2 fixed, verifiers hardened).
-- `PILOT.md` + `PILOT-PREREGISTRATION.md` — real-repo pilot (35.87× at parity) + frozen criteria.
+- `PILOT.md` + `PILOT-PREREGISTRATION.md` — original real-repo pilot (35.87×, hand-written blocks) + frozen criteria.
+- `PILOT-MECH-PREREGISTRATION.md` + `PILOT-MECH-RESULT.md` — pilot re-run on mechanical memory (13.62× billed; uncached tokens favor the cached raw prompt).
+- `B4-PREREGISTRATION-v2.md` + `B4-RESULT.md` — divergent-role experiment vs prefix caching: KILL.
 - `ENGINE-MATRIX.md` — vLLM vs Ollama portability results.
 - `ADAPTERS.md` — cloud adapters: OpenAI/Anthropic cache mapping.
 - `SHADOW-CORTEX.md` — probe generation/evaluation v0.

@@ -134,7 +134,9 @@ def test_all_error_run_fails_every_criterion() -> None:
     from evals.pilot import _criteria
 
     arm = {"prompt_tokens_total": 0, "passed": 0}
-    records = [{"arm": a, "error": "502 Bad Gateway", "compiled": False} for a in ("raw", "compile")]
+    records = [
+        {"arm": a, "error": "502 Bad Gateway", "compiled": False} for a in ("raw", "compile")
+    ]
     verdict = _criteria({"raw": arm, "compile": arm}, records, {"compile": {"errors": 1}}, 6)
     assert not verdict["a_token_reduction"]["pass"]
     assert not verdict["b_accuracy_parity"]["pass"]
