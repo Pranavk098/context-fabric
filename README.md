@@ -8,7 +8,7 @@ One shared memory. One small, cache-aligned packet per agent.
 Every hand-off hashed, signable, and replayable.
 
 [![CI](https://github.com/Pranavk098/context-fabric/actions/workflows/ci.yml/badge.svg)](https://github.com/Pranavk098/context-fabric/actions/workflows/ci.yml)
-![tests](https://img.shields.io/badge/tests-358%20total-brightgreen)
+![tests](https://img.shields.io/badge/tests-364%20total-brightgreen)
 ![python](https://img.shields.io/badge/python-3.12%2B-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
 ![status](https://img.shields.io/badge/status-v0.1%20local--first-orange)
@@ -121,6 +121,10 @@ Honesty is the product, so the gaps are on the label:
 - **Not a hosted service.** Local-first by design; SQLite store, no cloud dependency.
 - **No LLM in the compile path.** Summaries would be nondeterministic; we refuse them in v0.
 - **Engine cache hints are computed but not yet sent** — vLLM RFC #52113 is still open.
+- **Per-role compiling does not beat prefix caching when the context fits.** Pre-registered B4
+  (httpx, 1.5B model, 4 roles): compiled packets lost on quality (21/36 vs 29/36) *and* on
+  uncached prefill tokens to one shared, prefix-cached raw prompt
+  ([`B4-RESULT.md`](docs/engineering/B4-RESULT.md)).
 - **Postgres, multi-worker serving, OTel** are deferred with explicit triggers
   ([`ROADMAP-DECISIONS.md`](docs/engineering/ROADMAP-DECISIONS.md)); the full spec-vs-code map is
   [`IMPLEMENTATION-STATUS.md`](docs/engineering/IMPLEMENTATION-STATUS.md).
