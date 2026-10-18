@@ -22,6 +22,7 @@ from collections.abc import Mapping
 from datetime import datetime
 from typing import Any
 
+from kernel.cartridge.serializer import Cartridge
 from kernel.router.compiler import DEFAULT_AS_OF, CompileResult, compile_packet
 from protocol.models import Recipient, Scope
 from protocol.signing import Signer
@@ -39,6 +40,8 @@ def compile_node_packet(
     budget_base: int = 4000,
     as_of: datetime = DEFAULT_AS_OF,
     signer: Signer | None = None,
+    cartridge: Cartridge | None = None,
+    output_contract: str | None = None,
 ) -> CompileResult:
     """Compile one node's packet from its state, on the sidecar's compile path.
 
@@ -47,6 +50,10 @@ def compile_node_packet(
     ``compile_packet`` (stage comes from ``recipient.stage``). No network, no clock:
     identical inputs yield the identical packet hash and policy trace as calling
     ``compile_packet`` directly.
+
+    ``cartridge`` pins a shared Tier-0 hologram (exploration lever L1); ``output_contract``
+    overrides the packet's answer-format contract (lever L3). Both default to the frozen
+    behaviour when omitted.
     """
     objective = state["objective"]
     if not isinstance(objective, str):
@@ -62,6 +69,8 @@ def compile_node_packet(
         budget_base=budget_base,
         as_of=as_of,
         signer=signer,
+        cartridge=cartridge,
+        output_contract=output_contract,
     )
 
 

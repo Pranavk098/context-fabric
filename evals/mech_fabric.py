@@ -26,7 +26,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from kernel.cartridge.ast_extractor import FileSymbols, extract_source
-from kernel.cartridge.serializer import build_cartridge, count_tokens
+from kernel.cartridge.serializer import Cartridge, build_cartridge, count_tokens
+from kernel.router.recall import tokenize
 from protocol.canonical import sha256_hex
 from protocol.models import (
     BlockKind,
@@ -100,6 +101,25 @@ def _import_roots(tree: ast.Module) -> list[str]:
     return roots
 
 
+def _import_statements(tree: ast.Module) -> list[str]:
+    """Ordered full ``from <module> import <names>`` statements (module-level only).
+
+    Unlike :func:`_import_roots`, this keeps the symbol -> module mapping (e.g.
+    ``from ._config import DEFAULT_TIMEOUT_CONFIG``), which the B4 planner objectives need.
+    """
+    out: list[str] = []
+    for node in tree.body:
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                out.append(f"import {alias.name}")
+        elif isinstance(node, ast.ImportFrom):
+            names = ", ".join(alias.name for alias in node.names)
+            dots = "." * node.level
+            module = f"{dots}{node.module}" if node.module else dots
+            out.append(f"from {module} import {names}")
+    return out
+
+
 def _block(
     block_id: str,
     kind: BlockKind,
@@ -135,12 +155,10 @@ def build_blocks(repo_root: str | Path, files: Sequence[str]) -> list[ContextBlo
     """
     root = Path(repo_root)
     blocks: list[ContextBlock] = []
-    symbols_per_file: list[FileSymbols] = []
     seq = 0
     for rel in files:
         text = (root / rel).read_text(encoding="utf-8", errors="replace")
         fs = extract_source(rel, text)
-        symbols_per_file.append(fs)
         tree = ast.parse(text)
         docs = _docstrings(tree)
         for sym in fs.exported:
@@ -183,12 +201,151 @@ def build_blocks(repo_root: str | Path, files: Sequence[str]) -> list[ContextBlo
                 )
             )
 
-    commit = sha256_hex(
-        "\n".join(f"{rel} {sha256_hex((root / rel).read_bytes())}" for rel in files).encode("utf-8")
+    cartridge = build_project_cartridge(root, files)
+    seq += 1
+    blocks.append(
+        _block("blk_cartridge", BlockKind.artifact, cartridge.hologram_markdown, seq, None, ())
     )
-    cartridge = build_cartridge(
-        symbols_per_file, tenant_id="default", project_id="httpx-b4", commit_hash=commit
-    )
+    return blocks
+
+
+def build_project_cartridge(repo_root: str | Path, files: Sequence[str]) -> Cartridge:
+    """Build the project ``.cfx`` cartridge (Tier-0 hologram) for ``files``.
+
+    Extracted from :func:`build_blocks` so a caller can pin the same hologram as a Tier-0
+    shared prefix across roles (exploration lever L1). Reads only ``(repo_root, files)`` and
+    produces the byte-identical cartridge :func:`build_blocks` embeds as its artifact block.
+    """
+    root = Path(repo_root)
+    symbols: list[FileSymbols] = []
+    hashes: list[str] = []
+    for rel in files:
+        text = (root / rel).read_text(encoding="utf-8", errors="replace")
+        symbols.append(extract_source(rel, text))
+        hashes.append(f"{rel} {sha256_hex((root / rel).read_bytes())}")
+    commit = sha256_hex("\n".join(hashes).encode("utf-8"))
+    return build_cartridge(symbols, tenant_id="default", project_id="httpx-b4", commit_hash=commit)
+
+
+def _rank_symbols(
+    root: Path, files: Sequence[str], query: str
+) -> list[tuple[float, str, str, str]]:
+    """Top-level symbols ranked by lexical relevance to ``query``, with full source bodies.
+
+    Returns ``(score, rel, name, source_segment)`` descending by score, ties broken by
+    ``(rel, name)``. Score is the fraction of query tokens present in the symbol's
+    signature + first docstring line + body.
+    """
+    q = set(tokenize(query))
+    ranked: list[tuple[float, str, str, str]] = []
+    for rel in files:
+        text = (root / rel).read_text(encoding="utf-8", errors="replace")
+        tree = ast.parse(text)
+        docs = _docstrings(tree)
+        for node in tree.body:
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                continue
+            segment = ast.get_source_segment(text, node)
+            if not segment:
+                continue
+            doc = docs.get(node.name, "")
+            probe = f"{node.name} {doc} {segment}"
+            score = len(q & set(tokenize(probe))) / len(q) if q else 0.0
+            ranked.append((score, rel, node.name, segment))
+    ranked.sort(key=lambda t: (-t[0], t[1], t[2]))
+    return ranked
+
+
+def build_rich_blocks(
+    repo_root: str | Path,
+    files: Sequence[str],
+    query: str,
+    *,
+    top_k: int = 8,
+    body_budget_tokens: int = 1200,
+) -> list[ContextBlock]:
+    """Exploration lever L2: richer mechanical fabric, query-aware.
+
+    Same base as :func:`build_blocks` (signatures + first docstring lines + assignments +
+    cartridge) with two enrichments, both behind this function (``build_blocks`` itself is
+    unchanged):
+
+    * the per-file imports block carries full ``from <module> import <names>`` statements
+      instead of root names, so a symbol's originating module is recoverable;
+    * the top-``top_k`` symbols most relevant to ``query`` get a full source-body ``fact``
+      block, added while ``body_budget_tokens`` lasts.
+
+    Unlike :func:`build_blocks`, this reads ``query`` (the objective) by design.
+    """
+    root = Path(repo_root)
+    blocks: list[ContextBlock] = []
+    seq = 0
+    for rel in files:
+        text = (root / rel).read_text(encoding="utf-8", errors="replace")
+        fs = extract_source(rel, text)
+        tree = ast.parse(text)
+        docs = _docstrings(tree)
+        for sym in fs.exported:
+            doc = docs.get(sym.name)
+            content = f"{rel}: {sym.signature}" + (f" — {doc}" if doc else "")
+            seq += 1
+            blocks.append(
+                _block(
+                    f"blk_{sha256_hex(f'{rel}:{sym.name}'.encode())[:16]}",
+                    BlockKind.fact,
+                    content,
+                    seq,
+                    rel,
+                    (sym.name,),
+                )
+            )
+        for name, value in _assignments(tree):
+            seq += 1
+            blocks.append(
+                _block(
+                    f"blk_{sha256_hex(f'{rel}:{name}'.encode())[:16]}",
+                    BlockKind.fact,
+                    f"{rel}: {name} = {value}",
+                    seq,
+                    rel,
+                    (name,),
+                )
+            )
+        imports = _import_statements(tree)
+        if imports:
+            seq += 1
+            blocks.append(
+                _block(
+                    f"blk_{sha256_hex(f'{rel}:imports'.encode())[:16]}",
+                    BlockKind.fact,
+                    f"{rel}: {', '.join(imports)}",
+                    seq,
+                    rel,
+                    (),
+                )
+            )
+
+    spent = 0
+    for score, rel, name, segment in _rank_symbols(root, files, query)[:top_k]:
+        if score <= 0.0:
+            continue
+        content = f"{rel}: {name} (body)\n{segment}"
+        if spent + count_tokens(content) > body_budget_tokens:
+            continue
+        spent += count_tokens(content)
+        seq += 1
+        blocks.append(
+            _block(
+                f"blk_{sha256_hex(f'{rel}:{name}:body'.encode())[:16]}",
+                BlockKind.fact,
+                content,
+                seq,
+                rel,
+                (name,),
+            )
+        )
+
+    cartridge = build_project_cartridge(root, files)
     seq += 1
     blocks.append(
         _block("blk_cartridge", BlockKind.artifact, cartridge.hologram_markdown, seq, None, ())

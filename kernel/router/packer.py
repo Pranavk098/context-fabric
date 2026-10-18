@@ -156,6 +156,7 @@ def pack(
     budget: TokenBudget,
     cartridge_tokens: int,
     mmr_lambda: float = MMR_LAMBDA,
+    output_contract: str | None = None,
 ) -> PackResult:
     ledger = sorted(
         (b for b in blocks if b.block_kind in _LEDGER_KINDS),
@@ -224,7 +225,8 @@ def pack(
         if b.block_kind is BlockKind.negative_knowledge
     )
     anchor = RecencyAnchor(
-        output_contract=f"Stage '{stage}': reply with the required structured output only.",
+        output_contract=output_contract
+        or f"Stage '{stage}': reply with the required structured output only.",
         prohibitions=prohibitions,
     )
 
