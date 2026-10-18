@@ -566,7 +566,8 @@ def _criteria(
     compile_total = int(compile_arm["prompt_tokens_total"])
     return {
         "a_token_reduction": {
-            "pass": compile_total * 3 <= raw_total,
+            # No measured tokens is not a reduction: an all-errors run must not pass.
+            "pass": compile_total > 0 and raw_total > 0 and compile_total * 3 <= raw_total,
             "requirement": "compile total prompt tokens <= raw total / 3",
             "raw_prompt_tokens_total": raw_total,
             "compile_prompt_tokens_total": compile_total,
@@ -575,7 +576,7 @@ def _criteria(
             else None,
         },
         "b_accuracy_parity": {
-            "pass": int(compile_arm["passed"]) >= int(raw["passed"]) - 1,
+            "pass": not error_rows and int(compile_arm["passed"]) >= int(raw["passed"]) - 1,
             "requirement": "compile passes >= raw passes - 1",
             "raw_passed": raw["passed"],
             "compile_passed": compile_arm["passed"],

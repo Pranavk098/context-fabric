@@ -127,3 +127,15 @@ def test_dry_run_is_deterministic_and_reports_recall(tmp_path: Path) -> None:
         assert isinstance(row["all_in_packet"], bool)
     assert first["arms"]["raw"]["prompt_tokens_total"] > 0
     assert first["arms"]["compile"]["prompt_tokens_total"] > 0
+
+
+def test_all_error_run_fails_every_criterion() -> None:
+    """Regression: a run where every request errored once printed PASS for (a) and (b)."""
+    from evals.pilot import _criteria
+
+    arm = {"prompt_tokens_total": 0, "passed": 0}
+    records = [{"arm": a, "error": "502 Bad Gateway", "compiled": False} for a in ("raw", "compile")]
+    verdict = _criteria({"raw": arm, "compile": arm}, records, {"compile": {"errors": 1}}, 6)
+    assert not verdict["a_token_reduction"]["pass"]
+    assert not verdict["b_accuracy_parity"]["pass"]
+    assert not verdict["c_no_compile_errors"]["pass"]
