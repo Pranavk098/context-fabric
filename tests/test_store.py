@@ -155,6 +155,7 @@ def manifest(packet_id: str, content_hash: str, *, seq: int = 0) -> CompileManif
         block_hashes=("sha256:d1", "sha256:d2"),
         model="test-model",
         engine="test-engine",
+        purpose=None,
         created_at=datetime(2026, 1, 2, tzinfo=UTC),
     )
 
@@ -171,6 +172,25 @@ def test_compile_log_roundtrip_and_ordering(tmp_path: Path) -> None:
     assert store.load_compile_log() == [first, second]
     assert store.load_compile_log(limit=1) == [first]
     assert store.load_compile_log(limit=None) == [first, second]
+
+
+def test_pre_purpose_store_is_migrated(tmp_path: Path) -> None:
+    path = tmp_path / "old.db"
+    conn = sqlite3.connect(path)
+    conn.execute(
+        "CREATE TABLE compile_log (log_seq INTEGER PRIMARY KEY AUTOINCREMENT,"
+        " packet_id TEXT NOT NULL UNIQUE, content_hash TEXT NOT NULL,"
+        " scope_json TEXT NOT NULL, recipient_json TEXT NOT NULL, objective TEXT NOT NULL,"
+        " stage TEXT NOT NULL, as_of TEXT NOT NULL, watermark_event_seq INTEGER NOT NULL,"
+        " budget_base INTEGER NOT NULL, block_ids TEXT NOT NULL, block_hashes TEXT NOT NULL,"
+        " model TEXT, engine TEXT, created_at TEXT NOT NULL)"
+    )
+    conn.commit()
+    conn.close()
+    store = SqliteStore(path)
+    first = manifest("cpk_1", "sha256:h1")
+    store.log_compile(first)
+    assert store.get_compile("cpk_1") == first
 
 
 def test_compile_log_relog_same_id_is_first_write_wins(tmp_path: Path) -> None:
@@ -198,6 +218,7 @@ def test_compile_log_rejects_mismatched_block_lists(tmp_path: Path) -> None:
         block_hashes=(),
         model="",
         engine="",
+        purpose=None,
         created_at=datetime(2026, 1, 2, tzinfo=UTC),
     )
     with pytest.raises(ValueError):

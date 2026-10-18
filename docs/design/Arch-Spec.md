@@ -8,7 +8,7 @@ NORMATIVE ARCHITECTURE SPECIFICATION | VERSION 1.0 (SUPERSEDES CPP v0.1)
 > **Status note (2026-10-18):** design of record, not a status report. What is built and the
 > spec-vs-code deltas live in `../engineering/IMPLEMENTATION-STATUS.md` and
 > `../engineering/ROADMAP-DECISIONS.md`. Known deltas as of this date: policy enforces
-> lifecycle/RBAC/validity only (purpose, trust-domain and freshness gates pending);
+> lifecycle/RBAC/validity/trust-domain/purpose (purpose is an optional compile-time parameter) and freshness gates implemented;
 > the >85% KV-reuse invariant is an empirical target (intra-agent measured 60–74%);
 > CoW is implemented at the packet/memory-state level (`kernel/epochs.py`, `kernel/mmu/`),
 > not as KV-page forking; packet signing is optional in the compiler.
@@ -24,7 +24,7 @@ NORMATIVE ARCHITECTURE SPECIFICATION | VERSION 1.0 (SUPERSEDES CPP v0.1)
 7. **Copy-on-Write (CoW) Sub-Agent Spawning:** Child agents MUST share immutable Tier 0 and Tier 1 pages with parent agents and discard their ephemeral Tier 3 scratchpad upon returning a verified contract[cite: 24, 29].
 8. **First-Class Negative Knowledge:** Falsified hypotheses, failed patches, and broken assumptions MUST be recorded as `negative_knowledge` blocks in Tier 1 so no downstream agent repeats a dead end.
 9. **Deterministic Core, Learned Edge:** Policy enforcement, dependency closure, epoch folding, and budget caps are 100% deterministic[cite: 21, 38]. Learned rerankers/compressors are optional plugins behind feature gates[cite: 20, 27, 37, 38].
-10. **Cryptographic Replayability:** Every compiled packet is immutable, content-hashed (`sha256`), signed, and linked to an explainable route trace[cite: 21, 24, 25, 32].
+10. **Cryptographic Replayability:** Every compiled packet is immutable, content-hashed (`sha256`), signable, and linked to an explainable route trace[cite: 21, 24, 25, 32].
 
 ---
 

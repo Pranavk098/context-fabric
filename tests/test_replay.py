@@ -85,6 +85,7 @@ def compile_and_log(store: SqliteStore, objective: str = "hello fabric") -> Comp
         block_hashes=tuple(content_hash for _, content_hash in pairs),
         model="test-model",
         engine="test-engine",
+        purpose=None,
         created_at=AS_OF,
     )
     store.log_compile(manifest)
@@ -171,6 +172,7 @@ def test_replay_hash_mismatch_reports_both_hashes(
         block_hashes=manifest.block_hashes,
         model=manifest.model,
         engine=manifest.engine,
+        purpose=manifest.purpose,
         created_at=manifest.created_at,
     )
     (db.parent / "lying.db").unlink(missing_ok=True)

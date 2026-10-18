@@ -23,6 +23,9 @@ class _Preset(TypedDict):
     output_per_mtok: float
     cached_input_per_mtok: float
     cache_write_per_mtok: NotRequired[float]
+    prefix_min_tokens: NotRequired[int]
+    cache_ttl_seconds: NotRequired[int]
+    cache_write_premium: NotRequired[float]
     source: str
     checked: str
 
@@ -32,6 +35,10 @@ PRESETS: dict[str, _Preset] = {
         "input_per_mtok": 2.50,
         "output_per_mtok": 10.00,
         "cached_input_per_mtok": 1.25,
+        # OpenAI does not publish a single fixed minimum for gpt-4o-class models;
+        # 1,024 is the published threshold for GPT-5.6+ and a conservative proxy.
+        "prefix_min_tokens": 1024,
+        "cache_ttl_seconds": 600,
         "source": _OPENAI_PRICING,
         "checked": CHECKED,
     },
@@ -39,6 +46,8 @@ PRESETS: dict[str, _Preset] = {
         "input_per_mtok": 0.15,
         "output_per_mtok": 0.60,
         "cached_input_per_mtok": 0.075,
+        "prefix_min_tokens": 1024,
+        "cache_ttl_seconds": 600,
         "source": _OPENAI_PRICING,
         "checked": CHECKED,
     },
@@ -47,6 +56,9 @@ PRESETS: dict[str, _Preset] = {
         "output_per_mtok": 15.00,
         "cached_input_per_mtok": 0.30,
         "cache_write_per_mtok": 3.75,
+        "prefix_min_tokens": 1024,
+        "cache_ttl_seconds": 300,
+        "cache_write_premium": 1.25,
         "source": _ANTHROPIC_PRICING,
         "checked": CHECKED,
     },
@@ -55,6 +67,9 @@ PRESETS: dict[str, _Preset] = {
         "output_per_mtok": 5.00,
         "cached_input_per_mtok": 0.10,
         "cache_write_per_mtok": 1.25,
+        "prefix_min_tokens": 1024,
+        "cache_ttl_seconds": 300,
+        "cache_write_premium": 1.25,
         "source": _ANTHROPIC_PRICING,
         "checked": CHECKED,
     },
@@ -76,6 +91,15 @@ class CostRates:
     output_per_mtok: float
     cached_input_per_mtok: float
     cache_write_per_mtok: float | None = None
+
+
+@dataclass(frozen=True)
+class PrefixCachePolicy:
+    """Provider-specific prefix-cache rules used to model the competitor."""
+
+    prefix_min_tokens: int
+    ttl_seconds: int
+    write_premium: float | None = None
 
 
 @dataclass(frozen=True)
@@ -104,6 +128,96 @@ def _preset_rates(preset: str) -> CostRates:
         cached_input_per_mtok=entry["cached_input_per_mtok"],
         cache_write_per_mtok=entry.get("cache_write_per_mtok"),
     )
+
+
+def prefix_cache_policy(preset: str) -> PrefixCachePolicy:
+    """Return the provider prefix-cache policy for a preset.
+
+    ``prefix_min_tokens`` is the smallest shared prefix the provider will cache.
+    ``ttl_seconds`` is the default/representative idle time after which a cached
+    prefix becomes a miss. ``write_premium`` is the multiplier over the input
+    rate for cache writes (``None`` when the provider has no separate write
+    charge).
+    """
+    entry = PRESETS[preset]
+    return PrefixCachePolicy(
+        prefix_min_tokens=entry.get("prefix_min_tokens") or 1024,
+        ttl_seconds=entry.get("cache_ttl_seconds") or 300,
+        write_premium=entry.get("cache_write_premium"),
+    )
+
+
+def effective_cached_tokens(
+    prefix_tokens: int,
+    request_tokens: int,
+    *,
+    policy: PrefixCachePolicy,
+) -> int:
+    """Tokens that actually receive cached-read pricing after the provider gate.
+
+    A prefix shorter than ``policy.prefix_min_tokens`` is not cached, so the
+    discount is zero even when the provider would otherwise reuse it.
+    """
+    if prefix_tokens < policy.prefix_min_tokens or request_tokens <= 0:
+        return 0
+    return min(prefix_tokens, request_tokens)
+
+
+def cached_tokens_after_ttl(
+    cached_tokens: int,
+    idle_seconds: float,
+    ttl_seconds: float,
+) -> int:
+    """Return cached tokens that are still warm after ``idle_seconds`` of inactivity."""
+    return cached_tokens if idle_seconds <= ttl_seconds else 0
+
+
+def cache_write_tokens_for_request(
+    prefix_tokens: int,
+    *,
+    policy: PrefixCachePolicy,
+    idle_seconds: float = 0.0,
+) -> int:
+    """Tokens charged as a cache write on a request.
+
+    For Anthropic this is the prefix size on the first request after a write or
+    TTL miss; for OpenAI there is no separate write charge.
+    """
+    if policy.write_premium is None:
+        return 0
+    if prefix_tokens < policy.prefix_min_tokens:
+        return 0
+    if idle_seconds <= policy.ttl_seconds:
+        # Warm cache: this request reads, it does not write.
+        return 0
+    # TTL miss: the prefix must be rewritten.
+    return prefix_tokens
+
+
+def sidecar_compute_cost(latency_seconds: float, cost_per_hour_usd: float) -> float:
+    """Dollar cost of sidecar compile latency at a given compute price."""
+    if latency_seconds <= 0 or cost_per_hour_usd <= 0:
+        return 0.0
+    return latency_seconds * cost_per_hour_usd / 3600.0
+
+
+def break_even_calls(*, write_premium: float = 1.0, read_multiplier: float = 0.5) -> int:
+    """Minimum calls inside one TTL for prefix caching to beat no prefix caching.
+
+    Costs are expressed as multiples of the uncached input cost for the shared
+    prefix. With caching: one write at ``write_premium`` plus ``N-1`` reads at
+    ``read_multiplier``. Without caching: ``N`` full reads. Returns the smallest
+    integer ``N`` where caching is cheaper.
+    """
+    if not math.isfinite(write_premium) or not math.isfinite(read_multiplier):
+        raise ValueError("write_premium and read_multiplier must be finite")
+    if read_multiplier >= 1.0:
+        raise ValueError("read_multiplier must be < 1")
+    if write_premium < 1.0:
+        raise ValueError("write_premium must be >= 1.0")
+    if write_premium <= read_multiplier:
+        return 1
+    return int(math.floor((write_premium - read_multiplier) / (1.0 - read_multiplier))) + 1
 
 
 def _usd(tokens: int, per_mtok: float) -> float:

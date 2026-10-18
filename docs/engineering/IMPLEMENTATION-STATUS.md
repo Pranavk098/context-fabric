@@ -40,3 +40,13 @@ cloud adapters, MCP surface, writable quarantined memory, `cfx demo` (fleet / re
 priced), SQLite store, and CI guards (`NUMBERS.md`, perf budget). **Next:** engine-hint wiring
 when the vLLM RFC lands, Gemini adapter, Shadow Cortex introspection probes, Postgres
 (triggers in `ROADMAP-DECISIONS.md`).
+
+## Order B / B6 claim/code delta decisions
+
+| Item | Code check | Decision | Files changed |
+|------|------------|----------|---------------|
+| a. MMR | `kernel/router/packer.py:71-126` implements `lam*utility - (1-lam)*max_similarity` and updates penalties against already-selected blocks; this is true MMR. | No code change; docs already describe lambda-MMR correctly. | — |
+| b. Purpose trust domains | `kernel/router/policy_engine.py` enforced trust-domain exact match, lifecycle, RBAC, and freshness, but had no purpose gate. `ContextBlock` already carries `allowed_purposes`. | Implement purpose compartments: added optional `purpose` parameter to `apply_policy` and `compile_packet`, wired it through `cfx serve` (`X-Fabric-Purpose` header) and `cfx replay`, and recorded it in `CompileManifest`. Default `None` preserves existing packet hashes. | `kernel/router/policy_engine.py:23-49`, `kernel/router/compiler.py:77-214`, `sidecar/server.py:375-438`, `sidecar/replay.py:81-90`, `kernel/store/sqlite_store.py:101-160`, `tests/test_kernel.py`, `tests/test_policy_engine.py` |
+| c. Signing | `cfx serve` (`sidecar/server.py`, `sidecar/cli.py`) never passes a signer, so compiled packets are emitted unsigned by default. Docs said "must be signed". | Reword docs from "must"/"hashed and signed" to "can be signed"/"signable". No code change; signing remains optional. | `README.md:8`, `README.md:90`, `docs/design/Arch-Spec.md:27`, `docs/engineering/VERIFICATION-REPORT.md:56`, `docs/engineering/SEAL.md:25` |
+| d. CoW | Cross-agent sharing in the serve/demo path is prefix sharing via `sidecar/render.py` + `adapters/raw_llm.py`, not KV-page CoW. Packet-level COW exists in `kernel/mmu/cow_forker.py`. | Reword the README "Share" bullet to say "prefix sharing" for the serve path. Leave the real COW_FORK code/docs unchanged. | `README.md:89` |
+| e. Capability-claims guard | `scripts/check_docs_numbers.py` only checked numbers, not capability claims. | Add `CAPABILITY_REGISTRY` and `_check_capabilities` scan: docs may assert a phrase only if the named symbol (and optional test) exists. | `scripts/check_docs_numbers.py`, `tests/test_docs_numbers.py` |

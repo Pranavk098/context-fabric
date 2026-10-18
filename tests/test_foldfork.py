@@ -112,6 +112,7 @@ def compile_and_log(store: SqliteStore, objective: str = "hello fabric") -> Comp
         block_hashes=tuple(content_hash for _, content_hash in pairs),
         model="test-model",
         engine="test-engine",
+        purpose=None,
         created_at=AS_OF,
     )
     store.log_compile(manifest)

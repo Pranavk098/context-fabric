@@ -39,7 +39,7 @@ Legend
 | `packing_redundancy` | `-13.4%` | strict | `README.md`, `CHANGELOG.md` | `evals/reports/packing_bench_20261017_231759.json` | (0.205616 − 0.177986) = 0.0276 jaccard delta; /0.205616 = 13.4% |
 | `quality_parity_ratio` | `~5.6x` | strict | `README.md`, `CHANGELOG.md` | `evals/reports/audit_b6_20261016_173804.json` | 408 / 73 = 5.589 → 5.6 (1.5B, lossless arm; N7 caveats) |
 | `httpx_compression` | `~17x` | display-only | `README.md`, `CHANGELOG.md` | — (N5: no stored report) | 64,066 → 3,806 tokens; drifts with the installed `httpx` version |
-| `test_count` | `338` | display-only | `README.md` | — | `uv run python -m pytest --collect-only -q` on the current tree (3 embedding/symlink tests skip without the extra/on Windows); recount and update README + this row together |
+| `test_count` | `355` | display-only | `README.md` | — | `uv run python -m pytest --collect-only -q` on the current tree (3 embedding/symlink tests skip without the extra/on Windows); recount and update README + this row together |
 
 Stale patterns (must never appear as current numbers in their scoped docs; historical
 docs that explicitly quote superseded runs are exempt via `historical_ok`):
@@ -323,6 +323,102 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "must_appear_in": ["README.md", "CHANGELOG.md"]
     },
     {
+      "id": "cost_demo_gpt4o_warm_native",
+      "claim": "B2 cost model: demo fleet native-cache-only cost, openai:gpt-4o, warm cache",
+      "baseline": "sidecar+cache cost for the same workload ($0.0388)",
+      "display": "$0.0639",
+      "kind": "display-only",
+      "must_appear_in": ["docs/engineering/COSTS.md"]
+    },
+    {
+      "id": "cost_demo_gpt4o_warm_sidecar",
+      "claim": "B2 cost model: demo fleet sidecar+cache cost, openai:gpt-4o, warm cache",
+      "baseline": "native-cache-only cost for the same workload ($0.0639)",
+      "display": "$0.0388",
+      "kind": "display-only",
+      "must_appear_in": ["docs/engineering/COSTS.md"]
+    },
+    {
+      "id": "cost_demo_gpt4o_miss_native",
+      "claim": "B2 cost model: demo fleet native-cache-only cost, openai:gpt-4o, TTL miss",
+      "baseline": "sidecar+cache cost for the same workload ($0.0388)",
+      "display": "$0.1140",
+      "kind": "display-only",
+      "must_appear_in": ["docs/engineering/COSTS.md"]
+    },
+    {
+      "id": "cost_demo_gpt4o_miss_sidecar",
+      "claim": "B2 cost model: demo fleet sidecar+cache cost, openai:gpt-4o, TTL miss",
+      "baseline": "native-cache-only cost for the same workload ($0.1140)",
+      "display": "$0.0388",
+      "kind": "display-only",
+      "must_appear_in": ["docs/engineering/COSTS.md"]
+    },
+    {
+      "id": "cost_demo_sonnet_warm_native",
+      "claim": "B2 cost model: demo fleet native-cache-only cost, anthropic:sonnet, warm cache",
+      "baseline": "sidecar+cache cost for the same workload ($0.0468)",
+      "display": "$0.0541",
+      "kind": "display-only",
+      "must_appear_in": ["docs/engineering/COSTS.md"]
+    },
+    {
+      "id": "cost_demo_sonnet_warm_sidecar",
+      "claim": "B2 cost model: demo fleet sidecar+cache cost, anthropic:sonnet, warm cache",
+      "baseline": "native-cache-only cost for the same workload ($0.0541)",
+      "display": "$0.0468",
+      "kind": "display-only",
+      "must_appear_in": ["docs/engineering/COSTS.md"]
+    },
+    {
+      "id": "cost_demo_sonnet_miss_native",
+      "claim": "B2 cost model: demo fleet native-cache-only cost, anthropic:sonnet, TTL miss",
+      "baseline": "sidecar+cache cost for the same workload ($0.0468)",
+      "display": "$0.2878",
+      "kind": "display-only",
+      "must_appear_in": ["docs/engineering/COSTS.md"]
+    },
+    {
+      "id": "cost_demo_sonnet_miss_sidecar",
+      "claim": "B2 cost model: demo fleet sidecar+cache cost, anthropic:sonnet, TTL miss",
+      "baseline": "native-cache-only cost for the same workload ($0.2878)",
+      "display": "$0.0468",
+      "kind": "display-only",
+      "must_appear_in": ["docs/engineering/COSTS.md"]
+    },
+    {
+      "id": "cost_pilot_gpt4o_warm_native",
+      "claim": "B2 cost model: httpx pilot native-cache-only cost, openai:gpt-4o, warm cache",
+      "baseline": "sidecar+cache cost for the same workload ($0.0157)",
+      "display": "$0.2420",
+      "kind": "display-only",
+      "must_appear_in": ["docs/engineering/COSTS.md"]
+    },
+    {
+      "id": "cost_pilot_gpt4o_warm_sidecar",
+      "claim": "B2 cost model: httpx pilot sidecar+cache cost, openai:gpt-4o, warm cache",
+      "baseline": "native-cache-only cost for the same workload ($0.2420)",
+      "display": "$0.0157",
+      "kind": "display-only",
+      "must_appear_in": ["docs/engineering/COSTS.md"]
+    },
+    {
+      "id": "cost_pilot_sonnet_warm_native",
+      "claim": "B2 cost model: httpx pilot native-cache-only cost, anthropic:sonnet, warm cache",
+      "baseline": "sidecar+cache cost for the same workload ($0.0187)",
+      "display": "$0.1794",
+      "kind": "display-only",
+      "must_appear_in": ["docs/engineering/COSTS.md"]
+    },
+    {
+      "id": "cost_pilot_sonnet_warm_sidecar",
+      "claim": "B2 cost model: httpx pilot sidecar+cache cost, anthropic:sonnet, warm cache",
+      "baseline": "native-cache-only cost for the same workload ($0.1794)",
+      "display": "$0.0187",
+      "kind": "display-only",
+      "must_appear_in": ["docs/engineering/COSTS.md"]
+    },
+    {
       "id": "httpx_compression",
       "claim": "real-code compression on httpx (N5: no stored report)",
       "baseline": "raw httpx source (no stored report - re-verify by hand)",
@@ -333,7 +429,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
     {
       "id": "test_count",
       "claim": "test-suite size badge (current tree; recount with pytest when tests change)",
-      "display": "338",
+      "display": "355",
       "kind": "display-only",
       "must_appear_in": ["README.md"]
     }

@@ -21,6 +21,7 @@ Exit status 0 when clean, 1 with a report of every failed check. ``--verbose`` p
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 import re
 import sys
@@ -33,6 +34,37 @@ _JSON_BLOCK = re.compile(r"```json\s*\n(.*?)```", re.DOTALL)
 _SKIP_DIRS = frozenset(
     {".git", ".venv", ".mypy_cache", ".pytest_cache", ".ruff_cache", "node_modules", "__pycache__"}
 )
+
+# Capability phrases the docs may only assert when the named code symbol (and optionally
+# test) exists. Keep the list short and explicit; the guard fails when a phrase is found
+# in the docs but its symbol/test is missing.
+CAPABILITY_REGISTRY: list[dict[str, Any]] = [
+    {
+        "phrase": "lambda-MMR",
+        "symbol": "kernel.router.packer:_mmr_order",
+        "test": "tests.test_packer:test_mmr_lowers_redundancy_at_equal_utility",
+    },
+    {
+        "phrase": "purpose compartments",
+        "symbol": "kernel.router.policy_engine:apply_policy",
+        "test": "tests.test_kernel:test_compile_purpose_gate_preserves_default_hash",
+    },
+    {
+        "phrase": "prefix sharing",
+        "symbol": "adapters.raw_llm:shared_prefix",
+        "test": "tests.test_adapters",
+    },
+    {
+        "phrase": "signable",
+        "symbol": "protocol.signing:Signer",
+        "test": "tests.test_signing:test_sign_and_verify_roundtrip",
+    },
+    {
+        "phrase": "Copy-on-Write",
+        "symbol": "kernel.mmu.cow_forker:fork_packet",
+        "test": "tests.test_mmu",
+    },
+]
 
 
 def normalize(text: str) -> str:
@@ -135,6 +167,50 @@ def check_stale(
             report.append((not found, f"stale pattern {pattern!r} absent from {rel}"))
 
 
+def _symbol_exists(spec: str) -> bool:
+    """Import ``module.path:name`` and verify ``name`` exists."""
+    if ":" not in spec:
+        module_name, attr = spec, None
+    else:
+        module_name, attr = spec.split(":", 1)
+    try:
+        module = importlib.import_module(module_name)
+    except Exception:
+        return False
+    if attr is None:
+        return True
+    return getattr(module, attr, None) is not None
+
+
+def _check_capabilities(root: Path, report: list[tuple[bool, str]]) -> None:
+    docs = _all_docs(root)
+    for item in CAPABILITY_REGISTRY:
+        phrase = item["phrase"]
+        symbol = item.get("symbol")
+        test = item.get("test")
+        found_in: list[str] = []
+        for path in docs:
+            if phrase in normalize(path.read_text(encoding="utf-8")):
+                found_in.append(path.relative_to(root).as_posix())
+        if not found_in:
+            continue
+        symbol_ok = symbol is None or _symbol_exists(symbol)
+        test_ok = test is None or _symbol_exists(test)
+        if symbol_ok and test_ok:
+            report.append(
+                (True, f"capability {phrase!r} backed by {symbol or test} in {', '.join(found_in)}")
+            )
+        else:
+            missing = []
+            if not symbol_ok:
+                missing.append(f"symbol {symbol}")
+            if not test_ok:
+                missing.append(f"test {test}")
+            where = ", ".join(found_in)
+            what = ", ".join(missing)
+            report.append((False, f"capability {phrase!r} claimed in {where} but missing {what}"))
+
+
 def run(registry_path: Path = REGISTRY, root: Path = ROOT) -> list[tuple[bool, str]]:
     """Return every check as ``(ok, message)``; failures are the ``ok=False`` entries."""
     report: list[tuple[bool, str]] = []
@@ -145,6 +221,7 @@ def run(registry_path: Path = REGISTRY, root: Path = ROOT) -> list[tuple[bool, s
     for entry in registry.get("entries", []):
         check_entry(entry, root, report)
     check_stale(registry, root, registry_path, report)
+    _check_capabilities(root, report)
     return report
 
 
