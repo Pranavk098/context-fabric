@@ -90,3 +90,79 @@ but completion tokens are a fixed 8.
   outside the demo's own fixture sizing.
 - `local:free` prices self-hosted inference at zero; GPU/electricity costs are not modeled.
 - Mock-mode dollar figures are for UX/wiring only — never cite them as measurements.
+
+## Competitor prefix-cache model
+
+The competitor is not another framework; it is **OpenAI/Anthropic automatic prefix-cache
+pricing**. The sidecar still has to beat that. This section models provider minimum-token
+thresholds, cache-write premiums (Anthropic), cached-read discounts, TTL expiry, and the
+sidecar's own overhead.
+
+### Source parameters (checked 2026-10-18)
+
+| Provider | Input $/M | Cached $/M | Write $/M | Min prefix | TTL | Source |
+|----------|----------:|-----------:|----------:|-----------:|----:|--------|
+| OpenAI `gpt-4o` | 2.50 | 1.25 | — | 1,024 | 600 s (representative) | [OpenAI pricing](https://platform.openai.com/docs/pricing), [prompt caching](https://platform.openai.com/docs/guides/prompt-caching) |
+| OpenAI `gpt-4o-mini` | 0.15 | 0.075 | — | 1,024 | 600 s (representative) | same |
+| Anthropic Sonnet 4.6 | 3.00 | 0.30 | 3.75 | 1,024 | 300 s | [Anthropic pricing](https://platform.claude.com/docs/en/about-claude/pricing), [prompt caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching) |
+| Anthropic Haiku 4.5 | 1.00 | 0.10 | 1.25 | 1,024 | 300 s | same |
+
+- The OpenAI `gpt-4o`/`gpt-4o-mini` minimum (1,024 tokens) and TTL (600 s) are **not
+  verified** for those exact models; OpenAI publishes 1,024 tokens for GPT-5.6+ and says
+  earlier-model minimums "vary by request settings". The 600 s TTL is a conservative
+  representative of the published "typically 5–10 minutes of inactivity" `in_memory`
+  retention. Mark them as assumptions, not facts.
+- Anthropic's 1,024-token minimum for Sonnet 4.6/Haiku 4.5, the 5-minute default TTL, and
+  the 1.25× write premium are verified from the sources above.
+
+### Modeling assumptions
+
+- Workload token counts come from the committed receipts:
+  - **Demo fleet**: `evals/reports/demo_fleet_20261017_231929.json` — broadcast 44,854
+    prompt tokens, compile 14,170 prompt tokens, 6 requests.
+  - **httpx pilot**: `evals/reports/pilot_20261018_013151.json` — raw 193,366 prompt
+    tokens, compile 5,391 prompt tokens, 6 requests.
+- Shared prefix length: broadcast/raw baseline uses the full shared system message
+  (demo 6,687 tokens; pilot 32,259 tokens). Sidecar+cache uses a Tier 0 cartridge
+  (demo 600 tokens; pilot 542 tokens from the pilot cartridge receipt).
+- Sidecar overhead: 64 extra input tokens per request and 0.3 s compile latency billed
+  at $2/hour. These are parameters; the table below uses them.
+- Cache state:
+  - **warm**: every request inside the provider TTL, prefix discounted after the first
+    write.
+  - **TTL miss**: every request idle longer than the TTL; for Anthropic the prefix is
+    rewritten each request, for OpenAI the prefix falls back to full input price.
+
+### Win/loss table
+
+| Workload | Provider | Cache state | Native-cache-only | Sidecar+cache | Winner |
+|----------|----------|-------------|------------------:|--------------:|:-------|
+| Demo fleet | openai:gpt-4o | warm | $0.0639 | $0.0388 | sidecar |
+| Demo fleet | openai:gpt-4o | TTL miss | $0.1140 | $0.0388 | sidecar |
+| Demo fleet | anthropic:sonnet | warm | $0.0541 | $0.0468 | sidecar |
+| Demo fleet | anthropic:sonnet | TTL miss | $0.2878 | $0.0468 | sidecar |
+| httpx pilot | openai:gpt-4o | warm | $0.2420 | $0.0157 | sidecar |
+| httpx pilot | anthropic:sonnet | warm | $0.1794 | $0.0187 | sidecar |
+
+`gpt-4o-mini` and `anthropic:haiku` fall between the two extremes shown; the arithmetic
+is the same and all modeled scenarios also favor the sidecar.
+
+### Break-even condition
+
+Sidecar+cache wins when the dollar value of the prompt-token reduction is larger than
+the sidecar's own overhead plus the cache-write premium that must be amortized:
+
+```text
+(native_prompt_tokens - sidecar_prompt_tokens) * input_rate
+  > sidecar_overhead_tokens * input_rate
+    + sidecar_compute_cost
+    + (cache_write_premium - 1) * sidecar_prefix_tokens * input_rate / calls_within_ttl
+```
+
+If the sidecar's shared prefix is **below the provider minimum** (e.g., the 600-token
+Tier 0 cartridge is under OpenAI's 1,024-token threshold), the cached-read discount does
+not apply to that prefix, so the right-hand side is larger. The committed receipts reduce
+prompt tokens by 3.17× (demo) and 35.87× (pilot), which is far above the break-even for
+the providers and overheads modeled here. The loss condition is therefore a much smaller
+token reduction, a much larger sidecar overhead, or a single-call workload where the
+write premium cannot be amortized.

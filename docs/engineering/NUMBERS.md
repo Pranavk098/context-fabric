@@ -323,6 +323,102 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "must_appear_in": ["README.md", "CHANGELOG.md"]
     },
     {
+      "id": "cost_demo_gpt4o_warm_native",
+      "claim": "B2 cost model: demo fleet native-cache-only cost, openai:gpt-4o, warm cache",
+      "baseline": "sidecar+cache cost for the same workload ($0.0388)",
+      "display": "$0.0639",
+      "kind": "display-only",
+      "must_appear_in": ["docs/engineering/COSTS.md"]
+    },
+    {
+      "id": "cost_demo_gpt4o_warm_sidecar",
+      "claim": "B2 cost model: demo fleet sidecar+cache cost, openai:gpt-4o, warm cache",
+      "baseline": "native-cache-only cost for the same workload ($0.0639)",
+      "display": "$0.0388",
+      "kind": "display-only",
+      "must_appear_in": ["docs/engineering/COSTS.md"]
+    },
+    {
+      "id": "cost_demo_gpt4o_miss_native",
+      "claim": "B2 cost model: demo fleet native-cache-only cost, openai:gpt-4o, TTL miss",
+      "baseline": "sidecar+cache cost for the same workload ($0.0388)",
+      "display": "$0.1140",
+      "kind": "display-only",
+      "must_appear_in": ["docs/engineering/COSTS.md"]
+    },
+    {
+      "id": "cost_demo_gpt4o_miss_sidecar",
+      "claim": "B2 cost model: demo fleet sidecar+cache cost, openai:gpt-4o, TTL miss",
+      "baseline": "native-cache-only cost for the same workload ($0.1140)",
+      "display": "$0.0388",
+      "kind": "display-only",
+      "must_appear_in": ["docs/engineering/COSTS.md"]
+    },
+    {
+      "id": "cost_demo_sonnet_warm_native",
+      "claim": "B2 cost model: demo fleet native-cache-only cost, anthropic:sonnet, warm cache",
+      "baseline": "sidecar+cache cost for the same workload ($0.0468)",
+      "display": "$0.0541",
+      "kind": "display-only",
+      "must_appear_in": ["docs/engineering/COSTS.md"]
+    },
+    {
+      "id": "cost_demo_sonnet_warm_sidecar",
+      "claim": "B2 cost model: demo fleet sidecar+cache cost, anthropic:sonnet, warm cache",
+      "baseline": "native-cache-only cost for the same workload ($0.0541)",
+      "display": "$0.0468",
+      "kind": "display-only",
+      "must_appear_in": ["docs/engineering/COSTS.md"]
+    },
+    {
+      "id": "cost_demo_sonnet_miss_native",
+      "claim": "B2 cost model: demo fleet native-cache-only cost, anthropic:sonnet, TTL miss",
+      "baseline": "sidecar+cache cost for the same workload ($0.0468)",
+      "display": "$0.2878",
+      "kind": "display-only",
+      "must_appear_in": ["docs/engineering/COSTS.md"]
+    },
+    {
+      "id": "cost_demo_sonnet_miss_sidecar",
+      "claim": "B2 cost model: demo fleet sidecar+cache cost, anthropic:sonnet, TTL miss",
+      "baseline": "native-cache-only cost for the same workload ($0.2878)",
+      "display": "$0.0468",
+      "kind": "display-only",
+      "must_appear_in": ["docs/engineering/COSTS.md"]
+    },
+    {
+      "id": "cost_pilot_gpt4o_warm_native",
+      "claim": "B2 cost model: httpx pilot native-cache-only cost, openai:gpt-4o, warm cache",
+      "baseline": "sidecar+cache cost for the same workload ($0.0157)",
+      "display": "$0.2420",
+      "kind": "display-only",
+      "must_appear_in": ["docs/engineering/COSTS.md"]
+    },
+    {
+      "id": "cost_pilot_gpt4o_warm_sidecar",
+      "claim": "B2 cost model: httpx pilot sidecar+cache cost, openai:gpt-4o, warm cache",
+      "baseline": "native-cache-only cost for the same workload ($0.2420)",
+      "display": "$0.0157",
+      "kind": "display-only",
+      "must_appear_in": ["docs/engineering/COSTS.md"]
+    },
+    {
+      "id": "cost_pilot_sonnet_warm_native",
+      "claim": "B2 cost model: httpx pilot native-cache-only cost, anthropic:sonnet, warm cache",
+      "baseline": "sidecar+cache cost for the same workload ($0.0187)",
+      "display": "$0.1794",
+      "kind": "display-only",
+      "must_appear_in": ["docs/engineering/COSTS.md"]
+    },
+    {
+      "id": "cost_pilot_sonnet_warm_sidecar",
+      "claim": "B2 cost model: httpx pilot sidecar+cache cost, anthropic:sonnet, warm cache",
+      "baseline": "native-cache-only cost for the same workload ($0.1794)",
+      "display": "$0.0187",
+      "kind": "display-only",
+      "must_appear_in": ["docs/engineering/COSTS.md"]
+    },
+    {
       "id": "httpx_compression",
       "claim": "real-code compression on httpx (N5: no stored report)",
       "baseline": "raw httpx source (no stored report - re-verify by hand)",
