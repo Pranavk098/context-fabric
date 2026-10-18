@@ -32,8 +32,10 @@ from typing import Any, NamedTuple
 
 import httpx
 
+from evals.mech_fabric import build_blocks
 from kernel.cartridge.ast_extractor import extract_tree
 from kernel.cartridge.serializer import Cartridge, build_cartridge, count_tokens
+from kernel.router.compiler import DEFAULT_AS_OF, compile_packet
 from kernel.store import SqliteStore
 from protocol.canonical import content_hash, sha256_hex
 from protocol.models import (
@@ -44,6 +46,8 @@ from protocol.models import (
     Fidelity,
     LifecycleStatus,
     MemoryTier,
+    Recipient,
+    Scope,
 )
 from sidecar.demo import (
     _Completion,
@@ -56,6 +60,7 @@ from sidecar.demo import (
     _totals,
     score_answer,
 )
+from sidecar.render import render_packet
 from sidecar.server import make_server, open_store
 
 REPORTS = Path(__file__).parent / "reports"
@@ -83,6 +88,11 @@ _RENDERING = (
     "files in listed order, raw bytes, joined by a blank line, each prefixed by "
     "'===== FILE: <path> ====='"
 )
+
+# The sidecar's compile scope (mirrors sidecar/server.py `_SCOPE`): the compile arm
+# compiles packets with this fixed scope and no cartridge, so the offline dry-run
+# replicates the live path exactly.
+_SCOPE = Scope(tenant_id="default", project_id="default", workflow_id="chat", task_id="chat")
 
 # 11 hand-derived fact blocks grounded in the bundle's real content (preregistration
 # section 4); source file of each block is named in its id.
@@ -258,6 +268,22 @@ def verify_keys(
         )
 
 
+def verify_raw_answerable(rendered: str, specs: Sequence[PilotObjective]) -> None:
+    """Construction check (mech mode): every key must be present in the raw bundle only.
+
+    The mechanical fabric never reads objectives or answer keys, so whether a key reaches
+    the compiled packet is an outcome (reported by the dry-run recall table), never a
+    precondition.
+    """
+    bundle = rendered.lower()
+    missing_raw = sorted({key for spec in specs for key in spec.keys if key.lower() not in bundle})
+    if missing_raw:
+        raise ValueError(
+            f"answer keys missing from raw bundle: {missing_raw} "
+            "(fixture/content error, run aborted before any request)"
+        )
+
+
 def commit_of(root: Path) -> tuple[str, str]:
     """(commit, source): git if the clone is readable, else the preregistered hash."""
     try:
@@ -286,29 +312,134 @@ def compile_cartridge(root: Path, commit: str) -> Cartridge:
     )
 
 
+def _hand_blocks() -> list[ContextBlock]:
+    """The 11 frozen hand-derived fact blocks (preregistration section 4)."""
+    as_of = datetime(2026, 1, 1, tzinfo=UTC)
+    return [
+        ContextBlock(
+            block_id=block_id,
+            block_kind=BlockKind.fact,
+            memory_tier=MemoryTier.ledger,
+            content=content,
+            content_hash="sha256:" + sha256_hex(content.encode("utf-8")),
+            token_estimate=count_tokens(content),
+            source_event_seq=seq,
+            creator=Creator(type=CreatorType.tool, id="pilot-fixture"),
+            fidelity=Fidelity.extract,
+            lifecycle_status=LifecycleStatus.routable,
+            trust_domain="default",
+            observed_at=as_of,
+            valid_from=as_of,
+        )
+        for seq, (block_id, content) in enumerate(_FACT_BLOCKS, start=1)
+    ]
+
+
 def build_pilot_store(path: Path) -> Path:
     """Append the 11 fact blocks through the normal store path (routable, trusted)."""
     store = SqliteStore(path)
-    as_of = datetime(2026, 1, 1, tzinfo=UTC)
-    for seq, (block_id, content) in enumerate(_FACT_BLOCKS, start=1):
-        store.append(
-            ContextBlock(
-                block_id=block_id,
-                block_kind=BlockKind.fact,
-                memory_tier=MemoryTier.ledger,
-                content=content,
-                content_hash="sha256:" + sha256_hex(content.encode("utf-8")),
-                token_estimate=count_tokens(content),
-                source_event_seq=seq,
-                creator=Creator(type=CreatorType.tool, id="pilot-fixture"),
-                fidelity=Fidelity.extract,
-                lifecycle_status=LifecycleStatus.routable,
-                trust_domain="default",
-                observed_at=as_of,
-                valid_from=as_of,
-            )
-        )
+    for block in _hand_blocks():
+        store.append(block)
     return path
+
+
+def build_mech_store(path: Path, fixture: Path) -> Path:
+    """Append the mechanical fabric (mech_fabric.build_blocks) through the normal path."""
+    store = SqliteStore(path)
+    for block in build_blocks(fixture, BUNDLE_FILES):
+        store.append(block)
+    return path
+
+
+def pilot_blocks(fixture: Path, fabric: str) -> tuple[ContextBlock, ...]:
+    """The compile arm's fabric blocks for ``fabric`` (hand = frozen, mech = mechanical)."""
+    if fabric == "mech":
+        return tuple(build_blocks(fixture, BUNDLE_FILES))
+    return tuple(_hand_blocks())
+
+
+def _compile_packet_offline(
+    blocks: Sequence[ContextBlock], spec: PilotObjective, as_of: datetime
+) -> str:
+    """Replicate the sidecar's compile path (budget_base=4000, no cartridge) client-side."""
+    result = compile_packet(
+        scope=_SCOPE,
+        recipient=Recipient(agent_id=f"pilot-{spec.role}", role=spec.role, stage="chat"),
+        objective=spec.objective,
+        stage="chat",
+        blocks=blocks,
+        watermark_event_seq=0,
+        budget_base=4000,
+        as_of=as_of,
+    )
+    return render_packet(result.packet)
+
+
+def dry_run(fixture: Path, *, fabric: str, as_of: datetime = DEFAULT_AS_OF) -> dict[str, Any]:
+    """Offline build of both arms (no network, no model): token counts + key recall.
+
+    The raw arm is the rendered bundle + objective; the compile arm is the sidecar's
+    compile path (budget_base=4000, no cartridge) replicated client-side. Per-objective
+    recall of each key in the compiled packet is an OUTCOME, never a gate.
+    """
+    rendered, files = render_bundle(fixture)
+    specs = pilot_workload()
+    verify_raw_answerable(rendered, specs)
+    commit, commit_source = commit_of(fixture)
+    blocks = pilot_blocks(fixture, fabric)
+    raw_rows: list[dict[str, Any]] = []
+    compile_rows: list[dict[str, Any]] = []
+    recall_rows: list[dict[str, Any]] = []
+    raw_total = compile_total = 0
+    for spec in specs:
+        raw_prompt = count_tokens(rendered) + count_tokens(spec.objective)
+        raw_total += raw_prompt
+        raw_rows.append(
+            {"role": spec.role, "objective": spec.objective, "prompt_tokens": raw_prompt}
+        )
+        compiled = _compile_packet_offline(blocks, spec, as_of)
+        compile_prompt = count_tokens(compiled) + count_tokens(spec.objective)
+        compile_total += compile_prompt
+        lowered = compiled.lower()
+        facts = {key: key.lower() in lowered for key in spec.keys}
+        recall_rows.append(
+            {
+                "role": spec.role,
+                "objective": spec.objective,
+                "required": list(spec.keys),
+                "facts_in_packet": facts,
+                "all_in_packet": all(facts.values()),
+            }
+        )
+        compile_rows.append(
+            {"role": spec.role, "objective": spec.objective, "prompt_tokens": compile_prompt}
+        )
+    return {
+        "scenario": "pilot",
+        "kind": "dry_run",
+        "fabric": fabric,
+        "preregistration": (
+            "docs/engineering/PILOT-MECH-PREREGISTRATION.md"
+            if fabric == "mech"
+            else "docs/engineering/PILOT-PREREGISTRATION.md"
+        ),
+        "fixture": {
+            "repo": PREGISTERED_REPO,
+            "clone_path": str(fixture),
+            "commit": commit,
+            "commit_source": commit_source,
+            "rendering": _RENDERING,
+            "files": files,
+            "bundle_tokens_tiktoken": count_tokens(rendered),
+            "fabric": fabric,
+        },
+        "n_blocks": len(blocks),
+        "arms": {
+            "raw": {"prompt_tokens_total": raw_total, "objectives": raw_rows},
+            "compile": {"prompt_tokens_total": compile_total, "objectives": compile_rows},
+        },
+        "recall": recall_rows,
+    }
 
 
 def _chat(
@@ -435,7 +566,8 @@ def _criteria(
     compile_total = int(compile_arm["prompt_tokens_total"])
     return {
         "a_token_reduction": {
-            "pass": compile_total * 3 <= raw_total,
+            # No measured tokens is not a reduction: an all-errors run must not pass.
+            "pass": compile_total > 0 and raw_total > 0 and compile_total * 3 <= raw_total,
             "requirement": "compile total prompt tokens <= raw total / 3",
             "raw_prompt_tokens_total": raw_total,
             "compile_prompt_tokens_total": compile_total,
@@ -444,7 +576,7 @@ def _criteria(
             else None,
         },
         "b_accuracy_parity": {
-            "pass": int(compile_arm["passed"]) >= int(raw["passed"]) - 1,
+            "pass": not error_rows and int(compile_arm["passed"]) >= int(raw["passed"]) - 1,
             "requirement": "compile passes >= raw passes - 1",
             "raw_passed": raw["passed"],
             "compile_passed": compile_arm["passed"],
@@ -467,6 +599,34 @@ def _criteria(
             "compile_requests": len(compile_records),
         },
     }
+
+
+def _print_dry_run(receipt: dict[str, Any]) -> None:
+    fixture = receipt["fixture"]
+    print(f"pilot: kind={receipt['kind']} fabric={receipt['fabric']}")
+    print(f"preregistration: {receipt['preregistration']}")
+    print(
+        f"fixture: {fixture['repo']} @ {fixture['commit']} "
+        f"({len(fixture['files'])} files, {fixture['bundle_tokens_tiktoken']} tiktoken)"
+    )
+    print(f"blocks: {receipt['n_blocks']}")
+    raw = receipt["arms"]["raw"]
+    compile_arm = receipt["arms"]["compile"]
+    print(
+        f"raw     prompt_tokens_total={raw['prompt_tokens_total']}"
+        f"  (bundle {fixture['bundle_tokens_tiktoken']} + objective per request)"
+    )
+    print(f"compile prompt_tokens_total={compile_arm['prompt_tokens_total']}")
+    for row in raw["objectives"]:
+        print(f"  raw[{row['role']:<11}] {row['prompt_tokens']:>6} tok")
+    for row in compile_arm["objectives"]:
+        print(f"  cmp[{row['role']:<11}] {row['prompt_tokens']:>6} tok")
+    print("recall (key present in compiled packet - OUTCOME, not a gate):")
+    for row in receipt["recall"]:
+        marks = " ".join(
+            f"{key}={'Y' if hit else 'N'}" for key, hit in row["facts_in_packet"].items()
+        )
+        print(f"  [{row['role']:<11}] {marks}")
 
 
 def _print_receipt(receipt: dict[str, Any]) -> None:
@@ -510,6 +670,7 @@ def run(
     max_tokens: int,
     smoke: bool,
     ts: str,
+    fabric: str = "hand",
 ) -> dict[str, Any]:
     """Execute one pilot pass (smoke or full); returns the receipt dict."""
     started_at = datetime.now(tz=UTC).isoformat()
@@ -518,7 +679,10 @@ def run(
 
     rendered, files = render_bundle(fixture)
     bundle_tokens = count_tokens(rendered)
-    verify_keys(rendered, pilot_workload(), _FACT_BLOCKS)
+    if fabric == "mech":
+        verify_raw_answerable(rendered, pilot_workload())
+    else:
+        verify_keys(rendered, pilot_workload(), _FACT_BLOCKS)
     commit, commit_source = commit_of(fixture)
     cartridge = compile_cartridge(fixture, commit)
 
@@ -531,7 +695,12 @@ def run(
         "rendering": _RENDERING,
         "files": files,
         "bundle_tokens_tiktoken": bundle_tokens,
-        "preregistration": "docs/engineering/PILOT-PREREGISTRATION.md",
+        "preregistration": (
+            "docs/engineering/PILOT-MECH-PREREGISTRATION.md"
+            if fabric == "mech"
+            else "docs/engineering/PILOT-PREREGISTRATION.md"
+        ),
+        "fabric": fabric,
         "ts": ts,
     }
     (FIXTURES / f"pilot_fixture_{ts}.json").write_text(
@@ -566,8 +735,16 @@ def run(
         "differs.",
         "The smoke pass (if any, same vLLM session) and the raw arm's shared system message "
         "warm the upstream prefix cache: cache deltas are warm-cache numbers, not cold-start.",
-        "Compile arm = the shipped sidecar's compile mode over an 11-block SQLite fabric "
-        "(trust_domain 'default', lifecycle routable, fact kinds, source_event_seq 1..11). "
+        (
+            "Compile arm = the shipped sidecar's compile mode over an 11-block SQLite fabric "
+            "(trust_domain 'default', lifecycle routable, fact kinds, source_event_seq 1..11)."
+            if fabric == "hand"
+            else f"Compile arm = the shipped sidecar's compile mode over a mechanical fabric "
+            f"built by evals/mech_fabric.build_blocks from the same {len(BUNDLE_FILES)} bundle "
+            "files (top-level symbols, assignments, import roots, and a project cartridge "
+            "hologram); the ingester never reads objectives or answer keys, so whether a key "
+            "reaches a compiled packet is an outcome (dry-run recall table), not a precondition."
+        ),
         "The shipped server's compile path takes no cartridge argument, so the compiled "
         ".cfx Cartridge (artifact pilot_cartridge_*.json) is recorded but NOT injected: the "
         "compile arm measures store-only compilation (preregistered limitation).",
@@ -584,7 +761,10 @@ def run(
     ]
 
     with tempfile.TemporaryDirectory(prefix="cfx_pilot_", ignore_cleanup_errors=True) as tmp:
-        store_path = build_pilot_store(Path(tmp) / "pilot.db")
+        if fabric == "hand":
+            store_path = build_pilot_store(Path(tmp) / "pilot.db")
+        else:
+            store_path = build_mech_store(Path(tmp) / "pilot.db", fixture)
         compile_store = open_store(store_path)
         blocks = tuple(compile_store.load_blocks())
         servers = {
@@ -619,6 +799,7 @@ def run(
     receipt: dict[str, Any] = {
         "scenario": "pilot",
         "kind": kind,
+        "fabric": fabric,
         "model": model,
         "upstream": upstream,
         "started_at": started_at,
@@ -683,6 +864,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--model", default=os.environ.get("CF_MODEL", "Qwen/Qwen2.5-1.5B-Instruct"))
     parser.add_argument("--smoke", action="store_true", help="1 objective, tiny max_tokens")
     parser.add_argument("--max-tokens", type=int, default=None, help="default: 8 smoke, 48 full")
+    parser.add_argument(
+        "--fabric",
+        choices=("hand", "mech"),
+        default="hand",
+        help="hand = the 11 frozen hand-derived blocks (original pilot); mech = mechanical "
+        "fabric via evals/mech_fabric.build_blocks",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="build both arms offline (no network/model) and print token counts + recall",
+    )
     parser.add_argument("--out", default="", help="receipt path override")
     args = parser.parse_args(argv)
 
@@ -693,6 +886,15 @@ def main(argv: list[str] | None = None) -> int:
     if not (fixture / "httpx" / "_client.py").is_file():
         print(f"pilot: {fixture} does not look like an httpx clone", file=sys.stderr)
         return 2
+    if args.dry_run:
+        ts = time.strftime("%Y%m%d_%H%M%S")
+        receipt = dry_run(fixture, fabric=args.fabric)
+        REPORTS.mkdir(parents=True, exist_ok=True)
+        out = Path(args.out) if args.out else REPORTS / f"pilot_dryrun_{ts}.json"
+        out.write_text(json.dumps(receipt, indent=2), encoding="utf-8")
+        _print_dry_run(receipt)
+        print(f"receipt: {out}")
+        return 0
     max_tokens = args.max_tokens if args.max_tokens is not None else (8 if args.smoke else 48)
     if max_tokens <= 0:
         print("pilot: --max-tokens must be positive", file=sys.stderr)
@@ -709,6 +911,7 @@ def main(argv: list[str] | None = None) -> int:
                 max_tokens=max_tokens,
                 smoke=args.smoke,
                 ts=ts,
+                fabric=args.fabric,
             )
         except httpx.HTTPError as exc:
             print(f"pilot: request failed: {exc}", file=sys.stderr)
