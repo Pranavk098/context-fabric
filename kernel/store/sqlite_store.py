@@ -179,6 +179,10 @@ class SqliteStore:
         self._conn = sqlite3.connect(path, check_same_thread=check_same_thread)
         self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.executescript(_SCHEMA)
+        # Stores created before compile_log.purpose existed: add the column in place.
+        columns = {row[1] for row in self._conn.execute("PRAGMA table_info(compile_log)")}
+        if "purpose" not in columns:
+            self._conn.execute("ALTER TABLE compile_log ADD COLUMN purpose TEXT")
         self._conn.commit()
 
     def append(self, block: ContextBlock) -> bool:
