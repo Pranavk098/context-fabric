@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import sqlite3
 import sys
+import threading
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -134,3 +136,35 @@ def test_cli_ingest_and_info(
     out = capsys.readouterr().out
     assert "blocks=1" in out
     assert "max_source_event_seq=1" in out
+
+
+def test_default_thread_affinity_and_check_same_thread_opt_in(tmp_path: Path) -> None:
+    default_store = SqliteStore(tmp_path / "default.db")
+    default_errors: list[Exception] = []
+
+    def use_default_store() -> None:
+        try:
+            default_store.count()
+        except Exception as exc:
+            default_errors.append(exc)
+
+    thread = threading.Thread(target=use_default_store)
+    thread.start()
+    thread.join()
+    assert len(default_errors) == 1
+    assert isinstance(default_errors[0], sqlite3.ProgrammingError)
+
+    shared_store = SqliteStore(tmp_path / "shared.db", check_same_thread=False)
+    errors: list[Exception] = []
+
+    def append_from_thread() -> None:
+        try:
+            shared_store.append(mk("t1", 1, "from thread"))
+        except Exception as exc:  # pragma: no cover - failure path
+            errors.append(exc)
+
+    thread = threading.Thread(target=append_from_thread)
+    thread.start()
+    thread.join()
+    assert errors == []
+    assert shared_store.count() == 1

@@ -8,6 +8,13 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ### Added
 - **The plug** — OpenAI-compatible sidecar proxy (`sidecar/`): compile/passthrough modes, SSE
   streaming, stats; ~10-minute setup (`docs/engineering/SIDECAR.md`).
+- **`cfx` CLI + writable memory** — `cfx serve|add|verify`; `POST /fabric/blocks` with
+  quarantine-by-default (`draft` lifecycle, promote at write time via `--trusted`), plus
+  sidecar hardening: CORS, `CF_MAX_BODY_BYTES` cap, HTTP/1.1 keep-alive, SSE abort marking,
+  streaming usage capture, `estimated_input_cost_usd` in `/fabric/stats`.
+- **Relations in the durable store** — `kernel/store/` relations table + append/load/ingest
+  APIs + CLI; contradiction/dependency closure verified end-to-end from a DB-backed fabric
+  (`docs/engineering/STORE.md`).
 - **The seal** — signed epoch chain + receipts (`protocol/epoch.py`, `verify` CLI), cross-process
   determinism spike, tamper tests (`docs/engineering/SEAL.md`).
 - **The shared copy** — memory-state copy-on-write (`kernel/epochs.py`): O(1) fork, private
@@ -22,7 +29,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - **Stage B7** (`evals/stage_b7.py`) — model-tier arbitrage (multi-needle retrieval).
 - **Research + audit reports** — prior-art studies (plug / provenance / shared memory / path
   viability), citation audit (`RESEARCH-AUDIT.md`), and code/experiment reviews
-  (`SIDECAR-REVIEW`, `EPOCHS-STORE-REVIEW`, `RERUN-REVIEW`).
+  (`SIDECAR-REVIEW`, `EPOCHS-STORE-REVIEW`, `RERUN-REVIEW`, `TRACK-A-REVIEW`).
 
 ### Changed (honest re-run, 2026-10-17)
 - Cold-boot experiment re-run **information-equal** (the raw arm now receives the same

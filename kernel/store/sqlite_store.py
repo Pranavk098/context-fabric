@@ -12,12 +12,14 @@ module imports the other.
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from collections.abc import Iterable
 from pathlib import Path
 
 from pydantic import ValidationError
 
+from kernel.router.dependency_closer import Relation
 from protocol.canonical import canonicalize
 from protocol.models import ContextBlock
 
@@ -31,7 +33,37 @@ CREATE TABLE IF NOT EXISTS blocks (
     UNIQUE (block_id)
 );
 CREATE INDEX IF NOT EXISTS idx_blocks_source_event_seq ON blocks (source_event_seq);
+CREATE TABLE IF NOT EXISTS relations (
+    rel_seq          INTEGER PRIMARY KEY AUTOINCREMENT,
+    parent_id        TEXT NOT NULL,
+    child_id         TEXT NOT NULL,
+    relation_type    TEXT NOT NULL,
+    payload          TEXT NOT NULL,
+    UNIQUE (parent_id, child_id, relation_type)
+);
+CREATE INDEX IF NOT EXISTS idx_relations_parent_id ON relations (parent_id);
+CREATE INDEX IF NOT EXISTS idx_relations_child_id ON relations (child_id);
 """
+
+
+def _relation_payload(relation: Relation) -> str:
+    parent_id, child_id, relation_type = relation
+    return canonicalize(
+        {"parent_id": parent_id, "child_id": child_id, "relation_type": relation_type}
+    ).decode("utf-8")
+
+
+def _relation_from_json(text: str) -> Relation:
+    data = json.loads(text)
+    if not isinstance(data, dict):
+        raise ValueError("relation must be a JSON object")
+    try:
+        relation = (data["parent_id"], data["child_id"], data["relation_type"])
+    except KeyError as exc:
+        raise ValueError(f"missing relation field {exc}") from exc
+    if not all(isinstance(part, str) and part for part in relation):
+        raise ValueError("relation ids and type must be non-empty strings")
+    return relation
 
 
 class StoreConflict(Exception):
@@ -43,10 +75,14 @@ class SqliteStore:
 
     Single-writer assumption (v0): use one store per process. SQLite's WAL handles
     crash recovery; concurrent writers to the same file are not coordinated here.
+
+    ``check_same_thread=False`` allows one connection to be shared by server threads
+    (the sidecar does this); callers must then serialize write transactions. The
+    default keeps sqlite3's thread affinity, identical to earlier behavior.
     """
 
-    def __init__(self, path: str | Path) -> None:
-        self._conn = sqlite3.connect(path)
+    def __init__(self, path: str | Path, *, check_same_thread: bool = True) -> None:
+        self._conn = sqlite3.connect(path, check_same_thread=check_same_thread)
         self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.executescript(_SCHEMA)
         self._conn.commit()
@@ -114,3 +150,61 @@ class SqliteStore:
                 except ValidationError as exc:
                     raise ValueError(f"{path}:{lineno}: {exc}") from exc
         return self.append_many(blocks)
+
+    def append_relation(self, relation: Relation) -> bool:
+        """Append ``relation``; ``True`` if inserted, ``False`` if already present.
+
+        Raises ``StoreConflict`` when the same ``(parent_id, child_id, relation_type)``
+        triple is already stored with a different payload.
+        """
+        payload = _relation_payload(relation)
+        cursor = self._conn.execute(
+            "INSERT OR IGNORE INTO relations (parent_id, child_id, relation_type, payload)"
+            " VALUES (?, ?, ?, ?)",
+            (*relation, payload),
+        )
+        self._conn.commit()
+        if cursor.rowcount > 0:
+            return True
+        existing = self._conn.execute(
+            "SELECT payload FROM relations"
+            " WHERE parent_id = ? AND child_id = ? AND relation_type = ?",
+            relation,
+        ).fetchone()
+        if existing is not None and existing[0] != payload:
+            raise StoreConflict(
+                f"relation {relation!r} already stored with payload {existing[0]!r},"
+                f" refusing {payload!r}"
+            )
+        return False
+
+    def append_relations_many(self, relations: Iterable[Relation]) -> tuple[int, int]:
+        """Append many relations; returns ``(inserted, deduplicated)``."""
+        inserted = deduplicated = 0
+        for relation in relations:
+            if self.append_relation(relation):
+                inserted += 1
+            else:
+                deduplicated += 1
+        return inserted, deduplicated
+
+    def load_relations(self) -> list[Relation]:
+        """All relations, ordered by ``rel_seq`` (local append order)."""
+        rows = self._conn.execute("SELECT payload FROM relations ORDER BY rel_seq").fetchall()
+        return [_relation_from_json(row[0]) for row in rows]
+
+    def relation_count(self) -> int:
+        """Number of stored relations."""
+        row = self._conn.execute("SELECT COUNT(*) FROM relations").fetchone()
+        return int(row[0])
+
+    def ingest_relations_jsonl(self, path: str | Path) -> tuple[int, int]:
+        """Ingest a JSONL file with one Relation JSON object per line."""
+        relations: list[Relation] = []
+        for lineno, line in enumerate(Path(path).read_text(encoding="utf-8").splitlines(), 1):
+            if line.strip():
+                try:
+                    relations.append(_relation_from_json(line))
+                except (ValueError, KeyError, TypeError) as exc:
+                    raise ValueError(f"{path}:{lineno}: {exc}") from exc
+        return self.append_relations_many(relations)

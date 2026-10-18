@@ -48,8 +48,17 @@ uv run python -m evals.spike_deterministic   # zero-GPU deterministic-core check
 uv run pytest -q
 ```
 
-KV-cache / concurrency experiments need an OpenAI-compatible endpoint —
-see `docs/engineering/RUNTIME.md`.
+**Use it as a local plug** — point any OpenAI-compatible tool at the sidecar:
+
+```bash
+uv run cfx serve --upstream http://127.0.0.1:8000 --fabric fabric.db  # in front of your vLLM
+uv run cfx add --store fabric.db --file block.json                    # quarantined (draft)
+uv run cfx add --store fabric.db --file block.json --trusted          # routable
+uv run cfx verify epochs.json --pubkey <hex>                          # verify signed receipts
+```
+
+See `docs/engineering/SIDECAR.md` for the 10-minute setup and the A/B recipe. KV-cache /
+concurrency experiments need an OpenAI-compatible endpoint — see `docs/engineering/RUNTIME.md`.
 
 ## Repository layout
 

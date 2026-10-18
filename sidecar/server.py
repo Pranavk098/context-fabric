@@ -1,14 +1,21 @@
 """OpenAI-compatible sidecar proxy that injects compiled Context Fabric packets.
 
 ``compile`` mode compiles a packet from the last user message (objective) plus the
-fabric JSONL blocks, prepends its rendered text as a system message, and forwards.
+fabric blocks, prepends its rendered text as a system message, and forwards.
 ``passthrough`` forwards untouched, for honest A/B comparisons.
+
+``POST /fabric/blocks`` appends a block to a SQLite fabric (writable memory). Written
+blocks are quarantined as ``draft`` unless the request marks them trusted; draft blocks
+are denied by the policy gate (reason ``lifecycle:draft``) until promoted at write time.
 """
 
 from __future__ import annotations
 
 import json
+import math
+import os
 import threading
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -18,11 +25,14 @@ import httpx
 from pydantic import ValidationError
 
 from kernel.router.compiler import compile_packet
-from kernel.store import SqliteStore
+from kernel.store import SqliteStore, StoreConflict
 from protocol.models import ContextBlock, Recipient, Scope
+from sidecar.blocks import build_block, stored_block
 from sidecar.render import render_packet
 
 _TIMEOUT = httpx.Timeout(600.0, connect=10.0)
+_MAX_BODY_BYTES = 33_554_432
+_STREAM_BUFFER_LIMIT = 262_144
 _SKIP_HEADERS = frozenset(
     {
         "host",
@@ -40,6 +50,12 @@ _SKIP_HEADERS = frozenset(
     }
 )
 _SCOPE = Scope(tenant_id="default", project_id="default", workflow_id="chat", task_id="chat")
+_CORS_HEADERS = {
+    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type,Authorization,X-Fabric-Agent,X-Fabric-Role",
+    "Access-Control-Max-Age": "600",
+}
+_CORS_EXPOSED = "X-Fabric-Compiled,X-Fabric-Packet-Id"
 
 
 class Stats:
@@ -63,6 +79,30 @@ class Stats:
             return dict(self._counters)
 
 
+def _max_body_bytes() -> int:
+    try:
+        value = int(os.environ.get("CF_MAX_BODY_BYTES", ""))
+    except ValueError:
+        return _MAX_BODY_BYTES
+    return value if value > 0 else _MAX_BODY_BYTES
+
+
+def _stats_payload(stats: Stats) -> dict[str, Any]:
+    payload: dict[str, Any] = dict(stats.snapshot())
+    price = os.environ.get("CF_PRICE_INPUT_PER_MTOK")
+    if price:
+        try:
+            per_mtok = float(price)
+        except ValueError:
+            return payload
+        if not math.isfinite(per_mtok):
+            return payload
+        payload["estimated_input_cost_usd"] = round(
+            payload["upstream_prompt_tokens"] * per_mtok / 1_000_000, 6
+        )
+    return payload
+
+
 def load_blocks(path: Path) -> tuple[ContextBlock, ...]:
     """Load one ContextBlock JSON per line."""
     blocks: list[ContextBlock] = []
@@ -75,13 +115,29 @@ def load_blocks(path: Path) -> tuple[ContextBlock, ...]:
     return tuple(blocks)
 
 
-def load_fabric(path: Path) -> tuple[ContextBlock, ...]:
-    """Load a fabric source: a SQLite store for ``.db``/``.sqlite`` paths, else JSONL."""
+def open_store(path: str | Path) -> SqliteStore:
+    """Open a store whose single connection is shareable across server threads.
+
+    Threading model: ``ThreadingHTTPServer`` runs one handler thread per connection over
+    one shared ``sqlite3`` connection. Writes (including ``source_event_seq`` allocation
+    and dedupe) are serialized by ``write_lock``; reads may interleave, which the
+    serialized (``threadsafety == 3``) sqlite3 module supports.
+    """
+    return SqliteStore(path, check_same_thread=False)
+
+
+def _open_fabric(path: Path) -> tuple[tuple[ContextBlock, ...], SqliteStore | None]:
     if not path.is_file():
         raise FileNotFoundError(f"fabric file not found: {path}")
     if path.name.lower().endswith((".db", ".sqlite")):
-        return tuple(SqliteStore(path).load_blocks())
-    return load_blocks(path)
+        store = open_store(path)
+        return tuple(store.load_blocks()), store
+    return load_blocks(path), None
+
+
+def load_fabric(path: Path) -> tuple[ContextBlock, ...]:
+    """Load a fabric source: a SQLite store for ``.db``/``.sqlite`` paths, else JSONL."""
+    return _open_fabric(path)[0]
 
 
 def _objective(messages: Any) -> str:
@@ -107,14 +163,45 @@ def _prompt_tokens(body: bytes) -> int | None:
         return None
 
 
+def _capture_stream_usage(line: bytes, stats: Stats) -> None:
+    """Best-effort: count prompt tokens from a ``data:`` SSE line carrying a usage block."""
+    if b'"usage"' not in line:
+        return
+    stripped = line.strip()
+    if not stripped.startswith(b"data:"):
+        return
+    try:
+        data = json.loads(stripped[5:].strip())
+    except ValueError:
+        return
+    usage = data.get("usage") if isinstance(data, dict) else None
+    tokens = usage.get("prompt_tokens") if isinstance(usage, dict) else None
+    if isinstance(tokens, int):
+        stats.add("upstream_prompt_tokens", tokens)
+
+
 def _make_handler(
     upstream: str,
     mode: str,
-    blocks: tuple[ContextBlock, ...],
+    blocks: Sequence[ContextBlock],
     stats: Stats,
     client: httpx.Client,
+    store: SqliteStore | None = None,
 ) -> type[BaseHTTPRequestHandler]:
+    fabric: list[ContextBlock] = list(blocks)
+    # One shared sqlite3 connection: event_seq allocation plus append/dedupe must be
+    # atomic across handler threads, so all writes take this lock.
+    write_lock = threading.Lock()
+
     class Handler(BaseHTTPRequestHandler):
+        protocol_version = "HTTP/1.1"
+
+        def send_response(self, code: int, message: str | None = None) -> None:
+            # Centralized so every path, including stdlib send_error(), carries CORS.
+            super().send_response(code, message)
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Expose-Headers", _CORS_EXPOSED)
+
         def do_POST(self) -> None:
             try:
                 self._route_post()
@@ -127,21 +214,72 @@ def _make_handler(
             except (BrokenPipeError, ConnectionResetError):
                 pass
 
+        def do_OPTIONS(self) -> None:
+            try:
+                self.send_response(204)
+                for key, value in _CORS_HEADERS.items():
+                    self.send_header(key, value)
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+
         def log_message(self, format: str, *args: Any) -> None:
             pass
 
-        def _route_post(self) -> None:
-            if self.path.split("?", 1)[0] != "/v1/chat/completions":
-                self._send_json(404, {"error": {"message": "not found"}})
-                return
+        def _read_body(self) -> bytes | None:
+            if self.headers.get("Transfer-Encoding"):
+                self._send_json(
+                    411,
+                    {
+                        "error": {
+                            "message": "Transfer-Encoding is not supported; send Content-Length"
+                        }
+                    },
+                    close=True,
+                )
+                return None
+            lengths = self.headers.get_all("Content-Length") or []
+            if not lengths:
+                self._send_json(
+                    411, {"error": {"message": "Content-Length header is required"}}, close=True
+                )
+                return None
+            if len(lengths) > 1:
+                self._send_json(
+                    400, {"error": {"message": "multiple Content-Length headers"}}, close=True
+                )
+                return None
             try:
-                length = int(self.headers.get("Content-Length", "0"))
+                length = int(lengths[0])
                 if length < 0:
                     raise ValueError(length)
             except ValueError:
-                self._send_json(400, {"error": {"message": "invalid Content-Length header"}})
+                self._send_json(
+                    400, {"error": {"message": "invalid Content-Length header"}}, close=True
+                )
+                return None
+            cap = _max_body_bytes()
+            if length > cap:
+                self._send_json(
+                    413,
+                    {"error": {"message": f"request body exceeds CF_MAX_BODY_BYTES ({cap} bytes)"}},
+                    close=True,
+                )
+                return None
+            return self.rfile.read(length)
+
+        def _route_post(self) -> None:
+            path = self.path.split("?", 1)[0]
+            if path == "/fabric/blocks":
+                self._add_block()
                 return
-            body = self.rfile.read(length)
+            if path != "/v1/chat/completions":
+                self._send_json(404, {"error": {"message": "not found"}})
+                return
+            body = self._read_body()
+            if body is None:
+                return
             stats.add("requests")
             extra: dict[str, str] = {}
             if mode == "compile":
@@ -156,11 +294,63 @@ def _make_handler(
             if path == "/fabric/health":
                 self._send_json(200, {"status": "ok"})
             elif path == "/fabric/stats":
-                self._send_json(200, stats.snapshot())
+                self._send_json(200, _stats_payload(stats))
             elif path == "/v1/models":
                 self._proxy("GET", f"{upstream}/v1/models", None, {})
             else:
                 self._send_json(404, {"error": {"message": "not found"}})
+
+        def _add_block(self) -> None:
+            body = self._read_body()
+            if body is None:
+                return
+            if store is None:
+                self._send_json(
+                    501,
+                    {
+                        "error": {
+                            "message": "writable store not configured: start with --fabric "
+                            "<path.db|path.sqlite>; JSONL fabrics are read-only"
+                        }
+                    },
+                )
+                return
+            try:
+                payload = json.loads(body)
+            except ValueError:
+                self._send_json(400, {"error": {"message": "request body must be JSON"}})
+                return
+            if not isinstance(payload, dict):
+                self._send_json(400, {"error": {"message": "request body must be a JSON object"}})
+                return
+            with write_lock:
+                try:
+                    block = build_block(
+                        payload,
+                        trusted=payload.get("trusted") is True,
+                        event_seq=store.max_source_event_seq() + 1,
+                    )
+                    inserted = store.append(block)
+                except StoreConflict as exc:
+                    self._send_json(409, {"error": {"message": str(exc)}})
+                    return
+                except ValueError as exc:
+                    self._send_json(400, {"error": {"message": str(exc)}})
+                    return
+                if inserted:
+                    fabric.append(block)
+                else:
+                    block = stored_block(store, block.block_id) or block
+            result: dict[str, Any] = {
+                "block_id": block.block_id,
+                "content_hash": block.content_hash,
+                "lifecycle_status": block.lifecycle_status.value,
+                "source_event_seq": block.source_event_seq,
+            }
+            if inserted:
+                self._send_json(201, result)
+            else:
+                self._send_json(200, {**result, "deduplicated": True})
 
         def _compile(self, body: bytes) -> tuple[bytes, dict[str, str]] | None:
             try:
@@ -182,7 +372,7 @@ def _make_handler(
                 ),
                 objective=objective,
                 stage="chat",
-                blocks=blocks,
+                blocks=list(fabric),
                 as_of=datetime.now(tz=UTC),
             )
             payload.setdefault("messages", []).insert(
@@ -201,29 +391,30 @@ def _make_handler(
                 if token.strip()
             }
             headers = {key: value for key, value in self.headers.items() if key.lower() not in skip}
-            sent = False
+            self._response_started = False
             try:
                 with client.stream(method, url, headers=headers, content=body) as resp:
-                    sent = True
                     self._relay(resp, extra)
             except (httpx.HTTPError, httpx.InvalidURL) as exc:
                 stats.add("errors")
-                if not sent:
+                if not self._response_started:
                     self._send_json(502, {"error": {"message": f"upstream unreachable: {exc}"}})
+                else:
+                    # Response already started mid-relay; close instead of desyncing keep-alive.
+                    self.close_connection = True
 
         def _relay(self, resp: httpx.Response, extra: dict[str, str]) -> None:
             content_type = resp.headers.get("content-type", "")
-            self.send_response(resp.status_code)
-            if content_type:
-                self.send_header("Content-Type", content_type)
-            for key, value in extra.items():
-                self.send_header(key, value)
             if "text/event-stream" in content_type:
+                self._start_relay(resp.status_code, content_type, extra)
+                self.send_header("Connection", "close")
+                self.close_connection = True
                 self.end_headers()
-                for chunk in resp.iter_bytes():
-                    self.wfile.write(chunk)
+                self._relay_stream(resp)
                 return
+            # Read before starting the response so an upstream death maps to a clean 502.
             payload = resp.read()
+            self._start_relay(resp.status_code, content_type, extra)
             self.send_header("Content-Length", str(len(payload)))
             self.end_headers()
             self.wfile.write(payload)
@@ -231,11 +422,44 @@ def _make_handler(
             if tokens is not None:
                 stats.add("upstream_prompt_tokens", tokens)
 
-        def _send_json(self, status: int, obj: Any) -> None:
+        def _start_relay(self, status: int, content_type: str, extra: dict[str, str]) -> None:
+            self._response_started = True
+            self.send_response(status)
+            if content_type:
+                self.send_header("Content-Type", content_type)
+            for key, value in extra.items():
+                self.send_header(key, value)
+
+        def _relay_stream(self, resp: httpx.Response) -> None:
+            """Pipe SSE bytes through unchanged; count usage and report mid-stream death."""
+            pending = b""
+            try:
+                for chunk in resp.iter_bytes():
+                    self.wfile.write(chunk)
+                    pending += chunk
+                    while b"\n" in pending:
+                        line, pending = pending.split(b"\n", 1)
+                        _capture_stream_usage(line, stats)
+                    if len(pending) > _STREAM_BUFFER_LIMIT:
+                        pending = b""
+            except httpx.HTTPError:
+                stats.add("errors")
+                marker = (b"\n" if pending else b"") + b": fabric: upstream stream aborted\n\n"
+                try:
+                    self.wfile.write(marker)
+                except (BrokenPipeError, ConnectionResetError):
+                    pass
+                return
+            _capture_stream_usage(pending, stats)
+
+        def _send_json(self, status: int, obj: Any, *, close: bool = False) -> None:
             payload = json.dumps(obj).encode("utf-8")
             self.send_response(status)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(payload)))
+            if close:
+                self.send_header("Connection", "close")
+                self.close_connection = True
             self.end_headers()
             self.wfile.write(payload)
 
@@ -248,16 +472,20 @@ def make_server(
     mode: str,
     blocks: tuple[ContextBlock, ...] = (),
     port: int = 8080,
+    store: SqliteStore | None = None,
 ) -> ThreadingHTTPServer:
     client = httpx.Client(timeout=_TIMEOUT, trust_env=False)
-    handler = _make_handler(upstream.rstrip("/"), mode, blocks, Stats(), client)
+    handler = _make_handler(upstream.rstrip("/"), mode, blocks, Stats(), client, store)
     return ThreadingHTTPServer(("127.0.0.1", port), handler)
 
 
 def serve(*, upstream: str, port: int, fabric: Path | None, mode: str) -> None:
     """Load the fabric file (if any) and run the proxy until interrupted."""
-    blocks = load_fabric(fabric) if fabric is not None else ()
-    httpd = make_server(upstream=upstream, mode=mode, blocks=blocks, port=port)
+    blocks: tuple[ContextBlock, ...] = ()
+    store: SqliteStore | None = None
+    if fabric is not None:
+        blocks, store = _open_fabric(fabric)
+    httpd = make_server(upstream=upstream, mode=mode, blocks=blocks, port=port, store=store)
     print(f"context-fabric sidecar: mode={mode} upstream={upstream} blocks={len(blocks)}")
     print(f"listening on http://127.0.0.1:{port}/v1")
     try:

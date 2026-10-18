@@ -22,8 +22,8 @@ Legend: ✅ implemented · 🟡 partial · ⬜ pending.
 | Adaptive cartridge + watermark/trust gates | ADR-0002/0004 | ✅ | `kernel/router/` |
 | `EPOCH_FOLD` / `COW_FORK` (memory-state v0) | Module D | ✅ | `kernel/epochs.py` (O(1) fork, private edits, explicit fold + conflict contract; packet-level k-step tool-output fold per Build-Plan §44 pending) |
 | Shadow Cortex probes | Module B | ⬜ | pending |
-| Durable store | Db-Storage-Spec | 🟡 | `kernel/store/` SQLite v0 (+ sidecar `.db` loading); Postgres migration + driver pending |
-| Sidecar REST API ("the plug") | Plane 2 | 🟡 | `sidecar/` OpenAI-compatible proxy (compile/passthrough, SSE streaming); raw_llm/LMCache `agent_hint` adapter pending |
+| Durable store | Db-Storage-Spec | 🟡 | `kernel/store/` SQLite v0 (blocks + relations, WAL; sidecar reads and writes); Postgres migration + driver pending |
+| Sidecar REST API ("the plug") | Plane 2 | 🟡 | `sidecar/` OpenAI-compatible proxy: compile/passthrough, SSE, `cfx` CLI, writable memory (`POST /fabric/blocks`, quarantine=draft), CORS + size cap; LMCache `agent_hint` + thin MCP surface pending |
 | Deterministic-core tests | — | ✅ | `tests/` |
 
 **Realized core:** deterministic cartridge + policy + scoring + closure + 4-tier packing +

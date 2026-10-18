@@ -10,6 +10,9 @@ dependencies = [
     "cryptography>=43",
 ]
 
+[project.scripts]
+cfx = "sidecar.cli:main"
+
 [project.optional-dependencies]
 observability = ["opentelemetry-api>=1.25", "opentelemetry-sdk>=1.25"]
 dev = ["pytest>=8", "mypy>=1.11", "ruff>=0.6"]

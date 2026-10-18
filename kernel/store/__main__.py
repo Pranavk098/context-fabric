@@ -16,18 +16,28 @@ def main() -> None:
     ingest = commands.add_parser("ingest", help="ingest a JSONL fabric file into a store")
     ingest.add_argument("jsonl", help="JSONL file with one ContextBlock per line")
     ingest.add_argument("db", help="SQLite database path (created if missing)")
-    info = commands.add_parser("info", help="print block count and max source_event_seq")
+    ingest_relations = commands.add_parser(
+        "ingest-relations", help="ingest a JSONL relations file into a store"
+    )
+    ingest_relations.add_argument("jsonl", help="JSONL file with one Relation per line")
+    ingest_relations.add_argument("db", help="SQLite database path (created if missing)")
+    info = commands.add_parser("info", help="print block/relation counts and max source_event_seq")
     info.add_argument("db", help="SQLite database path")
     args = parser.parse_args()
     if args.command == "ingest":
         store = SqliteStore(args.db)
         inserted, deduplicated = store.ingest_jsonl(args.jsonl)
         print(f"{args.db}: {inserted} inserted, {deduplicated} deduplicated")
+    elif args.command == "ingest-relations":
+        store = SqliteStore(args.db)
+        inserted, deduplicated = store.ingest_relations_jsonl(args.jsonl)
+        print(f"{args.db}: {inserted} inserted, {deduplicated} deduplicated")
     elif args.command == "info":
         store = SqliteStore(args.db)
         print(
             f"{args.db}: blocks={store.count()}, "
-            f"max_source_event_seq={store.max_source_event_seq()}"
+            f"max_source_event_seq={store.max_source_event_seq()}, "
+            f"relations={store.relation_count()}"
         )
 
 
