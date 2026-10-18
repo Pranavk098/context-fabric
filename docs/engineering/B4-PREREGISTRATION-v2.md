@@ -227,3 +227,20 @@ Pre-stated caveats: single GPU; one 1.5B model; n = 12 objectives × 3 repeats =
 arm; twelve short fact-style objectives (information-presence scorer with required+forbidden
 facts, not a judge and not an executable test — declared in §4); warm-cache caveats apply only
 within an arm (tags isolate arms); the first request of each arm is cold prefill.
+
+## 11. Follow-up note — iteration 1 (tooling, disclosed under §8)
+
+First live run (`evals/reports/b4_divergent_20261018_145719.json`, kept): 9/36 arm-B requests
+(`implementer-*`, 3 objectives × 3 repeats) failed with HTTP 400 — vLLM rejected them for
+exceeding `--max-model-len 8192`. Cause: §2/§9 sized prompts with tiktoken `o200k_base`; vLLM
+counts with the Qwen2.5 tokenizer, which yields more tokens for this bundle (arm A averaged
+~8,120 Qwen tokens per request vs ~7,940 tiktoken). This is a context-length rejection, the
+tooling failure §8 names. Arms A and C had 0 errors. The first run's verdict (NO_TOKEN_WIN) is
+therefore computed on a baseline arm with 25% of requests missing and is **not** the result of
+record.
+
+The single allowed iteration changes exactly one thing: the engine runs with
+`--max-model-len 16384` (via `VLLM_MAX_LEN=16384` in `scripts/wsl_run_eval.sh`) for all three
+arms. Fixture, ingester, ownership map, objectives, scorer, arms, order, `max_tokens`, repeats
+and criteria are unchanged. The iteration-1 receipt is the result of record; no further
+iteration is permitted.

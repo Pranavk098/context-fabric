@@ -20,7 +20,7 @@ sleep 4
 
 echo "[$(date +%T)] starting vllm serve"
 nohup "$VENV/bin/vllm" serve "$MODEL" \
-  --enable-prefix-caching --max-model-len 8192 --enforce-eager \
+  --enable-prefix-caching --max-model-len "${VLLM_MAX_LEN:-8192}" --enforce-eager \
   --gpu-memory-utilization 0.85 --port 8000 >"$LOG" 2>&1 &
 VLLM_PID=$!
 
