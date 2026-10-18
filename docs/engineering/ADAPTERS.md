@@ -115,3 +115,55 @@ If the renderer later moves to `protocol/` or `kernel/`, only the import changes
   <https://platform.claude.com/docs/en/build-with-claude/prompt-caching>
 - Anthropic Messages API (`cache_control.ttl: "5m" | "1h"`, default `"5m"`):
   <https://docs.anthropic.com/en/api/messages>
+
+---
+
+# LangGraph adapter (`adapters/langgraph/`) — B3
+
+The first real *framework* adapter: turn a LangGraph node invocation into a compiled
+`ContextPacket`, on the exact same compile path the sidecar uses. It demonstrates the
+"framework-agnostic" claim with a singular, small, reusable API — not a README word.
+
+`langgraph` is an **optional extra** (`uv sync --extra langgraph`); the reusable core
+(`adapters/langgraph/intercept.py`) imports no LangGraph at all, so Context Fabric stays
+importable without it.
+
+## API
+
+```python
+from adapters.langgraph import compile_node_packet, node_model_input
+
+result = compile_node_packet(state, scope=scope, recipient=recipient)
+system_message = node_model_input(result)
+# -> {"role": "system", "content": render_packet(result.packet)}
+```
+
+- `compile_node_packet(state, *, scope, recipient, ...)` reads `state["objective"]` and
+  `state["blocks"]`, then forwards to `kernel.router.compiler.compile_packet` 1:1 (stage
+  comes from `recipient.stage`). It returns the same `CompileResult` (packet + policy
+  trace) the raw API returns — no network, no clock.
+- `node_model_input(result)` renders the packet into the OpenAI-shaped system message the
+  node passes to its chat model. The render order (shared Tier 0 first) is inherited from
+  `sidecar.render.render_packet`, so the cache-alignment story in the raw-LLM section
+  above applies unchanged.
+
+## What it does
+
+- Compiles each node's packet from the *shared* fabric state, per-agent (different
+  `Recipient`, so different role policy, packet id, and instruction).
+- Runs fully offline: compilation and the 3-node `example.py` graph
+  (`planner -> worker -> reviewer`) use a deterministic stub model; set `CF_UPSTREAM` to
+  hit a live OpenAI-compatible upstream instead (`uv run python -m adapters.langgraph.example`).
+- Proves semantic parity: `tests/test_langgraph_parity.py` drives the same workflow via the
+  raw API and via the adapter and asserts identical packet hashes and identical policy
+  traces, per node (skipped cleanly when the extra is not installed).
+
+## What it does NOT do
+
+- No token-savings claim for LangGraph. **None have been measured** — unlike the raw-LLM
+  adapters, no LangGraph run has produced a token receipt, and no number is asserted here.
+- No `FabricAdapter` lifecycle from `docs/design/Framework-Adapter-Spec.md` §2
+  (deliver/observe/cancel/fold). B3 ships only the compile-time interceptor; the REST
+  lifecycle remains the v2 target.
+- No custom routing, scoring, or policy logic — those stay in `kernel/router/`; the adapter
+  is a thin pass-through to `compile_packet`.

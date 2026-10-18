@@ -16,6 +16,7 @@ cfx = "sidecar.cli:main"
 [project.optional-dependencies]
 observability = ["opentelemetry-api>=1.25", "opentelemetry-sdk>=1.25"]
 embeddings = ["fastembed>=0.4"]
+langgraph = ["langgraph>=1.2.16"]
 dev = ["pytest>=8", "mypy>=1.11", "ruff>=0.6"]
 
 [tool.uv]
@@ -33,9 +34,14 @@ python_version = "3.12"
 strict = true
 warn_unused_ignores = true
 
-# fastembed is an optional extra: type-check must pass whether or not it is installed.
+# Optional extras: type-check must pass whether or not they are installed.
 [[tool.mypy.overrides]]
 module = ["fastembed", "fastembed.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["langgraph", "langgraph.*"]
+follow_imports = "skip"
 ignore_missing_imports = true
 
 [tool.ruff]
