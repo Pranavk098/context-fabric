@@ -47,7 +47,7 @@ CAPABILITY_REGISTRY: list[dict[str, Any]] = [
     {
         "phrase": "purpose compartments",
         "symbol": "kernel.router.policy_engine:apply_policy",
-        "test": "tests.test_policy_engine:test_matching_purpose_is_allowed",
+        "test": "tests.test_kernel:test_compile_purpose_gate_preserves_default_hash",
     },
     {
         "phrase": "prefix sharing",

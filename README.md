@@ -8,7 +8,7 @@ One shared memory. One small, cache-aligned packet per agent.
 Every hand-off hashed, signable, and replayable.
 
 [![CI](https://github.com/Pranavk098/context-fabric/actions/workflows/ci.yml/badge.svg)](https://github.com/Pranavk098/context-fabric/actions/workflows/ci.yml)
-![tests](https://img.shields.io/badge/tests-338%20total-brightgreen)
+![tests](https://img.shields.io/badge/tests-355%20total-brightgreen)
 ![python](https://img.shields.io/badge/python-3.12%2B-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
 ![status](https://img.shields.io/badge/status-v0.1%20local--first-orange)
@@ -87,7 +87,7 @@ from actual code): **35.87× fewer prompt tokens at parity (5/6 vs 5/6)** —
   Cloud APIs get provider-shaped requests with correct cache hints (`adapters/`).
 - **Share** — agents share Tier 0/1 memory through prefix sharing; sub-agents mount the same
   prefix at the head of every packet. New writes land **quarantined** until trusted.
-- **Seal** — every packet is hashed and signed; epochs chain with Merkle inclusion proofs.
+- **Seal** — every packet is hashed and can be signed; epochs chain with Merkle inclusion proofs.
   `cfx verify` tells you if one character changed.
 - **Replay** — `cfx replay` recompiles a past hand-off from its recorded manifest and proves
   byte-equality — or reports drift. This proves the *notes*, never the model's answer.

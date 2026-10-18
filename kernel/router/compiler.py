@@ -87,12 +87,17 @@ def compile_packet(
     budget_base: int = 4000,
     as_of: datetime = DEFAULT_AS_OF,
     signer: Signer | None = None,
+    purpose: str | None = None,
 ) -> CompileResult:
     budget = TokenBudget.from_base(budget_base)
 
-    # Stage 2: hard policy BEFORE scoring (deny-by-default: trust domain, RBAC, lifecycle).
+    # Stage 2: hard policy BEFORE scoring (deny-by-default: trust domain, RBAC, lifecycle, purpose).
     allowed, denials = apply_policy(
-        blocks, role=recipient.role, as_of=as_of, trust_domain=scope.tenant_id
+        blocks,
+        role=recipient.role,
+        as_of=as_of,
+        trust_domain=scope.tenant_id,
+        purpose=purpose,
     )
     # Never include blocks observed after the pinned watermark.
     if watermark_event_seq > 0:
@@ -201,6 +206,7 @@ def compile_packet(
     trace = {
         "included": included,
         "excluded": [{"id": d.block_id, "reason": d.reason} for d in denials],
+        "purpose": purpose,
         "scores": scores,
         "conflict_alerts": [a.model_dump() for a in closure.alerts],
         "tier_tokens": {

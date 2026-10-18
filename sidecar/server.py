@@ -372,6 +372,7 @@ def _make_handler(
             )
             with write_lock:
                 snapshot = tuple(fabric)
+            purpose = self.headers.get("X-Fabric-Purpose")
             result = compile_packet(
                 scope=_SCOPE,
                 recipient=recipient,
@@ -381,8 +382,9 @@ def _make_handler(
                 watermark_event_seq=0,
                 budget_base=4000,
                 as_of=as_of,
+                purpose=purpose,
             )
-            self._log_compile(result, recipient, objective, as_of, snapshot)
+            self._log_compile(result, recipient, objective, as_of, snapshot, purpose=purpose)
             payload.setdefault("messages", []).insert(
                 0, {"role": "system", "content": render_packet(result.packet)}
             )
@@ -399,6 +401,7 @@ def _make_handler(
             objective: str,
             as_of: datetime,
             blocks: Sequence[ContextBlock],
+            purpose: str | None = None,
         ) -> None:
             """Record the compile manifest for ``cfx replay``; failure never breaks proxying.
 
@@ -431,6 +434,7 @@ def _make_handler(
                 block_hashes=tuple(content_hash for _, content_hash in pairs),
                 model=os.environ.get("CF_MODEL", ""),
                 engine=os.environ.get("CF_ENGINE", ""),
+                purpose=purpose,
                 created_at=datetime.now(tz=UTC),
             )
             try:

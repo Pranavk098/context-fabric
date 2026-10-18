@@ -64,13 +64,14 @@ CREATE TABLE IF NOT EXISTS compile_log (
     block_hashes        TEXT NOT NULL,
     model               TEXT,
     engine              TEXT,
+    purpose             TEXT,
     created_at          TEXT NOT NULL
 );
 """
 
 _MANIFEST_COLUMNS = (
     "packet_id, content_hash, scope_json, recipient_json, objective, stage, as_of,"
-    " watermark_event_seq, budget_base, block_ids, block_hashes, model, engine, created_at"
+    " watermark_event_seq, budget_base, block_ids, block_hashes, model, engine, purpose, created_at"
 )
 
 
@@ -122,6 +123,7 @@ class CompileManifest:
     block_hashes: tuple[str, ...]
     model: str
     engine: str
+    purpose: str | None
     created_at: datetime
 
 
@@ -140,6 +142,7 @@ def _manifest_from_row(row: tuple[Any, ...]) -> CompileManifest:
         block_hashes,
         model,
         engine,
+        purpose,
         created_at,
     ) = row
     return CompileManifest(
@@ -156,6 +159,7 @@ def _manifest_from_row(row: tuple[Any, ...]) -> CompileManifest:
         block_hashes=tuple(json.loads(block_hashes)),
         model=model or "",
         engine=engine or "",
+        purpose=purpose if purpose else None,
         created_at=datetime.fromisoformat(created_at),
     )
 
@@ -311,8 +315,8 @@ class SqliteStore:
         self._conn.execute(
             "INSERT OR IGNORE INTO compile_log"
             " (packet_id, content_hash, scope_json, recipient_json, objective, stage, as_of,"
-            " watermark_event_seq, budget_base, block_ids, block_hashes, model, engine,"
-            " created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            " watermark_event_seq, budget_base, block_ids, block_hashes, model, engine, purpose,"
+            " created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 manifest.packet_id,
                 manifest.content_hash,
@@ -327,6 +331,7 @@ class SqliteStore:
                 json.dumps(list(manifest.block_hashes)),
                 manifest.model,
                 manifest.engine,
+                manifest.purpose,
                 manifest.created_at.isoformat(),
             ),
         )

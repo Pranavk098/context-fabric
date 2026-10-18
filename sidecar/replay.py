@@ -87,6 +87,7 @@ def replay(store_path: str | Path, packet_id: str) -> int:
         watermark_event_seq=manifest.watermark_event_seq,
         budget_base=manifest.budget_base,
         as_of=manifest.as_of,
+        purpose=manifest.purpose,
     )
     replayed_hash = result.packet.hashes.content_hash
     if replayed_hash != manifest.content_hash:

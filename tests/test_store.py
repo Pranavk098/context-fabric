@@ -155,6 +155,7 @@ def manifest(packet_id: str, content_hash: str, *, seq: int = 0) -> CompileManif
         block_hashes=("sha256:d1", "sha256:d2"),
         model="test-model",
         engine="test-engine",
+        purpose=None,
         created_at=datetime(2026, 1, 2, tzinfo=UTC),
     )
 
@@ -198,6 +199,7 @@ def test_compile_log_rejects_mismatched_block_lists(tmp_path: Path) -> None:
         block_hashes=(),
         model="",
         engine="",
+        purpose=None,
         created_at=datetime(2026, 1, 2, tzinfo=UTC),
     )
     with pytest.raises(ValueError):

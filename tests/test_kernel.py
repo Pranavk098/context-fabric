@@ -33,6 +33,7 @@ def mk(
     *,
     token_estimate: int = 8,
     denied_roles: tuple[str, ...] = (),
+    allowed_purposes: tuple[str, ...] = (),
     symbols: tuple[str, ...] = (),
     lifecycle: LifecycleStatus = LifecycleStatus.routable,
     trust_domain: str = "t1",
@@ -49,6 +50,7 @@ def mk(
         fidelity=Fidelity.extract,
         trust_domain=trust_domain,
         denied_roles=denied_roles,
+        allowed_purposes=allowed_purposes,
         symbols_exported=symbols,
         lifecycle_status=lifecycle,
     )
@@ -233,3 +235,31 @@ def test_oversized_cartridge_falls_back_to_adaptive() -> None:
     )
     assert r.packet.tiers.tier0.cartridge_id == "cfx_none"  # dropped, not crash
     assert r.packet.total_tokens <= 1000
+
+
+def test_compile_purpose_gate_preserves_default_hash() -> None:
+    blocks = [
+        mk("open", BlockKind.decision, 1, "open decision"),
+        mk("plan_only", BlockKind.decision, 2, "plan decision", allowed_purposes=("plan",)),
+        mk("audit_only", BlockKind.decision, 3, "audit decision", allowed_purposes=("audit",)),
+    ]
+    kw = dict(
+        scope=SCOPE,
+        recipient=Recipient(agent_id="a1", role="implementer", stage="implement"),
+        objective="do the thing",
+        stage="implement",
+        blocks=blocks,
+        as_of=AS_OF,
+    )
+    default = compile_packet(**kw)
+    explicit_none = compile_packet(**kw, purpose=None)
+    assert default.packet.hashes.content_hash == explicit_none.packet.hashes.content_hash
+
+    plan = compile_packet(**kw, purpose="plan")
+    included = {b.block_id for b in plan.packet.tiers.tier1.blocks}
+    assert "open" in included
+    assert "plan_only" in included
+    assert "audit_only" not in included
+    denied = {d["id"]: d["reason"] for d in plan.trace["excluded"]}
+    assert denied.get("audit_only") == "purpose_not_allowed"
+    assert plan.trace["purpose"] == "plan"

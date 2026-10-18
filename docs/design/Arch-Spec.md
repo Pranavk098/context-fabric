@@ -8,7 +8,7 @@ NORMATIVE ARCHITECTURE SPECIFICATION | VERSION 1.0 (SUPERSEDES CPP v0.1)
 > **Status note (2026-10-18):** design of record, not a status report. What is built and the
 > spec-vs-code deltas live in `../engineering/IMPLEMENTATION-STATUS.md` and
 > `../engineering/ROADMAP-DECISIONS.md`. Known deltas as of this date: policy enforces
-> lifecycle/RBAC/validity only (purpose, trust-domain and freshness gates pending);
+> lifecycle/RBAC/validity/trust-domain/purpose (purpose is an optional compile-time parameter) and freshness gates implemented;
 > the >85% KV-reuse invariant is an empirical target (intra-agent measured 60–74%);
 > CoW is implemented at the packet/memory-state level (`kernel/epochs.py`, `kernel/mmu/`),
 > not as KV-page forking; packet signing is optional in the compiler.
