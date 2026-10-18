@@ -5,7 +5,7 @@ set -uo pipefail
 export PATH="$HOME/.local/bin:$PATH"
 export XDG_RUNTIME_DIR="/run/user/$(id -u)"
 VENV="$HOME/.venvs/vllm"
-REPO=/mnt/c/dev/Context-Fabric
+REPO="${CF_REPO:-/mnt/c/dev/Context-Fabric}"
 MODULE="${1:-evals.spike_kv_cache}"
 MODEL="${VLLM_MODEL:-Qwen/Qwen2.5-1.5B-Instruct}"
 LOG=/tmp/cf_vllm_run.log
