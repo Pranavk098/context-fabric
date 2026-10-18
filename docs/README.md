@@ -38,6 +38,8 @@ Everything that matters is here. "Main" documents are marked ⭐.
 - `STORE.md` — SQLite store v0 + Postgres migration path.
 - `EPOCHS-STORE-REVIEW.md` — audit of the CoW + store code (4 S2 fixed, 0 S1).
 - `TRACK-A-REVIEW.md` — audit of the cfx CLI / writable memory / store relations (4 S2 + 9 S3 fixed, 0 S1).
+- `DEMO.md` — `cfx demo`: fleet + negative-knowledge receipts, method, measured results.
+- `DEMO-REVIEW.md` — independent audit of the demo fairness/numbers (0 blockers).
 - `PROTOCOL-REVIEW.md` — deterministic-core (protocol/) audit.
 - `KERNEL-REVIEW.md` — Stage C kernel code review.
 

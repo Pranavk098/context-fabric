@@ -17,13 +17,14 @@ Legend: ✅ implemented · 🟡 partial · ⬜ pending.
 | Cache-aware utility scoring | §4 | 🟡 | `kernel/router/scorer.py` (cache discount flag only) |
 | Dependency/contradiction/negative-knowledge closure | Stage 4 | ✅ | `kernel/router/dependency_closer.py` |
 | 4-tier budget allocation + packing | Stages 5–6 | 🟡 | `kernel/router/packer.py` (MMR diversity pending) |
-| U-curve attention placement | Stage 7 | 🟡 | recency anchor emitted; placement not enforced |
+| U-curve attention placement | Stage 7 | 🟡 | `sidecar/render.py` renders the recency anchor (prohibitions + output contract) at the tail; full head/tail scheduling pending |
 | Verify/hash/sign | Stage 8 | ✅ | `kernel/router/compiler.py` |
 | Adaptive cartridge + watermark/trust gates | ADR-0002/0004 | ✅ | `kernel/router/` |
 | `EPOCH_FOLD` / `COW_FORK` (memory-state v0) | Module D | ✅ | `kernel/epochs.py` (O(1) fork, private edits, explicit fold + conflict contract; packet-level k-step tool-output fold per Build-Plan §44 pending) |
 | Shadow Cortex probes | Module B | ⬜ | pending |
 | Durable store | Db-Storage-Spec | 🟡 | `kernel/store/` SQLite v0 (blocks + relations, WAL; sidecar reads and writes); Postgres migration + driver pending |
 | Sidecar REST API ("the plug") | Plane 2 | 🟡 | `sidecar/` OpenAI-compatible proxy: compile/passthrough, SSE, `cfx` CLI, writable memory (`POST /fabric/blocks`, quarantine=draft), CORS + size cap; LMCache `agent_hint` + thin MCP surface pending |
+| `cfx demo` receipt runner | Track B | ✅ | `sidecar/demo.py` (fleet + negative-knowledge scenarios; GPU-verified, `docs/engineering/DEMO.md`) |
 | Deterministic-core tests | — | ✅ | `tests/` |
 
 **Realized core:** deterministic cartridge + policy + scoring + closure + 4-tier packing +

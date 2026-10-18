@@ -12,6 +12,7 @@ from typing import Any
 
 from kernel.store import SqliteStore, StoreConflict
 from protocol import epoch
+from sidecar import demo
 from sidecar.blocks import build_block, stored_block
 from sidecar.server import serve
 
@@ -84,6 +85,12 @@ def _build_parser() -> argparse.ArgumentParser:
     verify_parser.add_argument("epochs", help="JSON file with a list of epochs")
     verify_parser.add_argument("--pubkey", default=None, help="Ed25519 public key hex")
     verify_parser.set_defaults(func=_cmd_verify)
+
+    demo_parser = subparsers.add_parser(
+        "demo", help="run the fleet/negative demo against a live upstream and write a receipt"
+    )
+    demo.add_arguments(demo_parser)
+    demo_parser.set_defaults(func=demo.main_from_namespace)
 
     return parser
 

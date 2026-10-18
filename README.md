@@ -36,9 +36,27 @@ the OpenAI-compatible **sidecar** (plug), signed **epoch receipts** (seal), memo
 - The **15× tax** is an arithmetic identity (15 agents × per-hop), not an independent result.
 - Intra-agent is a **tie**; there is a small-context crossover (mitigated by an adaptive
   cartridge). Model-tier arbitrage is a **weak signal** (one task, 0.5B vs 1.5B).
-- Several spec features are **not yet implemented** (MMR diversity, U-curve placement,
-  embeddings, Postgres store (SQLite v0 exists), framework adapters); the kernel realizes the
-  deterministic core: cartridge, policy, scoring, closure, 4-tier packing, hashing, signing.
+- Several spec features are **not yet implemented** (MMR diversity, full U-curve head/tail
+  scheduling, embeddings, Postgres store (SQLite v0 exists), framework adapters); the kernel
+  realizes the deterministic core: cartridge, policy, scoring, closure, 4-tier packing,
+  hashing, signing.
+
+### The plug demo (`cfx demo`, 2026-10-17)
+
+One command runs two arms against your local model — **broadcast** (every agent receives the
+entire raw project state; the strongest naive baseline) vs **compile** (each agent receives a
+packet from the shared fabric). Real GPU run (Qwen2.5-1.5B, temp 0, 6 agents, 26-block /
+~6.7k-token synthetic fixture):
+
+| Arm | Prompt tokens | Per request | Accuracy | Wall | KV peak |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| broadcast | 44,854 | 7,476 | 6/6 | 2.82 s | 0.061 |
+| compile | 13,221 | 2,204 | 6/6 | 1.43 s | 0.019 |
+
+**3.4× fewer prompt tokens at equal accuracy, ~2× faster** (warm cache both arms; receipts and
+method: `docs/engineering/DEMO.md`). Negative-knowledge traps: one genuine compliance cell
+(3B queue trap 2/2 → 0/2 bad, both scorers); the rest null or instrument-limited — stated as
+such. Independent audit: `docs/engineering/DEMO-REVIEW.md`.
 
 ## Quickstart
 

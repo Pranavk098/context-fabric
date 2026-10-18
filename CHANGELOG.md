@@ -15,6 +15,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - **Relations in the durable store** — `kernel/store/` relations table + append/load/ingest
   APIs + CLI; contradiction/dependency closure verified end-to-end from a DB-backed fabric
   (`docs/engineering/STORE.md`).
+- **`cfx demo` — the receipt demo** (`sidecar/demo.py`): one command runs a 6-agent fleet in two
+  arms (best-case broadcast vs compile) against any OpenAI-compatible endpoint and prints a
+  receipt (tokens, accuracy, cache, KV, cost if priced); negative-knowledge scenario with
+  control/treated traps and v1+v2 scorers. GPU-verified: **3.39× fewer prompt tokens at equal
+  accuracy, ~2× faster** (`docs/engineering/DEMO.md`; audit: `DEMO-REVIEW.md`).
 - **The seal** — signed epoch chain + receipts (`protocol/epoch.py`, `verify` CLI), cross-process
   determinism spike, tamper tests (`docs/engineering/SEAL.md`).
 - **The shared copy** — memory-state copy-on-write (`kernel/epochs.py`): O(1) fork, private
@@ -39,6 +44,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   peak; ~9–12× at finer sampling), **~2× vs a shared raw prefix**; throughput 8.2×.
 - Five research-doc corrections applied (arXiv revision numbers, star count, AutoGen status,
   cleared `[UNVERIFIED]` markers) — see `docs/engineering/RESEARCH-AUDIT.md`.
+
+### Fixed (Track B)
+- **Recency anchor now rendered** — the packer built prohibitions + output contract but
+  `sidecar/render.py` never delivered them; negative knowledge now lands at the tail of the
+  injected context (U-curve position). Found by the demo's negative-knowledge scenario,
+  verified in the rerun (`docs/engineering/DEMO.md` §Results).
 
 ### Fixed (protocol audit)
 - RFC 8785 number formatting (ECMAScript form: `1e16`, `1e-5`, `1e-7`), enum serialization,

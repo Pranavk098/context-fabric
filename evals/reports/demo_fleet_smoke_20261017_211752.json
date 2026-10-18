@@ -1,0 +1,271 @@
+{
+  "scenario": "fleet",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "upstream": "http://localhost:8000",
+  "started_at": "2026-10-18T04:18:34.014534+00:00",
+  "records": [
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "agent": "architect",
+      "objective": "Where does Project Atlas store canonical state and embeddings?",
+      "required": [
+        "postgres",
+        "pgvector"
+      ],
+      "missing": [
+        "postgres",
+        "pgvector"
+      ],
+      "passed": false,
+      "compiled": false,
+      "prompt_tokens": 7472,
+      "completion_tokens": 8,
+      "latency_ms": 1106.0,
+      "response": "Project Atlas stores its canonical state and embeddings"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "agent": "implementer",
+      "objective": "Which port do Atlas services expose gRPC on? Give the port only.",
+      "required": [
+        "7443"
+      ],
+      "missing": [
+        "7443"
+      ],
+      "passed": false,
+      "compiled": false,
+      "prompt_tokens": 7477,
+      "completion_tokens": 8,
+      "latency_ms": 190.0,
+      "response": "The Atlas services expose gRPC on port"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "agent": "reviewer",
+      "objective": "What is the maximum TTL for inter-service auth tokens? Give seconds.",
+      "required": [
+        "120"
+      ],
+      "missing": [
+        "120"
+      ],
+      "passed": false,
+      "compiled": false,
+      "prompt_tokens": 7476,
+      "completion_tokens": 8,
+      "latency_ms": 171.9,
+      "response": "The maximum TTL for inter-service auth tokens"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "agent": "tester",
+      "objective": "What port does the Atlas staging cluster listen on? Give the port only.",
+      "required": [
+        "9091"
+      ],
+      "missing": [
+        "9091"
+      ],
+      "passed": false,
+      "compiled": false,
+      "prompt_tokens": 7477,
+      "completion_tokens": 8,
+      "latency_ms": 175.9,
+      "response": "The Atlas staging cluster listens on port **"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "agent": "auditor",
+      "objective": "What was the p99 latency after the June deploy? Give ms.",
+      "required": [
+        "820"
+      ],
+      "missing": [
+        "820"
+      ],
+      "passed": false,
+      "compiled": false,
+      "prompt_tokens": 7477,
+      "completion_tokens": 8,
+      "latency_ms": 179.9,
+      "response": "The p99 latency after the June"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "agent": "ops",
+      "objective": "What is the Project Atlas API rate limit per tenant per minute?",
+      "required": [
+        "480"
+      ],
+      "missing": [
+        "480"
+      ],
+      "passed": false,
+      "compiled": false,
+      "prompt_tokens": 7475,
+      "completion_tokens": 8,
+      "latency_ms": 172.0,
+      "response": "The Project Atlas API has a rate limit"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "agent": "architect",
+      "objective": "Where does Project Atlas store canonical state and embeddings?",
+      "required": [
+        "postgres",
+        "pgvector"
+      ],
+      "missing": [
+        "pgvector"
+      ],
+      "passed": false,
+      "compiled": true,
+      "prompt_tokens": 2234,
+      "completion_tokens": 8,
+      "latency_ms": 278.0,
+      "response": "Project Atlas stores canonical state in PostgreSQL and"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "agent": "implementer",
+      "objective": "Which port do Atlas services expose gRPC on? Give the port only.",
+      "required": [
+        "7443"
+      ],
+      "missing": [],
+      "passed": true,
+      "compiled": true,
+      "prompt_tokens": 2144,
+      "completion_tokens": 5,
+      "latency_ms": 290.2,
+      "response": "7443"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "agent": "reviewer",
+      "objective": "What is the maximum TTL for inter-service auth tokens? Give seconds.",
+      "required": [
+        "120"
+      ],
+      "missing": [
+        "120"
+      ],
+      "passed": false,
+      "compiled": true,
+      "prompt_tokens": 2305,
+      "completion_tokens": 8,
+      "latency_ms": 331.6,
+      "response": "The maximum TTL for inter-service auth tokens"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "agent": "tester",
+      "objective": "What port does the Atlas staging cluster listen on? Give the port only.",
+      "required": [
+        "9091"
+      ],
+      "missing": [
+        "9091"
+      ],
+      "passed": false,
+      "compiled": true,
+      "prompt_tokens": 2144,
+      "completion_tokens": 8,
+      "latency_ms": 316.1,
+      "response": "The Atlas staging cluster listens on port "
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "agent": "auditor",
+      "objective": "What was the p99 latency after the June deploy? Give ms.",
+      "required": [
+        "820"
+      ],
+      "missing": [
+        "820"
+      ],
+      "passed": false,
+      "compiled": true,
+      "prompt_tokens": 2091,
+      "completion_tokens": 8,
+      "latency_ms": 311.7,
+      "response": "The p99 latency after the June"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "agent": "ops",
+      "objective": "What is the Project Atlas API rate limit per tenant per minute?",
+      "required": [
+        "480"
+      ],
+      "missing": [
+        "480"
+      ],
+      "passed": false,
+      "compiled": true,
+      "prompt_tokens": 2303,
+      "completion_tokens": 8,
+      "latency_ms": 332.3,
+      "response": "The Project Atlas API rate limit per tenant"
+    }
+  ],
+  "arms": {
+    "broadcast": {
+      "requests": 6,
+      "prompt_tokens_total": 44854,
+      "completion_tokens_total": 48,
+      "wall_ms": 1996.0,
+      "mean_latency_ms": 332.6,
+      "passed": 0,
+      "total": 6
+    },
+    "compile": {
+      "requests": 6,
+      "prompt_tokens_total": 13221,
+      "completion_tokens_total": 45,
+      "wall_ms": 1860.1,
+      "mean_latency_ms": 310.0,
+      "passed": 1,
+      "total": 6
+    }
+  },
+  "cache": {
+    "available": true,
+    "source": "upstream Prometheus /metrics (vLLM)",
+    "per_arm": {
+      "broadcast": {
+        "prefix_cache_hits_delta": 37280.0,
+        "prefix_cache_queries_delta": 44854.0,
+        "kv_cache_usage_peak": 0.05990016638935103
+      },
+      "compile": {
+        "prefix_cache_hits_delta": 0.0,
+        "prefix_cache_queries_delta": 13221.0,
+        "kv_cache_usage_peak": 0.018558812236016853
+      }
+    },
+    "caveat": "Prefix-cache counters are upstream-global and vLLM-specific (null when the upstream exposes no /metrics); kv_cache_usage_peak is a best-effort ~50ms sample of the KV-cache capacity fraction, not comparable across models."
+  },
+  "notes": [
+    "Fixture is synthetic Project Atlas state (generated in `sidecar/demo.py`; no real project data).",
+    "Broadcast is deliberately the strongest naive baseline: one identical, stable-order fabric blob in every system message, maximizing prefix-cache reuse.",
+    "Accuracy is a deterministic substring check (no LLM judge) proving information parity, not answer quality; both arms use the exact same scorer.",
+    "Broadcast ran first; the arms use different system prefixes so upstream prefix-cache state cannot leak between them.",
+    "Prefix-cache counters are warm-cache numbers: the upstream cache persists across requests and runs, so prompts already sent earlier in the same session (including a smoke run with identical messages) show up as hits; cache deltas are not a cold-start measurement.",
+    "Small n: 6 objectives x 1 repeat; temperature=0.0 requested, max_tokens=8, non-streaming.",
+    "Broadcast renders all stored blocks (6687 tokens) including the quarantined draft (the baseline applies no policy); compiled packets deny the draft (lifecycle:draft) and include only relevant blocks."
+  ]
+}
