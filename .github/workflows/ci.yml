@@ -19,8 +19,10 @@ jobs:
       - name: Format check
         run: uv run ruff format --check .
       - name: Type check
-        run: uv run mypy protocol evals kernel sidecar
+        run: uv run mypy protocol evals kernel sidecar adapters
       - name: Tests
         run: uv run pytest -q
+      - name: Docs numbers
+        run: uv run python scripts/check_docs_numbers.py
       - name: Deterministic-core spike
         run: uv run python -m evals.spike_deterministic

@@ -408,6 +408,11 @@ def _make_handler(
             to log: JSONL fabrics and no-fabric runs skip silently. ``model``/``engine`` are
             operator metadata (``CF_MODEL``/``CF_ENGINE``, "" when unset), not probed from
             the upstream.
+
+            ``packet_id`` excludes ``as_of``, so a repeat compile of the same
+            objective/agent/watermark reuses the id. Only the first manifest per id is
+            kept (CD-06); a repeat is proxied normally but reported on stderr instead of
+            being silently un-receipted.
             """
             if store is None:
                 return
@@ -430,6 +435,16 @@ def _make_handler(
             )
             try:
                 with write_lock:
+                    existing = store.get_compile(manifest.packet_id)
+                    if existing is not None:
+                        print(
+                            f"sidecar: packet {manifest.packet_id} already receipted"
+                            f" ({existing.content_hash}); this compile"
+                            f" ({manifest.content_hash}) is proxied but not re-logged"
+                            " (first receipt wins)",
+                            file=sys.stderr,
+                        )
+                        return
                     store.log_compile(manifest)
             except Exception as exc:  # a log failure must never break proxying
                 print(
@@ -519,6 +534,18 @@ def _make_handler(
     return Handler
 
 
+class _Server(ThreadingHTTPServer):
+    """ThreadingHTTPServer sized for bursty agent fleets.
+
+    The socketserver default listen backlog is 5; a simultaneous burst of >5 client
+    connections (measured with ``evals/bench_sidecar.py`` at N=64: refused connections and
+    ~1 s SYN-retransmit stalls on Windows) overflows it. 256 costs nothing and absorbs the
+    burst; ``daemon_threads``/``allow_reuse_address`` are already True/1 in the stdlib base.
+    """
+
+    request_queue_size = 256
+
+
 def make_server(
     *,
     upstream: str,
@@ -529,7 +556,7 @@ def make_server(
 ) -> ThreadingHTTPServer:
     client = httpx.Client(timeout=_TIMEOUT, trust_env=False)
     handler = _make_handler(upstream.rstrip("/"), mode, blocks, Stats(), client, store)
-    return ThreadingHTTPServer(("127.0.0.1", port), handler)
+    return _Server(("127.0.0.1", port), handler)
 
 
 def serve(*, upstream: str, port: int, fabric: Path | None, mode: str) -> None:

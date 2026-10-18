@@ -1,0 +1,199 @@
+{
+  "scenario": "pilot",
+  "kind": "smoke",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "upstream": "http://localhost:8000",
+  "started_at": "2026-10-18T08:31:44.362953+00:00",
+  "ts": "20261018_013144",
+  "fixture": {
+    "repo": "https://github.com/encode/httpx",
+    "clone_path": "/mnt/c/Users/prana/AppData/Local/Temp/opencode/httpx_pilot",
+    "commit": "b5addb64f0161ff6bfe94c124ef76f6a1fba5254",
+    "commit_source": "git rev-parse HEAD",
+    "rendering": "files in listed order, raw bytes, joined by a blank line, each prefixed by '===== FILE: <path> ====='",
+    "files": [
+      {
+        "path": "httpx/__init__.py",
+        "sha256": "sha256:c6eb7c7ee98f049888d3c20ce80ca55e469772c0b080400a0c6c58983d36c0c4",
+        "bytes": 2297,
+        "tiktoken": 568
+      },
+      {
+        "path": "httpx/__version__.py",
+        "sha256": "sha256:fbbecde0a559094201ca3e78fc2c2e325ad0f604c37f3299087f62a0488b990c",
+        "bytes": 111,
+        "tiktoken": 35
+      },
+      {
+        "path": "httpx/_api.py",
+        "sha256": "sha256:8936fc710d8deeca17bfe6e8dc9f089231301b090e97dc0cf00e2e6249e6d79a",
+        "bytes": 12181,
+        "tiktoken": 2875
+      },
+      {
+        "path": "httpx/_auth.py",
+        "sha256": "sha256:82a26adfda516d0545288b1b37c6bd3a99d8bac56bfc53e1779571db3e1863fc",
+        "bytes": 12255,
+        "tiktoken": 2689
+      },
+      {
+        "path": "httpx/_client.py",
+        "sha256": "sha256:5be2ca2aef13fa41d03a76815c7d2e37d2e066396e69c7c1d62dd36c90566783",
+        "bytes": 67732,
+        "tiktoken": 13796
+      },
+      {
+        "path": "httpx/_config.py",
+        "sha256": "sha256:2c3f11b64d97d5d1da84a8e8c9270ce611eb329ad3cb2a2464f612d23e6dc891",
+        "bytes": 8795,
+        "tiktoken": 1964
+      },
+      {
+        "path": "httpx/_content.py",
+        "sha256": "sha256:c52ee6d7a5d05256e2a7209087d08cee952b1c962befdec7d85890ad0f32e984",
+        "bytes": 8401,
+        "tiktoken": 1878
+      },
+      {
+        "path": "httpx/_decoders.py",
+        "sha256": "sha256:46a3b6982e6c6cdd994b4aa35c7ca55d08f6fd645bad80e987356f547296f915",
+        "bytes": 12434,
+        "tiktoken": 2807
+      },
+      {
+        "path": "httpx/_exceptions.py",
+        "sha256": "sha256:c1abc25cba9d2739a8d76ebeb1653a04300c627e65ec329191de2ccbcb969e9b",
+        "bytes": 8877,
+        "tiktoken": 1877
+      },
+      {
+        "path": "httpx/_main.py",
+        "sha256": "sha256:293fc53a28263f1d57817f04a511d38d69b441f09314604711047c0960dbf27b",
+        "bytes": 16132,
+        "tiktoken": 3654
+      }
+    ],
+    "bundle_tokens_tiktoken": 32259,
+    "preregistration": "docs/engineering/PILOT-PREREGISTRATION.md",
+    "ts": "20261018_013144"
+  },
+  "cartridge": {
+    "cartridge_id": "cfx_httpx-pilot_b5addb64",
+    "tenant_id": "default",
+    "project_id": "httpx-pilot",
+    "commit_hash": "b5addb64f0161ff6bfe94c124ef76f6a1fba5254",
+    "token_count": 542,
+    "kv_prefix_hash": "sha256:e2e6c9708762686bbaa315296f4ad97f6eb0c2d1d9609b4a479ed84e3d02db09",
+    "hologram_markdown": "# Project Hologram: httpx-pilot @ b5addb64\n- _models.py: def _is_known_encoding(encoding) -> bool; def _normalize_header_key(key, encoding) -> bytes; def _normalize_header_value(value, encoding) -> bytes; def _parse_content_type_charset(content_type) -> str | None; def _parse_header_links(value) -> list[dict[str, str]]; def _obfuscate_sensitive_headers(items) -> typing.Iterator[tuple[typing.AnyStr, typing.AnyStr]]; class Headers: __init__, encoding, encoding, raw, keys, values, items, multi_items, get, get_list, update, copy, __getitem__, __setitem__, __delitem__, __contains__, __iter__, __len__, __eq__, __repr__; class Request: __init__, _prepare, content, read, aread, __repr__, __getstate__, __setstate__; class Response: __init__, _prepare, elapsed, elapsed, request, request, http_version, reason_phrase, url, content, text, encoding, encoding, charset_encoding, _get_content_decoder, is_informational, is_success, is_redirect, is_client_error, is_server_error, is_error, has_redirect_location, raise_for_status, json, cookies, links, num_bytes_downloaded, __repr__, __getstate__, __setstate__, read, iter_bytes, iter_text, iter_lines, iter_raw, close, aread, aiter_bytes, aiter_text, aiter_lines, aiter_raw, aclose; class Cookies: __init__, extract_cookies, set_cookie_header, set, get, delete, clear, update, __setitem__, __getitem__, __delitem__, __len__, __iter__, __bool__, __repr__\n- _exceptions.py: class HTTPError: __init__, request, request; class RequestError: __init__; class TransportError; class TimeoutException; class ConnectTimeout; class ReadTimeout; class WriteTimeout; class PoolTimeout; class NetworkError; class ReadError; class WriteError; class ConnectError; class CloseError; class ProxyError; class UnsupportedProtocol; class ProtocolError; class LocalProtocolError; class RemoteProtocolError; class DecodingError; class TooManyRedirects; class HTTPStatusError: __init__; class InvalidURL: __init__; class CookieConflict: __init__; class StreamError: __init__; class StreamConsumed: __init__; class StreamClosed: __init__; class ResponseNotRead: __init__; class RequestNotRead: __init__; def request_context(request) -> typing.Iterator[None]"
+  },
+  "objectives": [
+    {
+      "role": "architect",
+      "objective": "In the httpx repository, which module defines the `Client` and `AsyncClient` classes? Answer with the file path only.",
+      "required": [
+        "_client.py"
+      ]
+    }
+  ],
+  "records": [
+    {
+      "op": "chat",
+      "arm": "raw",
+      "agent": "architect",
+      "objective": "In the httpx repository, which module defines the `Client` and `AsyncClient` classes? Answer with the file path only.",
+      "required": [
+        "_client.py"
+      ],
+      "missing": [],
+      "passed": true,
+      "error": null,
+      "compiled": false,
+      "prompt_tokens": 32227,
+      "completion_tokens": 6,
+      "latency_ms": 5129.8,
+      "response": "httpx/_client.py",
+      "response_text": "httpx/_client.py",
+      "prompt_sha256": "sha256:ecea1d5ace6d04ccdec2a6e97ee03c417377dc75c7c9f482cdb0095f96b8483d"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "agent": "architect",
+      "objective": "In the httpx repository, which module defines the `Client` and `AsyncClient` classes? Answer with the file path only.",
+      "required": [
+        "_client.py"
+      ],
+      "missing": [],
+      "passed": true,
+      "error": null,
+      "compiled": true,
+      "prompt_tokens": 897,
+      "completion_tokens": 6,
+      "latency_ms": 156.4,
+      "response": "httpx/_client.py",
+      "response_text": "httpx/_client.py",
+      "prompt_sha256": "sha256:511fc73af52330a04179af5376159e35c7428e67bf1be26977fbd4035945c497"
+    }
+  ],
+  "arms": {
+    "raw": {
+      "requests": 1,
+      "prompt_tokens_total": 32227,
+      "completion_tokens_total": 6,
+      "wall_ms": 5135.1,
+      "mean_latency_ms": 5129.8,
+      "passed": 1,
+      "total": 1
+    },
+    "compile": {
+      "requests": 1,
+      "prompt_tokens_total": 897,
+      "completion_tokens_total": 6,
+      "wall_ms": 156.5,
+      "mean_latency_ms": 156.4,
+      "passed": 1,
+      "total": 1
+    }
+  },
+  "cache": {
+    "available": true,
+    "source": "upstream Prometheus /metrics (vLLM)",
+    "per_arm": {
+      "raw": {
+        "prefix_cache_hits_delta": 0.0,
+        "prefix_cache_queries_delta": 32227.0,
+        "kv_cache_usage_peak": 0.2587978422810172
+      },
+      "compile": {
+        "prefix_cache_hits_delta": 0.0,
+        "prefix_cache_queries_delta": 897.0,
+        "kv_cache_usage_peak": 0.007320832263036259
+      }
+    }
+  },
+  "sidecar_stats": {
+    "raw": {
+      "requests": 1,
+      "compiled": 0,
+      "errors": 0,
+      "upstream_prompt_tokens": 32227
+    },
+    "compile": {
+      "requests": 1,
+      "compiled": 1,
+      "errors": 0,
+      "upstream_prompt_tokens": 897
+    }
+  },
+  "notes": [
+    "Fixture is REAL repository content: https://github.com/encode/httpx @ b5addb64f0161ff6bfe94c124ef76f6a1fba5254; the raw arm's system message is the 10-file bundle (32259 tiktoken) rendered with FILE headers (actual bytes, stable order); per-file sha256 in the fixture manifest so a fresh clone can audit the exact bytes.",
+    "Raw ran first; all six raw requests share one identical system message (the strongest naive baseline, maximizing upstream prefix-cache reuse), only the user objective differs.",
+    "The smoke pass (if any, same vLLM session) and the raw arm's shared system message warm the upstream prefix cache: cache deltas are warm-cache numbers, not cold-start.",
+    "Compile arm = the shipped sidecar's compile mode over an 11-block SQLite fabric (trust_domain 'default', lifecycle routable, fact kinds, source_event_seq 1..11). The shipped server's compile path takes no cartridge argument, so the compiled .cfx Cartridge (artifact pilot_cartridge_*.json) is recorded but NOT injected: the compile arm measures store-only compilation (preregistered limitation).",
+    "Sidecar compile budget is fixed at budget_base=4000 by the server; the rendered packet is injected as the system message.",
+    "Accuracy is the same deterministic case-insensitive substring check for both arms (information presence, not answer quality); every objective and response is reported, pass or fail.",
+    "Cache counters come from the upstream Prometheus /metrics (vLLM), parsed tolerantly (null when unavailable); prefix-cache counters are upstream-global; kv_cache_usage_peak is a best-effort ~50ms sample of the capacity fraction.",
+    "n=1 objectives x 1 repeat, temperature=0.0, non-streaming, max_tokens=8; single GPU, single 1.5B model."
+  ],
+  "criteria": {}
+}

@@ -10,9 +10,10 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from kernel.mmu.epoch_folder import DEFAULT_K
 from kernel.store import SqliteStore, StoreConflict
 from protocol import epoch
-from sidecar import demo, mcp
+from sidecar import demo, foldfork, mcp
 from sidecar.blocks import build_block, stored_block
 from sidecar.replay import replay, seal
 from sidecar.server import serve
@@ -95,6 +96,34 @@ def _build_parser() -> argparse.ArgumentParser:
         "--packet-id", required=True, help="packet id (the X-Fabric-Packet-Id header value)"
     )
     replay_parser.set_defaults(func=_cmd_replay)
+
+    fold_parser = subparsers.add_parser(
+        "fold", help="fold raw tool-output events into Tier-1 facts (append-only, idempotent)"
+    )
+    fold_parser.add_argument("--store", required=True, help="SQLite store path (.db/.sqlite)")
+    fold_parser.add_argument(
+        "--k",
+        type=int,
+        default=DEFAULT_K,
+        help=f"micro-epoch size in raw events (default {DEFAULT_K})",
+    )
+    fold_parser.set_defaults(func=_cmd_fold)
+
+    fork_parser = subparsers.add_parser(
+        "fork", help="spawn a COW child packet from the parent receipt logged for --packet-id"
+    )
+    fork_parser.add_argument("--store", required=True, help="SQLite store path (.db/.sqlite)")
+    fork_parser.add_argument(
+        "--packet-id", required=True, help="parent packet id (the X-Fabric-Packet-Id value)"
+    )
+    fork_parser.add_argument("--agent", required=True, help="child agent id")
+    fork_parser.add_argument("--role", required=True, help="child role (RBAC-filtered)")
+    fork_parser.add_argument("--objective", required=True, help="child objective")
+    fork_parser.add_argument(
+        "--stage", default=None, help="child stage (default: the parent manifest's stage)"
+    )
+    fork_parser.add_argument("--out", default=None, help="also write the child packet JSON here")
+    fork_parser.set_defaults(func=_cmd_fork)
 
     seal_parser = subparsers.add_parser(
         "seal", help="commit the compile log as a signed epoch receipt chain"
@@ -183,6 +212,22 @@ def _cmd_verify(args: argparse.Namespace) -> int:
 
 def _cmd_replay(args: argparse.Namespace) -> int:
     return replay(args.store, args.packet_id)
+
+
+def _cmd_fold(args: argparse.Namespace) -> int:
+    return foldfork.fold(args.store, k=args.k)
+
+
+def _cmd_fork(args: argparse.Namespace) -> int:
+    return foldfork.fork(
+        args.store,
+        args.packet_id,
+        agent=args.agent,
+        role=args.role,
+        objective=args.objective,
+        stage=args.stage,
+        out_path=args.out,
+    )
 
 
 def _cmd_seal(args: argparse.Namespace) -> int:

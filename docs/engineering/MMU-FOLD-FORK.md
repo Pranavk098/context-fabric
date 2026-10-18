@@ -1,7 +1,8 @@
 # Packet-Level MMU: `EPOCH_FOLD` and `COW_FORK`
 
-**Status:** v0 implemented at `kernel/mmu/` (`epoch_folder.py`, `cow_forker.py`). Not yet wired
-into the sidecar compile path. Tests: `tests/test_mmu.py`.
+**Status:** v0 implemented at `kernel/mmu/` (`epoch_folder.py`, `cow_forker.py`) and wired
+into the product surface as `cfx fold` / `cfx fork` (`sidecar/foldfork.py`). Tests:
+`tests/test_mmu.py`, `tests/test_foldfork.py`.
 
 ## What and why
 
@@ -17,7 +18,7 @@ Two packet-level syscalls from the Phase 2 design close the context window loop:
 
 ## Spec quotes
 
-* `docs/design/Build-Plan-Validation-Gate.md:44` — "Implement `EPOCH_FOLD` (k=3 steps
+* `docs/design/Build-Plan-Validation-Gate.md:51` — "Implement `EPOCH_FOLD` (k=3 steps
   append-only -> fold raw tool outputs into Tier 1 facts + Tier 2 `ctx://` pointers) and
   `COW_FORK` (sub-agent spawning with constant window size)."
 * `docs/design/Arch-Spec.md` invariant 5 — "Intra-turn tool loops MUST append strictly to
@@ -77,8 +78,15 @@ new_tier3 = tuple(b for b in result.ledger if b.memory_tier is MemoryTier.regist
 `fork_packet(parent, *, recipient, objective, stage, as_of, budget_base=None, signer=None)
 -> ContextPacket`
 
-* **Shared by reference:** `tier0`, `tier1` and `tier2` are the exact same model objects on
-  the child (pydantic frozen models — the parent can never be mutated through the child).
+* **Shared by reference:** `tier0`, `tier1` (unless the child's role denies a ledger block)
+  and `tier2` are the exact same model objects on the child (pydantic frozen models — the
+  parent can never be mutated through the child). A filtered ledger is a new `Tier1Ledger`
+  over the allowed parent block objects.
+* **Tier 1 is policy-filtered for the child (CD-07):** `fork_packet` re-runs
+  `apply_policy(parent.tiers.tier1.blocks, role=recipient.role, as_of=as_of)` and drops
+  blocks the child may not see (e.g. an auditor inheriting an implementer's role-denied
+  decision); `total_tokens` shrinks by the dropped estimates. When nothing is denied the
+  parent's ledger object itself is shared.
 * **Fresh Tier 3:** a new instruction for the child's objective/stage/role; no inherited
   probes, observations, or recency anchor.
 * **Lineage (ADR-0005):** `parent_packet_id=parent.packet_id`, `epoch_number + 1`,
@@ -108,9 +116,48 @@ child = fork_packet(
 )
 ```
 
+## Product surface: `cfx fold` / `cfx fork`
+
+### `cfx fold --store PATH [--k 3]`
+
+Selects the store's raw events in store order and folds them with `fold_raw_events`. The
+**raw-event selection rule** (also the `is_raw_event` docstring in `sidecar/foldfork.py`):
+
+> `block_kind ∈ {observation, artifact}` (the folder's foldable kinds) AND
+> `fidelity == raw` AND `content is not None` AND `lifecycle_status == routable`.
+
+Draft/quarantined blocks are not fold inputs — `fold_raw_events` does not run the policy
+gate, so callers must fold already-admitted blocks (CD-18) — and `ref_uri`-only pointers
+are not raw content. The selected sequence is cut into consecutive `k`-event micro-epochs
+(store order): complete epochs mint facts, the incomplete tail stays raw.
+
+Minted facts are appended to the store; raw events are never evicted or modified. The
+command is **idempotent**: a fact's `block_id` is `_det_id("blk_fold", <source block_id>,
+<source content_hash>)`, so a re-fold mints byte-identical facts and
+`SqliteStore.append_many` dedupes them by `block_id` (second run prints `folded: N`,
+`appended: 0`, `deduped: N`). Idempotence is per source content: if a source event's
+content (and therefore `content_hash`) changes, the derived `block_id` changes too, so the
+re-fold appends a *new* fact and the stale one stays (append-only) — re-folding is not a
+re-derivation/update path. Output is `folded: N`, `appended: N`, `deduped: N`; exit
+codes are 0 ok, 1 store error, 2 usage.
+
+The Tier-2 `ctx://obs/...` handles from `FoldResult` are not persisted (the store has no
+handles table; compile-time overflow handles come from the packer).
+
+### `cfx fork --store PATH --packet-id ID --agent A --role R --objective O [--stage S] [--out PATH]`
+
+Loads the parent compile manifest, rebuilds the parent packet from its recorded block set
+with the exact filtering and drift checks of `cfx replay` (store drift or a parent hash
+mismatch exits 1), then calls `fork_packet`. `as_of` is the parent manifest's `as_of` —
+never the clock — so two identical invocations print byte-identical child JSON. `--stage`
+defaults to the parent manifest's stage and feeds both `Recipient.stage` and the
+instruction (no stage/recipient mismatch; CD-19). The child packet JSON goes to stdout;
+`child_packet_id`/`parent_packet_id` go to stderr; `--out` also writes the JSON to a file.
+Exit codes: 0 ok; 1 store/no-manifest/drift/write error; 2 usage.
+
 ## Interpretations and divergences
 
-* **Handle URI is `ctx://obs/<block_id>`**, per `Module-Implementation.md:84`
+* **Handle URI is `ctx://obs/<block_id>`**, per `Module-Implementation.md:92`
   (`ctx://obs/...`). The router packer mints `ctx://block/<block_id>` for its own overflow
   handles; both resolve to the stored block. A shared resolver should normalize both when
   `PAGE_FAULT_EXPAND` is wired.
@@ -119,14 +166,13 @@ child = fork_packet(
   the cacheable rendered prefix: with Tier 0 first and the per-agent instruction second
   (`sidecar/render.py`), only Tier 0 is byte-identical across agents; Tier 1/2 render
   after the instruction. The KV-reuse claim is therefore Tier-0 only, not "Tier 0+1+2".
-* **Tier 1 is shared unfiltered (known gap).** `Module-Implementation.md` §D.2 says to
-  filter the parent ledger when the child has stricter `denied_roles` (e.g. spawning an
-  auditor). v0 reuses the ledger object without re-running `apply_policy`, so a child
-  whose role is denied a parent-visible block still receives it. Fork across trust
-  boundaries only after adding that policy pass (and recomputing `total_tokens`).
+* **Tier 1 filtering is inline, not a compile pass.** The child's ledger is filtered with
+  `apply_policy` (role + `as_of`), not by a full `compile_packet` run: no re-scoring, no
+  tier re-allocation, no closure, and a child never gains blocks the parent's compile did
+  not select. Spawn semantics, not a recompile.
 * **The fold threshold is per event**, while §D.1 names a packet-level Tier 3 token
-  trigger. v0 keeps the pure function small; the packet trigger belongs in the sidecar
-  adapter that owns Tier 3 token accounting.
+  trigger. `cfx fold` folds whole `k`-event micro-epochs using the per-event threshold; no
+  packet-level token trigger exists yet.
 * **`observed_at`/`valid_from` are copied from the source event**, never read from the
   clock, so repeated folds are byte-identical.
 * **`kernel/epochs.py` is a different layer.** It implements the block-store consistency
@@ -138,13 +184,19 @@ child = fork_packet(
 No clock, no RNG, no set/dict iteration in emitted order. Input order is authoritative,
 ids are `_det_id`/sha256-derived, and every produced block round-trips through
 `ContextBlock.model_validate(model_dump())`. Two identical runs produce identical
-`FoldResult` and identical child packets (tested).
+`FoldResult` and identical child packets (tested); `cfx fork` fixes `as_of` to the parent
+manifest's `as_of`, so two identical invocations print byte-identical JSON (tested).
 
 ## v0 limits (honest)
 
-* **Not wired into the sidecar compile path** — nothing in `sidecar/` calls these yet; they
-  are a kernel library with tests.
+* **No eviction of raw events.** `cfx fold` is append-only: raw events stay in the store
+  (§D.1's Tier-3 clearing is not applied to the store). Nothing is lost — nothing is
+  trimmed either; a store-wide raw-output balance has no reclaim operation yet.
+* **No `PAGE_FAULT_EXPAND` resolver.** The `ctx://obs/<block_id>` handles minted by
+  `cfx fold` are not persisted, and neither those nor the packer's
+  `ctx://block/<block_id>` handles can be dereferenced back into raw content yet. The raw
+  events remain in the store for a future resolver.
 * The §D.1 failed-tool branch (`negative_knowledge` on non-zero exit / test failure) is not
   implemented: `ContextBlock` carries no tool-result metadata contract to key on.
-* No persistence, no `PAGE_FAULT_EXPAND` resolver, no signed epoch manifests; fork ids are
-  reproducible (not secret), so in-process trust only.
+* No signed epoch manifests; fork ids are reproducible (not secret), so in-process trust
+  only.

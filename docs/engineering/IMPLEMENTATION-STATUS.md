@@ -21,10 +21,11 @@ Legend: ✅ implemented · 🟡 partial · ⬜ pending.
 | Verify/hash/sign | Stage 8 | ✅ | `kernel/router/compiler.py` |
 | Adaptive cartridge + watermark/trust gates | ADR-0002/0004 | ✅ | `kernel/router/` |
 | `EPOCH_FOLD` / `COW_FORK` — memory-state v0 | Module D | ✅ | `kernel/epochs.py` (O(1) fork, private edits, explicit fold + conflict contract) |
-| Packet-level `EPOCH_FOLD` / `COW_FORK` | Module D | ✅ | `kernel/mmu/` (k-step fold → Tier 1 facts + `ctx://` handles; fork shares Tier 0/1/2, fresh Tier 3; not yet wired into the sidecar compile path) |
+| Packet-level `EPOCH_FOLD` / `COW_FORK` | Module D | ✅ | `kernel/mmu/` (k-step fold → Tier 1 facts + `ctx://` handles; fork shares Tier 0/1/2, fresh Tier 3; wired as `cfx fold` / `cfx fork`) |
+| `raw_llm` cloud adapters (OpenAI/Anthropic cache mapping) | Module 4 | ✅ | `adapters/raw_llm.py` (v0: Tier-0 breakpoint; Gemini + min-token validation pending) |
 | Replayable receipts (`cfx replay` / `cfx seal`) | §5 rec. 2 | ✅ | compile manifests (`compile_log`) + recompile-and-verify + epoch sealing over real traffic (`SEAL.md`) |
 | Cache alignment (shared prefix first) | plug rec. #4 | ✅ | `sidecar/render.py` tier0-first; `hints.shared_prefix_hash` == cartridge `kv_prefix_hash` |
-| Shadow Cortex probes | Module B | ⬜ | pending |
+| Shadow Cortex probes | Module B | 🟡 | `kernel/router/shadow_cortex.py` (v0: generation + evaluation from existing blocks; git/AST/stacktrace introspection pending) |
 | Durable store | Db-Storage-Spec | 🟡 | `kernel/store/` SQLite v0 (blocks + relations, WAL; sidecar reads and writes); Postgres migration + driver pending |
 | Sidecar REST API ("the plug") | Plane 2 | 🟡 | `sidecar/` OpenAI-compatible proxy: compile/passthrough, SSE, `cfx` CLI, writable memory (`POST /fabric/blocks`, quarantine=draft), CORS + size cap, `cfx demo`, MCP stdio (`cfx mcp`); LMCache `agent_hint` wiring pending |
 | `cfx demo` receipt runner | Track B | ✅ | `sidecar/demo.py` (fleet + negative-knowledge scenarios; GPU-verified, `docs/engineering/DEMO.md`) |
@@ -33,7 +34,9 @@ Legend: ✅ implemented · 🟡 partial · ⬜ pending.
 | Deterministic-core tests | — | ✅ | `tests/` |
 
 **Realized core:** deterministic cartridge + policy + BM25/hybrid recall + λ-MMR packing +
-closure + hashing + signing, packet-level fold/fork, replayable + sealed receipts — plus the
-product shell: sidecar ("plug"), MCP surface, writable quarantined memory, SQLite store,
-demo receipts, and a perf budget gate. **Next:** wire `kernel/mmu` into the compile path,
-Shadow Cortex probes, Postgres + engine wiring (triggers in `ROADMAP-DECISIONS.md`).
+closure + hashing + signing, packet-level fold/fork (`cfx fold`/`cfx fork`), replayable +
+sealed receipts — plus the product shell: sidecar ("plug", concurrency-hardened),
+cloud adapters, MCP surface, writable quarantined memory, `cfx demo` (fleet / repo / mock /
+priced), SQLite store, and CI guards (`NUMBERS.md`, perf budget). **Next:** engine-hint wiring
+when the vLLM RFC lands, Gemini adapter, Shadow Cortex introspection probes, Postgres
+(triggers in `ROADMAP-DECISIONS.md`).

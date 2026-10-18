@@ -1,0 +1,286 @@
+{
+  "scenario": "fleet",
+  "model": "qwen2.5:1.5b",
+  "upstream": "http://127.0.0.1:11434",
+  "started_at": "2026-10-18T17:05:52.415483+00:00",
+  "records": [
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "agent": "architect",
+      "objective": "Where does Project Atlas store canonical state and embeddings?",
+      "required": [
+        "postgres",
+        "pgvector"
+      ],
+      "missing": [
+        "postgres",
+        "pgvector"
+      ],
+      "passed": false,
+      "compiled": false,
+      "prompt_tokens": 4096,
+      "completion_tokens": 16,
+      "latency_ms": 33754.6,
+      "response": "Project Atlas stores its canonical state and embeddings in a distributed, multi-node setup.",
+      "response_text": "Project Atlas stores its canonical state and embeddings in a distributed, multi-node setup.",
+      "prompt_sha256": "sha256:9faaa4d2bfc370703fb3c72efcc4ff5addb4167c80c64dacaeb652bc696ac773"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "agent": "implementer",
+      "objective": "Which port do Atlas services expose gRPC on? Give the port only.",
+      "required": [
+        "7443"
+      ],
+      "missing": [
+        "7443"
+      ],
+      "passed": false,
+      "compiled": false,
+      "prompt_tokens": 4096,
+      "completion_tokens": 16,
+      "latency_ms": 508.9,
+      "response": "The Atlas services typically expose their gRPC ports as follows:\n\n1. **Atlas",
+      "response_text": "The Atlas services typically expose their gRPC ports as follows:\n\n1. **Atlas",
+      "prompt_sha256": "sha256:49f5ec07a2171994c391dae1632b55ecfdb1122cabaf5338323ee7e4524b45a3"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "agent": "reviewer",
+      "objective": "What is the maximum TTL for inter-service auth tokens? Give seconds.",
+      "required": [
+        "120"
+      ],
+      "missing": [
+        "120"
+      ],
+      "passed": false,
+      "compiled": false,
+      "prompt_tokens": 4096,
+      "completion_tokens": 16,
+      "latency_ms": 512.5,
+      "response": "The maximum TTL (Time to Live) for inter-service authentication tokens typically ranges from",
+      "response_text": "The maximum TTL (Time to Live) for inter-service authentication tokens typically ranges from",
+      "prompt_sha256": "sha256:7929be63333dfe773e3720c607601d1702bcaabea9d3016dfae61167677c39a0"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "agent": "tester",
+      "objective": "What port does the Atlas staging cluster listen on? Give the port only.",
+      "required": [
+        "9091"
+      ],
+      "missing": [
+        "9091"
+      ],
+      "passed": false,
+      "compiled": false,
+      "prompt_tokens": 4096,
+      "completion_tokens": 16,
+      "latency_ms": 510.1,
+      "response": "The Atlas staging cluster typically listens on port **8081**. This",
+      "response_text": "The Atlas staging cluster typically listens on port **8081**. This",
+      "prompt_sha256": "sha256:eb3e9310c134ab3ff5e72c371be9f03cfb96b2b4eae002bee874b5203ff26a62"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "agent": "auditor",
+      "objective": "What was the p99 latency after the June deploy? Give ms.",
+      "required": [
+        "820"
+      ],
+      "missing": [
+        "820"
+      ],
+      "passed": false,
+      "compiled": false,
+      "prompt_tokens": 4096,
+      "completion_tokens": 16,
+      "latency_ms": 509.3,
+      "response": "The P99 latency is a measure of the longest time it takes for ",
+      "response_text": "The P99 latency is a measure of the longest time it takes for ",
+      "prompt_sha256": "sha256:bb1a5e6309b8b646f594671e541763da9182431181ec2fe763ac3604a9fd2c8a"
+    },
+    {
+      "op": "chat",
+      "arm": "broadcast",
+      "agent": "ops",
+      "objective": "What is the Project Atlas API rate limit per tenant per minute?",
+      "required": [
+        "480"
+      ],
+      "missing": [
+        "480"
+      ],
+      "passed": false,
+      "compiled": false,
+      "prompt_tokens": 4096,
+      "completion_tokens": 16,
+      "latency_ms": 507.7,
+      "response": "The Project Atlas API rate limit per tenant per minute varies depending on the specific API",
+      "response_text": "The Project Atlas API rate limit per tenant per minute varies depending on the specific API",
+      "prompt_sha256": "sha256:487227d647e7caffac70ba6621fca581f261be71a9401d8caec49e47fb36fdb3"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "agent": "architect",
+      "objective": "Where does Project Atlas store canonical state and embeddings?",
+      "required": [
+        "postgres",
+        "pgvector"
+      ],
+      "missing": [],
+      "passed": true,
+      "compiled": true,
+      "prompt_tokens": 2416,
+      "completion_tokens": 16,
+      "latency_ms": 393.4,
+      "response": "Project Atlas stores canonical state in PostgreSQL, while embeddings are stored in pgvector.",
+      "response_text": "Project Atlas stores canonical state in PostgreSQL, while embeddings are stored in pgvector.",
+      "prompt_sha256": "sha256:55e96a8ad4251db1b93c7423285eb31e4cbd599c1683bdb73b90cdc71d733337"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "agent": "implementer",
+      "objective": "Which port do Atlas services expose gRPC on? Give the port only.",
+      "required": [
+        "7443"
+      ],
+      "missing": [],
+      "passed": true,
+      "compiled": true,
+      "prompt_tokens": 2244,
+      "completion_tokens": 7,
+      "latency_ms": 288.6,
+      "response": "Port 7443",
+      "response_text": "Port 7443",
+      "prompt_sha256": "sha256:e7961eaf907b5e97f2811c787ad41a282c7e8bf5c5362606649a7aa26c7fbd0a"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "agent": "reviewer",
+      "objective": "What is the maximum TTL for inter-service auth tokens? Give seconds.",
+      "required": [
+        "120"
+      ],
+      "missing": [],
+      "passed": true,
+      "compiled": true,
+      "prompt_tokens": 2364,
+      "completion_tokens": 16,
+      "latency_ms": 336.3,
+      "response": "The maximum TTL for inter-service auth tokens in this environment is **120",
+      "response_text": "The maximum TTL for inter-service auth tokens in this environment is **120",
+      "prompt_sha256": "sha256:6473291d9789b5945c42a73e895929403c7098972023051bd6120541d8714496"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "agent": "tester",
+      "objective": "What port does the Atlas staging cluster listen on? Give the port only.",
+      "required": [
+        "9091"
+      ],
+      "missing": [],
+      "passed": true,
+      "compiled": true,
+      "prompt_tokens": 2244,
+      "completion_tokens": 14,
+      "latency_ms": 328.5,
+      "response": "The Atlas staging cluster listens on port 9091.",
+      "response_text": "The Atlas staging cluster listens on port 9091.",
+      "prompt_sha256": "sha256:e0acb77a8e37954a49b5cd4819537463f4c656a7b6932df98359703700dbd63e"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "agent": "auditor",
+      "objective": "What was the p99 latency after the June deploy? Give ms.",
+      "required": [
+        "820"
+      ],
+      "missing": [],
+      "passed": true,
+      "compiled": true,
+      "prompt_tokens": 2417,
+      "completion_tokens": 16,
+      "latency_ms": 339.9,
+      "response": "The p99 latency regressed to 820 ms after the June",
+      "response_text": "The p99 latency regressed to 820 ms after the June",
+      "prompt_sha256": "sha256:4218c363bea72ff9ac550694e6915a7f22620c2d9a2235eb5022fa050efc6630"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "agent": "ops",
+      "objective": "What is the Project Atlas API rate limit per tenant per minute?",
+      "required": [
+        "480"
+      ],
+      "missing": [],
+      "passed": true,
+      "compiled": true,
+      "prompt_tokens": 2485,
+      "completion_tokens": 16,
+      "latency_ms": 353.0,
+      "response": "The Project Atlas API rate limit for public requests is 480 requests per",
+      "response_text": "The Project Atlas API rate limit for public requests is 480 requests per",
+      "prompt_sha256": "sha256:851334839c2ef8328abde64cadfeb79009b946bb2e1fef4c2d672a66e76af182"
+    }
+  ],
+  "arms": {
+    "broadcast": {
+      "requests": 6,
+      "prompt_tokens_total": 24576,
+      "completion_tokens_total": 96,
+      "wall_ms": 36309.2,
+      "mean_latency_ms": 6050.5,
+      "passed": 0,
+      "total": 6
+    },
+    "compile": {
+      "requests": 6,
+      "prompt_tokens_total": 14170,
+      "completion_tokens_total": 85,
+      "wall_ms": 2040.2,
+      "mean_latency_ms": 339.9,
+      "passed": 6,
+      "total": 6
+    }
+  },
+  "cache": {
+    "available": false,
+    "source": "upstream Prometheus /metrics (vLLM)",
+    "per_arm": {
+      "broadcast": {
+        "prefix_cache_hits_delta": null,
+        "prefix_cache_queries_delta": null,
+        "kv_cache_usage_peak": null
+      },
+      "compile": {
+        "prefix_cache_hits_delta": null,
+        "prefix_cache_queries_delta": null,
+        "kv_cache_usage_peak": null
+      }
+    },
+    "caveat": "Prefix-cache counters are upstream-global and vLLM-specific (null when the upstream exposes no /metrics); kv_cache_usage_peak is a best-effort ~50ms sample of the KV-cache capacity fraction, not comparable across models."
+  },
+  "notes": [
+    "Fixture is synthetic Project Atlas state (generated in `sidecar/demo.py`; no real project data).",
+    "Broadcast is deliberately the strongest naive baseline: one identical, stable-order fabric blob in every system message, maximizing prefix-cache reuse.",
+    "Accuracy is a deterministic substring check (no LLM judge) proving information parity, not answer quality; both arms use the exact same scorer.",
+    "Broadcast ran first; the arms use different system prefixes so upstream prefix-cache state cannot leak between them.",
+    "Prefix-cache counters are warm-cache numbers: the upstream cache persists across requests and runs, so prompts already sent earlier in the same session (including a smoke run with identical messages) show up as hits; cache deltas are not a cold-start measurement.",
+    "Small n: 6 objectives x 1 repeat; temperature=0.0 requested, max_tokens=16, non-streaming.",
+    "Broadcast renders all stored blocks (6687 tokens) including the quarantined draft (the baseline applies no policy); compiled packets deny the draft (lifecycle:draft) and include only relevant blocks.",
+    "Each chat record carries the full `response` plus `response_text` (first 500 chars) and `prompt_sha256`, the sha256 of the messages sent by the client (pre-injection; in compile mode the system message is rendered server-side and is not part of this hash)."
+  ]
+}

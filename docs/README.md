@@ -51,6 +51,14 @@ Everything that matters is here. "Main" documents are marked ⭐.
 - `GAP-WAVE-MEASUREMENTS.md` — measurement audit (every number re-derived).
 - `MMU-FOLD-FORK.md` — packet-level EPOCH_FOLD / COW_FORK semantics.
 - `TRACK-CD-REVIEW.md` — code audit of Tracks C+D (3 S1 + 2 S2 fixed, verifiers hardened).
+- `PILOT.md` + `PILOT-PREREGISTRATION.md` — real-repo pilot (35.87× at parity) + frozen criteria.
+- `ENGINE-MATRIX.md` — vLLM vs Ollama portability results.
+- `ADAPTERS.md` — cloud adapters: OpenAI/Anthropic cache mapping.
+- `SHADOW-CORTEX.md` — probe generation/evaluation v0.
+- `NEGATIVE-SCORER.md` — scorer v1/v2/v3 + fresh rerun results.
+- `COSTS.md` — cost model + provider presets.
+- `NUMBERS.md` — canonical numbers registry (CI drift guard).
+- `SCRUM-REVIEW.md` / `SCRUM-MEASUREMENTS.md` — scrum audits (code + measurements).
 - `PROTOCOL-REVIEW.md` — deterministic-core (protocol/) audit.
 - `KERNEL-REVIEW.md` — Stage C kernel code review.
 - `REPO-CLEANUP.md` — repo-hygiene audit (dead files, packaging, gitignore/CI).

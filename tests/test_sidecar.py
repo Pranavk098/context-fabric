@@ -680,7 +680,12 @@ def test_cors_on_stdlib_error_path() -> None:
     upstream, upstream_url = _start_upstream()
     sidecar, sidecar_url = _start_sidecar(upstream_url, "passthrough")
     try:
-        response = httpx.request("PUT", f"{sidecar_url}/fabric/health", content=b"x", timeout=10.0)
+        # PUT hits stdlib send_error() (no do_PUT). Deliberately no request body: the
+        # 501 path closes without reading a body, and on Windows closing with unread
+        # inbound bytes is an abortive close (RST) that can race the response off the
+        # wire — reproduced 30/30 when the body arrives as a separate segment. No body
+        # means nothing unread, so the graceful close (and the response) is reliable.
+        response = httpx.request("PUT", f"{sidecar_url}/fabric/health", timeout=10.0)
         assert response.status_code == 501
         assert response.headers["access-control-allow-origin"] == "*"
         assert response.headers["content-length"]

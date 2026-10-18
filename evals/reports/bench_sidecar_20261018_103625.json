@@ -1,0 +1,119 @@
+{
+  "scenario": "bench_sidecar",
+  "ts": "20261018_103625",
+  "config": {
+    "concurrency": [
+      1,
+      4,
+      16,
+      64
+    ],
+    "requests_per_client": 20,
+    "fabric_blocks": 50,
+    "python": "3.12.13",
+    "platform": "Windows-11-10.0.26300-SP0"
+  },
+  "modes": {
+    "passthrough": {
+      "1": {
+        "requests": 20,
+        "errors": 0,
+        "error_kinds": {},
+        "wall_s": 0.0202,
+        "rps": 991.96,
+        "mean_ms": 1.007,
+        "p50_ms": 0.87,
+        "p95_ms": 1.733,
+        "p99_ms": 2.145
+      },
+      "4": {
+        "requests": 80,
+        "errors": 0,
+        "error_kinds": {},
+        "wall_s": 0.0889,
+        "rps": 899.45,
+        "mean_ms": 4.361,
+        "p50_ms": 4.089,
+        "p95_ms": 6.462,
+        "p99_ms": 10.533
+      },
+      "16": {
+        "requests": 320,
+        "errors": 0,
+        "error_kinds": {},
+        "wall_s": 0.3552,
+        "rps": 900.93,
+        "mean_ms": 16.959,
+        "p50_ms": 15.987,
+        "p95_ms": 29.614,
+        "p99_ms": 40.697
+      },
+      "64": {
+        "requests": 1280,
+        "errors": 0,
+        "error_kinds": {},
+        "wall_s": 1.5336,
+        "rps": 834.66,
+        "mean_ms": 71.246,
+        "p50_ms": 69.056,
+        "p95_ms": 134.197,
+        "p99_ms": 166.381
+      }
+    },
+    "compile": {
+      "1": {
+        "requests": 20,
+        "errors": 0,
+        "error_kinds": {},
+        "wall_s": 0.1824,
+        "rps": 109.63,
+        "mean_ms": 9.12,
+        "p50_ms": 6.838,
+        "p95_ms": 25.503,
+        "p99_ms": 31.357
+      },
+      "4": {
+        "requests": 80,
+        "errors": 0,
+        "error_kinds": {},
+        "wall_s": 0.6113,
+        "rps": 130.88,
+        "mean_ms": 30.131,
+        "p50_ms": 29.085,
+        "p95_ms": 40.325,
+        "p99_ms": 70.783
+      },
+      "16": {
+        "requests": 320,
+        "errors": 0,
+        "error_kinds": {},
+        "wall_s": 2.4066,
+        "rps": 132.97,
+        "mean_ms": 118.47,
+        "p50_ms": 118.316,
+        "p95_ms": 149.936,
+        "p99_ms": 162.656
+      },
+      "64": {
+        "requests": 1280,
+        "errors": 0,
+        "error_kinds": {},
+        "wall_s": 10.0957,
+        "rps": 126.79,
+        "mean_ms": 493.153,
+        "p50_ms": 497.351,
+        "p95_ms": 557.348,
+        "p99_ms": 754.396
+      }
+    }
+  },
+  "overhead": {
+    "p50_delta_ms": 5.968,
+    "mean_delta_ms": 8.113
+  },
+  "notes": [
+    "Fake instant upstream: latency here is the sidecar's own cost (HTTP, proxying, compile+render, manifest-log write), not model inference time.",
+    "Compile mode uses an in-memory SQLite store with manifest logging enabled; the write-lock path is exercised, disk-I/O noise is excluded.",
+    "One process, one GIL: compile mode is CPU-bound and cannot scale past one core; this bounds the sidecar's concurrency cost, not deployment capacity."
+  ]
+}

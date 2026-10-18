@@ -88,6 +88,29 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   mixed naive/aware `verify_chain` (S1); manifest/fabric write race and fold lifecycle
   promotion (S2); doc falsehoods corrected (`docs/engineering/TRACK-CD-REVIEW.md`).
 
+### Added (scrum wave, 2026-10-18)
+- **Real-repo pilot** — pre-registered criteria, real `httpx` @ `b5addb64`, 32k-token contexts:
+  **35.87× fewer prompt tokens at accuracy parity (5/6 vs 5/6)**, all criteria PASS
+  (`PILOT.md`, `PILOT-PREREGISTRATION.md`).
+- **Engine portability** — Ollama reproduces vLLM exactly (16/16 byte-identical prompts;
+  3.17× holds); 4k-context truncation gotcha documented (`ENGINE-MATRIX.md`).
+- **Cloud adapters v0** — `adapters/raw_llm.py`: OpenAI/Anthropic request shapes with
+  `cache_control` on the shared prefix (`ADAPTERS.md`).
+- **`cfx demo --repo`** — the receipt on any local Python repo (auto objectives from real
+  symbols) + `--mock` (no GPU) + `--price` cost receipts with provider presets
+  (`DEMO.md`, `COSTS.md`).
+- **MMU wired** — `cfx fold` / `cfx fork`; **Shadow Cortex v0** (`SHADOW-CORTEX.md`);
+  scorer v3 consolidated with a fresh negative rerun (3B: control 4/4 bad → treated 0/4 under
+  v1 and v3; `NEGATIVE-SCORER.md`).
+- **Guards** — canonical `NUMBERS.md` registry + `scripts/check_docs_numbers.py` in CI;
+  offline sidecar concurrency bench (`PERFORMANCE.md`).
+
+### Fixed (scrum wave)
+- Sidecar backlog overflow (`request_queue_size` 5 → 256): 23 errors at N=64 → 0; p99
+  2057 ms → 166 ms (`SCRUM-REVIEW.md`, `SCRUM-MEASUREMENTS.md`).
+- `cfx demo --repo`: unreadable-file crash and symlink path escape (S1/S2); fold/fork audit
+  S2s (repeat-`packet_id` warning; fork Tier-1 RBAC filter).
+
 ### Fixed (protocol audit)
 - RFC 8785 number formatting (ECMAScript form: `1e16`, `1e-5`, `1e-7`), enum serialization,
   `sha256:`-prefixed packet hash, `total_tokens <= hard_total_tokens` and Tier-1 ordering

@@ -8,7 +8,7 @@ One shared memory. One small, cache-aligned packet per agent.
 Every hand-off hashed, signed, and replayable.
 
 [![CI](https://github.com/Pranavk098/context-fabric/actions/workflows/ci.yml/badge.svg)](https://github.com/Pranavk098/context-fabric/actions/workflows/ci.yml)
-![tests](https://img.shields.io/badge/tests-226%20total-brightgreen)
+![tests](https://img.shields.io/badge/tests-333%20total-brightgreen)
 ![python](https://img.shields.io/badge/python-3.12%2B-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
 ![status](https://img.shields.io/badge/status-v0.1%20local--first-orange)
@@ -54,6 +54,10 @@ receipt -> evals/reports/demo_fleet_20261017_231929.json
 identical every time, so the GPU's prefix cache helps it as much as possible.
 We still win by 3.17x on prompt tokens, at equal accuracy.
 
+Pre-registered pilot on the real `httpx` repository (32k-token contexts, answer keys derived
+from actual code): **35.87× fewer prompt tokens at parity (5/6 vs 5/6)** —
+[`PILOT.md`](docs/engineering/PILOT.md).
+
 ## Numbers with receipts
 
 > **Every figure ships with its baseline, its caveat, and its artifact.**
@@ -62,7 +66,9 @@ We still win by 3.17x on prompt tokens, at equal accuracy.
 
 | What | Result | Baseline & caveat | Receipt |
 | :--- | :--- | :--- | :--- |
+| **Real-repo pilot** | **35.87× fewer prompt tokens**, accuracy parity (5/6 vs 5/6) | real `httpx` @ `b5addb64`, 32k-token contexts, pre-registered criteria, one 1.5B model | [`PILOT.md`](docs/engineering/PILOT.md) |
 | Multi-agent demo | **3.17× fewer prompt tokens**, same answers (6/6 both) | vs strongest naive broadcast; warm cache; synthetic fixture | [`DEMO.md`](docs/engineering/DEMO.md) |
+| Engine portability | **Ollama reproduces vLLM exactly** (16/16 byte-identical prompts, 3.17× holds) | no cache/KV telemetry on Ollama; Q4 vs fp16 | [`ENGINE-MATRIX.md`](docs/engineering/ENGINE-MATRIX.md) |
 | Cross-agent cost (Stage B) | **~2× best-case / ~9× realistic** | vs naive broadcast on one GPU | [`VERIFICATION-REPORT.md`](docs/engineering/VERIFICATION-REPORT.md) |
 | 16 concurrent agents | **8.23× throughput** (43.25 vs 5.26 req/s) · **20.2× lower KV peak** | KV vs *unshared* raw (~2× vs shared raw prefix) | [`stage_b5` artifact](evals/reports/stage_b5_20261017_124856.json) |
 | Cold boot | **348 vs 3,146 tokens · 100% vs 25%** | n=4×3, one 1.5B model — narrow probe | [`RERUN-REVIEW.md`](docs/engineering/RERUN-REVIEW.md) |
@@ -78,6 +84,7 @@ We still win by 3.17x on prompt tokens, at equal accuracy.
   packet: frozen `CPP v1.0` schema, RFC 8785 hashing, Ed25519 signatures.
 - **Plug** — `cfx serve` in front of any OpenAI-compatible endpoint. Zero code changes: point
   your tool's base URL at it. `passthrough` mode exists so you can run honest A/B yourself.
+  Cloud APIs get provider-shaped requests with correct cache hints (`adapters/`).
 - **Share** — agents share Tier 0/1 memory with copy-on-write fork/fold; sub-agents spawn with a
   constant window. New writes land **quarantined** until trusted.
 - **Seal** — every packet is hashed and signed; epochs chain with Merkle inclusion proofs.
@@ -90,11 +97,12 @@ We still win by 3.17x on prompt tokens, at equal accuracy.
 ```bash
 uv sync --extra dev
 uv run python -m evals.spike_deterministic   # zero-GPU deterministic-core check
-uv run pytest -q                             # 226 tests (2 skip without the embeddings extra)
+uv run pytest -q                             # 333 tests (3 skip without the embeddings extra)
 
 # The plug, in front of your local model server
 uv run cfx serve --upstream http://127.0.0.1:8000 --fabric fabric.db
 uv run cfx demo --scenario fleet             # before/after receipt, one command
+uv run cfx demo --repo .                     # run the receipt on your own repo
 uv run cfx add --store fabric.db --file block.json --trusted
 uv run cfx mcp --store fabric.db             # MCP tools: search / verify / add
 uv run cfx replay --store fabric.db --packet-id <cpk_...>

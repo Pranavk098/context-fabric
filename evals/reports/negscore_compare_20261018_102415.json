@@ -1,0 +1,404 @@
+{
+  "created_at": "2026-10-18T10:24:15",
+  "scorers": [
+    "v1",
+    "v2",
+    "v3"
+  ],
+  "reports": [
+    "demo_negative_20261018_101301.json",
+    "demo_negative_3b_20261018_101349.json"
+  ],
+  "notes": "Offline re-scoring of stored response_text (first 500 chars) under scorer v1/v2/v3; no model calls \u2014 responses come from the receipts' generation runs. Scorer v3 is pre-registered in docs/engineering/NEGATIVE-SCORER.md.",
+  "records": [
+    {
+      "report": "demo_negative_20261018_101301.json",
+      "model": "Qwen/Qwen2.5-1.5B-Instruct",
+      "op": "chat",
+      "arm": "control",
+      "trap": "cache",
+      "repeat": 0,
+      "stored_bad_v1": true,
+      "stored_bad_v2": false,
+      "stored_bad_v3": true,
+      "v1": {
+        "bad": true,
+        "evidence": [
+          "redis"
+        ]
+      },
+      "v2": {
+        "bad": false,
+        "evidence": []
+      },
+      "v3": {
+        "bad": true,
+        "evidence": [
+          "redis: bullet-initial mention"
+        ]
+      }
+    },
+    {
+      "report": "demo_negative_20261018_101301.json",
+      "model": "Qwen/Qwen2.5-1.5B-Instruct",
+      "op": "chat",
+      "arm": "control",
+      "trap": "cache",
+      "repeat": 1,
+      "stored_bad_v1": true,
+      "stored_bad_v2": true,
+      "stored_bad_v3": true,
+      "v1": {
+        "bad": true,
+        "evidence": [
+          "redis",
+          "memcached"
+        ]
+      },
+      "v2": {
+        "bad": true,
+        "evidence": [
+          "redis",
+          "memcached"
+        ]
+      },
+      "v3": {
+        "bad": true,
+        "evidence": [
+          "redis: recommendation verb 'use'"
+        ]
+      }
+    },
+    {
+      "report": "demo_negative_20261018_101301.json",
+      "model": "Qwen/Qwen2.5-1.5B-Instruct",
+      "op": "chat",
+      "arm": "treated",
+      "trap": "cache",
+      "repeat": 0,
+      "stored_bad_v1": false,
+      "stored_bad_v2": false,
+      "stored_bad_v3": false,
+      "v1": {
+        "bad": false,
+        "evidence": []
+      },
+      "v2": {
+        "bad": false,
+        "evidence": []
+      },
+      "v3": {
+        "bad": false,
+        "evidence": []
+      }
+    },
+    {
+      "report": "demo_negative_20261018_101301.json",
+      "model": "Qwen/Qwen2.5-1.5B-Instruct",
+      "op": "chat",
+      "arm": "treated",
+      "trap": "cache",
+      "repeat": 1,
+      "stored_bad_v1": true,
+      "stored_bad_v2": false,
+      "stored_bad_v3": true,
+      "v1": {
+        "bad": true,
+        "evidence": [
+          "redis"
+        ]
+      },
+      "v2": {
+        "bad": false,
+        "evidence": []
+      },
+      "v3": {
+        "bad": true,
+        "evidence": [
+          "redis: bullet-initial mention"
+        ]
+      }
+    },
+    {
+      "report": "demo_negative_3b_20261018_101349.json",
+      "model": "Qwen/Qwen2.5-3B-Instruct",
+      "op": "chat",
+      "arm": "control",
+      "trap": "queue",
+      "repeat": 0,
+      "stored_bad_v1": true,
+      "stored_bad_v2": false,
+      "stored_bad_v3": true,
+      "v1": {
+        "bad": true,
+        "evidence": [
+          "redis"
+        ]
+      },
+      "v2": {
+        "bad": false,
+        "evidence": []
+      },
+      "v3": {
+        "bad": true,
+        "evidence": [
+          "redis: bullet-initial mention"
+        ]
+      }
+    },
+    {
+      "report": "demo_negative_3b_20261018_101349.json",
+      "model": "Qwen/Qwen2.5-3B-Instruct",
+      "op": "chat",
+      "arm": "control",
+      "trap": "queue",
+      "repeat": 1,
+      "stored_bad_v1": true,
+      "stored_bad_v2": false,
+      "stored_bad_v3": true,
+      "v1": {
+        "bad": true,
+        "evidence": [
+          "redis"
+        ]
+      },
+      "v2": {
+        "bad": false,
+        "evidence": []
+      },
+      "v3": {
+        "bad": true,
+        "evidence": [
+          "redis: bullet-initial mention"
+        ]
+      }
+    },
+    {
+      "report": "demo_negative_3b_20261018_101349.json",
+      "model": "Qwen/Qwen2.5-3B-Instruct",
+      "op": "chat",
+      "arm": "control",
+      "trap": "metrics",
+      "repeat": 0,
+      "stored_bad_v1": true,
+      "stored_bad_v2": true,
+      "stored_bad_v3": true,
+      "v1": {
+        "bad": true,
+        "evidence": [
+          "prometheus",
+          "grafana"
+        ]
+      },
+      "v2": {
+        "bad": true,
+        "evidence": [
+          "prometheus",
+          "grafana"
+        ]
+      },
+      "v3": {
+        "bad": true,
+        "evidence": [
+          "prometheus: bullet-initial mention",
+          "prometheus: recommendation verb 'deploy'",
+          "grafana: bullet-initial mention",
+          "grafana: recommendation verb 'use'"
+        ]
+      }
+    },
+    {
+      "report": "demo_negative_3b_20261018_101349.json",
+      "model": "Qwen/Qwen2.5-3B-Instruct",
+      "op": "chat",
+      "arm": "control",
+      "trap": "metrics",
+      "repeat": 1,
+      "stored_bad_v1": true,
+      "stored_bad_v2": true,
+      "stored_bad_v3": true,
+      "v1": {
+        "bad": true,
+        "evidence": [
+          "prometheus",
+          "grafana"
+        ]
+      },
+      "v2": {
+        "bad": true,
+        "evidence": [
+          "prometheus",
+          "grafana"
+        ]
+      },
+      "v3": {
+        "bad": true,
+        "evidence": [
+          "prometheus: bullet-initial mention",
+          "prometheus: recommendation verb 'deploy'",
+          "grafana: bullet-initial mention",
+          "grafana: recommendation verb 'use'"
+        ]
+      }
+    },
+    {
+      "report": "demo_negative_3b_20261018_101349.json",
+      "model": "Qwen/Qwen2.5-3B-Instruct",
+      "op": "chat",
+      "arm": "treated",
+      "trap": "queue",
+      "repeat": 0,
+      "stored_bad_v1": true,
+      "stored_bad_v2": false,
+      "stored_bad_v3": false,
+      "v1": {
+        "bad": true,
+        "evidence": [
+          "redis"
+        ]
+      },
+      "v2": {
+        "bad": false,
+        "evidence": []
+      },
+      "v3": {
+        "bad": false,
+        "evidence": []
+      }
+    },
+    {
+      "report": "demo_negative_3b_20261018_101349.json",
+      "model": "Qwen/Qwen2.5-3B-Instruct",
+      "op": "chat",
+      "arm": "treated",
+      "trap": "queue",
+      "repeat": 1,
+      "stored_bad_v1": true,
+      "stored_bad_v2": false,
+      "stored_bad_v3": false,
+      "v1": {
+        "bad": true,
+        "evidence": [
+          "redis"
+        ]
+      },
+      "v2": {
+        "bad": false,
+        "evidence": []
+      },
+      "v3": {
+        "bad": false,
+        "evidence": []
+      }
+    },
+    {
+      "report": "demo_negative_3b_20261018_101349.json",
+      "model": "Qwen/Qwen2.5-3B-Instruct",
+      "op": "chat",
+      "arm": "treated",
+      "trap": "metrics",
+      "repeat": 0,
+      "stored_bad_v1": false,
+      "stored_bad_v2": false,
+      "stored_bad_v3": false,
+      "v1": {
+        "bad": false,
+        "evidence": []
+      },
+      "v2": {
+        "bad": false,
+        "evidence": []
+      },
+      "v3": {
+        "bad": false,
+        "evidence": []
+      }
+    },
+    {
+      "report": "demo_negative_3b_20261018_101349.json",
+      "model": "Qwen/Qwen2.5-3B-Instruct",
+      "op": "chat",
+      "arm": "treated",
+      "trap": "metrics",
+      "repeat": 1,
+      "stored_bad_v1": false,
+      "stored_bad_v2": false,
+      "stored_bad_v3": false,
+      "v1": {
+        "bad": false,
+        "evidence": []
+      },
+      "v2": {
+        "bad": false,
+        "evidence": []
+      },
+      "v3": {
+        "bad": false,
+        "evidence": []
+      }
+    }
+  ],
+  "summary": [
+    {
+      "model": "Qwen/Qwen2.5-1.5B-Instruct",
+      "op": "chat",
+      "arm": "control",
+      "trap": "cache",
+      "n": 2,
+      "v1_bad": 2,
+      "v2_bad": 1,
+      "v3_bad": 2
+    },
+    {
+      "model": "Qwen/Qwen2.5-1.5B-Instruct",
+      "op": "chat",
+      "arm": "treated",
+      "trap": "cache",
+      "n": 2,
+      "v1_bad": 1,
+      "v2_bad": 0,
+      "v3_bad": 1
+    },
+    {
+      "model": "Qwen/Qwen2.5-3B-Instruct",
+      "op": "chat",
+      "arm": "control",
+      "trap": "queue",
+      "n": 2,
+      "v1_bad": 2,
+      "v2_bad": 0,
+      "v3_bad": 2
+    },
+    {
+      "model": "Qwen/Qwen2.5-3B-Instruct",
+      "op": "chat",
+      "arm": "control",
+      "trap": "metrics",
+      "n": 2,
+      "v1_bad": 2,
+      "v2_bad": 2,
+      "v3_bad": 2
+    },
+    {
+      "model": "Qwen/Qwen2.5-3B-Instruct",
+      "op": "chat",
+      "arm": "treated",
+      "trap": "queue",
+      "n": 2,
+      "v1_bad": 2,
+      "v2_bad": 0,
+      "v3_bad": 0
+    },
+    {
+      "model": "Qwen/Qwen2.5-3B-Instruct",
+      "op": "chat",
+      "arm": "treated",
+      "trap": "metrics",
+      "n": 2,
+      "v1_bad": 0,
+      "v2_bad": 0,
+      "v3_bad": 0
+    }
+  ],
+  "stored_verdict_mismatches": []
+}

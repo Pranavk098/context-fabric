@@ -1,0 +1,177 @@
+{
+  "scenario": "negative",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "upstream": "http://localhost:8000",
+  "started_at": "2026-10-18T17:13:04.159003+00:00",
+  "records": [
+    {
+      "op": "chat",
+      "arm": "control",
+      "trap": "cache",
+      "repeat": 0,
+      "objective": "Atlas API responses are slow. What caching layer should we add?",
+      "bad": true,
+      "bad_keywords_hit": [
+        "redis"
+      ],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "bad_v3": true,
+      "bad_evidence_v3": [
+        "redis: bullet-initial mention"
+      ],
+      "compiled": true,
+      "prompt_tokens": 2442,
+      "completion_tokens": 96,
+      "latency_ms": 1790.3,
+      "response": "To address the issue of slow Atlas API responses, adding a caching layer can significantly improve performance by reducing the number of times data needs to be fetched from the database or other external sources.\n\n### Caching Layer Considerations\n\n1. **Redis Cache**:\n   - **Pros**: \n     - Fast read/write operations.\n     - Easy integration with various programming languages.\n     - Can store large amounts of data efficiently.\n   - **Cons**:\n     - Limited support for complex queries",
+      "response_text": "To address the issue of slow Atlas API responses, adding a caching layer can significantly improve performance by reducing the number of times data needs to be fetched from the database or other external sources.\n\n### Caching Layer Considerations\n\n1. **Redis Cache**:\n   - **Pros**: \n     - Fast read/write operations.\n     - Easy integration with various programming languages.\n     - Can store large amounts of data efficiently.\n   - **Cons**:\n     - Limited support for complex queries",
+      "prompt_sha256": "sha256:a3b7a94ba3bc91bd56804ef8f21ed2add51a6e99661c90f81a96d944ce2f10cf"
+    },
+    {
+      "op": "chat",
+      "arm": "control",
+      "trap": "cache",
+      "repeat": 1,
+      "objective": "Atlas API responses are slow. What caching layer should we add?",
+      "bad": true,
+      "bad_keywords_hit": [
+        "redis",
+        "memcached"
+      ],
+      "bad_v2": true,
+      "bad_keywords_hit_v2": [
+        "redis",
+        "memcached"
+      ],
+      "bad_v3": true,
+      "bad_evidence_v3": [
+        "redis: recommendation verb 'use'"
+      ],
+      "compiled": true,
+      "prompt_tokens": 2442,
+      "completion_tokens": 96,
+      "latency_ms": 1235.0,
+      "response": "To address the slow response times of Atlas API responses, we can implement a caching layer to reduce latency and improve performance. Here's a recommended approach:\n\n### Caching Layer Implementation\n\n#### 1. **Caching Strategy**\n   - **In-Memory Cache**: Use an in-memory cache like Redis or Memcached to store frequently accessed data. This will help reduce the number of database queries and speed up read operations.\n   - **Database Level Caching**: Implement database-level caching",
+      "response_text": "To address the slow response times of Atlas API responses, we can implement a caching layer to reduce latency and improve performance. Here's a recommended approach:\n\n### Caching Layer Implementation\n\n#### 1. **Caching Strategy**\n   - **In-Memory Cache**: Use an in-memory cache like Redis or Memcached to store frequently accessed data. This will help reduce the number of database queries and speed up read operations.\n   - **Database Level Caching**: Implement database-level caching",
+      "prompt_sha256": "sha256:a3b7a94ba3bc91bd56804ef8f21ed2add51a6e99661c90f81a96d944ce2f10cf"
+    },
+    {
+      "op": "write",
+      "arm": "treated",
+      "status": 201,
+      "block_id": "blk_43ad7cf08bcc0814",
+      "lifecycle_status": "routable",
+      "source_event_seq": 27
+    },
+    {
+      "op": "chat",
+      "arm": "treated",
+      "trap": "cache",
+      "repeat": 0,
+      "objective": "Atlas API responses are slow. What caching layer should we add?",
+      "bad": false,
+      "bad_keywords_hit": [],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "bad_v3": false,
+      "bad_evidence_v3": [],
+      "compiled": true,
+      "prompt_tokens": 2511,
+      "completion_tokens": 96,
+      "latency_ms": 1416.4,
+      "response": "To address the issue of slow Atlas API responses, adding a caching layer can significantly improve performance by reducing the number of database queries and serving frequently accessed data more quickly.\n\n### Caching Layer Recommendations\n\nGiven the current architecture:\n\n1. **PostgreSQL Store**: Since you have already decided to use PostgreSQL as your backend store, leveraging its built-in row cache would be an effective approach. This will help reduce the need for frequent database hits, especially for read-heavy operations like querying large datasets",
+      "response_text": "To address the issue of slow Atlas API responses, adding a caching layer can significantly improve performance by reducing the number of database queries and serving frequently accessed data more quickly.\n\n### Caching Layer Recommendations\n\nGiven the current architecture:\n\n1. **PostgreSQL Store**: Since you have already decided to use PostgreSQL as your backend store, leveraging its built-in row cache would be an effective approach. This will help reduce the need for frequent database hits, espe",
+      "prompt_sha256": "sha256:a3b7a94ba3bc91bd56804ef8f21ed2add51a6e99661c90f81a96d944ce2f10cf"
+    },
+    {
+      "op": "chat",
+      "arm": "treated",
+      "trap": "cache",
+      "repeat": 1,
+      "objective": "Atlas API responses are slow. What caching layer should we add?",
+      "bad": true,
+      "bad_keywords_hit": [
+        "redis"
+      ],
+      "bad_v2": false,
+      "bad_keywords_hit_v2": [],
+      "bad_v3": true,
+      "bad_evidence_v3": [
+        "redis: bullet-initial mention"
+      ],
+      "compiled": true,
+      "prompt_tokens": 2511,
+      "completion_tokens": 96,
+      "latency_ms": 1248.1,
+      "response": "To address the issue of slow Atlas API responses, we need to implement a caching layer to reduce the number of database queries and improve response times. Given the constraints and requirements outlined, here\u2019s an appropriate approach:\n\n### Caching Layer Implementation\n\n#### 1. **In-Memory Cache**\n   - **Redis**: A popular choice for in-memory caching due to its high performance and ease of use. It can be used as a distributed cache across multiple nodes.\n\n#### 2.",
+      "response_text": "To address the issue of slow Atlas API responses, we need to implement a caching layer to reduce the number of database queries and improve response times. Given the constraints and requirements outlined, here\u2019s an appropriate approach:\n\n### Caching Layer Implementation\n\n#### 1. **In-Memory Cache**\n   - **Redis**: A popular choice for in-memory caching due to its high performance and ease of use. It can be used as a distributed cache across multiple nodes.\n\n#### 2.",
+      "prompt_sha256": "sha256:a3b7a94ba3bc91bd56804ef8f21ed2add51a6e99661c90f81a96d944ce2f10cf"
+    }
+  ],
+  "arms": {
+    "control": {
+      "requests": 2,
+      "prompt_tokens_total": 4884,
+      "completion_tokens_total": 192,
+      "wall_ms": 3025.5,
+      "mean_latency_ms": 1512.7,
+      "bad": 2,
+      "bad_v2": 1,
+      "bad_v3": 2,
+      "total": 2,
+      "per_trap": {
+        "cache": {
+          "bad": 2,
+          "bad_v2": 1,
+          "bad_v3": 2,
+          "total": 2
+        }
+      }
+    },
+    "treated": {
+      "requests": 2,
+      "prompt_tokens_total": 5022,
+      "completion_tokens_total": 192,
+      "wall_ms": 2664.7,
+      "mean_latency_ms": 1332.2,
+      "bad": 1,
+      "bad_v2": 0,
+      "bad_v3": 1,
+      "total": 2,
+      "per_trap": {
+        "cache": {
+          "bad": 1,
+          "bad_v2": 0,
+          "bad_v3": 1,
+          "total": 2
+        }
+      }
+    }
+  },
+  "cache": {
+    "available": true,
+    "source": "upstream Prometheus /metrics (vLLM)",
+    "per_arm": {
+      "control": {
+        "prefix_cache_hits_delta": 2432.0,
+        "prefix_cache_queries_delta": 4884.0,
+        "kv_cache_usage_peak": 0.020350697555356456
+      },
+      "treated": {
+        "prefix_cache_hits_delta": 2608.0,
+        "prefix_cache_queries_delta": 5022.0,
+        "kv_cache_usage_peak": 0.020862664789453422
+      }
+    },
+    "caveat": "Prefix-cache counters are upstream-global and vLLM-specific (null when the upstream exposes no /metrics); kv_cache_usage_peak is a best-effort ~50ms sample of the KV-cache capacity fraction, not comparable across models."
+  },
+  "notes": [
+    "Fixture is synthetic Project Atlas state (generated in `sidecar/demo.py`; no real project data); treated dead ends are written through the real write path (POST /fabric/blocks, trusted=true).",
+    "Composition: control fabric = the synthetic fixture only (its two negative_knowledge blocks are unrelated to the traps); treated fabric = the same fixture plus the frozen traps' dead ends (see write records).",
+    "Scorers: every response is scored by v1 (mentioned-keyword substring, unchanged), v2 (affirmative-recommendation window rule; see docs/engineering/DEMO.md), and v3 (clause-scoped recommendation rule, pre-registered in docs/engineering/NEGATIVE-SCORER.md); arms report bad (v1), bad_v2, and bad_v3. v2 was authored after observing v1 outputs of the 2026-10-17 _211536/_212021 runs \u2014 an exploratory instrument fix applied symmetrically, not pre-registered before the first run; v3 was pre-registered before its code existed.",
+    "Prohibition presence: treated prompts end with the PROHIBITIONS section (recency anchor, rendered since the 2026-10-17 renderer fix); control prompts end with the fixture's unrelated prohibitions only.",
+    "Each chat record carries the full `response` plus `response_text` (first 500 chars) and `prompt_sha256`, the sha256 of the messages sent by the client (pre-injection; in compile mode the system message is rendered server-side and is not part of this hash).",
+    "Replication protocol: traps supplied via --freeze-traps; the control-only pilot is SKIPPED (no re-selection), keeping the frozen set comparable with the set being replicated. With no pilot pre-warm, control cache deltas are cold-ish."
+  ]
+}

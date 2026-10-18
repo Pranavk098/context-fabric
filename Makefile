@@ -19,7 +19,7 @@ lint:
 	uv run ruff check .
 
 typecheck:
-	uv run mypy protocol evals kernel sidecar
+	uv run mypy protocol evals kernel sidecar adapters
 
 test:
 	uv run pytest -q

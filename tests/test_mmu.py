@@ -222,6 +222,52 @@ def test_fork_shares_tier012_objects_by_identity() -> None:
     assert child.conflict_alerts == parent.conflict_alerts
 
 
+def test_fork_filters_tier1_blocks_denied_to_child_role() -> None:
+    shared = ContextBlock(
+        block_id="d_shared",
+        block_kind=BlockKind.decision,
+        memory_tier=MemoryTier.ledger,
+        content="shared decision",
+        content_hash="sha256:d_shared",
+        token_estimate=8,
+        source_event_seq=1,
+        creator=Creator(type=CreatorType.agent, id="a1"),
+        fidelity=Fidelity.extract,
+        trust_domain="t1",
+    )
+    hidden = shared.model_copy(
+        update={
+            "block_id": "d_hidden",
+            "content": "implementer-only decision",
+            "content_hash": "sha256:d_hidden",
+            "source_event_seq": 2,
+            "denied_roles": ("auditor",),
+        }
+    )
+    parent = compile_packet(
+        scope=SCOPE,
+        recipient=Recipient(agent_id="a1", role="implementer", stage="implement"),
+        objective="implement storage",
+        stage="implement",
+        blocks=[shared, hidden],
+        as_of=AS_OF,
+    ).packet
+    assert [b.block_id for b in parent.tiers.tier1.blocks] == ["d_shared", "d_hidden"]
+
+    child = fork_packet(parent, **FORK_KW)
+    assert [b.block_id for b in child.tiers.tier1.blocks] == ["d_shared"]
+    assert child.tiers.tier1.blocks[0] is shared
+    parent_instruction = parent.tiers.tier3.instruction
+    child_instruction = child.tiers.tier3.instruction
+    assert parent_instruction is not None and child_instruction is not None
+    assert child.total_tokens == (
+        parent.total_tokens
+        - parent_instruction.token_estimate
+        - hidden.token_estimate
+        + child_instruction.token_estimate
+    )
+
+
 def test_fork_tier3_is_fresh() -> None:
     parent = make_parent()
     child = fork_packet(parent, **FORK_KW)
