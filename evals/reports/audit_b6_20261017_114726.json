@@ -1,0 +1,6 @@
+{
+  "ts": "2026-10-17T11:45:25",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "repeats": 1,
+  "coldboot_error": "ReadTimeout: timed out"
+}

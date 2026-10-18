@@ -1,5 +1,10 @@
 # 05 — Sidecar REST API & Framework Adapter Specification
 
+> **Status note (2026-10-18):** design of record. The framework adapters below are deferred
+> to post-v1.0 (ADR-0004). The shipped surface is the OpenAI-compatible sidecar proxy
+> (`sidecar/`, `../engineering/SIDECAR.md`), the `cfx` CLI, and the MCP stdio server
+> (`../engineering/MCP.md`) — not these REST routes; those remain the v2 target.
+
 ## 1. Sidecar REST API Endpoints (`services/api/`)
 
 All `POST` endpoints MUST require an `Idempotency-Key` HTTP header[cite: 36].

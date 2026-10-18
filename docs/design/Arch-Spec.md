@@ -5,9 +5,17 @@ NORMATIVE ARCHITECTURE SPECIFICATION | VERSION 1.0 (SUPERSEDES CPP v0.1)
 # CONTEXT FABRIC & CONTEXT PACKET PROTOCOL (CPP v1.0)
 ## System Architecture, Virtual Memory Tiers, Syscalls, Scoring, and Governance
 
+> **Status note (2026-10-18):** design of record, not a status report. What is built and the
+> spec-vs-code deltas live in `../engineering/IMPLEMENTATION-STATUS.md` and
+> `../engineering/ROADMAP-DECISIONS.md`. Known deltas as of this date: policy enforces
+> lifecycle/RBAC/validity only (purpose, trust-domain and freshness gates pending);
+> the >85% KV-reuse invariant is an empirical target (intra-agent measured 60–74%);
+> CoW is implemented at the packet/memory-state level (`kernel/epochs.py`, `kernel/mmu/`),
+> not as KV-page forking; packet signing is optional in the compiler.
+
 ### 1. ARCHITECTURAL INVARIANTS (THE 10 NON-NEGOTIABLES)
 
-1. **Canonical Outside, Register Inside:** Shared truth lives in the Fabric's append-only Knowledge Plane[cite: 21, 22]. Each agent's context window is a bounded L1 register. The v1.0 default `hard_total_tokens = 4,000`, split into a 3,000-token dynamic working set (Tier 1 + Tier 2 + Tier 3) plus a 600-token static Tier 0 cartridge and a 400-token reserve. See `docs/adr/ADR-0001`.[cite: 21].
+1. **Canonical Outside, Register Inside:** Shared truth lives in the Fabric's append-only Knowledge Plane[cite: 21, 22]. Each agent's context window is a bounded L1 register. The v1.0 default `hard_total_tokens = 4,000`, split into a 3,000-token dynamic working set (Tier 1 + Tier 2 + Tier 3) plus a 600-token static Tier 0 cartridge and a 400-token reserve. See `docs/decisions/ADR-0001`.[cite: 21].
 2. **Least-Context Disclosure by Default:** Every context block is denied by default and must pass hard RBAC, purpose, trust-domain, and freshness gates *before* similarity or utility scoring[cite: 21, 27, 32, 38].
 3. **Strict 4-Tier Prefix Stratification:** Packets MUST serialize from lowest-mutation frequency (Tier 0 Cartridge) to highest-mutation frequency (Tier 3 Ephemeral Register) to guarantee >85% KV-cache reuse across turns and sub-agents. **Growth-at-tail rule (audit GAP-19):** anything that grows within an epoch (Tier 3 observations) MUST render at the very tail; tiers that mutate at fold boundaries (Tier 1/2) MUST NOT precede higher-mutation tiers in a way that displaces an already-cached shared prefix. Appending to a tier must never shift the byte offset of an earlier shared section.
 4. **Zero-Token Cold Boot:** Agents MUST NOT spend LLM tokens discovering static project structure. Structural maps (`.cfx` Cartridges) and deterministic Shadow Cortex probes execute outside the LLM[cite: 23].

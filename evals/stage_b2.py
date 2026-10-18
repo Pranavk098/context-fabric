@@ -22,7 +22,7 @@ Multi-agent fork (parent builds a shared ledger, then N children):
 Decision metric: effective billed tokens = uncached + DISCOUNT * cached, plus cache-hit
 ratio and latency. DISCOUNT defaults to 0.1 (90% prompt-cache discount).
 
-Run: uv run python -m evals.stage_b2   (needs CF_BASE_URL; see docs/STAGE-B-RUNTIME.md)
+Run: uv run python -m evals.stage_b2   (needs CF_BASE_URL; see docs/engineering/RUNTIME.md)
 """
 
 from __future__ import annotations
@@ -171,7 +171,7 @@ def main() -> int:
     base_url = os.environ.get("CF_BASE_URL", "http://localhost:8000/v1")
     model = os.environ.get("CF_MODEL", "Qwen/Qwen2.5-1.5B-Instruct")
     if not _up(base_url):
-        print("No endpoint. See docs/STAGE-B-RUNTIME.md (or run scripts/wsl_run_eval.sh).")
+        print("No endpoint. See docs/engineering/RUNTIME.md (or run scripts/wsl_run_eval.sh).")
         return 0
 
     client = OpenAICompatibleClient(

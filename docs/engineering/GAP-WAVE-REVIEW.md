@@ -1,5 +1,9 @@
 # GAP-WAVE-REVIEW — adversarial audit of the four gap-closure changes (2026-10-17)
 
+> **Historical snapshot (dated 2026-10-17).** All findings were fixed or documented at the
+> time; the gate count (173 tests then; 226 today) and file counts in the command log are of
+> that moment.
+
 Scope: BM25/embeddings recall (`kernel/router/recall.py`, `kernel/router/embeddings.py`,
 `kernel/router/compiler.py` seed, `tests/test_recall.py`), λ-MMR packing + U-curve recap
 (`kernel/router/packer.py`, `sidecar/render.py`, `tests/test_packer.py`,

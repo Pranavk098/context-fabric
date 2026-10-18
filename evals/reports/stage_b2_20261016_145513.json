@@ -1,0 +1,54 @@
+{
+  "ts": "2026-10-16T14:54:59",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "discount": 0.1,
+  "intra": {
+    "B0": {
+      "label": "B0_intra",
+      "prompt_tokens_total": 36030,
+      "cached_tokens_total": 31360,
+      "dynamic_tokens_total": 4670,
+      "effective_tokens": 7806.0,
+      "cache_hit_ratio": 0.8703857896197613,
+      "mean_ttft_ms": 83.0719316666664
+    },
+    "CPP": {
+      "label": "CPP_intra",
+      "prompt_tokens_total": 23046,
+      "cached_tokens_total": 16992,
+      "dynamic_tokens_total": 6054,
+      "effective_tokens": 7753.2,
+      "cache_hit_ratio": 0.7373079927102317,
+      "mean_ttft_ms": 52.660696333332645
+    }
+  },
+  "fork": {
+    "B0_tail": {
+      "label": "B0_tail",
+      "prompt_tokens_total": 35992,
+      "cached_tokens_total": 35840,
+      "dynamic_tokens_total": 152,
+      "effective_tokens": 3736.0,
+      "cache_hit_ratio": 0.9957768392976217,
+      "mean_ttft_ms": 137.34214524999987
+    },
+    "B0_top": {
+      "label": "B0_top",
+      "prompt_tokens_total": 35992,
+      "cached_tokens_total": 128,
+      "dynamic_tokens_total": 35864,
+      "effective_tokens": 35876.8,
+      "cache_hit_ratio": 0.003556345854634363,
+      "mean_ttft_ms": 420.76306187499847
+    },
+    "CPP_fork": {
+      "label": "CPP_fork",
+      "prompt_tokens_total": 9800,
+      "cached_tokens_total": 9312,
+      "dynamic_tokens_total": 488,
+      "effective_tokens": 1419.2,
+      "cache_hit_ratio": 0.950204081632653,
+      "mean_ttft_ms": 34.14193712500069
+    }
+  }
+}

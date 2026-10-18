@@ -316,7 +316,7 @@ def main() -> int:
     except Exception:
         up = False
     if not up:
-        print("No endpoint. See docs/STAGE-B-RUNTIME.md (or run scripts/wsl_run_eval.sh).")
+        print("No endpoint. See docs/engineering/RUNTIME.md (or run scripts/wsl_run_eval.sh).")
         return 0
 
     client = OpenAICompatibleClient(base_url=base_url, model=model, api_key="EMPTY")

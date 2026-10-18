@@ -1,5 +1,12 @@
 # 02 - Phased Build Plan and Go/No-Go Validation Gates
 
+> **Status note (2026-10-18):** the plan as written was superseded in execution by the
+> gate-driven Stage A–D sequence (ADR-0004; `../engineering/CHANGES-FROM-PROPOSAL.md` §4–5).
+> What actually exists is tracked in `../engineering/IMPLEMENTATION-STATUS.md`: framework
+> adapters (Phase 3) are deferred to post-v1.0, the Inspector UI is not built, and the
+> concurrency/KV gates below reference baselines that were re-measured in Stage B
+> (`../engineering/ENGINEERING-LOG.md`).
+
 ## Guiding Rule for Coding Agents
 Never build ahead of the current phase's verification gate. Every phase produces an executable, deterministically testable vertical slice[cite: 37]. Do not introduce learned neural rerankers or LLM-based summarizers in Phases 0 through 3; prove the deterministic Agent MMU kernel first[cite: 21, 37, 38].
 
@@ -25,7 +32,7 @@ Run Baselines `B0 (Full Broadcast)` and `B2 (Vector Top-k)` on the workflow and 
 **Goal:** Build the append-only PostgreSQL event store, `.cfx` Zero-Token Cartridge generator, and deterministic 4-Tier Packet Compiler[cite: 36, 37].
 
 ### Deliverables:
-1. `kernel/db/migrations/001_initial_fabric_schema.sql`: Full PostgreSQL DDL for events, blocks, relations, cartridges, manifests, packets, and receipts.
+1. `kernel/migrations/001_initial_fabric_schema.sql`: Full PostgreSQL DDL for events, blocks, relations, cartridges, manifests, packets, and receipts.
 2. `kernel/cartridge/`: Tree-sitter AST parser + PageRank structural hologram builder that compiles a target repository into a 1,200-token Tier 0 `.cfx` Cartridge in under 500ms with zero LLM calls.
 3. `router/compiler.py` + `adapters/raw_llm/`: Deterministic compiler that packages Tier 0 (Cartridge), Tier 1 (Ledger), Tier 2 (Swap Table), and Tier 3 (Working Register) and renders them to OpenAI, Anthropic, Gemini, and vLLM API calls with exact prompt-cache breakpoints[cite: 25, 37].
 

@@ -159,7 +159,7 @@ def main() -> int:
     except Exception:
         up = False
     if not up:
-        print("No endpoint. See docs/STAGE-B-RUNTIME.md (or run scripts/wsl_run_eval.sh).")
+        print("No endpoint. See docs/engineering/RUNTIME.md (or run scripts/wsl_run_eval.sh).")
         return 0
 
     report = asyncio.run(run_all())

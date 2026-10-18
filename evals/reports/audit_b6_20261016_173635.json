@@ -1,0 +1,58 @@
+{
+  "ts": "2026-10-16T17:36:27",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "coldboot": {
+    "hologram_tokens": 348,
+    "raw_tokens": 3566,
+    "hologram_accuracy": 1.0,
+    "raw_accuracy": 0.5,
+    "samples": [
+      {
+        "q": "symbol_17",
+        "hologram_out": "module_17",
+        "raw_out": "module_17"
+      },
+      {
+        "q": "symbol_3",
+        "hologram_out": "module_3 exports symbol_3",
+        "raw_out": "module_17"
+      },
+      {
+        "q": "symbol_19",
+        "hologram_out": "module_19 exports symbol_19",
+        "raw_out": "module_17"
+      },
+      {
+        "q": "symbol_31",
+        "hologram_out": "module_31 exports symbol_31",
+        "raw_out": "module_31.py"
+      }
+    ]
+  },
+  "quality": {
+    "raw_full": {
+      "accuracy": 0.0,
+      "tokens": 408
+    },
+    "compiled_lossy_0": {
+      "accuracy": 0.0,
+      "tokens": 73,
+      "dropped": 0
+    },
+    "compiled_lossy_20": {
+      "accuracy": 0.0,
+      "tokens": 59,
+      "dropped": 2
+    },
+    "compiled_lossy_40": {
+      "accuracy": 0.0,
+      "tokens": 44,
+      "dropped": 4
+    }
+  },
+  "negknowledge": {
+    "picks": 24,
+    "bad_rate_without_nk": 0.16666666666666666,
+    "bad_rate_with_nk": 0.0
+  }
+}

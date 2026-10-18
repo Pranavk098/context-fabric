@@ -14,12 +14,13 @@ included in the compile time, as `compile_packet` hashes the final packet.
 | Candidate blocks | `compile_packet` mean | `render_packet` mean |
 | ---: | ---: | ---: |
 | 50 | 5.0 ms | (below clock resolution) |
-| 200 | 13.7 ms | (below clock resolution) |
+| 200 | 13.7–14.3 ms | (below clock resolution) |
 | 1000 | 61 ms (mean of 30 runs) | 0.01 ms (mean of 5) |
 
 These are the post-λ-MMR numbers (the MMR similarity pass added the compile cost; the
 pre-MMR means were 3.3 / 6.4 / 23.3 ms, still measured by the same test).
-Rerun variance between sessions is under 3%. Raw numbers are printed by
+Rerun variance between sessions is a few percent (a fresh 2026-10-18 session measured
+5.01 / 14.33 / 61.65 ms). Raw numbers are printed by
 `tests/test_perf.py` (`uv run python -m pytest tests/test_perf.py -q -s`).
 
 For scale: one warm-cache call to a 1.5B model on this box measured ~160-670 ms
@@ -56,7 +57,7 @@ user-visible bottleneck:
 ## Language boundary rules
 
 - **Core (protocol, kernel, evals) stays Python.** Determinism, auditability, and
-  iteration speed matter more than raw throughput at this scale - 1000 blocks in ~23 ms
+  iteration speed matter more than raw throughput at this scale - 1000 blocks in ~61 ms
   is far inside an interactive budget.
 - **UI would be TypeScript**, in its own process, talking to the sidecar over HTTP. No
   Python UI, no JS in the compiler.

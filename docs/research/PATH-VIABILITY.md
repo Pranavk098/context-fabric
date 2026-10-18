@@ -138,7 +138,7 @@ Four end states, ordered by evidence strength for a solo dev:
 
 ### Step 4 — "Shared copy" (CoW memory across agents)
 
-- **FOR:** it is the only capability that is structurally hard for KV-level tools to copy: LMCache and NVIDIA Dynamo share *bytes* (KV blocks), not semantic memory identity (https://developer.nvidia.com/dynamo, https://github.com/LMCache). The README's 9.5× role-divergent-children result is the strongest number in the repo. Multi-agent is the industry direction.
+- **FOR:** it is the only capability that is structurally hard for KV-level tools to copy: LMCache and NVIDIA Dynamo share *bytes* (KV blocks), not semantic memory identity (https://developer.nvidia.com/dynamo, https://github.com/LMCache). The README's 9.5× role-divergent-children result is the strongest number in the repo (unequal-information caveat: VERIFICATION-REPORT N2). Multi-agent is the industry direction.
 - **AGAINST:** no evidence was found that local operators actually run multi-agent workloads at scale `[gap — the entire thesis rests on this assumption]`. The step is high-complexity (concurrency, consistency) and asks users to restructure how their agents work.
 - **Fastest falsification test:** instrument the plug (opt-in telemetry). If, among the first ~50 operators, fewer than 5 create a second agent sharing a cartridge within 30 days, defer indefinitely.
 - **Verdict:** build only after the plug shows organic multi-agent pull.

@@ -7,7 +7,7 @@ compiled shared prefix is smaller than the raw transcript. B3 quantifies that le
   * sweep child count N,
 and report effective-cost ratios CPP vs B0_tail / B0_top.
 
-Run: uv run python -m evals.stage_b3   (needs CF_BASE_URL; see docs/STAGE-B-RUNTIME.md)
+Run: uv run python -m evals.stage_b3   (needs CF_BASE_URL; see docs/engineering/RUNTIME.md)
 """
 
 from __future__ import annotations
@@ -91,7 +91,7 @@ def main() -> int:
     except Exception:
         up = False
     if not up:
-        print("No endpoint. See docs/STAGE-B-RUNTIME.md (or run scripts/wsl_run_eval.sh).")
+        print("No endpoint. See docs/engineering/RUNTIME.md (or run scripts/wsl_run_eval.sh).")
         return 0
 
     client = OpenAICompatibleClient(

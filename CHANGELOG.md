@@ -64,7 +64,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   symbol→module mapping): **348 vs 3,146 tokens (9.0×), 100% vs 25% accuracy** (n=4×3);
   supersedes the confounded 10×/50% claim.
 - KV-cache headline restated with baselines: **20.2× vs unshared raw at k=16** (27.95% vs 1.38%
-  peak; ~9–12× at finer sampling), **~2× vs a shared raw prefix**; throughput 8.2×.
+  peak; ~9–12× at finer sampling), **~2× vs a shared raw prefix**; throughput **8.23×**
+  (43.25 vs 5.26 req/s).
 - Five research-doc corrections applied (arXiv revision numbers, star count, AutoGen status,
   cleared `[UNVERIFIED]` markers) — see `docs/engineering/RESEARCH-AUDIT.md`.
 
@@ -105,9 +106,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ### Findings (see `docs/engineering/`)
 - Intra-agent is a **tie** (prefix caching neutralizes naive broadcast); the value is
   cross-agent, concurrency, and compression.
-- **~2× (best-case) to ~9× (realistic) across agents**; **9.5×** for role-divergent children.
-- **~1.4–2×** throughput increment from compression and **20× lower KV vs unshared raw
-  broadcast** (~2× vs a shared raw prefix) at 16 concurrent agents.
-- **~17× compression** on a real package (`httpx`); quality parity at ~5.6×.
+- **~2× (best-case) to ~9× (realistic) across agents**; **9.5×** for role-divergent children
+  (unequal-information caveat: VERIFICATION-REPORT N2).
+- **~1.4×** throughput increment from compression (on top of sharing) and **20.2× lower KV
+  vs unshared raw broadcast** (~2× vs a shared raw prefix) at 16 concurrent agents.
+- **~17× compression** on a real package (`httpx`); parity on a synthetic extractive
+  lookup/comparison set at ~5.6× (N7 caveats).
 - **25 tracked gaps fixed, 1 accepted (GAP-18); GAP-08 undemonstrated and GAP-22
   outstanding** (see `docs/engineering/VERIFICATION-REPORT.md` §A/B).

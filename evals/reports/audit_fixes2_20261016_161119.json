@@ -1,0 +1,45 @@
+{
+  "ts": "2026-10-16T16:09:42",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "repeats": 2,
+  "foldsweep": {
+    "600": {
+      "effective": {
+        "mean": 28510.8,
+        "std": 0.0
+      },
+      "retain_frac": 1.0,
+      "ttft_ss_ms": 59.929018775511736
+    },
+    "1500": {
+      "effective": {
+        "mean": 51160.2,
+        "std": 2628.0
+      },
+      "retain_frac": 1.0,
+      "ttft_ss_ms": 99.34714777551325
+    },
+    "3000": {
+      "effective": {
+        "mean": 107334.6,
+        "std": 93.59999999999854
+      },
+      "retain_frac": 1.0,
+      "ttft_ss_ms": 197.44532095918126
+    },
+    "6000": {
+      "effective": {
+        "mean": 102015.79999999999,
+        "std": 14.400000000001455
+      },
+      "retain_frac": 1.0,
+      "ttft_ss_ms": 204.3093893061157
+    }
+  },
+  "coldboot": {
+    "hologram_tokens": 319,
+    "raw_tokens": 2039,
+    "hologram_accuracy": 0.3333333333333333,
+    "raw_accuracy": 1.0
+  }
+}

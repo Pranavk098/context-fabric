@@ -43,16 +43,16 @@ scope, and justify* the build.
 
 | # | Topic | Original (as written) | Change made | Why |
 | :- | :--- | :--- | :--- | :--- |
-| **C1** | Packet size | Internally contradictory: pitch says "3,000-token" window, Arch tiers (1200+2000+400+3600+800) sum to ~8,000, invariant says "≤3,500 dynamic" | Lock **one** source of truth: base `hard_total_tokens = 4,000` (configurable per manifest); tiers 15/25/5/45/10; "**~3,000 dynamic**" = Tier1+Tier2+Tier3; Tier0 = 600 static; reserve 400 | Removes a 2.5× contradiction in the most load-bearing number of the product; the reconciliation also makes both pitch numbers (`3,000` dynamic, `3,500` incl. cartridge) true simultaneously. See `docs/adr/ADR-0001`. |
+| **C1** | Packet size | Internally contradictory: pitch says "3,000-token" window, Arch tiers (1200+2000+400+3600+800) sum to ~8,000, invariant says "≤3,500 dynamic" | Lock **one** source of truth: base `hard_total_tokens = 4,000` (configurable per manifest); tiers 15/25/5/45/10; "**~3,000 dynamic**" = Tier1+Tier2+Tier3; Tier0 = 600 static; reserve 400 | Removes a 2.5× contradiction in the most load-bearing number of the product; the reconciliation also makes both pitch numbers (`3,000` dynamic, `3,500` incl. cartridge) true simultaneously. See `docs/decisions/ADR-0001`. |
 | **C2** | Citations | ~38 `[cite: N]` markers, **no bibliography**; several late-2026 claims unattributed to a resolvable source | Add `REFERENCES.md`; verify anchors against live sources; any numeric claim we cannot source is retagged `[HYPOTHESIS]` (to be measured, not quoted) | A research-backed product cannot ship pitch numbers it cannot defend. Displayed counts so far: **3 verified**, **2 partially verified**, **several unverified**. See §6. |
-| **C3** | Schedule | "Days 1–32" for full v1.0 (8 adapters, router, MMU, UI, 4 benchmark suites, hardening) | Removed calendar dates; plan is now **gate-driven, solo, phase-ordered, open-ended** | 32 days is not achievable for this scope by any team; keeping the number would corrupt prioritization. See `docs/adr/ADR-0004`. |
+| **C3** | Schedule | "Days 1–32" for full v1.0 (8 adapters, router, MMU, UI, 4 benchmark suites, hardening) | Removed calendar dates; plan is now **gate-driven, solo, phase-ordered, open-ended** | 32 days is not achievable for this scope by any team; keeping the number would corrupt prioritization. See `docs/decisions/ADR-0004`. |
 | **C4** | Adapter scope | Phase 3 ships LangGraph + CrewAI + AutoGen + MCP + A2A + LMCache + raw-LLM | **v1.0 = `raw_llm` + `vllm`/`lmcache` only.** LangGraph/CrewAI/AutoGen/MCP/A2A deferred to post-v1.0 | Focus on the beachhead. Adapter breadth was optimising for "framework-agnostic" marketing before the core mechanism is proven. |
 | **C5** | Beachhead | Names three markets at once (cloud super-users, local GPU operators, enterprises) | **Locked: local GPU / vLLM operators** | Sharpest pain (VRAM OOM, KV thrashing), measurable on owned hardware, concrete symbiosis with LMCache. Enterprise/RBAC and cloud become later expansions. |
-| **C6** | Determinism | "Deterministic core, learned edge" stated, but embeddings/MMR/tie-breaks unspecified | v1.0 ships **zero learned components**; determinism model specified (embedding version pinning, tie-break rules, PageRank convergence, signing latency budget) | "Cryptographically replayable" is an invariant; it is unimplementable without pinning the non-obvious sources of nondeterminism. See `docs/adr/ADR-0003`. |
+| **C6** | Determinism | "Deterministic core, learned edge" stated, but embeddings/MMR/tie-breaks unspecified | v1.0 ships **zero learned components**; determinism model specified (embedding version pinning, tie-break rules, PageRank convergence, signing latency budget) | "Cryptographically replayable" is an invariant; it is unimplementable without pinning the non-obvious sources of nondeterminism. See `docs/decisions/ADR-0003`. |
 | **C7** | Sequencing | Phase 0 (measure baseline) → Phase 1 (build kernel) directly | Insert **Stage B: a falsification spike** between baseline measurement and kernel build | The entire value prop rests on an **unproven** assumption: that real vLLM/LMCache grant prefix-cache reuse across turns *and across CoW forks*, and that this cuts cost/VRAM without quality loss. We prove or kill that before building the router. |
-| **C8** | Engineering process | No repo, no git, no ADRs, no decision log | `git init`; `docs/adr/` with numbered ADRs; `protocol/` + `evals/` scaffolded; each phase ends in one runnable check | Real-product SDLC. |
+| **C8** | Engineering process | No repo, no git, no ADRs, no decision log | `git init`; `docs/decisions/` with numbered ADRs; `protocol/` + `evals/` scaffolded; each phase ends in one runnable check | Real-product SDLC. |
 | **C9** | Target hardware | "Local GPUs (16GB–24GB VRAM)" | This dev machine is an **RTX 5070 Laptop, 8GB VRAM, Windows** — *below* the design target | The spike must run under 8GB using small models (e.g. 0.5B–1.5B) and via WSL2/Docker (vLLM is Linux-first). If the win is not visible even on a tiny model, that is itself a critical finding. |
-| **C10** | Cross-agent Tier 1 sharing | Invariant 3 & 7 assert byte-identical Tier 0/1 and CoW sharing, but the *watermark/superset semantics* that make it true are unspecified | Specify exactly when two packets are guaranteed the same Tier 1 prefix (see `docs/adr/ADR-0002`) | This is the mechanism that makes fork-sharing and cross-agent cache reuse sound. Unspecified, it is a latent correctness bug in the KV-reuse claim. |
+| **C10** | Cross-agent Tier 1 sharing | Invariant 3 & 7 assert byte-identical Tier 0/1 and CoW sharing, but the *watermark/superset semantics* that make it true are unspecified | Specify exactly when two packets are guaranteed the same Tier 1 prefix (see `docs/decisions/ADR-0002`) | This is the mechanism that makes fork-sharing and cross-agent cache reuse sound. Unspecified, it is a latent correctness bug in the KV-reuse claim. |
 
 ---
 
@@ -73,11 +73,11 @@ These are the minimum doc fixes that unblock clean implementation. No code risk.
 - [x] `docs/CHANGES-FROM-PROPOSAL.md` (this file)
 - [x] Reconcile token budgets across `Arch-Spec.md` §1/§3, `Prod-Intro.md` §2 (C1)
 - [x] `REFERENCES.md` — resolve cites, retag unverifiable numerics (C2)
-- [x] `docs/adr/ADR-0001` packet size & tier budgets
-- [x] `docs/adr/ADR-0002` Tier 1 watermark / cross-agent sharing semantics
-- [x] `docs/adr/ADR-0003` determinism model
-- [x] `docs/adr/ADR-0004` beachhead, scope, timeline
-- [x] `docs/adr/ADR-0005` CPP v1.0 frozen packet schema
+- [x] `docs/decisions/ADR-0001` packet size & tier budgets
+- [x] `docs/decisions/ADR-0002` Tier 1 watermark / cross-agent sharing semantics
+- [x] `docs/decisions/ADR-0003` determinism model
+- [x] `docs/decisions/ADR-0004` beachhead, scope, timeline
+- [x] `docs/decisions/ADR-0005` CPP v1.0 frozen packet schema
 
 **Gate A:** budgets reconcile to one number; every pitch number is sourced or tagged
 `[HYPOTHESIS]`; ADRs 1–5 written.
@@ -101,7 +101,7 @@ First code artifacts:
 - **Pass** → proceed to kernel (Stage C). 
 - **Fail** → thesis does not hold on the beachhead as written; pivot (e.g. lean on LMCache `CacheBlend` non-prefix reuse, or narrow to intra-turn folding only) *before* building the router.
 
-### Outcome (2026-10-16) — see `docs/STAGE-B-FINDINGS.md`
+### Outcome (2026-10-16) — see `docs/engineering/ENGINEERING-LOG.md` (Stage B sections)
 
 The spike **ran successfully** on vLLM 0.31.0 + Qwen2.5-1.5B (8 GB RTX 5070). Result:
 **partially passes, INCONCLUSIVE.**
@@ -116,12 +116,12 @@ The spike **ran successfully** on vLLM 0.31.0 + Qwen2.5-1.5B (8 GB RTX 5070). Re
 
 **Decision:** do **not** proceed to the kernel yet. Add **Stage B2** (corrected rendering
 order; baseline B0-no-cache; multi-agent CoW-fork arm; billed-cost model). See
-`STAGE-B-FINDINGS.md` §5.
+`docs/engineering/ENGINEERING-LOG.md` §5–§7.
 
 ### Stage B2 — corrected multi-agent experiment — **DONE (2026-10-16): PASS**
 
 Ran corrected intra-agent + 8-child CoW fork (`evals/stage_b2.py`; report
-`evals/reports/stage_b2_20261016_145513.json`; write-up `STAGE-B-FINDINGS.md` §7).
+`evals/reports/stage_b2_20261016_145513.json`; write-up `docs/engineering/ENGINEERING-LOG.md` §7).
 
 - **Intra-agent: still a tie** (effective cost 7,806 vs 7,753) — prefix caching neutralizes
   the naive baseline within one agent. Confirms the sale is *not* intra-agent.
@@ -144,11 +144,13 @@ bounded context**. Gate B2/B3 = **PASS**.
   lost answer). **Caveat:** the task is trivial; the real quality benchmark needs the actual
   compiler (GAP-22/25).
 - **B5 concurrency/VRAM:** at 16 concurrent agents CPP held **~1.4% KV cache vs B0's 28%
-  (20× lower, vs unshared raw broadcast; ~2× vs shared)**, delivered **8.6× throughput** (44.8 vs 5.2 req/s), and never queued. This
+  (20× lower, vs unshared raw broadcast; ~2× vs shared)**, delivered **8.2× throughput**
+  (43.25 vs 5.26 req/s on the 2026-10-17 re-run; the original 2026-10-16 run read 8.6× /
+  44.8 / 5.2 — see `RERUN-REVIEW.md`), and never queued. This
   **closes GAP-07** (the KV/VRAM-wall claim). Caveats: prefill-vs-KV attribution and no
   error bars (GAP-26/27).
 
-### Where the results underperform — `docs/SHORTFALL-AUDIT.md`
+### Where the results underperform — `docs/engineering/AUDIT.md`
 
 27 tracked gaps (GAP-01…GAP-27) with severities and a prioritized review checklist for the
 **post-B5 audit**: GAP-01 (the unproven 15× claim), GAP-12 (baseline fairness), GAP-02

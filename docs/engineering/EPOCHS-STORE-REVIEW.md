@@ -1,5 +1,8 @@
 # Epochs + Durable Store — Adversarial Review
 
+> **Historical snapshot (dated 2026-10-17).** The reviewed code has long since been committed;
+> the gate counts below (52 → 55 tests) are of that moment — the suite is 226 today.
+
 **Status:** Complete. Reviewed 2026-10-17 against the working tree containing `kernel/epochs.py`,
 `kernel/store/`, `sidecar/server.py`'s `load_fabric` dispatch, and their tests/docs (all
 untracked; no commit made).

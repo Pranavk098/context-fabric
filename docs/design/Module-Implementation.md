@@ -1,5 +1,13 @@
 # 04 - Module-by-Module Implementation Guide for Coding Agents
 
+> **Status note (2026-10-18):** design blueprints, not a status report — see
+> `../engineering/IMPLEMENTATION-STATUS.md` and `../engineering/ROADMAP-DECISIONS.md`. Known
+> deltas as of this date: the cartridge extractor is stdlib `ast` (not tree-sitter) and the
+> default Tier 0 is 600 tokens at the 4,000 base (ADR-0001; the "1,200" here predates it);
+> Shadow Cortex probes (Module B) are pending; Module D's `EPOCH_FOLD`/`COW_FORK` ship as
+> packet-level `kernel/mmu/` and are not yet wired into the sidecar; Stage 8's
+> `total_tokens <= hard_total_tokens - reserve` assertion is not enforced by the packer.
+
 This document provides exact algorithmic blueprints for the four core components of Context Fabric v1.0. Coding agents must follow these algorithms without omitting invariants.
 
 ---

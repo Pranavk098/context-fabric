@@ -1,5 +1,11 @@
 # 01 — Repository Structure & Tech Stack Specification
 
+> **Status note (2026-10-18):** design of record. Actual stack: stdlib `ast` for the
+> cartridge extractor (not tree-sitter), SQLite v0 for the store (Postgres deferred),
+> stdlib `http.server` for the sidecar (no FastAPI), and no `adapters/` or `services/`
+> packages — see `../engineering/IMPLEMENTATION-STATUS.md` and
+> `../engineering/ROADMAP-DECISIONS.md`.
+
 ## 1. Core Technology Choices (Enforced for Phase 0–4)
 * **Primary Language:** Python 3.12+ (strict `mypy` type checking, `pydantic>=2.9` for zero-overhead C-compiled schema validation, `fastapi` + `uvicorn` for the sidecar daemon)[cite: 36, 37].
 * **Canonical Storage & Index Engine:** **PostgreSQL 16+** with extensions:
@@ -17,7 +23,8 @@
 ```text
 context-fabric/
 ├── pyproject.toml                     # Poetry / uv workspace configuration
-├── docker-compose.yml                 # PostgreSQL 16 (pgvector) + Context Fabric Sidecar
+├── docker-compose.yml                 # vLLM GPU server (Stage-B runtime; Postgres is the
+│                                      # production target — v0 store is SQLite, see STORE.md)
 ├── Makefile                           # Format, lint, typecheck, migrate, test, benchmark
 │
 ├── protocol/                          # [MODULE 1] Zero-dependency schemas & canonicalization

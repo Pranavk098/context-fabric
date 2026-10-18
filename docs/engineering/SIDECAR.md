@@ -139,10 +139,12 @@ uv run cfx serve --mode compile --fabric fabric.jsonl
 ```
 
 Compare `usage.prompt_tokens` per turn (from your tool or the upstream logs) or the
-`upstream_prompt_tokens` counter at `http://127.0.0.1:8080/fabric/stats`. With vLLM, also
-read `usage.prompt_tokens_details.cached_tokens` per turn — the compile arm should keep
-the compiled block as a stable prompt prefix, so it should show a higher cache hit ratio,
-not just fewer tokens. Note which arm you changed: compiled prompts are smaller *only*
+`upstream_prompt_tokens` counter at `http://127.0.0.1:8080/fabric/stats`. With vLLM, read
+the prefix-cache counters from the upstream `/metrics` endpoint
+(`vllm:prefix_cache_hits_total` / `vllm:prefix_cache_queries_total`) — `usage.prompt_tokens_details.cached_tokens`
+is `null` on vLLM 0.31, so the usage field under-reports cache hits. The compile arm should
+keep the compiled block as a stable prompt prefix, so it should show a higher cache hit
+ratio, not just fewer tokens. Note which arm you changed: compiled prompts are smaller *only*
 when the fabric is smaller than what the tool would otherwise paste in.
 
 ## Troubleshooting

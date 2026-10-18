@@ -1,5 +1,10 @@
 # 03 — PostgreSQL Canonical Schema & Storage Specification
 
+> **Status note (2026-10-18):** design of record; PostgreSQL is **deferred** — the shipped
+> store is a SQLite v0 implementing the subset schema (blocks + relations) in
+> `kernel/store/` (`../engineering/STORE.md`; trigger in
+> `../engineering/ROADMAP-DECISIONS.md`). This DDL is the migration destination.
+
 ## 1. Storage Design Rules
 1. **Append-Only Canonical Truth:** The `canonical_events` table is strictly append-only (`INSERT` only; `UPDATE` and `DELETE` are revoked for the application role)[cite: 21, 22, 23, 33].
 2. **Watermarked Reads:** Every packet compilation pins a `watermark_event_seq` (`BIGINT`) from `canonical_events` so that concurrent writes never cause non-deterministic packet assembly[cite: 33].

@@ -24,6 +24,8 @@ Everything that matters is here. "Main" documents are marked ⭐.
 - `REFERENCES.md` — sourced-claims ledger (verified vs `[HYPOTHESIS]`).
 
 ## engineering/
+- ⭐ `IMPLEMENTATION-STATUS.md` — spec-vs-code map: what is built, partial, pending.
+- ⭐ `ROADMAP-DECISIONS.md` — deliberate deferrals with triggers.
 - ⭐ `ENGINEERING-LOG.md` — Stage-B findings + audit-fix results (what we built and measured).
 - ⭐ `AUDIT.md` — shortfall ledger + classification (every gap: artifact/design/limitation).
 - `CHANGES-FROM-PROPOSAL.md` — what changed from the original proposal and why.
@@ -47,11 +49,12 @@ Everything that matters is here. "Main" documents are marked ⭐.
 - `AGENT-HINTS.md` — RFC #52113-shaped hint producer (trace-only).
 - `GAP-WAVE-REVIEW.md` — code audit of the gap wave (2 S1 + 3 S2 fixed, 0 open S1).
 - `GAP-WAVE-MEASUREMENTS.md` — measurement audit (every number re-derived).
-- `ROADMAP-DECISIONS.md` — deliberate deferrals with triggers.
 - `MMU-FOLD-FORK.md` — packet-level EPOCH_FOLD / COW_FORK semantics.
 - `TRACK-CD-REVIEW.md` — code audit of Tracks C+D (3 S1 + 2 S2 fixed, verifiers hardened).
 - `PROTOCOL-REVIEW.md` — deterministic-core (protocol/) audit.
 - `KERNEL-REVIEW.md` — Stage C kernel code review.
+- `REPO-CLEANUP.md` — repo-hygiene audit (dead files, packaging, gitignore/CI).
+- `DOCS-AUDIT.md` — docs-consistency audit (2026-10-18): every discrepancy found and fixed.
 
 ## decisions/
 - `ADR-0001` packet size & tier budgets

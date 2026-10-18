@@ -1,0 +1,70 @@
+{
+  "ts": "2026-10-16T15:47:11",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "repeats": 3,
+  "intra_long": {
+    "steps": 50,
+    "arms": {
+      "B0_unbounded": {
+        "effective": {
+          "mean": 27422.0,
+          "std": 0.0
+        },
+        "dynamic": {
+          "mean": 8726.0,
+          "std": 0.0
+        },
+        "ttft": {
+          "mean": 45.67933204964487,
+          "std": 4.940875029335362
+        },
+        "exceeded_any": true,
+        "retained_key1_frac": 0.0,
+        "mean_turns": {
+          "mean": 47.0,
+          "std": 0.0
+        }
+      },
+      "B0_window": {
+        "effective": {
+          "mean": 71251.8,
+          "std": 753.4929860323823
+        },
+        "dynamic": {
+          "mean": 70287.0,
+          "std": 837.2144289248723
+        },
+        "ttft": {
+          "mean": 126.82766612666626,
+          "std": 1.5289669622049062
+        },
+        "exceeded_any": false,
+        "retained_key1_frac": 0.0,
+        "mean_turns": {
+          "mean": 50.0,
+          "std": 0.0
+        }
+      },
+      "CPP_fold": {
+        "effective": {
+          "mean": 43263.799999999996,
+          "std": 6.788225099391542
+        },
+        "dynamic": {
+          "mean": 41312.333333333336,
+          "std": 7.542472332656507
+        },
+        "ttft": {
+          "mean": 84.9121975333306,
+          "std": 0.6901522708944803
+        },
+        "exceeded_any": false,
+        "retained_key1_frac": 1.0,
+        "mean_turns": {
+          "mean": 50.0,
+          "std": 0.0
+        }
+      }
+    }
+  }
+}

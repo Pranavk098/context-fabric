@@ -10,8 +10,9 @@ come with them:
    blocks.
 
 Every number below is produced by a committed, deterministic script and stored under
-`evals/reports/` (git-ignored): claims are reproducible, artifacts are not part of the
-repo.
+`evals/reports/`; the canonical artifacts cited here (`position_probe_20261017_224320.json`,
+`packing_bench_20261017_231759.json`) are force-added to git despite the directory's
+git-ignore rule, so a fresh clone can verify these numbers.
 
 ## 1. λ-MMR selection
 
@@ -56,7 +57,8 @@ blocks** at budget base 800 (tier1 200 / tier2 40 / tier3 360):
 
 Both arms call the real `pack()` with the same inputs; only `mmr_lambda` differs. Metrics
 are computed over the selected blocks (tier1 + tier3 minus the instruction). Artifact:
-`evals/reports/packing_bench_<ts>.json` (git-ignored; rerun the script to reproduce).
+`evals/reports/packing_bench_20261017_231759.json` (tracked; new runs land git-ignored —
+rerun the script to reproduce).
 
 | arm | selected | avg pairwise Jaccard | must-keep coverage | packet tokens | tier1/tier3 tokens | tier2 handles |
 |-----|---------:|---------------------:|-------------------:|--------------:|-------------------:|--------------:|

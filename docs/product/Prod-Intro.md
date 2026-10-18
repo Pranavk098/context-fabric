@@ -5,6 +5,14 @@ PRODUCT & EXECUTIVE BRIEF | OCTOBER 2026 | FOR LEADERSHIP & BUILDING AGENTS
 # CONTEXT FABRIC (CPP v1.0)
 ## The Cognitive Memory Management Unit (Agent MMU) & Exocortex for AI Agents
 
+> **Status note (2026-10-18):** original product brief; current build status is in
+> `../engineering/IMPLEMENTATION-STATUS.md`. Reality checks as of this date: the "15×
+> duplication tax" is an arithmetic identity (~15 agents × per-hop), not a measured
+> recovery (VERIFICATION-REPORT N8); CoW forking is implemented at the packet/memory-state
+> level, not as KV-page forking; framework adapters are deferred (beachhead = local
+> GPU/vLLM per ADR-0004); model-tier arbitrage is undemonstrated; packet size per ADR-0001
+> (4,000 base, ~3,000 dynamic tokens).
+
 **One-Sentence Thesis:** Context Fabric is a framework-agnostic control plane and virtual memory kernel that sits between shared project truth and every agent's context window—compiling state into bounded, KV-cache-aligned, cryptographically auditable packets so agents wake up with instant project comprehension at a fraction of the token and GPU cost.
 
 ---

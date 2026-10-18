@@ -18,7 +18,7 @@ OpenAI-compatible endpoint with prefix caching — see `docs/engineering/RUNTIME
 ```bash
 uv run ruff check .
 uv run ruff format --check .
-uv run mypy protocol evals
+uv run mypy protocol evals kernel sidecar
 uv run pytest -q
 ```
 

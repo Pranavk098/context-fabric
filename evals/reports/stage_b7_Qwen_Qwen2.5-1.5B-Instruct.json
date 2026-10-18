@@ -1,0 +1,9 @@
+{
+  "ts": "2026-10-16T23:57:34",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "raw_tokens": 5310,
+  "compiled_tokens": 360,
+  "compression": 14.75,
+  "raw_accuracy": 0.9333333333333333,
+  "compiled_accuracy": 0.8666666666666667
+}

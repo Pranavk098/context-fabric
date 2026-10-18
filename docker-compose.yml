@@ -30,7 +30,7 @@ services:
 
   # LMCache-fronted vLLM (Tier-2 hardware path). LMCache runs as a Python
   # service/plugin inside the vLLM process; the full multi-process variant is
-  # documented in docs/STAGE-B-RUNTIME.md. Left disabled until the baseline
+  # documented in docs/engineering/RUNTIME.md. Left disabled until the baseline
   # vLLM arm passes, so we measure the delta the cache layer actually buys.
   #
   # lmcache-vllm:

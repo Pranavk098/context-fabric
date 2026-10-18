@@ -1,0 +1,148 @@
+{
+  "ts": "2026-10-16T16:06:07",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "repeats": 2,
+  "crossover": {
+    "3": {
+      "B0_tail": {
+        "mean": 910.8,
+        "x_vs_tail": 1.0
+      },
+      "CPP_full": {
+        "mean": 1350.0,
+        "x_vs_tail": 0.6746666666666666
+      },
+      "CPP_adaptive": {
+        "mean": 216.0,
+        "x_vs_tail": 4.216666666666667
+      }
+    },
+    "5": {
+      "B0_tail": {
+        "mean": 1371.6,
+        "x_vs_tail": 1.0
+      },
+      "CPP_full": {
+        "mean": 1470.0,
+        "x_vs_tail": 0.9330612244897959
+      },
+      "CPP_adaptive": {
+        "mean": 336.0,
+        "x_vs_tail": 4.082142857142857
+      }
+    },
+    "8": {
+      "B0_tail": {
+        "mean": 2145.6,
+        "x_vs_tail": 1.0
+      },
+      "CPP_full": {
+        "mean": 1542.0,
+        "x_vs_tail": 1.3914396887159532
+      },
+      "CPP_adaptive": {
+        "mean": 480.0,
+        "x_vs_tail": 4.47
+      }
+    },
+    "12": {
+      "B0_tail": {
+        "mean": 3195.6000000000004,
+        "x_vs_tail": 1.0
+      },
+      "CPP_full": {
+        "mean": 1770.0,
+        "x_vs_tail": 1.8054237288135595
+      },
+      "CPP_adaptive": {
+        "mean": 636.0,
+        "x_vs_tail": 5.024528301886793
+      }
+    },
+    "20": {
+      "B0_tail": {
+        "mean": 5235.6,
+        "x_vs_tail": 1.0
+      },
+      "CPP_full": {
+        "mean": 2106.0,
+        "x_vs_tail": 2.4860398860398862
+      },
+      "CPP_adaptive": {
+        "mean": 972.0,
+        "x_vs_tail": 5.38641975308642
+      }
+    },
+    "30": {
+      "B0_tail": {
+        "mean": 7839.6,
+        "x_vs_tail": 1.0
+      },
+      "CPP_full": {
+        "mean": 2598.0,
+        "x_vs_tail": 3.017551963048499
+      },
+      "CPP_adaptive": {
+        "mean": 1464.0,
+        "x_vs_tail": 5.354918032786886
+      }
+    }
+  },
+  "divergent": {
+    "B0_role_divergent": {
+      "mean": 20732.8,
+      "std": 0.0,
+      "x_vs_cpp": 9.527941176470588
+    },
+    "CPP_role_shared": {
+      "mean": 2176.0,
+      "std": 0.0,
+      "x_vs_cpp": 1.0
+    }
+  },
+  "foldsweep": {
+    "600": {
+      "effective": {
+        "mean": 28510.8,
+        "std": 0.0
+      },
+      "retain_frac": 0.0,
+      "ttft_ss_ms": 59.86618306122191
+    },
+    "1500": {
+      "effective": {
+        "mean": 51160.2,
+        "std": 2628.0
+      },
+      "retain_frac": 0.0,
+      "ttft_ss_ms": 100.87413767347215
+    },
+    "3000": {
+      "effective": {
+        "mean": 107334.6,
+        "std": 93.59999999999854
+      },
+      "retain_frac": 0.0,
+      "ttft_ss_ms": 208.97640040817112
+    },
+    "6000": {
+      "effective": {
+        "mean": 102015.79999999999,
+        "std": 14.400000000001455
+      },
+      "retain_frac": 0.0,
+      "ttft_ss_ms": 206.73577032653736
+    }
+  },
+  "coldboot": {
+    "hologram_tokens": 649,
+    "raw_tokens": 2039,
+    "hologram_accuracy": 0.3333333333333333,
+    "raw_accuracy": 1.0
+  },
+  "negknowledge": {
+    "scenarios": 3,
+    "bad_action_without_nk": 0.0,
+    "bad_action_with_nk": 0.0
+  }
+}

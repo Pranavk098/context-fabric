@@ -1,5 +1,12 @@
 # GAP-WAVE-MEASUREMENTS — independent verification of the gap-closure wave's claims
 
+> **Historical snapshot (dated 2026-10-17).** This audit verified the gap-closure wave on the
+> `_2244xx` demo set and the `231341` packing artifact, both since superseded by the
+> regenerated `_2319xx` demo set and `packing_bench_20261017_231759.json` (same numbers: 3.17×,
+> −13.4%, 8/8/8); the §Residual-gap notes about deleted/untracked artifacts no longer apply —
+> the current canonical artifacts are force-added to git. Gate count of that moment: 173
+> tests (226 today).
+
 - **Date:** 2026-10-17. **Auditor role:** adversarial recomputation (desk audit).
 - **Method:** read every measurement script, re-derived every number from the stored
   artifacts with fresh code (no reuse of the bench's own aggregation path where a second

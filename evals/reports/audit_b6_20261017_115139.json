@@ -1,0 +1,40 @@
+{
+  "ts": "2026-10-17T11:51:33",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "repeats": 1,
+  "coldboot": {
+    "reps": 1,
+    "hologram_tokens": 348,
+    "raw_tokens": 3146,
+    "hologram_accuracy": 1.0,
+    "raw_accuracy": 0.5,
+    "per_rep": [
+      {
+        "hologram_accuracy": 1.0,
+        "raw_accuracy": 0.5
+      }
+    ],
+    "samples": [
+      {
+        "q": "symbol_17",
+        "hologram_out": "module_17",
+        "raw_out": "module_17.py"
+      },
+      {
+        "q": "symbol_3",
+        "hologram_out": "module_3 exports symbol_3",
+        "raw_out": "module_39"
+      },
+      {
+        "q": "symbol_19",
+        "hologram_out": "module_19 exports symbol_19",
+        "raw_out": "module_39.py"
+      },
+      {
+        "q": "symbol_31",
+        "hologram_out": "module_31 exports symbol_31",
+        "raw_out": "module_32"
+      }
+    ]
+  }
+}

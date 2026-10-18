@@ -5,6 +5,12 @@ RESEARCH & STRATEGIC APPROACH | OCTOBER 2026 | LITERATURE & COMPETITIVE AUDIT
 # THE CONTEXT FABRIC APPROACH
 ## Scientific Foundation, Hardware Realities, and 2026 Competitive Landscape
 
+> **Status note (2026-10-18):** research foundation (Oct 2026). Citations were audited in
+> `../engineering/RESEARCH-AUDIT.md`; the EFFICIENTAGENT "96.5% → 51% / +31%" figures were
+> not located under that name and remain `[HYPOTHESIS]` (`../engineering/CHANGES-FROM-PROPOSAL.md`
+> §6). Current implementation status: `../engineering/IMPLEMENTATION-STATUS.md`; MCP/A2A
+> adapters and the Shadow Cortex are not built yet (ADR-0004 scope).
+
 ### 1. WHY THE INITIAL "BOUNDARY ROUTER" APPROACH WAS INSUFFICIENT
 
 Our research evolved through two distinct waves:

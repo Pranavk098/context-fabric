@@ -1,0 +1,11 @@
+{
+  "ts": "2026-10-16T16:12:23",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "repeats": 2,
+  "coldboot": {
+    "hologram_tokens": 319,
+    "raw_tokens": 2039,
+    "hologram_accuracy": 0.3333333333333333,
+    "raw_accuracy": 1.0
+  }
+}

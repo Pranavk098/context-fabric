@@ -16,7 +16,8 @@ can measure the real KV-reuse delta.
 needs a recent CUDA/PyTorch stack. Consequences:
 
 - Use a **small model**: `Qwen/Qwen2.5-1.5B-Instruct` (or 0.5B if VRAM is tight).
-- Cap the context: `--max-model-len 4096`, `--gpu-memory-utilization 0.85`.
+- Cap the context: `--max-model-len 8192` (4096 overflows on longer Stage-B loops),
+  `--gpu-memory-utilization 0.85`.
 - vLLM is Linux-first — run it in **WSL2 or Docker**, not native Windows.
 
 ## 1. Preferred path: Docker (needs the daemon running)
@@ -27,9 +28,11 @@ docker compose up -d vllm
 docker compose logs -f vllm        # wait for "Application startup complete"
 ```
 
-The compose file already enables `--enable-prefix-caching`. vLLM exposes cache telemetry
-per request via `usage.prompt_tokens_details.cached_tokens` (what the harness reads) and
-server-side counters via its `/metrics` endpoint (`vllm:gpu_prefix_cache_hit_rate`).
+The compose file already enables `--enable-prefix-caching`. vLLM 0.31 does **not** populate
+`usage.prompt_tokens_details.cached_tokens` (it is `null`), so the harness reads the
+server-side counters from `/metrics` instead: `vllm:prefix_cache_hits_total` /
+`vllm:prefix_cache_queries_total` (and `vllm:kv_cache_usage_perc` for peak KV usage);
+`usage` remains the fallback for providers that do report cached tokens.
 
 If the RTX 5070 (sm_120) is unsupported by the current image, either pull a newer
 `vllm/vllm-openai` tag or use the WSL2 native path below.
@@ -66,7 +69,7 @@ delta. Details: https://docs.lmcache.ai (pin the version you use).
 | Metric | Source | Why it matters |
 | :--- | :--- | :--- |
 | `prompt_tokens_total` | usage | billed input; the headline "N× reduction" |
-| `cached_tokens_total` | `prompt_tokens_details` | proof the prefix cache actually engaged |
+| `cached_tokens_total` | `/metrics` prefix-cache deltas (vLLM 0.31; `usage.prompt_tokens_details` is null) | proof the prefix cache actually engaged |
 | `prefix_cache_hit_ratio` | derived | the Invariant-3 claim, measured |
 | `prefix_continuity_ratio` | harness | append-only rendering holds across turns |
 | `mean_ttft_ms` | harness | prefill cost proxy (→ VRAM/queue pressure) |
@@ -75,3 +78,7 @@ delta. Details: https://docs.lmcache.ai (pin the version you use).
 `prompt_token_reduction` is significant **and** TTFT does not regress → the thesis holds on
 this beachhead; proceed to Stage C. If not → pivot before building the router
 (see `docs/CHANGES-FROM-PROPOSAL.md` §5).
+
+**Outcome:** Gate B passed 2026-10-16 on the corrected Stage B2/B3 runs — the win is
+cross-agent (fork) and concurrency, not intra-agent; magnitudes and caveats in
+`docs/engineering/ENGINEERING-LOG.md` §7–§8.

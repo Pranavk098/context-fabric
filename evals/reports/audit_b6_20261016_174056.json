@@ -1,0 +1,26 @@
+{
+  "ts": "2026-10-16T17:39:06",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "quality": {
+    "raw_full": {
+      "lookup_acc": 1.0,
+      "comparison_acc": 1.0,
+      "tokens": 408
+    },
+    "compiled_lossy_0": {
+      "lookup_acc": 1.0,
+      "comparison_acc": 1.0,
+      "tokens": 73
+    },
+    "compiled_lossy_20": {
+      "lookup_acc": 1.0,
+      "comparison_acc": 0.75,
+      "tokens": 59
+    },
+    "compiled_lossy_40": {
+      "lookup_acc": 0.3333333333333333,
+      "comparison_acc": 1.0,
+      "tokens": 44
+    }
+  }
+}

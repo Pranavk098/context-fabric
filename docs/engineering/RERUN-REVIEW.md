@@ -1,5 +1,10 @@
 # Re-run Review — cold-boot fairness + KV gauge (2026-10-17)
 
+> **Historical snapshot (dated 2026-10-17).** Desk audit of the honest re-run; the numbers it
+> verifies (348 vs 3,146 tokens, 20.2× KV, 8.23× throughput) are still the canonical ones,
+> but its gate counts are of that moment (55 tests then; 226 today) and the report-tracking
+> status (§7.1) has since changed — the canonical artifacts are now force-added to git.
+
 Desk audit of the "honest re-run" commit-in-progress. **No GPU work was re-executed** and no
 experiment code was changed: everything below is reconstructed offline from source, artifacts,
 and pure-Python checks. Method: read `evals/audit_b6.py`, all seven artifacts, and every doc

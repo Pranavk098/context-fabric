@@ -1,5 +1,8 @@
 # Sidecar ("the plug") — Adversarial Review
 
+> **Historical snapshot (dated 2026-10-17).** All findings were fixed at the time; the reviewed
+> code has long since been committed, and the gate counts below are of that moment.
+
 **Status:** Complete. Reviewed 2026-10-17 against the working tree containing `sidecar/`,
 `tests/test_sidecar.py`, `docs/engineering/SIDECAR.md` (all untracked; no commit made).
 **Reviewer:** auditor agent. **Method:** code reading plus live adversarial runs: in-process

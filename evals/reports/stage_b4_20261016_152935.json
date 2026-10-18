@@ -1,0 +1,466 @@
+{
+  "ts": "2026-10-16T15:29:07",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "arms": [
+    {
+      "label": "raw_full",
+      "context_tokens": 572,
+      "accuracy": 1.0,
+      "accuracy_on_retained": 1.0,
+      "detail": [
+        {
+          "key": "api base path",
+          "gold": "/v2/search",
+          "out": "/v2/search",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "request timeout",
+          "gold": "4500",
+          "out": "4500.",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "retry limit",
+          "gold": "3",
+          "out": "3",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "cache ttl",
+          "gold": "900",
+          "out": "900",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "auth header",
+          "gold": "x-api-key",
+          "out": "x-api-key",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "database port",
+          "gold": "5433",
+          "out": "5433",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "vector dimension",
+          "gold": "1536",
+          "out": "1536",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "batch size",
+          "gold": "64",
+          "out": "64",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "max connections",
+          "gold": "128",
+          "out": "128",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "upload size limit",
+          "gold": "25",
+          "out": "25.",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "session length",
+          "gold": "3600",
+          "out": "3600.",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "shard count",
+          "gold": "12",
+          "out": "12",
+          "correct": true,
+          "fact_dropped": false
+        }
+      ]
+    },
+    {
+      "label": "cpp_lossy_0",
+      "context_tokens": 93,
+      "accuracy": 1.0,
+      "accuracy_on_retained": 1.0,
+      "detail": [
+        {
+          "key": "api base path",
+          "gold": "/v2/search",
+          "out": "/v2/search",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "request timeout",
+          "gold": "4500",
+          "out": "4500.",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "retry limit",
+          "gold": "3",
+          "out": "3",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "cache ttl",
+          "gold": "900",
+          "out": "900.",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "auth header",
+          "gold": "x-api-key",
+          "out": "x-api-key",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "database port",
+          "gold": "5433",
+          "out": "5433",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "vector dimension",
+          "gold": "1536",
+          "out": "1536",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "batch size",
+          "gold": "64",
+          "out": "64",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "max connections",
+          "gold": "128",
+          "out": "128",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "upload size limit",
+          "gold": "25",
+          "out": "25.",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "session length",
+          "gold": "3600",
+          "out": "3600.",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "shard count",
+          "gold": "12",
+          "out": "12.",
+          "correct": true,
+          "fact_dropped": false
+        }
+      ]
+    },
+    {
+      "label": "cpp_lossy_25",
+      "context_tokens": 67,
+      "accuracy": 0.75,
+      "accuracy_on_retained": 1.0,
+      "detail": [
+        {
+          "key": "api base path",
+          "gold": "/v2/search",
+          "out": "None of the given parameters provide information about the API base path.",
+          "correct": false,
+          "fact_dropped": true
+        },
+        {
+          "key": "request timeout",
+          "gold": "4500",
+          "out": "4500.",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "retry limit",
+          "gold": "3",
+          "out": "3",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "cache ttl",
+          "gold": "900",
+          "out": "900.",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "auth header",
+          "gold": "x-api-key",
+          "out": "x-api-key",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "database port",
+          "gold": "5433",
+          "out": "None of the given parameters provide information about the database port.",
+          "correct": false,
+          "fact_dropped": true
+        },
+        {
+          "key": "vector dimension",
+          "gold": "1536",
+          "out": "1536",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "batch size",
+          "gold": "64",
+          "out": "64",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "max connections",
+          "gold": "128",
+          "out": "128.",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "upload size limit",
+          "gold": "25",
+          "out": "25.",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "session length",
+          "gold": "3600",
+          "out": "None of the given parameters provide information about a session length.",
+          "correct": false,
+          "fact_dropped": true
+        },
+        {
+          "key": "shard count",
+          "gold": "12",
+          "out": "12.",
+          "correct": true,
+          "fact_dropped": false
+        }
+      ]
+    },
+    {
+      "label": "cpp_lossy_50",
+      "context_tokens": 44,
+      "accuracy": 0.5,
+      "accuracy_on_retained": 1.0,
+      "detail": [
+        {
+          "key": "api base path",
+          "gold": "/v2/search",
+          "out": "None specified in the given information.",
+          "correct": false,
+          "fact_dropped": true
+        },
+        {
+          "key": "request timeout",
+          "gold": "4500",
+          "out": "None specified in the given information.",
+          "correct": false,
+          "fact_dropped": true
+        },
+        {
+          "key": "retry limit",
+          "gold": "3",
+          "out": "The retry limit is 3.",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "cache ttl",
+          "gold": "900",
+          "out": "900.",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "auth header",
+          "gold": "x-api-key",
+          "out": "x-api-key",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "database port",
+          "gold": "5433",
+          "out": "None of the given information pertains to a database port.",
+          "correct": false,
+          "fact_dropped": true
+        },
+        {
+          "key": "vector dimension",
+          "gold": "1536",
+          "out": "None.",
+          "correct": false,
+          "fact_dropped": true
+        },
+        {
+          "key": "batch size",
+          "gold": "64",
+          "out": "64",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "max connections",
+          "gold": "128",
+          "out": "128.",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "upload size limit",
+          "gold": "25",
+          "out": "25.",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "session length",
+          "gold": "3600",
+          "out": "None",
+          "correct": false,
+          "fact_dropped": true
+        },
+        {
+          "key": "shard count",
+          "gold": "12",
+          "out": "None specified in the given information.",
+          "correct": false,
+          "fact_dropped": true
+        }
+      ]
+    },
+    {
+      "label": "cpp_lossy_75",
+      "context_tokens": 23,
+      "accuracy": 0.25,
+      "accuracy_on_retained": 1.0,
+      "detail": [
+        {
+          "key": "api base path",
+          "gold": "/v2/search",
+          "out": "None specified in the given information.",
+          "correct": false,
+          "fact_dropped": true
+        },
+        {
+          "key": "request timeout",
+          "gold": "4500",
+          "out": "None specified in the given information.",
+          "correct": false,
+          "fact_dropped": true
+        },
+        {
+          "key": "retry limit",
+          "gold": "3",
+          "out": "The retry limit is not specified in the given information.",
+          "correct": false,
+          "fact_dropped": true
+        },
+        {
+          "key": "cache ttl",
+          "gold": "900",
+          "out": "The cache TTL (Time To Live) is not mentioned in the given information.",
+          "correct": false,
+          "fact_dropped": true
+        },
+        {
+          "key": "auth header",
+          "gold": "x-api-key",
+          "out": "x-api-key",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "database port",
+          "gold": "5433",
+          "out": "None",
+          "correct": false,
+          "fact_dropped": true
+        },
+        {
+          "key": "vector dimension",
+          "gold": "1536",
+          "out": "None",
+          "correct": false,
+          "fact_dropped": true
+        },
+        {
+          "key": "batch size",
+          "gold": "64",
+          "out": "None specified in the given information.",
+          "correct": false,
+          "fact_dropped": true
+        },
+        {
+          "key": "max connections",
+          "gold": "128",
+          "out": "128.",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "upload size limit",
+          "gold": "25",
+          "out": "25.",
+          "correct": true,
+          "fact_dropped": false
+        },
+        {
+          "key": "session length",
+          "gold": "3600",
+          "out": "There is no information provided about the session length in the given context.",
+          "correct": false,
+          "fact_dropped": true
+        },
+        {
+          "key": "shard count",
+          "gold": "12",
+          "out": "The given information does not provide any details about shard count.",
+          "correct": false,
+          "fact_dropped": true
+        }
+      ]
+    }
+  ]
+}

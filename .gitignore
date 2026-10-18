@@ -9,3 +9,6 @@ evals/reports/
 dist/
 build/
 .env
+demo_receipt.json
+epochs.json
+*.db

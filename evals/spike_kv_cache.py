@@ -123,7 +123,7 @@ def bring_up_instructions() -> None:
         "               $env:CF_MODEL='Qwen/Qwen2.5-1.5B-Instruct'\n"
         "               uv run python -m evals.spike_kv_cache\n\n"
         "Or point CF_BASE_URL at any running vLLM / Ollama / cloud endpoint.\n"
-        "See docs/STAGE-B-RUNTIME.md for the full recipe.\n"
+        "See docs/engineering/RUNTIME.md for the full recipe.\n"
     )
 
 
