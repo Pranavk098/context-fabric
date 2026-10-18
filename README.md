@@ -8,7 +8,7 @@ One shared memory. One small, cache-aligned packet per agent.
 Every hand-off hashed, signed, and replayable.
 
 [![CI](https://github.com/Pranavk098/context-fabric/actions/workflows/ci.yml/badge.svg)](https://github.com/Pranavk098/context-fabric/actions/workflows/ci.yml)
-![tests](https://img.shields.io/badge/tests-226%20passing-brightgreen)
+![tests](https://img.shields.io/badge/tests-226%20total-brightgreen)
 ![python](https://img.shields.io/badge/python-3.12%2B-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
 ![status](https://img.shields.io/badge/status-v0.1%20local--first-orange)
@@ -90,7 +90,7 @@ We still win by 3.17x on prompt tokens, at equal accuracy.
 ```bash
 uv sync --extra dev
 uv run python -m evals.spike_deterministic   # zero-GPU deterministic-core check
-uv run pytest -q                             # 226 tests
+uv run pytest -q                             # 226 tests (2 skip without the embeddings extra)
 
 # The plug, in front of your local model server
 uv run cfx serve --upstream http://127.0.0.1:8000 --fabric fabric.db
