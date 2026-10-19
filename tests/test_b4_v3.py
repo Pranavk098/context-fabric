@@ -23,6 +23,7 @@ from evals.b4_v3 import (
     dry_run_payload,
     load_objectives,
     score_quality,
+    score_quality_v2,
 )
 from evals.mech_fabric import build_blocks
 from protocol.models import BlockKind
@@ -97,6 +98,39 @@ def test_scorer_forbidden_in_objective_is_ignored() -> None:
         ("query",),
     )
     assert not ok and wrong == ["query"]
+
+
+# ---- scorer v2 (explicit flag; v1 stays the frozen default) ----------------------------
+
+
+def test_scorer_v2_strips_trailing_dot() -> None:
+    objective = "Which methods read the whole body?"
+    # v1 keeps the dot: "aread." is not the required token "aread"
+    ok, missing, _ = score_quality("aread.", objective, ("aread",), ("content",))
+    assert not ok and missing == ["aread"]
+    # v2 strips the trailing dot, so "aread." satisfies "aread"
+    ok, missing, _ = score_quality_v2("aread.", objective, ("aread",), ("content",))
+    assert ok and not missing
+
+
+def test_scorer_v2_strips_leading_slash_and_trailing_hyphen() -> None:
+    objective = "Which methods read the whole body?"
+    ok, missing, _ = score_quality_v2("/read-", objective, ("read",), ("content",))
+    assert ok and not missing
+
+
+def test_scorer_v2_preserves_inner_punct() -> None:
+    objective = "Which algorithm names map to md5?"
+    ok, missing, _ = score_quality_v2("MD5-SESS", objective, ("MD5-SESS",), ("SHA",))
+    assert ok and not missing  # inner hyphen survives; nothing to strip at the edges
+    ok, missing, _ = score_quality_v2("_client.get", objective, ("_client.get",), ("post",))
+    assert ok and not missing  # inner dot survives stripping
+
+
+def test_scorer_v2_drops_punct_only_tokens() -> None:
+    objective = "Which methods read the whole body?"
+    ok, missing, _ = score_quality_v2("--- read ...", objective, ("read",), ("content",))
+    assert ok and not missing  # "---" and "..." strip to empty and are dropped
 
 
 # ---- objectives sha256 guard ----------------------------------------------------------

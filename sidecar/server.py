@@ -275,6 +275,7 @@ def _make_handler(
                 return None
             cap = _max_body_bytes()
             if length > cap:
+                self._drain_body(length)
                 self._send_json(
                     413,
                     {"error": {"message": f"request body exceeds CF_MAX_BODY_BYTES ({cap} bytes)"}},
@@ -282,6 +283,23 @@ def _make_handler(
                 )
                 return None
             return self.rfile.read(length)
+
+        def _drain_body(self, length: int) -> None:
+            """Discard an already-rejected body so the error close is a graceful FIN.
+
+            On Windows, closing with unread inbound bytes is an abortive RST that can race
+            the 413 off the wire (WinError 10053). Read in bounded chunks so a large
+            Content-Length never allocates a matching buffer.
+            shortcut: reads the full rejected body (up to Content-Length) before responding;
+            a client that declares a huge length but never sends it stalls this handler —
+            bound the drain if that ever becomes a real DoS.
+            """
+            remaining = length
+            while remaining > 0:
+                chunk = self.rfile.read(min(remaining, 64 * 1024))
+                if not chunk:
+                    return
+                remaining -= len(chunk)
 
         def _route_post(self) -> None:
             path = self.path.split("?", 1)[0]

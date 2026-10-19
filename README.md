@@ -32,7 +32,9 @@ flowchart LR
 ```
 
 Six agents working the same project should not each pay for the whole history.
-Point any OpenAI-compatible tool at `cfx serve`, and they stop doing exactly that.
+Point any OpenAI-compatible tool at `cfx serve`, and they stop re-ingesting a full
+shared dump each turn — a billed-token win when the context outgrows a shared prefix
+cache; on a warm cache that fits, raw sharing wins on prefill (receipts below).
 
 ## The receipt
 
