@@ -1,0 +1,434 @@
+{
+  "scenario": "a4_concurrency",
+  "kind": "dry_run",
+  "preregistration": "docs/engineering/A4-CONCURRENCY-PREREGISTRATION.md",
+  "fixture": {
+    "path": "C:\\Users\\prana\\AppData\\Local\\Temp\\opencode\\httpx_pilot",
+    "files": 10,
+    "bundle_tokens_tiktoken": 32259
+  },
+  "cartridge": {
+    "cartridge_id": "cfx_httpx-b4_53833d8a",
+    "token_count": 595,
+    "kv_prefix_hash": "sha256:78be32b2acb271e9f8013afc9197cad07bacd9f799323ddc2619398be2805f4b"
+  },
+  "config": {
+    "n_levels": [
+      1,
+      4,
+      8,
+      16,
+      32
+    ],
+    "repeats": 3,
+    "max_tokens": 64,
+    "temperature": 0.0,
+    "max_model_len": 32768,
+    "model": "Qwen/Qwen2.5-1.5B-Instruct"
+  },
+  "arms": {
+    "raw": {
+      "prompt_tokens_total": 1032955,
+      "per_objective": [
+        {
+          "i": 0,
+          "symbol": "Client",
+          "objective": "In the httpx repository, which file defines `Client`? Answer with the file path only.",
+          "prompt_tokens": 32279
+        },
+        {
+          "i": 1,
+          "symbol": "AsyncClient",
+          "objective": "In the httpx repository, which file defines `AsyncClient`? Answer with the file path only.",
+          "prompt_tokens": 32280
+        },
+        {
+          "i": 2,
+          "symbol": "BaseClient",
+          "objective": "In the httpx repository, which file defines `BaseClient`? Answer with the file path only.",
+          "prompt_tokens": 32280
+        },
+        {
+          "i": 3,
+          "symbol": "Timeout",
+          "objective": "In the httpx repository, which file defines `Timeout`? Answer with the file path only.",
+          "prompt_tokens": 32279
+        },
+        {
+          "i": 4,
+          "symbol": "Limits",
+          "objective": "In the httpx repository, which file defines `Limits`? Answer with the file path only.",
+          "prompt_tokens": 32279
+        },
+        {
+          "i": 5,
+          "symbol": "Proxy",
+          "objective": "In the httpx repository, which file defines `Proxy`? Answer with the file path only.",
+          "prompt_tokens": 32279
+        },
+        {
+          "i": 6,
+          "symbol": "request",
+          "objective": "In the httpx repository, which file defines `request`? Answer with the file path only.",
+          "prompt_tokens": 32279
+        },
+        {
+          "i": 7,
+          "symbol": "stream",
+          "objective": "In the httpx repository, which file defines `stream`? Answer with the file path only.",
+          "prompt_tokens": 32279
+        },
+        {
+          "i": 8,
+          "symbol": "get",
+          "objective": "In the httpx repository, which file defines `get`? Answer with the file path only.",
+          "prompt_tokens": 32279
+        },
+        {
+          "i": 9,
+          "symbol": "post",
+          "objective": "In the httpx repository, which file defines `post`? Answer with the file path only.",
+          "prompt_tokens": 32279
+        },
+        {
+          "i": 10,
+          "symbol": "head",
+          "objective": "In the httpx repository, which file defines `head`? Answer with the file path only.",
+          "prompt_tokens": 32279
+        },
+        {
+          "i": 11,
+          "symbol": "put",
+          "objective": "In the httpx repository, which file defines `put`? Answer with the file path only.",
+          "prompt_tokens": 32279
+        },
+        {
+          "i": 12,
+          "symbol": "patch",
+          "objective": "In the httpx repository, which file defines `patch`? Answer with the file path only.",
+          "prompt_tokens": 32279
+        },
+        {
+          "i": 13,
+          "symbol": "delete",
+          "objective": "In the httpx repository, which file defines `delete`? Answer with the file path only.",
+          "prompt_tokens": 32279
+        },
+        {
+          "i": 14,
+          "symbol": "Auth",
+          "objective": "In the httpx repository, which file defines `Auth`? Answer with the file path only.",
+          "prompt_tokens": 32279
+        },
+        {
+          "i": 15,
+          "symbol": "BasicAuth",
+          "objective": "In the httpx repository, which file defines `BasicAuth`? Answer with the file path only.",
+          "prompt_tokens": 32280
+        },
+        {
+          "i": 16,
+          "symbol": "DigestAuth",
+          "objective": "In the httpx repository, which file defines `DigestAuth`? Answer with the file path only.",
+          "prompt_tokens": 32280
+        },
+        {
+          "i": 17,
+          "symbol": "FunctionAuth",
+          "objective": "In the httpx repository, which file defines `FunctionAuth`? Answer with the file path only.",
+          "prompt_tokens": 32280
+        },
+        {
+          "i": 18,
+          "symbol": "NetRCAuth",
+          "objective": "In the httpx repository, which file defines `NetRCAuth`? Answer with the file path only.",
+          "prompt_tokens": 32281
+        },
+        {
+          "i": 19,
+          "symbol": "GZipDecoder",
+          "objective": "In the httpx repository, which file defines `GZipDecoder`? Answer with the file path only.",
+          "prompt_tokens": 32281
+        },
+        {
+          "i": 20,
+          "symbol": "DeflateDecoder",
+          "objective": "In the httpx repository, which file defines `DeflateDecoder`? Answer with the file path only.",
+          "prompt_tokens": 32281
+        },
+        {
+          "i": 21,
+          "symbol": "BrotliDecoder",
+          "objective": "In the httpx repository, which file defines `BrotliDecoder`? Answer with the file path only.",
+          "prompt_tokens": 32282
+        },
+        {
+          "i": 22,
+          "symbol": "ZStandardDecoder",
+          "objective": "In the httpx repository, which file defines `ZStandardDecoder`? Answer with the file path only.",
+          "prompt_tokens": 32281
+        },
+        {
+          "i": 23,
+          "symbol": "HTTPError",
+          "objective": "In the httpx repository, which file defines `HTTPError`? Answer with the file path only.",
+          "prompt_tokens": 32280
+        },
+        {
+          "i": 24,
+          "symbol": "RequestError",
+          "objective": "In the httpx repository, which file defines `RequestError`? Answer with the file path only.",
+          "prompt_tokens": 32280
+        },
+        {
+          "i": 25,
+          "symbol": "TimeoutException",
+          "objective": "In the httpx repository, which file defines `TimeoutException`? Answer with the file path only.",
+          "prompt_tokens": 32280
+        },
+        {
+          "i": 26,
+          "symbol": "TooManyRedirects",
+          "objective": "In the httpx repository, which file defines `TooManyRedirects`? Answer with the file path only.",
+          "prompt_tokens": 32282
+        },
+        {
+          "i": 27,
+          "symbol": "HTTPStatusError",
+          "objective": "In the httpx repository, which file defines `HTTPStatusError`? Answer with the file path only.",
+          "prompt_tokens": 32281
+        },
+        {
+          "i": 28,
+          "symbol": "InvalidURL",
+          "objective": "In the httpx repository, which file defines `InvalidURL`? Answer with the file path only.",
+          "prompt_tokens": 32280
+        },
+        {
+          "i": 29,
+          "symbol": "encode_json",
+          "objective": "In the httpx repository, which file defines `encode_json`? Answer with the file path only.",
+          "prompt_tokens": 32280
+        },
+        {
+          "i": 30,
+          "symbol": "encode_request",
+          "objective": "In the httpx repository, which file defines `encode_request`? Answer with the file path only.",
+          "prompt_tokens": 32280
+        },
+        {
+          "i": 31,
+          "symbol": "main",
+          "objective": "In the httpx repository, which file defines `main`? Answer with the file path only.",
+          "prompt_tokens": 32279
+        }
+      ]
+    },
+    "compile": {
+      "prompt_tokens_total": 93106,
+      "per_objective": [
+        {
+          "i": 0,
+          "symbol": "Client",
+          "objective": "In the httpx repository, which file defines `Client`? Answer with the file path only.",
+          "prompt_tokens": 2891
+        },
+        {
+          "i": 1,
+          "symbol": "AsyncClient",
+          "objective": "In the httpx repository, which file defines `AsyncClient`? Answer with the file path only.",
+          "prompt_tokens": 2915
+        },
+        {
+          "i": 2,
+          "symbol": "BaseClient",
+          "objective": "In the httpx repository, which file defines `BaseClient`? Answer with the file path only.",
+          "prompt_tokens": 2919
+        },
+        {
+          "i": 3,
+          "symbol": "Timeout",
+          "objective": "In the httpx repository, which file defines `Timeout`? Answer with the file path only.",
+          "prompt_tokens": 2897
+        },
+        {
+          "i": 4,
+          "symbol": "Limits",
+          "objective": "In the httpx repository, which file defines `Limits`? Answer with the file path only.",
+          "prompt_tokens": 2912
+        },
+        {
+          "i": 5,
+          "symbol": "Proxy",
+          "objective": "In the httpx repository, which file defines `Proxy`? Answer with the file path only.",
+          "prompt_tokens": 2917
+        },
+        {
+          "i": 6,
+          "symbol": "request",
+          "objective": "In the httpx repository, which file defines `request`? Answer with the file path only.",
+          "prompt_tokens": 2885
+        },
+        {
+          "i": 7,
+          "symbol": "stream",
+          "objective": "In the httpx repository, which file defines `stream`? Answer with the file path only.",
+          "prompt_tokens": 2917
+        },
+        {
+          "i": 8,
+          "symbol": "get",
+          "objective": "In the httpx repository, which file defines `get`? Answer with the file path only.",
+          "prompt_tokens": 2919
+        },
+        {
+          "i": 9,
+          "symbol": "post",
+          "objective": "In the httpx repository, which file defines `post`? Answer with the file path only.",
+          "prompt_tokens": 2887
+        },
+        {
+          "i": 10,
+          "symbol": "head",
+          "objective": "In the httpx repository, which file defines `head`? Answer with the file path only.",
+          "prompt_tokens": 2887
+        },
+        {
+          "i": 11,
+          "symbol": "put",
+          "objective": "In the httpx repository, which file defines `put`? Answer with the file path only.",
+          "prompt_tokens": 2887
+        },
+        {
+          "i": 12,
+          "symbol": "patch",
+          "objective": "In the httpx repository, which file defines `patch`? Answer with the file path only.",
+          "prompt_tokens": 2887
+        },
+        {
+          "i": 13,
+          "symbol": "delete",
+          "objective": "In the httpx repository, which file defines `delete`? Answer with the file path only.",
+          "prompt_tokens": 2887
+        },
+        {
+          "i": 14,
+          "symbol": "Auth",
+          "objective": "In the httpx repository, which file defines `Auth`? Answer with the file path only.",
+          "prompt_tokens": 2919
+        },
+        {
+          "i": 15,
+          "symbol": "BasicAuth",
+          "objective": "In the httpx repository, which file defines `BasicAuth`? Answer with the file path only.",
+          "prompt_tokens": 2926
+        },
+        {
+          "i": 16,
+          "symbol": "DigestAuth",
+          "objective": "In the httpx repository, which file defines `DigestAuth`? Answer with the file path only.",
+          "prompt_tokens": 2911
+        },
+        {
+          "i": 17,
+          "symbol": "FunctionAuth",
+          "objective": "In the httpx repository, which file defines `FunctionAuth`? Answer with the file path only.",
+          "prompt_tokens": 2925
+        },
+        {
+          "i": 18,
+          "symbol": "NetRCAuth",
+          "objective": "In the httpx repository, which file defines `NetRCAuth`? Answer with the file path only.",
+          "prompt_tokens": 2928
+        },
+        {
+          "i": 19,
+          "symbol": "GZipDecoder",
+          "objective": "In the httpx repository, which file defines `GZipDecoder`? Answer with the file path only.",
+          "prompt_tokens": 2910
+        },
+        {
+          "i": 20,
+          "symbol": "DeflateDecoder",
+          "objective": "In the httpx repository, which file defines `DeflateDecoder`? Answer with the file path only.",
+          "prompt_tokens": 2911
+        },
+        {
+          "i": 21,
+          "symbol": "BrotliDecoder",
+          "objective": "In the httpx repository, which file defines `BrotliDecoder`? Answer with the file path only.",
+          "prompt_tokens": 2913
+        },
+        {
+          "i": 22,
+          "symbol": "ZStandardDecoder",
+          "objective": "In the httpx repository, which file defines `ZStandardDecoder`? Answer with the file path only.",
+          "prompt_tokens": 2915
+        },
+        {
+          "i": 23,
+          "symbol": "HTTPError",
+          "objective": "In the httpx repository, which file defines `HTTPError`? Answer with the file path only.",
+          "prompt_tokens": 2919
+        },
+        {
+          "i": 24,
+          "symbol": "RequestError",
+          "objective": "In the httpx repository, which file defines `RequestError`? Answer with the file path only.",
+          "prompt_tokens": 2916
+        },
+        {
+          "i": 25,
+          "symbol": "TimeoutException",
+          "objective": "In the httpx repository, which file defines `TimeoutException`? Answer with the file path only.",
+          "prompt_tokens": 2913
+        },
+        {
+          "i": 26,
+          "symbol": "TooManyRedirects",
+          "objective": "In the httpx repository, which file defines `TooManyRedirects`? Answer with the file path only.",
+          "prompt_tokens": 2915
+        },
+        {
+          "i": 27,
+          "symbol": "HTTPStatusError",
+          "objective": "In the httpx repository, which file defines `HTTPStatusError`? Answer with the file path only.",
+          "prompt_tokens": 2921
+        },
+        {
+          "i": 28,
+          "symbol": "InvalidURL",
+          "objective": "In the httpx repository, which file defines `InvalidURL`? Answer with the file path only.",
+          "prompt_tokens": 2913
+        },
+        {
+          "i": 29,
+          "symbol": "encode_json",
+          "objective": "In the httpx repository, which file defines `encode_json`? Answer with the file path only.",
+          "prompt_tokens": 2916
+        },
+        {
+          "i": 30,
+          "symbol": "encode_request",
+          "objective": "In the httpx repository, which file defines `encode_request`? Answer with the file path only.",
+          "prompt_tokens": 2898
+        },
+        {
+          "i": 31,
+          "symbol": "main",
+          "objective": "In the httpx repository, which file defines `main`? Answer with the file path only.",
+          "prompt_tokens": 2930
+        }
+      ]
+    }
+  },
+  "raw_fit": {
+    "bundle_tokens": 32259,
+    "longest_objective_tokens": 23,
+    "max_tokens": 64,
+    "raw_bundle_plus_objective_plus_max_tokens": 32346,
+    "headroom_tokens": 422,
+    "fits": true,
+    "note": "tiktoken (o200k) counts; the Qwen chat template adds a few tokens and is measured at run time. The pilot served this exact bundle at max-model-len 32768 successfully."
+  }
+}
