@@ -42,6 +42,7 @@ def compile_node_packet(
     signer: Signer | None = None,
     cartridge: Cartridge | None = None,
     output_contract: str | None = None,
+    handoff_source: str | None = None,
 ) -> CompileResult:
     """Compile one node's packet from its state, on the sidecar's compile path.
 
@@ -52,8 +53,9 @@ def compile_node_packet(
     ``compile_packet`` directly.
 
     ``cartridge`` pins a shared Tier-0 hologram (exploration lever L1); ``output_contract``
-    overrides the packet's answer-format contract (lever L3). Both default to the frozen
-    behaviour when omitted.
+    overrides the packet's answer-format contract (lever L3); ``handoff_source`` switches
+    the packet to the B8b skim hand-off path. All default to the frozen behaviour when
+    omitted.
     """
     objective = state["objective"]
     if not isinstance(objective, str):
@@ -71,6 +73,7 @@ def compile_node_packet(
         signer=signer,
         cartridge=cartridge,
         output_contract=output_contract,
+        handoff_source=handoff_source,
     )
 
 

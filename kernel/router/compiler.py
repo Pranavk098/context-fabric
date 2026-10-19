@@ -19,6 +19,7 @@ from kernel.router.packer import pack
 from kernel.router.policy_engine import Denial, apply_policy
 from kernel.router.recall import relevance_scores
 from kernel.router.scorer import utility
+from kernel.router.skim import trim_to_budget
 from protocol.canonical import canonicalize, packet_content_hash, sha256_hex
 from protocol.models import (
     BlockKind,
@@ -29,6 +30,7 @@ from protocol.models import (
     Fidelity,
     Hashes,
     MemoryTier,
+    RecencyAnchor,
     Recipient,
     RouteTraceRef,
     Scope,
@@ -89,8 +91,99 @@ def compile_packet(
     signer: Signer | None = None,
     purpose: str | None = None,
     output_contract: str | None = None,
+    handoff_source: str | None = None,
 ) -> CompileResult:
     budget = TokenBudget.from_base(budget_base)
+
+    # Optional hand-off path (B8b skim): when a caller supplies a pre-skimmed source, the
+    # packet carries the instruction plus that verbatim, anchored source as its single
+    # observation. Default None keeps every existing packet byte-identical.
+    if handoff_source is not None:
+        instruction = _instruction(scope, recipient, objective, stage, as_of)
+        headroom = budget.hard_total_tokens - instruction.token_estimate
+        content = trim_to_budget(handoff_source, headroom)
+        skim_block = ContextBlock(
+            block_id="blk_handoff_skim",
+            block_kind=BlockKind.fact,
+            memory_tier=MemoryTier.register,
+            content=content,
+            content_hash="sha256:" + sha256_hex(content.encode("utf-8")),
+            token_estimate=count_tokens(content),
+            source_event_seq=1,
+            creator=Creator(type=CreatorType.tool, id="skim"),
+            fidelity=Fidelity.extract,
+            trust_domain=scope.tenant_id,
+            observed_at=as_of,
+            valid_from=as_of,
+        )
+        total = instruction.token_estimate + skim_block.token_estimate
+        packet = ContextPacket(
+            cpp_version="1.0",
+            packet_id=_det_id(
+                "cpk",
+                scope.workflow_id,
+                scope.task_id,
+                recipient.agent_id,
+                objective,
+                str(watermark_event_seq),
+            ),
+            route_id=_det_id(
+                "rte", scope.workflow_id, scope.task_id, recipient.agent_id, objective
+            ),
+            spawn_depth=0,
+            epoch_number=1,
+            watermark_event_seq=watermark_event_seq,
+            scope=scope,
+            recipient=recipient,
+            budget=budget,
+            tiers=Tiers(
+                tier0=Tier0Cartridge(
+                    cartridge_id="cfx_none", kv_prefix_hash="sha256:none", content_markdown=""
+                ),
+                tier1=Tier1Ledger(blocks=()),
+                tier2=Tier2Swap(handles=()),
+                tier3=Tier3Register(
+                    instruction=instruction,
+                    shadow_probes=(),
+                    observations=(skim_block,),
+                    recency_anchor=RecencyAnchor(
+                        output_contract=output_contract
+                        or f"Stage '{stage}': reply with the required structured output only.",
+                    ),
+                ),
+            ),
+            conflict_alerts=(),
+            total_tokens=total,
+            hashes=Hashes(content_hash=""),
+            route_trace_ref=RouteTraceRef(),
+        )
+        content_hash = packet_content_hash(packet)
+        signature = signer.sign(content_hash.encode("utf-8")) if signer else None
+        packet = packet.model_copy(
+            update={
+                "hashes": Hashes(
+                    content_hash=content_hash,
+                    signature=signature,
+                    key_id=signer.key_id if signer else None,
+                )
+            }
+        )
+        trace = {
+            "handoff": True,
+            "included": [skim_block.block_id],
+            "excluded": [],
+            "purpose": purpose,
+            "tier_tokens": {
+                "tier0": 0,
+                "tier1": 0,
+                "tier2": 0,
+                "tier3": instruction.token_estimate + skim_block.token_estimate,
+            },
+            "total_tokens": total,
+            "content_hash": content_hash,
+        }
+        trace["cache_hints"] = packet_cache_hints(packet)
+        return CompileResult(packet=packet, trace=trace)
 
     # Stage 2: hard policy BEFORE scoring (deny-by-default: trust domain, RBAC, lifecycle, purpose).
     allowed, denials = apply_policy(
