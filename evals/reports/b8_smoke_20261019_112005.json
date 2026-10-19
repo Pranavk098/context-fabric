@@ -1,0 +1,83 @@
+{
+  "scenario": "b8_live",
+  "kind": "smoke",
+  "seed": 20261019,
+  "n": 30,
+  "model": "gpt-4.1-mini",
+  "window_cap": 24576,
+  "handoff_budget": 8192,
+  "step_limit": 35,
+  "started_at": "2026-10-19T18:20:05.161432+00:00",
+  "day": "2026-10-19",
+  "instance_ids": [
+    "astropy__astropy-7606"
+  ],
+  "arms": {
+    "A": {},
+    "B": {
+      "astropy__astropy-7606": {
+        "exit_status": "Submitted",
+        "overflow": false,
+        "steps": 11,
+        "wall_time_s": 29.267,
+        "tokens": {
+          "prompt_tokens": 80715,
+          "completion_tokens": 1708,
+          "reasoning_tokens": 0,
+          "cached_tokens": 77952,
+          "uncached_tokens": 2763,
+          "total_tokens": 82423
+        },
+        "resolved": 1
+      }
+    },
+    "C": {
+      "astropy__astropy-7606": {
+        "exit_status": "LimitsExceeded",
+        "overflow": false,
+        "steps": 35,
+        "wall_time_s": 40.482,
+        "tokens": {
+          "prompt_tokens": 394342,
+          "completion_tokens": 930,
+          "reasoning_tokens": 0,
+          "cached_tokens": 346112,
+          "uncached_tokens": 48230,
+          "total_tokens": 395272
+        },
+        "resolved": 0
+      }
+    }
+  },
+  "resolved": {
+    "A": {},
+    "B": {
+      "astropy__astropy-7606": 1
+    },
+    "C": {
+      "astropy__astropy-7606": 0
+    }
+  },
+  "parent_tokens": {
+    "prompt_tokens": 0,
+    "completion_tokens": 0,
+    "reasoning_tokens": 0,
+    "cached_tokens": 0,
+    "uncached_tokens": 0,
+    "total_tokens": 0
+  },
+  "ledger": {
+    "prompt_tokens": 1070703,
+    "completion_tokens": 4258,
+    "reasoning_tokens": 0,
+    "cached_tokens": 961408,
+    "uncached_tokens": 109295,
+    "total_tokens": 1074961
+  },
+  "projection": {
+    "smoke_triplet_tokens": 1074961,
+    "projected_total_tokens_30": 32248830,
+    "days_at_cap": 15,
+    "daily_cap": 2200000
+  }
+}

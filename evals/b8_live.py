@@ -54,7 +54,10 @@ MAX_TOKENS = 1_024
 TEMPERATURE = 0.0
 ARMS = ("A", "B", "C")
 
-DATASET = "princeton-nlp/SWE-bench_Verified"
+# ``SWE-bench/SWE-bench_Verified`` (not the ``princeton-nlp`` mirror) is the snapshot that
+# still carries the ``eval_script``/``log_parser``/``eval_type``/``image`` columns
+# ``swebench.harness.run_evaluation`` (5.0.2) needs to build a TestSpec.
+DATASET = "SWE-bench/SWE-bench_Verified"
 DEFAULT_SEED = 20261019
 DEFAULT_N = 30
 
@@ -232,13 +235,18 @@ def build_handoff(
     objective: str,
     *,
     project_id: str,
+    budget: int = HANDOFF_BUDGET,
 ) -> str:
     if arm == "A":
-        return handoff_arm_a(repo_root, candidate_files)
+        return handoff_arm_a(repo_root, candidate_files, budget=budget)
     if arm == "B":
-        return handoff_arm_b(repo_root, candidate_files, objective, project_id=project_id)
+        return handoff_arm_b(
+            repo_root, candidate_files, objective, project_id=project_id, budget=budget
+        )
     if arm == "C":
-        return handoff_arm_c(repo_root, candidate_files, objective, project_id=project_id)
+        return handoff_arm_c(
+            repo_root, candidate_files, objective, project_id=project_id, budget=budget
+        )
     raise ValueError(f"unknown arm {arm!r}")
 
 
@@ -437,6 +445,12 @@ def _sidecar_model_kwargs(base_url: str) -> dict[str, Any]:
     }
 
 
+def _is_cap_error(exc: BaseException) -> bool:
+    """True when ``exc`` is the sidecar's daily-cap 400 (``daily_cap_reached``)."""
+    message = str(exc)
+    return "daily_cap_reached" in message or "CF_B8_DAILY_CAP" in message
+
+
 def run_subagent(
     instance: dict[str, Any],
     handoff_text: str,
@@ -444,17 +458,24 @@ def run_subagent(
     model: str,
     base_url: str,
     output_path: Path,
+    step_limit: int = STEP_LIMIT,
 ) -> dict[str, Any]:
     """Run one mini-swe-agent sub-agent in Docker through ``cfx serve``; return the receipt.
 
     Returns ``{exit_status, steps, submission}``. A context-window overflow surfaces as
-    ``exit_status == "ContextWindowExceededError"`` with a best-effort partial ``git diff``.
+    ``exit_status == "ContextWindowExceededError"`` with a best-effort partial ``git diff``;
+    a daily-cap stop surfaces as ``exit_status == "cap_stopped"`` with an empty submission.
     """
+    import litellm  # local: WSL-only dependency
     from minisweagent.agents.default import DefaultAgent  # local: WSL-only dependency
     from minisweagent.config import get_config_from_spec
     from minisweagent.environments.docker import DockerEnvironment
     from minisweagent.models.litellm_model import LitellmModel
     from minisweagent.run.benchmarks.swebench import get_swebench_docker_image_name
+
+    class _B8LitellmModel(LitellmModel):  # type: ignore[misc]
+        # A cap 400 maps to litellm.BadRequestError; abort instead of the 10x backoff retry.
+        abort_exceptions = [*LitellmModel.abort_exceptions, litellm.exceptions.BadRequestError]
 
     cfg = get_config_from_spec("swebench.yaml")
     agent_cfg = dict(cfg["agent"])
@@ -463,7 +484,7 @@ def run_subagent(
     env_cfg.pop("environment_class", None)
 
     environment = DockerEnvironment(image=get_swebench_docker_image_name(instance), **env_cfg)
-    model_obj = LitellmModel(
+    model_obj = _B8LitellmModel(
         model_name=model,
         model_kwargs=_sidecar_model_kwargs(base_url),
         cost_tracking="ignore_errors",
@@ -475,7 +496,7 @@ def run_subagent(
         environment,
         system_template=agent_cfg["system_template"],
         instance_template=agent_cfg["instance_template"],
-        step_limit=STEP_LIMIT,
+        step_limit=step_limit,
         cost_limit=0.0,
         output_path=output_path,
     )
@@ -485,12 +506,16 @@ def run_subagent(
         exit_status = str(info.get("exit_status", ""))
         submission = str(info.get("submission", ""))
     except Exception as exc:  # ContextWindowExceededError and other aborts propagate here
-        exit_status = type(exc).__name__
-        try:
-            out = environment.execute({"command": "git diff"})
-            submission = out["output"] if out.get("returncode") == 0 else ""
-        except Exception:
+        if _is_cap_error(exc):
+            exit_status = "cap_stopped"
             submission = ""
+        else:
+            exit_status = type(exc).__name__
+            try:
+                out = environment.execute({"command": "git diff"})
+                submission = out["output"] if out.get("returncode") == 0 else ""
+            except Exception:
+                submission = ""
     finally:
         environment.cleanup()
     return {
@@ -512,8 +537,10 @@ def grade(
 ) -> dict[str, int]:
     """Grade a per-arm SWE-bench predictions JSONL via the harness Python API (Docker).
 
-    The HF Verified split has no ``image`` column, so each instance is stamped with the
-    harness's canonical image name (``sweb.eval.x86_64.<id>``, ``__`` -> ``_1776_``).
+    ``DATASET`` is the ``SWE-bench/SWE-bench_Verified`` snapshot that still carries the
+    ``eval_script``/``log_parser``/``eval_type``/``image`` columns ``make_test_spec``
+    needs (the ``princeton-nlp`` mirror dropped them). The image is re-stamped from
+    ``expected_image`` so it stays canonical regardless of the row's ``image`` value.
     Empty-patch predictions (a sub-agent that overflowed before editing) are not graded and
     resolve to 0.
     """
@@ -680,6 +707,8 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--parent-cache", default=str(PARENT_CACHE))
     parser.add_argument("--ledger-dir", default=str(LEDGER_DIR))
     parser.add_argument("--window-cap", type=int, default=WINDOW_CAP)
+    parser.add_argument("--step-limit", type=int, default=STEP_LIMIT)
+    parser.add_argument("--handoff-budget", type=int, default=HANDOFF_BUDGET)
     parser.add_argument("--daily-cap", type=int, default=b8.DEFAULT_DAILY_CAP)
     parser.add_argument("--out", default="")
     parser.add_argument("--resume", action="store_true", help="skip finished task x arm pairs")
@@ -729,6 +758,7 @@ def main(argv: list[str] | None = None) -> int:
         parent_tokens = _token_delta(before, ledger.summary(day))
         _stop_sidecar(parent_proc)
 
+    cap_stopped = False
     arm_receipts: dict[str, dict[str, Any]] = {arm: {} for arm in ARMS}
     for arm in ARMS:
         work = pending_pairs(selected, (arm,), done)
@@ -747,6 +777,22 @@ def main(argv: list[str] | None = None) -> int:
                         file=sys.stderr,
                     )
                     continue
+                # Pre-check the ledger: never start a pair the daily cap would cut off.
+                before = ledger.summary(day)
+                if before["total_tokens"] + args.window_cap + MAX_TOKENS > args.daily_cap:
+                    arm_receipts[arm][instance_id] = {
+                        "exit_status": "cap_stopped",
+                        "overflow": False,
+                        "steps": 0,
+                        "wall_time_s": 0.0,
+                        "tokens": _token_delta(before, before),
+                    }
+                    print(
+                        f"b8_live: daily cap reached ({before['total_tokens']} used); "
+                        f"stopping before {instance_id} arm {arm}. Resume tomorrow."
+                    )
+                    cap_stopped = True
+                    break
                 parent = parent_handoff(
                     instance,
                     repo_root,
@@ -765,8 +811,8 @@ def main(argv: list[str] | None = None) -> int:
                     parent["candidate_files"],
                     objective,
                     project_id=instance["repo"].split("/")[-1],
+                    budget=args.handoff_budget,
                 )
-                before = ledger.summary(day)
                 output_path = Path(args.repo_dir) / instance_id / f"{instance_id}.{arm}.traj.json"
                 receipt = run_subagent(
                     instance,
@@ -774,8 +820,23 @@ def main(argv: list[str] | None = None) -> int:
                     model=args.model,
                     base_url=base_url,
                     output_path=output_path,
+                    step_limit=args.step_limit,
                 )
                 tokens = _token_delta(before, ledger.summary(day))
+                if receipt["exit_status"] == "cap_stopped":
+                    arm_receipts[arm][instance_id] = {
+                        "exit_status": "cap_stopped",
+                        "overflow": False,
+                        "steps": receipt["steps"],
+                        "wall_time_s": receipt["wall_time_s"],
+                        "tokens": tokens,
+                    }
+                    print(
+                        f"b8_live: {instance_id} arm {arm} -> cap_stopped (daily cap). "
+                        "Resume tomorrow."
+                    )
+                    cap_stopped = True
+                    break
                 write_prediction(
                     predictions_path, instance_id, arm, args.model, receipt["submission"]
                 )
@@ -793,6 +854,8 @@ def main(argv: list[str] | None = None) -> int:
         finally:
             if proc is not None:
                 _stop_sidecar(proc)
+        if cap_stopped:
+            break
 
     resolved: dict[str, dict[str, int]] = {arm: {} for arm in ARMS}
     if args.grade:
@@ -820,8 +883,8 @@ def main(argv: list[str] | None = None) -> int:
         "n": args.n,
         "model": args.model,
         "window_cap": args.window_cap,
-        "handoff_budget": HANDOFF_BUDGET,
-        "step_limit": STEP_LIMIT,
+        "handoff_budget": args.handoff_budget,
+        "step_limit": args.step_limit,
         "started_at": datetime.now(tz=UTC).isoformat(),
         "day": day,
         "instance_ids": [i["instance_id"] for i in selected],

@@ -46,7 +46,7 @@ ignore_missing_imports = true
 
 # B8 live harness deps: installed only in the WSL2 agent/grader venv, never on Windows.
 [[tool.mypy.overrides]]
-module = ["minisweagent", "minisweagent.*", "swebench", "swebench.*", "datasets", "datasets.*"]
+module = ["minisweagent", "minisweagent.*", "swebench", "swebench.*", "datasets", "datasets.*", "litellm", "litellm.*"]
 ignore_missing_imports = true
 
 [tool.ruff]
@@ -59,3 +59,6 @@ select = ["E", "F", "I", "UP", "B"]
 [tool.ruff.lint.per-file-ignores]
 # Synthetic corpus notes are long single-line string literals by design.
 "evals/recall_bench.py" = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

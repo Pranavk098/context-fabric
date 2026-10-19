@@ -22,7 +22,7 @@ Create a dedicated venv (do not touch `~/.venvs/vllm` or the repo's `uv` env):
 ```bash
 # in WSL2 Ubuntu
 uv venv --clear --python 3.12 ~/.venvs/swe
-uv pip install --python ~/.venvs/swe/bin/python "mini-swe-agent" "swebench"
+uv pip install --python ~/.venvs/swe/bin/python "mini-swe-agent" "swebench" "mcp"
 uv pip install --python ~/.venvs/swe/bin/python -e /mnt/c/dev/Context-Fabric
 ```
 
@@ -39,6 +39,7 @@ the grader both use the `swebench/sweb.eval.x86_64.<instance_id>` images).
 | swebench | 5.0.2 |
 | datasets | 5.1.0 |
 | litellm | 1.106.0 |
+| mcp | 2.3.0 |
 | tiktoken | 0.14.0 |
 | Docker | 29.0.1 |
 

@@ -6,10 +6,10 @@ neither is enabled:
 * **Model allow-list + daily token ledger (money safety).** Only the OpenAI complimentary
   mini-tier models are allowed; the sidecar refuses any other model name before spending.
   A persistent JSONL ledger (one file per UTC day) sums ``prompt + completion (+ reasoning)``
-  tokens from every API response; before each request the sidecar refuses (HTTP 429,
-  "resume tomorrow") when today's total plus the request's maximum possible tokens would
-  exceed ``CF_B8_DAILY_CAP``. Upstream is https://api.openai.com; the sidecar is the single
-  choke point every agent request passes through.
+  tokens from every API response; before each request the sidecar refuses (HTTP 400
+  ``daily_cap_reached``, "resume tomorrow") when today's total plus the request's maximum
+  possible tokens would exceed ``CF_B8_DAILY_CAP``. Upstream is https://api.openai.com; the
+  sidecar is the single choke point every agent request passes through.
 * **Hard window cap (test mechanism).** ``--window-cap N`` returns an OpenAI-style HTTP 400
   ``context_length_exceeded`` when the rendered input tokens plus ``max_completion_tokens``
   exceed ``N``, so a small-window sub-agent overflows exactly like the real API would.
@@ -120,7 +120,11 @@ def context_window_error(input_tokens: int, max_tokens: int, window_cap: int) ->
 
 
 def daily_cap_error(used: int, max_possible: int, cap: int, day: str) -> dict[str, Any]:
-    """HTTP 429 payload the runner recognizes as a clean "stop, resume tomorrow" signal."""
+    """HTTP 400 ``daily_cap_reached`` payload: a clean, non-retryable "resume tomorrow".
+
+    ``code == "daily_cap_reached"`` with HTTP 400 maps to ``litellm.BadRequestError``
+    (never the retried 429/5xx path); the runner treats it as ``cap_stopped``.
+    """
     return {
         "error": {
             "message": (
@@ -130,7 +134,7 @@ def daily_cap_error(used: int, max_possible: int, cap: int, day: str) -> dict[st
             ),
             "type": "invalid_request_error",
             "param": None,
-            "code": "daily_token_cap_exceeded",
+            "code": "daily_cap_reached",
         }
     }
 

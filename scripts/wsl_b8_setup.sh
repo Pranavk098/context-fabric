@@ -12,8 +12,8 @@ uv venv --clear --python 3.12 "$VENV" 2>&1
 PY="$VENV/bin/python"
 echo "[setup] python: $($PY --version 2>&1)"
 
-echo "[setup] installing mini-swe-agent, swebench, and the repo (editable)"
-uv pip install --python "$PY" --quiet "mini-swe-agent" "swebench" 2>&1 | tail -8
+echo "[setup] installing mini-swe-agent, swebench, mcp, and the repo (editable)"
+uv pip install --python "$PY" --quiet "mini-swe-agent" "swebench" "mcp" 2>&1 | tail -8
 uv pip install --python "$PY" --quiet -e "$REPO" 2>&1 | tail -5
 
 echo "[setup] versions:"

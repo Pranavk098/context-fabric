@@ -502,7 +502,7 @@ def _make_handler(
                 used = b8_ledger.day_total(day)
                 max_possible = input_tokens + max_tokens
                 if used + max_possible > b8_daily_cap:
-                    self._send_json(429, b8.daily_cap_error(used, max_possible, b8_daily_cap, day))
+                    self._send_json(400, b8.daily_cap_error(used, max_possible, b8_daily_cap, day))
                     return False
             return True
 

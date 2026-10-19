@@ -10,8 +10,10 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+import pytest
 
 from evals.b8_live import (
+    _is_cap_error,
     finished_pairs,
     pending_pairs,
     sample_instances,
@@ -141,9 +143,10 @@ def test_daily_cap_stop_returns_resume_tomorrow(tmp_path: Path) -> None:
     sidecar_url = _serve(sidecar)
     try:
         response = _post(sidecar_url, {"model": "gpt-4.1-mini", "messages": _messages("hi")})
-        assert response.status_code == 429
+        # A 400 (not 429/5xx) is non-retryable by OpenAI clients and maps to a clean stop.
+        assert response.status_code == 400
         error = response.json()["error"]
-        assert error["code"] == "daily_token_cap_exceeded"
+        assert error["code"] == "daily_cap_reached"
         assert "Resume tomorrow" in error["message"]
     finally:
         _stop(sidecar, upstream)
@@ -264,3 +267,76 @@ def test_resume_skip_excludes_finished_pairs(tmp_path: Path) -> None:
 
 def test_finished_pairs_missing_file_is_empty(tmp_path: Path) -> None:
     assert finished_pairs(tmp_path / "nope.jsonl") == set()
+
+
+# -------------------------------------------------------------------- cap retry / resume
+
+
+def test_is_cap_error_recognizes_daily_cap_reached() -> None:
+    class _FakeExc(Exception):
+        pass
+
+    assert _is_cap_error(_FakeExc("BadRequestError: ... code 'daily_cap_reached' ..."))
+    assert _is_cap_error(_FakeExc("... exceeding CF_B8_DAILY_CAP=600000 ..."))
+    assert not _is_cap_error(_FakeExc("BadRequestError: some other malformed request"))
+    assert not _is_cap_error(_FakeExc("ContextWindowExceededError"))
+
+
+def test_cap_400_maps_to_bad_request_not_rate_limit(tmp_path: Path) -> None:
+    """A daily-cap stop returns 400 -> litellm.BadRequestError (aborted), never a retried 429."""
+    litellm = pytest.importorskip("litellm")
+    ledger = b8.Ledger(tmp_path / "ledger")
+    day = b8.utc_day()
+    ledger.append(day, model="gpt-4.1-mini", prompt_tokens=48, completion_tokens=2)
+    upstream, upstream_url = _start_upstream()
+    sidecar = make_server(
+        upstream=upstream_url,
+        mode="passthrough",
+        port=0,
+        b8_ledger=ledger,
+        b8_daily_cap=50,
+    )
+    sidecar_url = _serve(sidecar)
+    try:
+        with pytest.raises(litellm.exceptions.BadRequestError):
+            litellm.completion(
+                model="gpt-4.1-mini",
+                messages=[{"role": "user", "content": "hi"}],
+                api_base=f"{sidecar_url}/v1",
+                custom_llm_provider="openai",
+                api_key="sk-test-not-real",
+                num_retries=0,
+            )
+    finally:
+        _stop(sidecar, upstream)
+
+
+# -------------------------------------------------------------------- grading schema
+
+
+def test_make_test_spec_accepts_verified_schema() -> None:
+    """``make_test_spec`` succeeds on the ``SWE-bench/SWE-bench_Verified`` row shape.
+
+    The ``princeton-nlp`` mirror dropped ``eval_script``/``log_parser``/``eval_type``; the
+    grader pins the ``SWE-bench/...`` snapshot that still carries them.
+    """
+    utils = pytest.importorskip("swebench.harness.utils")
+    instance = {
+        "instance_id": "astropy__astropy-7606",
+        "image": "swebench/sweb.eval.x86_64.astropy_1776_astropy-7606:latest",
+        "repo": "astropy/astropy",
+        "version": "4.1",
+        "FAIL_TO_PASS": '["astropy/units/tests/test_units.py::test_xyz"]',
+        "PASS_TO_PASS": '["astropy/units/tests/test_units.py::test_abc"]',
+        "log_parser": "parse_log_astropy",
+        "eval_type": "pass_and_fail",
+        "eval_script": (
+            "#!/bin/bash\nset -uxo pipefail\ncd /testbed\n"
+            "pytest astropy/units/tests/test_units.py\n"
+        ),
+    }
+    spec = utils.make_test_spec(instance)
+    assert spec.instance_id == "astropy__astropy-7606"
+    assert spec.eval_script_list  # parse_eval_script produced a non-empty script list
+    assert spec.log_parser == "parse_log_astropy"
+    assert spec.eval_type == "pass_and_fail"

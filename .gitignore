@@ -13,3 +13,4 @@ build/
 demo_receipt.json
 epochs.json
 *.db
+logs/
