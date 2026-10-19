@@ -42,7 +42,7 @@ Legend
 | `packing_redundancy` | `-13.4%` | strict | `README.md`, `CHANGELOG.md` | `evals/reports/packing_bench_20261017_231759.json` | (0.205616 − 0.177986) = 0.0276 jaccard delta; /0.205616 = 13.4% |
 | `quality_parity_ratio` | `~5.6x` | strict | `README.md`, `CHANGELOG.md` | `evals/reports/audit_b6_20261016_173804.json` | 408 / 73 = 5.589 → 5.6 (1.5B, lossless arm; N7 caveats) |
 | `httpx_compression` | `~17x` | display-only | `README.md`, `CHANGELOG.md` | — (N5: no stored report) | 64,066 → 3,806 tokens; drifts with the installed `httpx` version |
-| `test_count` | `388` | display-only | `README.md` | — | `uv run python -m pytest --collect-only -q` on the current tree (3 embedding/symlink tests skip without the extra/on Windows); recount and update README + this row together |
+| `test_count` | `412` | display-only | `README.md` | — | `uv run python -m pytest --collect-only -q` on the current tree (3 embedding/symlink tests skip without the extra/on Windows); recount and update README + this row together |
 
 Stale patterns (must never appear as current numbers in their scoped docs; historical
 docs that explicitly quote superseded runs are exempt via `historical_ok`):
@@ -480,7 +480,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
     {
       "id": "test_count",
       "claim": "test-suite size badge (current tree; recount with pytest when tests change)",
-      "display": "388",
+      "display": "412",
       "kind": "display-only",
       "must_appear_in": ["README.md"]
     }
