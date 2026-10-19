@@ -14,7 +14,9 @@ import pytest
 
 from evals.b8_live import (
     _is_cap_error,
+    chat_completions_url,
     finished_pairs,
+    localize_parent,
     pending_pairs,
     sample_instances,
 )
@@ -340,3 +342,137 @@ def test_make_test_spec_accepts_verified_schema() -> None:
     assert spec.eval_script_list  # parse_eval_script produced a non-empty script list
     assert spec.log_parser == "parse_log_astropy"
     assert spec.eval_type == "pass_and_fail"
+
+
+# -------------------------------------------------------------------- parent localization
+
+
+_PARENT_OK = json.dumps(
+    {
+        "candidate_files": ["mod.py"],
+        "subagent_query": "Fix the off-by-one in mod.py.",
+        "parent_notes": "Index error in the loop.",
+    }
+)
+
+_INSTANCE = {"problem_statement": "the counter is off by one"}
+
+
+class _ParentUpstream(BaseHTTPRequestHandler):
+    """Returns ``content`` (a class attribute) as the parent-model reply."""
+
+    content = _PARENT_OK
+
+    def do_POST(self) -> None:
+        self.rfile.read(int(self.headers.get("Content-Length", "0")))
+        payload = json.dumps(
+            {
+                "id": "cmpl-parent",
+                "model": "gpt-4.1-mini",
+                "choices": [{"message": {"role": "assistant", "content": type(self).content}}],
+                "usage": {"prompt_tokens": 11, "completion_tokens": 9, "total_tokens": 20},
+            }
+        ).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
+    def log_message(self, format: str, *args: Any) -> None:
+        pass
+
+
+class _UnparseableParentUpstream(_ParentUpstream):
+    content = "this is not a JSON object"
+
+
+class _EmptyQueryParentUpstream(_ParentUpstream):
+    content = json.dumps({"candidate_files": ["mod.py"], "subagent_query": "  "})
+
+
+def _start_upstream_with(handler: type[BaseHTTPRequestHandler]) -> tuple[ThreadingHTTPServer, str]:
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    return server, _serve(server)
+
+
+def _write_repo(tmp_path: Path) -> Path:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "mod.py").write_text("def f():\n    return 1\n", encoding="utf-8")
+    (repo / "other.py").write_text("x = 1\n", encoding="utf-8")
+    return repo
+
+
+def _start_parent_sidecar(upstream_url: str, tmp_path: Path) -> tuple[ThreadingHTTPServer, str]:
+    ledger = b8.Ledger(tmp_path / "ledger")
+    sidecar = make_server(upstream=upstream_url, mode="passthrough", port=0, b8_ledger=ledger)
+    return sidecar, _serve(sidecar)
+
+
+def test_chat_completions_url_joins_v1_once() -> None:
+    assert chat_completions_url("http://127.0.0.1:8080/v1") == (
+        "http://127.0.0.1:8080/v1/chat/completions"
+    )
+    assert chat_completions_url("http://127.0.0.1:8080") == (
+        "http://127.0.0.1:8080/v1/chat/completions"
+    )
+    assert chat_completions_url("http://127.0.0.1:8080/v1/") == (
+        "http://127.0.0.1:8080/v1/chat/completions"
+    )
+
+
+def test_parent_localization_is_llm_ok_through_sidecar(tmp_path: Path) -> None:
+    upstream, upstream_url = _start_upstream_with(_ParentUpstream)
+    sidecar, sidecar_url = _start_parent_sidecar(upstream_url, tmp_path)
+    try:
+        # base_url ending in /v1 must not double to /v1/v1 (the D1 bug).
+        result = localize_parent(
+            _INSTANCE, _write_repo(tmp_path), model="gpt-4.1-mini", base_url=f"{sidecar_url}/v1"
+        )
+        assert result["parent_status"] == "llm_ok"
+        assert result["subagent_query"].strip()
+        assert "mod.py" in result["candidate_files"]
+    finally:
+        _stop(sidecar, upstream)
+
+
+def test_parent_unparseable_reply_is_llm_failed_not_bm25(tmp_path: Path) -> None:
+    upstream, upstream_url = _start_upstream_with(_UnparseableParentUpstream)
+    sidecar, sidecar_url = _start_parent_sidecar(upstream_url, tmp_path)
+    try:
+        result = localize_parent(
+            _INSTANCE, _write_repo(tmp_path), model="gpt-4.1-mini", base_url=sidecar_url
+        )
+        assert result["parent_status"] == "llm_failed"
+        assert result["error"]
+        assert result["subagent_query"] == ""
+        assert result["candidate_files"] == []  # never a BM25-only hand-off
+    finally:
+        _stop(sidecar, upstream)
+
+
+def test_parent_empty_query_reply_is_llm_failed(tmp_path: Path) -> None:
+    upstream, upstream_url = _start_upstream_with(_EmptyQueryParentUpstream)
+    sidecar, sidecar_url = _start_parent_sidecar(upstream_url, tmp_path)
+    try:
+        result = localize_parent(
+            _INSTANCE, _write_repo(tmp_path), model="gpt-4.1-mini", base_url=sidecar_url
+        )
+        assert result["parent_status"] == "llm_failed"
+        assert result["candidate_files"] == []
+    finally:
+        _stop(sidecar, upstream)
+
+
+def test_parent_rejects_disallowed_model(tmp_path: Path) -> None:
+    upstream, upstream_url = _start_upstream_with(_ParentUpstream)
+    sidecar, sidecar_url = _start_parent_sidecar(upstream_url, tmp_path)
+    try:
+        result = localize_parent(
+            _INSTANCE, _write_repo(tmp_path), model="gpt-4o", base_url=f"{sidecar_url}/v1"
+        )
+        assert result["parent_status"] == "llm_failed"
+        assert "HTTPStatusError" in result["error"]
+    finally:
+        _stop(sidecar, upstream)

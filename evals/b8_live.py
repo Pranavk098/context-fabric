@@ -343,6 +343,42 @@ def _parse_parent_json(text: str) -> dict[str, Any] | None:
     return None
 
 
+def chat_completions_url(base_url: str) -> str:
+    """``<base>/v1/chat/completions`` exactly once, whether ``base_url`` ends in ``/v1`` or not."""
+    base = base_url.rstrip("/")
+    if base.endswith("/v1"):
+        return f"{base}/chat/completions"
+    return f"{base}/v1/chat/completions"
+
+
+def _parent_llm_reply(base_url: str, model: str, prompt: str) -> dict[str, Any]:
+    """One parent LLM turn through the sidecar; raises on any unusable reply.
+
+    The sidecar enforces the model allow-list and records the usage in the daily ledger,
+    exactly like the sub-agent's requests.
+    """
+    with httpx.Client(timeout=120.0, trust_env=False) as client:
+        response = client.post(
+            chat_completions_url(base_url),
+            json={
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": TEMPERATURE,
+                "max_tokens": 512,
+            },
+        )
+        response.raise_for_status()
+        content = response.json()["choices"][0]["message"]["content"]
+    if not isinstance(content, str):
+        raise ValueError("parent reply had no text content")
+    parsed = _parse_parent_json(content)
+    if parsed is None:
+        raise ValueError("parent reply was not a JSON object")
+    if not isinstance(parsed.get("subagent_query"), str) or not parsed["subagent_query"].strip():
+        raise ValueError("parent reply had no subagent_query")
+    return parsed
+
+
 def localize_parent(
     instance: dict[str, Any],
     repo_root: Path,
@@ -351,11 +387,13 @@ def localize_parent(
     base_url: str,
     top_k: int = 5,
 ) -> dict[str, Any]:
-    """One frozen Parent localization turn (LLM + deterministic BM25 fallback).
+    """One frozen Parent localization turn (LLM through the sidecar, retried once).
 
-    Returns ``{"subagent_query", "parent_notes", "candidate_files"}``. The candidate files
-    come from the mini model when it returns parseable paths, filled (or replaced) by BM25
-    over the repo when fewer than ``top_k`` survive.
+    Returns ``{"parent_status", "error", "subagent_query", "parent_notes",
+    "candidate_files"}``. ``parent_status`` is ``"llm_ok"`` when the mini model returned a
+    parseable reply with a non-empty ``subagent_query``, else ``"llm_failed"`` with
+    ``error`` set. BM25 only fills candidate gaps the model left; a failed parent is never
+    re-written as a BM25-only hand-off.
     """
     problem = instance["problem_statement"]
     files = list_python_files(repo_root)
@@ -369,34 +407,25 @@ def localize_parent(
         f"Repository python files:\n{truncate_tokens(listing, 4000)}\n\n"
         f"Issue:\n{problem}\n"
     )
-    candidate_files: list[str] = []
-    subagent_query = ""
-    parent_notes = ""
-    try:
-        with httpx.Client(timeout=120.0, trust_env=False) as client:
-            response = client.post(
-                f"{base_url}/v1/chat/completions",
-                json={
-                    "model": model,
-                    "messages": [{"role": "user", "content": prompt}],
-                    "temperature": TEMPERATURE,
-                    "max_tokens": 512,
-                },
-            )
-            response.raise_for_status()
-        parsed = _parse_parent_json(response.json()["choices"][0]["message"]["content"])
-        if parsed is not None:
-            candidate_files = [
-                rel for rel in parsed.get("candidate_files", []) if isinstance(rel, str)
-            ]
-            subagent_query = (
-                parsed["subagent_query"] if isinstance(parsed.get("subagent_query"), str) else ""
-            )
-            parent_notes = (
-                parsed["parent_notes"] if isinstance(parsed.get("parent_notes"), str) else ""
-            )
-    except (httpx.HTTPError, KeyError, IndexError):
-        pass
+    parsed: dict[str, Any] | None = None
+    error = ""
+    for _ in range(2):  # one retry on any failure
+        try:
+            parsed = _parent_llm_reply(base_url, model, prompt)
+            break
+        except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError) as exc:
+            error = f"{type(exc).__name__}: {exc}"
+    if parsed is None:
+        return {
+            "parent_status": "llm_failed",
+            "error": error,
+            "subagent_query": "",
+            "parent_notes": "",
+            "candidate_files": [],
+        }
+    candidate_files = [rel for rel in parsed.get("candidate_files", []) if isinstance(rel, str)]
+    subagent_query = parsed["subagent_query"].strip()
+    parent_notes = parsed["parent_notes"] if isinstance(parsed.get("parent_notes"), str) else ""
     # Only keep candidate paths that actually exist; BM25 fills the gap (never leaks gold).
     existing = {f for f in files}
     candidate_files = [rel for rel in candidate_files if rel in existing]
@@ -406,6 +435,8 @@ def localize_parent(
         if len(candidate_files) >= top_k:
             break
     return {
+        "parent_status": "llm_ok",
+        "error": "",
         "subagent_query": subagent_query,
         "parent_notes": parent_notes,
         "candidate_files": candidate_files[:top_k],
@@ -800,6 +831,20 @@ def main(argv: list[str] | None = None) -> int:
                     base_url=base_url,
                     cache_dir=Path(args.parent_cache),
                 )
+                if parent.get("parent_status") != "llm_ok":
+                    arm_receipts[arm][instance_id] = {
+                        "exit_status": "parent_failed",
+                        "overflow": False,
+                        "steps": 0,
+                        "wall_time_s": 0.0,
+                        "tokens": _token_delta(before, before),
+                        "parent_error": parent.get("error", ""),
+                    }
+                    print(
+                        f"b8_live: {instance_id} parent llm_failed"
+                        f" ({parent.get('error', '')}); skipping arm {arm}"
+                    )
+                    continue
                 objective = " ".join(
                     part
                     for part in (instance["problem_statement"], parent.get("subagent_query", ""))
