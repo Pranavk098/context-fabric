@@ -106,6 +106,15 @@ def _add_serve_arguments(parser: argparse.ArgumentParser) -> None:
         help=f"daily token cap for the B8 ledger (default {b8.DEFAULT_DAILY_CAP}) "
         "(env: CF_B8_DAILY_CAP)",
     )
+    parser.add_argument(
+        "--kv-hints",
+        action="store_true",
+        default=os.environ.get("CF_KV_HINTS", "") in ("1", "true", "yes", "on"),
+        help=(
+            "attach a vLLM KvHintsEnvelope (PR #53423) to upstream requests in compile "
+            "mode; off by default, passthrough stays byte-identical (env: CF_KV_HINTS)"
+        ),
+    )
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -147,6 +156,7 @@ def _build_parser() -> argparse.ArgumentParser:
                 window_cap=args.window_cap,
                 b8_ledger=b8_ledger,
                 b8_daily_cap=args.b8_daily_cap,
+                kv_hints=args.kv_hints,
             )
         except FileNotFoundError as exc:
             print(f"cfx serve: {exc}", file=sys.stderr)
