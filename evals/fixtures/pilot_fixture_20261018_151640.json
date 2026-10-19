@@ -1,0 +1,73 @@
+{
+  "repo": "https://github.com/encode/httpx",
+  "clone_path": "/mnt/c/Users/<user>/AppData/Local/Temp/opencode/httpx_pilot",
+  "commit": "b5addb64f0161ff6bfe94c124ef76f6a1fba5254",
+  "commit_source": "git rev-parse HEAD",
+  "rendering": "files in listed order, raw bytes, joined by a blank line, each prefixed by '===== FILE: <path> ====='",
+  "files": [
+    {
+      "path": "httpx/__init__.py",
+      "sha256": "sha256:c6eb7c7ee98f049888d3c20ce80ca55e469772c0b080400a0c6c58983d36c0c4",
+      "bytes": 2297,
+      "tiktoken": 568
+    },
+    {
+      "path": "httpx/__version__.py",
+      "sha256": "sha256:fbbecde0a559094201ca3e78fc2c2e325ad0f604c37f3299087f62a0488b990c",
+      "bytes": 111,
+      "tiktoken": 35
+    },
+    {
+      "path": "httpx/_api.py",
+      "sha256": "sha256:8936fc710d8deeca17bfe6e8dc9f089231301b090e97dc0cf00e2e6249e6d79a",
+      "bytes": 12181,
+      "tiktoken": 2875
+    },
+    {
+      "path": "httpx/_auth.py",
+      "sha256": "sha256:82a26adfda516d0545288b1b37c6bd3a99d8bac56bfc53e1779571db3e1863fc",
+      "bytes": 12255,
+      "tiktoken": 2689
+    },
+    {
+      "path": "httpx/_client.py",
+      "sha256": "sha256:5be2ca2aef13fa41d03a76815c7d2e37d2e066396e69c7c1d62dd36c90566783",
+      "bytes": 67732,
+      "tiktoken": 13796
+    },
+    {
+      "path": "httpx/_config.py",
+      "sha256": "sha256:2c3f11b64d97d5d1da84a8e8c9270ce611eb329ad3cb2a2464f612d23e6dc891",
+      "bytes": 8795,
+      "tiktoken": 1964
+    },
+    {
+      "path": "httpx/_content.py",
+      "sha256": "sha256:c52ee6d7a5d05256e2a7209087d08cee952b1c962befdec7d85890ad0f32e984",
+      "bytes": 8401,
+      "tiktoken": 1878
+    },
+    {
+      "path": "httpx/_decoders.py",
+      "sha256": "sha256:46a3b6982e6c6cdd994b4aa35c7ca55d08f6fd645bad80e987356f547296f915",
+      "bytes": 12434,
+      "tiktoken": 2807
+    },
+    {
+      "path": "httpx/_exceptions.py",
+      "sha256": "sha256:c1abc25cba9d2739a8d76ebeb1653a04300c627e65ec329191de2ccbcb969e9b",
+      "bytes": 8877,
+      "tiktoken": 1877
+    },
+    {
+      "path": "httpx/_main.py",
+      "sha256": "sha256:293fc53a28263f1d57817f04a511d38d69b441f09314604711047c0960dbf27b",
+      "bytes": 16132,
+      "tiktoken": 3654
+    }
+  ],
+  "bundle_tokens_tiktoken": 32259,
+  "preregistration": "docs/engineering/PILOT-MECH-PREREGISTRATION.md",
+  "fabric": "mech",
+  "ts": "20261018_151640"
+}
