@@ -30,7 +30,7 @@ def _write_block(tmp_path: Path, payload: dict[str, Any]) -> Path:
 def test_bare_flags_parse_as_serve(monkeypatch: Any) -> None:
     calls: list[dict[str, Any]] = []
 
-    def fake_serve(*, upstream: str, port: int, fabric: Path | None, mode: str) -> None:
+    def fake_serve(*, upstream: str, port: int, fabric: Path | None, mode: str, **_: Any) -> None:
         calls.append({"upstream": upstream, "port": port, "fabric": fabric, "mode": mode})
 
     monkeypatch.setattr("sidecar.cli.serve", fake_serve)
@@ -41,7 +41,7 @@ def test_bare_flags_parse_as_serve(monkeypatch: Any) -> None:
 
 
 def test_serve_missing_fabric_exits_2(monkeypatch: Any, capsys: Any) -> None:
-    def fake_serve(*, upstream: str, port: int, fabric: Path | None, mode: str) -> None:
+    def fake_serve(*, upstream: str, port: int, fabric: Path | None, mode: str, **_: Any) -> None:
         raise FileNotFoundError(f"fabric file not found: {fabric}")
 
     monkeypatch.setattr("sidecar.cli.serve", fake_serve)

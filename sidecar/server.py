@@ -28,6 +28,7 @@ from pydantic import ValidationError
 from kernel.router.compiler import CompileResult, compile_packet
 from kernel.store import CompileManifest, SqliteStore, StoreConflict
 from protocol.models import ContextBlock, Recipient, Scope
+from sidecar import obsfold
 from sidecar.blocks import build_block, stored_block
 from sidecar.render import render_packet
 
@@ -188,6 +189,12 @@ def _make_handler(
     stats: Stats,
     client: httpx.Client,
     store: SqliteStore | None = None,
+    *,
+    obs_fold: bool = False,
+    obs_store: SqliteStore | None = None,
+    obs_n: int = obsfold.DEFAULT_N,
+    obs_k: int = obsfold.DEFAULT_K,
+    obs_max_tokens: int | None = None,
 ) -> type[BaseHTTPRequestHandler]:
     fabric: list[ContextBlock] = list(blocks)
     # One shared sqlite3 connection: event_seq allocation plus append/dedupe must be
@@ -288,6 +295,11 @@ def _make_handler(
                 if compiled is None:
                     return
                 body, extra = compiled
+            if obs_fold:
+                folded = self._obs_fold(body)
+                if folded is None:
+                    return
+                body = folded
             self._proxy("POST", f"{upstream}/v1/chat/completions", body, extra)
 
         def _route_get(self) -> None:
@@ -393,6 +405,50 @@ def _make_handler(
                 json.dumps(payload).encode("utf-8"),
                 {"X-Fabric-Compiled": "1", "X-Fabric-Packet-Id": result.packet.packet_id},
             )
+
+        def _obs_fold(self, body: bytes) -> bytes | None:
+            """Fold older tool observations into reversible stubs before proxying.
+
+            Runs only when obs-fold is enabled. Folding never breaks proxying: a malformed
+            payload is forwarded untouched (it is already validated by ``_read_body`` only
+            for framing, not JSON shape). The obs store writes are serialized with the
+            fabric writes so the shared connection is not interleaved.
+            """
+            try:
+                payload = json.loads(body)
+            except ValueError:
+                return body
+            if not isinstance(payload, dict):
+                return body
+            messages = payload.get("messages")
+            if not isinstance(messages, list):
+                return body
+            session_id = self.headers.get("X-Fabric-Agent", "default-agent")
+            created_at = datetime.now(tz=UTC)
+            if obs_store is None:
+                result = obsfold.fold_messages(
+                    messages,
+                    n=obs_n,
+                    k=obs_k,
+                    max_context_tokens=obs_max_tokens,
+                    session_id=session_id,
+                    created_at=created_at,
+                )
+            else:
+                with write_lock:
+                    result = obsfold.fold_messages(
+                        messages,
+                        n=obs_n,
+                        k=obs_k,
+                        max_context_tokens=obs_max_tokens,
+                        store=obs_store,
+                        session_id=session_id,
+                        created_at=created_at,
+                    )
+            if not result.folded:
+                return body
+            payload["messages"] = result.messages
+            return json.dumps(payload).encode("utf-8")
 
         def _log_compile(
             self,
@@ -557,19 +613,58 @@ def make_server(
     blocks: tuple[ContextBlock, ...] = (),
     port: int = 8080,
     store: SqliteStore | None = None,
+    obs_fold: bool = False,
+    obs_store: SqliteStore | None = None,
+    obs_n: int = obsfold.DEFAULT_N,
+    obs_k: int = obsfold.DEFAULT_K,
+    obs_max_tokens: int | None = None,
 ) -> ThreadingHTTPServer:
     client = httpx.Client(timeout=_TIMEOUT, trust_env=False)
-    handler = _make_handler(upstream.rstrip("/"), mode, blocks, Stats(), client, store)
+    handler = _make_handler(
+        upstream.rstrip("/"),
+        mode,
+        blocks,
+        Stats(),
+        client,
+        store,
+        obs_fold=obs_fold,
+        obs_store=obs_store,
+        obs_n=obs_n,
+        obs_k=obs_k,
+        obs_max_tokens=obs_max_tokens,
+    )
     return _Server(("127.0.0.1", port), handler)
 
 
-def serve(*, upstream: str, port: int, fabric: Path | None, mode: str) -> None:
+def serve(
+    *,
+    upstream: str,
+    port: int,
+    fabric: Path | None,
+    mode: str,
+    obs_fold: bool = False,
+    obs_store: SqliteStore | None = None,
+    obs_n: int = obsfold.DEFAULT_N,
+    obs_k: int = obsfold.DEFAULT_K,
+    obs_max_tokens: int | None = None,
+) -> None:
     """Load the fabric file (if any) and run the proxy until interrupted."""
     blocks: tuple[ContextBlock, ...] = ()
     store: SqliteStore | None = None
     if fabric is not None:
         blocks, store = _open_fabric(fabric)
-    httpd = make_server(upstream=upstream, mode=mode, blocks=blocks, port=port, store=store)
+    httpd = make_server(
+        upstream=upstream,
+        mode=mode,
+        blocks=blocks,
+        port=port,
+        store=store,
+        obs_fold=obs_fold,
+        obs_store=obs_store,
+        obs_n=obs_n,
+        obs_k=obs_k,
+        obs_max_tokens=obs_max_tokens,
+    )
     print(f"context-fabric sidecar: mode={mode} upstream={upstream} blocks={len(blocks)}")
     print(f"listening on http://127.0.0.1:{port}/v1")
     try:

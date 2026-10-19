@@ -67,6 +67,18 @@ CREATE TABLE IF NOT EXISTS compile_log (
     purpose             TEXT,
     created_at          TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS fold_log (
+    fold_seq        INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id      TEXT NOT NULL,
+    message_index   INTEGER NOT NULL,
+    stub_id         TEXT NOT NULL,
+    content_hash    TEXT NOT NULL,
+    tool_name       TEXT NOT NULL,
+    content_bytes   INTEGER NOT NULL,
+    seen_hash       TEXT NOT NULL,
+    created_at      TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_fold_log_session ON fold_log (session_id);
 """
 
 _MANIFEST_COLUMNS = (
@@ -357,3 +369,69 @@ class SqliteStore:
         else:
             rows = self._conn.execute(sql).fetchall()
         return [_manifest_from_row(row) for row in rows]
+
+    def log_folds(
+        self,
+        session_id: str,
+        events: Iterable[dict[str, Any]],
+        seen_hash: str,
+        created_at: datetime,
+    ) -> int:
+        """Append one row per fold event to the append-only ``fold_log`` receipt.
+
+        ``events`` are plain dicts (``message_index``, ``stub_id``, ``content_hash``,
+        ``tool_name``, ``content_bytes``); ``seen_hash`` is the sha256 of the folded
+        message list the model saw, denormalized onto every event row of that run.
+        """
+        rows = [
+            (
+                session_id,
+                int(event["message_index"]),
+                event["stub_id"],
+                event["content_hash"],
+                event["tool_name"],
+                int(event["content_bytes"]),
+                seen_hash,
+                created_at.isoformat(),
+            )
+            for event in events
+        ]
+        if not rows:
+            return 0
+        self._conn.executemany(
+            "INSERT INTO fold_log"
+            " (session_id, message_index, stub_id, content_hash, tool_name, content_bytes,"
+            " seen_hash, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            rows,
+        )
+        self._conn.commit()
+        return len(rows)
+
+    def load_fold_log(self, session_id: str | None = None) -> list[dict[str, Any]]:
+        """Fold-event receipt rows in append order (``fold_seq``), optionally per session."""
+        if session_id is None:
+            rows = self._conn.execute(
+                "SELECT fold_seq, session_id, message_index, stub_id, content_hash, tool_name,"
+                " content_bytes, seen_hash, created_at FROM fold_log ORDER BY fold_seq"
+            ).fetchall()
+        else:
+            rows = self._conn.execute(
+                "SELECT fold_seq, session_id, message_index, stub_id, content_hash, tool_name,"
+                " content_bytes, seen_hash, created_at FROM fold_log"
+                " WHERE session_id = ? ORDER BY fold_seq",
+                (session_id,),
+            ).fetchall()
+        return [
+            {
+                "fold_seq": int(row[0]),
+                "session_id": row[1],
+                "message_index": int(row[2]),
+                "stub_id": row[3],
+                "content_hash": row[4],
+                "tool_name": row[5],
+                "content_bytes": int(row[6]),
+                "seen_hash": row[7],
+                "created_at": row[8],
+            }
+            for row in rows
+        ]

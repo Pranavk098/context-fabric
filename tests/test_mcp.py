@@ -118,7 +118,7 @@ def test_tools_list_schemas(tmp_path: Path) -> None:
         _handshake(proc)
         result = _rpc(proc, "tools/list", request_id=8)
         tools = {tool["name"]: tool for tool in result["result"]["tools"]}
-        assert set(tools) == {"memory_search", "receipt_verify", "memory_add"}
+        assert set(tools) == {"memory_search", "receipt_verify", "memory_add", "expand"}
         for tool in tools.values():
             assert tool["inputSchema"]["type"] == "object"
         assert tools["memory_search"]["inputSchema"]["required"] == ["query"]
@@ -252,6 +252,28 @@ def test_unknown_tool_and_bad_params(tmp_path: Path) -> None:
         missing = _call(proc, "memory_search", {}, request_id=3)
         assert missing["error"]["code"] == -32602
         assert "query" in missing["error"]["message"]
+
+
+def test_expand_tool_resolves_folded_observation(tmp_path: Path) -> None:
+    from sidecar.obsfold import fold_messages
+
+    db = tmp_path / "obs.db"
+    store = SqliteStore(db)
+    content = "def fix():\n    return 42\n"
+    messages = [
+        {"role": "user", "content": "read the file"},
+        {"role": "assistant", "content": "calling"},
+        {"role": "tool", "tool_call_id": "c1", "name": "read_file", "content": content},
+    ]
+    result = fold_messages(messages, n=0, k=1, store=store, created_at=AS_OF)
+    assert result.folded == 1
+    uri = "ctx://obs/" + result.events[0].stub_id
+    with _server(db) as proc:
+        _handshake(proc)
+        found = _text(_call(proc, "expand", {"uri": uri}))
+        assert found["found"] is True and found["content"] == content
+        missing = _text(_call(proc, "expand", {"uri": "ctx://obs/deadbeefdead"}, request_id=3))
+        assert missing["found"] is False
 
 
 def test_malformed_json_line_recovers(tmp_path: Path) -> None:

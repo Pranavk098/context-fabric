@@ -32,6 +32,7 @@ from kernel.store import SqliteStore, StoreConflict
 from protocol.canonical import sha256_hex
 from protocol.epoch import Epoch, verify_chain
 from protocol.models import LifecycleStatus
+from sidecar import obsfold
 from sidecar.blocks import build_block, stored_block
 
 SERVER_NAME = "context-fabric"
@@ -125,6 +126,24 @@ _TOOLS: list[dict[str, Any]] = [
                 },
             },
             "required": ["block_kind", "content"],
+        },
+    },
+    {
+        "name": "expand",
+        "description": (
+            "Expand a folded observation stub (ctx://obs/<id>, or a bare obs_<id> id) back "
+            "to the full stored content. Looks up the observation block in this server's "
+            "store; returns `found: false` when it is not present."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "uri": {
+                    "type": "string",
+                    "description": "The ctx://obs/<id> stub URI to expand.",
+                },
+            },
+            "required": ["uri"],
         },
     },
 ]
@@ -251,6 +270,8 @@ class FabricServer:
             return _tool_result(self._receipt_verify(arguments))
         if name == "memory_add":
             return _tool_result(self._memory_add(arguments))
+        if name == "expand":
+            return _tool_result(self._expand(arguments))
         raise JsonRpcError(INVALID_PARAMS, f"Unknown tool: {name}")
 
     def _memory_search(self, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -339,6 +360,13 @@ class FabricServer:
             "source_event_seq": stored.source_event_seq,
             "deduplicated": not inserted,
         }
+
+    def _expand(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        uri = _str_arg(arguments, "uri")
+        content = obsfold.expand(self._store, uri)
+        if content is None:
+            return {"uri": uri, "found": False}
+        return {"uri": uri, "found": True, "content": content}
 
 
 def serve(store: SqliteStore, *, readonly: bool) -> int:

@@ -13,11 +13,11 @@ from typing import Any
 from kernel.mmu.epoch_folder import DEFAULT_K
 from kernel.store import SqliteStore, StoreConflict
 from protocol import epoch
-from sidecar import demo, foldfork, mcp
+from sidecar import demo, foldfork, mcp, obsfold
 from sidecar.blocks import build_block, stored_block
 from sidecar.replay import replay, seal
 from sidecar.repro import run_repro
-from sidecar.server import serve
+from sidecar.server import open_store, serve
 
 
 def _add_serve_arguments(parser: argparse.ArgumentParser) -> None:
@@ -43,6 +43,35 @@ def _add_serve_arguments(parser: argparse.ArgumentParser) -> None:
         default=os.environ.get("CF_MODE", "compile"),
         help="compile injects packets; passthrough is the honest A/B arm (env: CF_MODE)",
     )
+    parser.add_argument(
+        "--obs-fold",
+        action="store_true",
+        default=os.environ.get("CF_OBS_FOLD", "") in ("1", "true", "yes", "on"),
+        help="fold older tool observations into reversible ctx://obs stubs (env: CF_OBS_FOLD)",
+    )
+    parser.add_argument(
+        "--obs-store",
+        default=os.environ.get("CF_OBS_STORE") or None,
+        help="SQLite store for folded observation content + fold receipt (env: CF_OBS_STORE)",
+    )
+    parser.add_argument(
+        "--obs-n",
+        type=int,
+        default=obsfold.DEFAULT_N,
+        help=f"keep last N observations verbatim (default {obsfold.DEFAULT_N})",
+    )
+    parser.add_argument(
+        "--obs-k",
+        type=int,
+        default=obsfold.DEFAULT_K,
+        help=f"fold in chunks of K observations (default {obsfold.DEFAULT_K})",
+    )
+    parser.add_argument(
+        "--obs-max-tokens",
+        type=int,
+        default=None,
+        help="window guard: fold more, oldest first, until the request fits (optional)",
+    )
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -60,12 +89,24 @@ def _build_parser() -> argparse.ArgumentParser:
             serve_parser.error(
                 f"invalid mode {args.mode!r} (set --mode or CF_MODE to compile or passthrough)"
             )
+        obs_store: SqliteStore | None = None
+        if args.obs_fold and args.obs_store:
+            try:
+                obs_store = open_store(args.obs_store)
+            except (sqlite3.Error, OSError) as exc:
+                print(f"cfx serve: cannot open obs store {args.obs_store}: {exc}", file=sys.stderr)
+                return 2
         try:
             serve(
                 upstream=args.upstream,
                 port=args.port,
                 fabric=Path(args.fabric) if args.fabric else None,
                 mode=args.mode,
+                obs_fold=args.obs_fold,
+                obs_store=obs_store,
+                obs_n=args.obs_n,
+                obs_k=args.obs_k,
+                obs_max_tokens=args.obs_max_tokens,
             )
         except FileNotFoundError as exc:
             print(f"cfx serve: {exc}", file=sys.stderr)
@@ -125,6 +166,13 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     fork_parser.add_argument("--out", default=None, help="also write the child packet JSON here")
     fork_parser.set_defaults(func=_cmd_fork)
+
+    expand_parser = subparsers.add_parser(
+        "expand", help="expand a folded ctx://obs/<id> stub back to its stored content"
+    )
+    expand_parser.add_argument("--store", required=True, help="SQLite store path (.db/.sqlite)")
+    expand_parser.add_argument("uri", help="the ctx://obs/<id> stub (or bare obs_<id> id)")
+    expand_parser.set_defaults(func=_cmd_expand)
 
     seal_parser = subparsers.add_parser(
         "seal", help="commit the compile log as a signed epoch receipt chain"
@@ -237,6 +285,23 @@ def _cmd_fork(args: argparse.Namespace) -> int:
         stage=args.stage,
         out_path=args.out,
     )
+
+
+def _cmd_expand(args: argparse.Namespace) -> int:
+    """Print the full content behind a ``ctx://obs/<id>`` stub; exit 1 when not stored."""
+    try:
+        store = SqliteStore(args.store)
+    except (sqlite3.Error, OSError) as exc:
+        print(f"cfx expand: cannot open store {args.store}: {exc}", file=sys.stderr)
+        return 2
+    content = obsfold.expand(store, args.uri)
+    if content is None:
+        print(f"cfx expand: {args.uri} not found in {args.store}", file=sys.stderr)
+        return 1
+    sys.stdout.write(content)
+    if not content.endswith("\n"):
+        sys.stdout.write("\n")
+    return 0
 
 
 def _cmd_seal(args: argparse.Namespace) -> int:
