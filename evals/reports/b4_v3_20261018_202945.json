@@ -1,0 +1,1929 @@
+{
+  "scenario": "b4_v3",
+  "kind": "live",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "upstream": "http://localhost:8000",
+  "started_at": "2026-10-19T03:29:45.177227+00:00",
+  "ts": "20261018_202945",
+  "preregistration": "docs/engineering/B4-V3-PREREGISTRATION.md",
+  "fixture": {
+    "repo": "https://github.com/encode/httpx",
+    "clone_path": "/mnt/c/Users/<user>/AppData/Local/Temp/opencode/httpx_pilot",
+    "commit": "b5addb64f0161ff6bfe94c124ef76f6a1fba5254",
+    "commit_source": "preregistered",
+    "rendering": "files in listed (sorted) order, raw bytes, joined by a blank line, each prefixed by '===== FILE: <path> ====='",
+    "files": [
+      {
+        "path": "httpx/__init__.py",
+        "sha256": "sha256:c6eb7c7ee98f049888d3c20ce80ca55e469772c0b080400a0c6c58983d36c0c4",
+        "bytes": 2297,
+        "tiktoken": 568
+      },
+      {
+        "path": "httpx/__version__.py",
+        "sha256": "sha256:fbbecde0a559094201ca3e78fc2c2e325ad0f604c37f3299087f62a0488b990c",
+        "bytes": 111,
+        "tiktoken": 35
+      },
+      {
+        "path": "httpx/_api.py",
+        "sha256": "sha256:8936fc710d8deeca17bfe6e8dc9f089231301b090e97dc0cf00e2e6249e6d79a",
+        "bytes": 12181,
+        "tiktoken": 2875
+      },
+      {
+        "path": "httpx/_auth.py",
+        "sha256": "sha256:82a26adfda516d0545288b1b37c6bd3a99d8bac56bfc53e1779571db3e1863fc",
+        "bytes": 12255,
+        "tiktoken": 2689
+      },
+      {
+        "path": "httpx/_client.py",
+        "sha256": "sha256:5be2ca2aef13fa41d03a76815c7d2e37d2e066396e69c7c1d62dd36c90566783",
+        "bytes": 67732,
+        "tiktoken": 13796
+      },
+      {
+        "path": "httpx/_config.py",
+        "sha256": "sha256:2c3f11b64d97d5d1da84a8e8c9270ce611eb329ad3cb2a2464f612d23e6dc891",
+        "bytes": 8795,
+        "tiktoken": 1964
+      },
+      {
+        "path": "httpx/_content.py",
+        "sha256": "sha256:c52ee6d7a5d05256e2a7209087d08cee952b1c962befdec7d85890ad0f32e984",
+        "bytes": 8401,
+        "tiktoken": 1878
+      },
+      {
+        "path": "httpx/_decoders.py",
+        "sha256": "sha256:46a3b6982e6c6cdd994b4aa35c7ca55d08f6fd645bad80e987356f547296f915",
+        "bytes": 12434,
+        "tiktoken": 2807
+      },
+      {
+        "path": "httpx/_exceptions.py",
+        "sha256": "sha256:c1abc25cba9d2739a8d76ebeb1653a04300c627e65ec329191de2ccbcb969e9b",
+        "bytes": 8877,
+        "tiktoken": 1877
+      },
+      {
+        "path": "httpx/_main.py",
+        "sha256": "sha256:293fc53a28263f1d57817f04a511d38d69b441f09314604711047c0960dbf27b",
+        "bytes": 16132,
+        "tiktoken": 3654
+      },
+      {
+        "path": "httpx/_models.py",
+        "sha256": "sha256:033a271c9f50d96700af0e4c735a2f0ec4a6c57a389e6968c15f32aaac0b4630",
+        "bytes": 45974,
+        "tiktoken": 9494
+      },
+      {
+        "path": "httpx/_multipart.py",
+        "sha256": "sha256:18062ba313918279ca9585e8a2c5b51a60576815535be088c306bb8402823739",
+        "bytes": 10143,
+        "tiktoken": 2227
+      },
+      {
+        "path": "httpx/_status_codes.py",
+        "sha256": "sha256:565957cd1b5ca800b35f1aead5eab098993418218639c102bc6808f71a6a97da",
+        "bytes": 5801,
+        "tiktoken": 1533
+      },
+      {
+        "path": "httpx/_transports/__init__.py",
+        "sha256": "sha256:712663715debd3081b6939ec2ef7554f4263cfa23b0de5d63a148471b1ad7cff",
+        "bytes": 290,
+        "tiktoken": 73
+      },
+      {
+        "path": "httpx/_transports/asgi.py",
+        "sha256": "sha256:deac203fe158b2aea28b3e6e112ea2f175fbfb502e25acd7cfe0bab680bd14d8",
+        "bytes": 5688,
+        "tiktoken": 1217
+      },
+      {
+        "path": "httpx/_transports/base.py",
+        "sha256": "sha256:96e98f1da0ab25b6d5e950cfa6c7e1750d35e8c2a5f427be09309203eae44725",
+        "bytes": 2609,
+        "tiktoken": 554
+      },
+      {
+        "path": "httpx/_transports/default.py",
+        "sha256": "sha256:cb960d6be513d34644e15a9e3ecb9ac10c0e246e7422c2f1ce06c93fdb247813",
+        "bytes": 14390,
+        "tiktoken": 2960
+      },
+      {
+        "path": "httpx/_transports/mock.py",
+        "sha256": "sha256:c7ddba9e11e7e9c2846874dc25714cae8f91a3ad38a2701a3e3ccc86361d9e20",
+        "bytes": 1275,
+        "tiktoken": 261
+      },
+      {
+        "path": "httpx/_transports/wsgi.py",
+        "sha256": "sha256:c28e59ea367cb9bb06c20559a7cfb1dd207ef57544b77f2a46812c2aa2c17fa2",
+        "bytes": 4974,
+        "tiktoken": 1118
+      },
+      {
+        "path": "httpx/_types.py",
+        "sha256": "sha256:661d3440e537d3d0e3f0d716e0df9380b80c8001536c41a16ba043c271cd8395",
+        "bytes": 3079,
+        "tiktoken": 759
+      },
+      {
+        "path": "httpx/_urlparse.py",
+        "sha256": "sha256:10e6c9322fd2c25367faa722c226487a94e8ec31aa7b685deaeed2d7613048ed",
+        "bytes": 19073,
+        "tiktoken": 4992
+      },
+      {
+        "path": "httpx/_urls.py",
+        "sha256": "sha256:5a05d1b4e3bc1b76c1bfc1f3827fef8e240e05678af021bd115d7822f6e96dd4",
+        "bytes": 22191,
+        "tiktoken": 5234
+      },
+      {
+        "path": "httpx/_utils.py",
+        "sha256": "sha256:6aa82151b2ce3101a9004d8317641f3d4bd822d5eb9c2d2001d4d48b7ca9efb0",
+        "bytes": 8527,
+        "tiktoken": 1928
+      }
+    ],
+    "bundle_tokens_tiktoken": 64778,
+    "n_files": 23,
+    "ownership": {
+      "planner": [
+        "httpx/_client.py",
+        "httpx/_config.py",
+        "httpx/_status_codes.py",
+        "httpx/_transports/base.py",
+        "httpx/_transports/default.py",
+        "httpx/_urls.py"
+      ],
+      "implementer": [
+        "httpx/_decoders.py",
+        "httpx/_models.py",
+        "httpx/_urls.py"
+      ],
+      "tester": [
+        "httpx/_api.py",
+        "httpx/_exceptions.py",
+        "httpx/_models.py",
+        "httpx/_status_codes.py"
+      ],
+      "reviewer": [
+        "httpx/_auth.py",
+        "httpx/_config.py",
+        "httpx/_content.py",
+        "httpx/_exceptions.py",
+        "httpx/_main.py",
+        "httpx/_models.py",
+        "httpx/_multipart.py"
+      ]
+    },
+    "preregistration": "docs/engineering/B4-V3-PREREGISTRATION.md",
+    "tokenizer": "qwen"
+  },
+  "records": [
+    {
+      "op": "chat",
+      "arm": "truncate",
+      "objective_id": "b4v3-p1",
+      "agent": "planner",
+      "objective": "What integer is the default value of max_redirects used by httpx clients? Answer with the number only.",
+      "required": [
+        "20"
+      ],
+      "forbidden": [
+        "5.0",
+        "100",
+        "None"
+      ],
+      "missing": [
+        "20"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 16285,
+      "completion_tokens": 2,
+      "latency_ms": 53461.8,
+      "response": "4",
+      "response_text": "4",
+      "prompt_sha256": "sha256:28b4f6dfc31df314a484d105923bdf508aafa863d68a97467ed80fc0e460d3a6"
+    },
+    {
+      "op": "chat",
+      "arm": "truncate",
+      "objective_id": "b4v3-p2",
+      "agent": "planner",
+      "objective": "When Client.build_request() merges query parameters and falls back to a default timeout, what class from _urls.py and what constant from _config.py are used? Give the two identifiers separated by a comma.",
+      "required": [
+        "QueryParams",
+        "DEFAULT_TIMEOUT_CONFIG"
+      ],
+      "forbidden": [
+        "URL",
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "missing": [
+        "QueryParams"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 16285,
+      "completion_tokens": 88,
+      "latency_ms": 761.4,
+      "response": "Based on the code snippet provided, the `_urls.py` file contains:\n\n```python\nfrom .__version__ import __description__\n```\n\nand the `_config.py` file contains:\n\n```python\nDEFAULT_TIMEOUT_CONFIG\n```\n\nSo the two constants used are:\n\n- `__description__`: This is a global variable defined in `_urls.py`.\n- `DEFAULT_TIMEOUT_CONFIG`: This is a constant defined in `_config.py`.",
+      "response_text": "Based on the code snippet provided, the `_urls.py` file contains:\n\n```python\nfrom .__version__ import __description__\n```\n\nand the `_config.py` file contains:\n\n```python\nDEFAULT_TIMEOUT_CONFIG\n```\n\nSo the two constants used are:\n\n- `__description__`: This is a global variable defined in `_urls.py`.\n- `DEFAULT_TIMEOUT_CONFIG`: This is a constant defined in `_config.py`.",
+      "prompt_sha256": "sha256:7d7bbfe0ae90ab955fd513253f5c086b3a7679576e47b5173ae8d48427a1e03d"
+    },
+    {
+      "op": "chat",
+      "arm": "truncate",
+      "objective_id": "b4v3-p3",
+      "agent": "planner",
+      "objective": "In _transports/default.py, which base class defined in _transports/base.py does AsyncHTTPTransport inherit from? Give the class name only.",
+      "required": [
+        "AsyncBaseTransport"
+      ],
+      "forbidden": [
+        "BaseTransport",
+        "HTTPTransport",
+        "Client"
+      ],
+      "missing": [
+        "AsyncBaseTransport"
+      ],
+      "wrong": [
+        "BaseTransport"
+      ],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 16285,
+      "completion_tokens": 70,
+      "latency_ms": 520.3,
+      "response": "Based on the code snippet provided, the `_transports/default.py` file defines:\n\n```python\nclass AsyncHTTPTransport(BaseTransport)\n```\n\nSo the class that inherits from `BaseTransport` in `_transports/default.py` is `AsyncHTTPTransport`.\n\nTherefore, the answer is:\n\n`AsyncHTTPTransport` inherits from `BaseTransport`.",
+      "response_text": "Based on the code snippet provided, the `_transports/default.py` file defines:\n\n```python\nclass AsyncHTTPTransport(BaseTransport)\n```\n\nSo the class that inherits from `BaseTransport` in `_transports/default.py` is `AsyncHTTPTransport`.\n\nTherefore, the answer is:\n\n`AsyncHTTPTransport` inherits from `BaseTransport`.",
+      "prompt_sha256": "sha256:8a6c8615b0c8238994228f33c4ce91a5306c815f4673b888e2299bc70243d572"
+    },
+    {
+      "op": "chat",
+      "arm": "truncate",
+      "objective_id": "b4v3-p4",
+      "agent": "planner",
+      "objective": "In Client._redirect_method, which two status-code constants from _status_codes.py trigger a method change to GET when the original method is not HEAD? List both names.",
+      "required": [
+        "FOUND",
+        "SEE_OTHER"
+      ],
+      "forbidden": [
+        "MOVED_PERMANENTLY",
+        "TEMPORARY_REDIRECT",
+        "PERMANENT_REDIRECT"
+      ],
+      "missing": [
+        "SEE_OTHER"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 16285,
+      "completion_tokens": 96,
+      "latency_ms": 706.5,
+      "response": "Based on the code provided, there are two status-code constants from _status_codes.py that trigger a method change to GET when the original method is not HEAD:\n\n1. `codes.SEE_OTHER`\n2. `codes.FOUND`\n\nThese two statuses are triggered when the response status code changes from 302 (Found) to 301 (Moved Permanently).\n\nSo the answer would be:\n\n1. `codes.SEE_OTHER`\n2. `codes.F",
+      "response_text": "Based on the code provided, there are two status-code constants from _status_codes.py that trigger a method change to GET when the original method is not HEAD:\n\n1. `codes.SEE_OTHER`\n2. `codes.FOUND`\n\nThese two statuses are triggered when the response status code changes from 302 (Found) to 301 (Moved Permanently).\n\nSo the answer would be:\n\n1. `codes.SEE_OTHER`\n2. `codes.F",
+      "prompt_sha256": "sha256:19059cfa2d2b9180c7fc46326967cae2fa2b1790ac69c63f65591241b71d4795"
+    },
+    {
+      "op": "chat",
+      "arm": "truncate",
+      "objective_id": "b4v3-p5",
+      "agent": "planner",
+      "objective": "In Client.__init__, what are the names of the two default config constants used for the limits and max_redirects parameters? List both identifiers.",
+      "required": [
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "forbidden": [
+        "DEFAULT_TIMEOUT_CONFIG",
+        "USE_CLIENT_DEFAULT",
+        "Limits"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "prompt_tokens": 16285,
+      "completion_tokens": 96,
+      "latency_ms": 715.5,
+      "response": "Based on the code snippet provided, the two default configuration constants used for the `limits` and `max_redirects` parameters in the `Client` class are:\n\n1. `DEFAULT_LIMITS`: \n```python\nDEFAULT_LIMITS = {\n    \"connections\": 1,\n    \"read_connections\": 1,\n    \"read_requests_per_second\": 1,\n}\n```\n\n2. `DEFAULT_MAX_REDIRECTS`: \n```python\nDEFAULT_MAX_REDIRECTS = 1",
+      "response_text": "Based on the code snippet provided, the two default configuration constants used for the `limits` and `max_redirects` parameters in the `Client` class are:\n\n1. `DEFAULT_LIMITS`: \n```python\nDEFAULT_LIMITS = {\n    \"connections\": 1,\n    \"read_connections\": 1,\n    \"read_requests_per_second\": 1,\n}\n```\n\n2. `DEFAULT_MAX_REDIRECTS`: \n```python\nDEFAULT_MAX_REDIRECTS = 1",
+      "prompt_sha256": "sha256:77c101d6ba3bca1d2c4efcf8f5fd5df23e32b2ab856a2187971e30765bd55276"
+    },
+    {
+      "op": "chat",
+      "arm": "truncate",
+      "objective_id": "b4v3-i1",
+      "agent": "implementer",
+      "objective": "Which ContentDecoder subclass in _decoders.py handles 'zstd' responses? Give the class name only.",
+      "required": [
+        "ZStandardDecoder"
+      ],
+      "forbidden": [
+        "BrotliDecoder",
+        "GZipDecoder",
+        "DeflateDecoder"
+      ],
+      "missing": [
+        "ZStandardDecoder"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 16285,
+      "completion_tokens": 5,
+      "latency_ms": 702.4,
+      "response": "_zstd_content_decoder",
+      "response_text": "_zstd_content_decoder",
+      "prompt_sha256": "sha256:b392c499b3f533624e338b048f4623443e4b5a6c62bc129aeaa9a45dca145e38"
+    },
+    {
+      "op": "chat",
+      "arm": "truncate",
+      "objective_id": "b4v3-i2",
+      "agent": "implementer",
+      "objective": "In the URL class, which property returns the URL-decoded path as a string, and which returns the raw bytes of the path plus query? List both property names.",
+      "required": [
+        "path",
+        "raw_path"
+      ],
+      "forbidden": [
+        "query",
+        "netloc",
+        "host"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "prompt_tokens": 16285,
+      "completion_tokens": 42,
+      "latency_ms": 378.5,
+      "response": "The property that returns the URL-decoded path as a string is:\n\n```\nraw_path\n```\n\nThe property that returns the raw bytes of the path plus query is:\n\n```\nquery_string\n```",
+      "response_text": "The property that returns the URL-decoded path as a string is:\n\n```\nraw_path\n```\n\nThe property that returns the raw bytes of the path plus query is:\n\n```\nquery_string\n```",
+      "prompt_sha256": "sha256:43cc68428a39357427528e7a85b18f47d000c1d28538ce854b908a29d20e2f6f"
+    },
+    {
+      "op": "chat",
+      "arm": "truncate",
+      "objective_id": "b4v3-i3",
+      "agent": "implementer",
+      "objective": "When the optional brotli and zstandard packages are not installed, which two keys are removed from SUPPORTED_DECODERS in _decoders.py? List both keys.",
+      "required": [
+        "br",
+        "zstd"
+      ],
+      "forbidden": [
+        "gzip",
+        "deflate",
+        "identity"
+      ],
+      "missing": [
+        "br"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 16285,
+      "completion_tokens": 75,
+      "latency_ms": 554.4,
+      "response": "Based on the information provided in the documentation, the two keys that are removed from SUPPORTED_DECODERS in _decoders.py when the optional brotli and zstandard packages are not installed are:\n\n1. `brotli`\n2. `zstd`\n\nThese are the only two keys that are listed as being removed when the optional packages are not present.",
+      "response_text": "Based on the information provided in the documentation, the two keys that are removed from SUPPORTED_DECODERS in _decoders.py when the optional brotli and zstandard packages are not installed are:\n\n1. `brotli`\n2. `zstd`\n\nThese are the only two keys that are listed as being removed when the optional packages are not present.",
+      "prompt_sha256": "sha256:25114f57bb413b938ac339b8a0c021e7f40051141c3d031c3f2de0b793945e0f"
+    },
+    {
+      "op": "chat",
+      "arm": "truncate",
+      "objective_id": "b4v3-i4",
+      "agent": "implementer",
+      "objective": "Which property on URL returns the IDNA-encoded host as bytes, and which class in _models.py stores HTTP headers as a case-insensitive multi-dict? Give both identifiers.",
+      "required": [
+        "raw_host",
+        "Headers"
+      ],
+      "forbidden": [
+        "host",
+        "netloc",
+        "QueryParams"
+      ],
+      "missing": [
+        "raw_host"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 16285,
+      "completion_tokens": 96,
+      "latency_ms": 696.9,
+      "response": "Based on the code snippet provided:\n\n1. The property on URL that returns the IDNA-encoded host as bytes is:\n```python\nidna_encoded_host = self.idna_encoded_host\n```\nThis is stored in `_idna_encoded_host`.\n\n2. The class in _models.py that stores HTTP headers as a case-insensitive multi-dict is:\n```python\ncase_insensitive_multi_dict = CaseInsensitiveMultiDict()\n```\nThis is stored in `_case_insensitive",
+      "response_text": "Based on the code snippet provided:\n\n1. The property on URL that returns the IDNA-encoded host as bytes is:\n```python\nidna_encoded_host = self.idna_encoded_host\n```\nThis is stored in `_idna_encoded_host`.\n\n2. The class in _models.py that stores HTTP headers as a case-insensitive multi-dict is:\n```python\ncase_insensitive_multi_dict = CaseInsensitiveMultiDict()\n```\nThis is stored in `_case_insensitive",
+      "prompt_sha256": "sha256:ce84a6f5462411cca851c18373289918113f7aa32d861635addecefb5cc045f1"
+    },
+    {
+      "op": "chat",
+      "arm": "truncate",
+      "objective_id": "b4v3-i5",
+      "agent": "implementer",
+      "objective": "Which two ContentDecoder subclasses in _decoders.py handle 'gzip' and 'deflate' content encodings? List both class names.",
+      "required": [
+        "GZipDecoder",
+        "DeflateDecoder"
+      ],
+      "forbidden": [
+        "BrotliDecoder",
+        "ZStandardDecoder",
+        "IdentityDecoder"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "prompt_tokens": 16285,
+      "completion_tokens": 89,
+      "latency_ms": 826.6,
+      "response": "Based on the code snippet provided, there are two classes in `_decoders.py` that handle 'gzip' and 'deflate' content encodings:\n\n1. gzip:\n```python\nclass GzipDecoder:\n    pass\n```\n\n2. deflate:\n```python\nclass DeflateDecoder:\n    pass\n```\n\nBoth of these classes extend the `BaseDecoder` class and implement the `decode` method for each content encoding.",
+      "response_text": "Based on the code snippet provided, there are two classes in `_decoders.py` that handle 'gzip' and 'deflate' content encodings:\n\n1. gzip:\n```python\nclass GzipDecoder:\n    pass\n```\n\n2. deflate:\n```python\nclass DeflateDecoder:\n    pass\n```\n\nBoth of these classes extend the `BaseDecoder` class and implement the `decode` method for each content encoding.",
+      "prompt_sha256": "sha256:eb1c473c05b3082c5e7a46a943829a5b5b7f40c7e035c0781168a44096a565a5"
+    },
+    {
+      "op": "chat",
+      "arm": "truncate",
+      "objective_id": "b4v3-t1",
+      "agent": "tester",
+      "objective": "What is the constant name for HTTP status 418 in httpx._status_codes? Give the identifier only.",
+      "required": [
+        "IM_A_TEAPOT"
+      ],
+      "forbidden": [
+        "IM_USED",
+        "TOO_EARLY",
+        "GONE"
+      ],
+      "missing": [
+        "IM_A_TEAPOT"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 16285,
+      "completion_tokens": 22,
+      "latency_ms": 857.7,
+      "response": "The constant name for HTTP status 418 in httpx._status_codes is `INVALID_REQUEST`.",
+      "response_text": "The constant name for HTTP status 418 in httpx._status_codes is `INVALID_REQUEST`.",
+      "prompt_sha256": "sha256:d2fd7ea8440e002ed5cb27dd72af4c0270617df28eac2fa87f2c191876f72145"
+    },
+    {
+      "op": "chat",
+      "arm": "truncate",
+      "objective_id": "b4v3-t2",
+      "agent": "tester",
+      "objective": "Which two methods on Request read the entire body into memory, one synchronous and one asynchronous? List both method names.",
+      "required": [
+        "read",
+        "aread"
+      ],
+      "forbidden": [
+        "iter_bytes",
+        "aiter_bytes",
+        "content"
+      ],
+      "missing": [
+        "aread"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 16285,
+      "completion_tokens": 46,
+      "latency_ms": 437.3,
+      "response": "The two methods on Request that read the entire body into memory are:\n\n1. `read()`\n2. `as_bytes()`\n\nBoth methods are synchronous and return a bytes-like object representing the entire body of the request.",
+      "response_text": "The two methods on Request that read the entire body into memory are:\n\n1. `read()`\n2. `as_bytes()`\n\nBoth methods are synchronous and return a bytes-like object representing the entire body of the request.",
+      "prompt_sha256": "sha256:0f9c5f2c9ed74f72f12503ffa09faba9d72d10fa628afe5f6061f905e48e4f8e"
+    },
+    {
+      "op": "chat",
+      "arm": "truncate",
+      "objective_id": "b4v3-t3",
+      "agent": "tester",
+      "objective": "Which Response property is True for 4xx or 5xx status codes, and which method raises HTTPStatusError for them? Give both identifiers.",
+      "required": [
+        "is_error",
+        "raise_for_status"
+      ],
+      "forbidden": [
+        "is_success",
+        "is_redirect",
+        "has_redirect_location"
+      ],
+      "missing": [
+        "is_error",
+        "raise_for_status"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 16285,
+      "completion_tokens": 38,
+      "latency_ms": 357.6,
+      "response": "For 4xx and 5xx status codes, the `Response` property is `True`.\n\nFor HTTPStatusError, the identifier is:\n\n```\nHTTPStatusError(code)\n```",
+      "response_text": "For 4xx and 5xx status codes, the `Response` property is `True`.\n\nFor HTTPStatusError, the identifier is:\n\n```\nHTTPStatusError(code)\n```",
+      "prompt_sha256": "sha256:1b6a428ec5a19c2b8a57b6b8ce7ab0b94ae9ca388ad9842deb97814c0c26001b"
+    },
+    {
+      "op": "chat",
+      "arm": "truncate",
+      "objective_id": "b4v3-t4",
+      "agent": "tester",
+      "objective": "Which exception from _exceptions.py is raised when Request.content is accessed before the stream has been read? Give the class name only.",
+      "required": [
+        "RequestNotRead"
+      ],
+      "forbidden": [
+        "ResponseNotRead",
+        "StreamClosed",
+        "StreamConsumed"
+      ],
+      "missing": [
+        "RequestNotRead"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 16285,
+      "completion_tokens": 4,
+      "latency_ms": 80.0,
+      "response": "`read`",
+      "response_text": "`read`",
+      "prompt_sha256": "sha256:30f792036e51dda0099b3be062c04527785fda6a7e26864e3c38153eedac7e48"
+    },
+    {
+      "op": "chat",
+      "arm": "truncate",
+      "objective_id": "b4v3-t5",
+      "agent": "tester",
+      "objective": "Which class in _exceptions.py is the base for request-level errors, and which top-level helper in _api.py creates a Client to issue a request? Give both identifiers.",
+      "required": [
+        "RequestError",
+        "request"
+      ],
+      "forbidden": [
+        "HTTPError",
+        "TransportError",
+        "get"
+      ],
+      "missing": [
+        "RequestError"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 16285,
+      "completion_tokens": 96,
+      "latency_ms": 935.3,
+      "response": "Based on the provided code snippet, the classes in `_exceptions.py` are:\n\n1. `ProtocolError`: This is the base class for all protocol-related exceptions.\n\n2. `InvalidURL`: This is the base class for specific error messages related to invalid URLs.\n\nRegarding the creation of a `Client` instance to issue a request, the top-level helper in `_api.py` is:\n\n```python\ndef _build_request_auth(\n    request: Request,\n    auth: Auth",
+      "response_text": "Based on the provided code snippet, the classes in `_exceptions.py` are:\n\n1. `ProtocolError`: This is the base class for all protocol-related exceptions.\n\n2. `InvalidURL`: This is the base class for specific error messages related to invalid URLs.\n\nRegarding the creation of a `Client` instance to issue a request, the top-level helper in `_api.py` is:\n\n```python\ndef _build_request_auth(\n    request: Request,\n    auth: Auth",
+      "prompt_sha256": "sha256:7c43d8e82931093c947aba36fdb9c5e5903f8e828fb2a3d613556d892c1107b9"
+    },
+    {
+      "op": "chat",
+      "arm": "truncate",
+      "objective_id": "b4v3-r1",
+      "agent": "reviewer",
+      "objective": "What is the default numeric value of keepalive_expiry in the Limits class? Give the value only.",
+      "required": [
+        "5.0"
+      ],
+      "forbidden": [
+        "None",
+        "100",
+        "20"
+      ],
+      "missing": [
+        "5.0"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 16285,
+      "completion_tokens": 17,
+      "latency_ms": 806.4,
+      "response": "The default numeric value of keepalive_expiry in the Limits class is 0.",
+      "response_text": "The default numeric value of keepalive_expiry in the Limits class is 0.",
+      "prompt_sha256": "sha256:53e26614b1bc6c5859c9e9e762582e7de11466ff9eae9eede710e2e68d4da144"
+    },
+    {
+      "op": "chat",
+      "arm": "truncate",
+      "objective_id": "b4v3-r2",
+      "agent": "reviewer",
+      "objective": "Which exception class in _exceptions.py is the base of RequestError, which is imported by _main.py? Give the class name only.",
+      "required": [
+        "HTTPError"
+      ],
+      "forbidden": [
+        "RequestError",
+        "TransportError",
+        "ValueError"
+      ],
+      "missing": [
+        "HTTPError"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 16285,
+      "completion_tokens": 3,
+      "latency_ms": 66.3,
+      "response": "RequestError",
+      "response_text": "RequestError",
+      "prompt_sha256": "sha256:92efe9b0387f33f97ccfb338ac11109d7ebba27e258efa48679ecd86c85c4fda"
+    },
+    {
+      "op": "chat",
+      "arm": "truncate",
+      "objective_id": "b4v3-r3",
+      "agent": "reviewer",
+      "objective": "In DigestAuth, which two algorithm names map to hashlib.md5? List both names.",
+      "required": [
+        "MD5",
+        "MD5-SESS"
+      ],
+      "forbidden": [
+        "SHA",
+        "SHA-256",
+        "SHA-512"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "prompt_tokens": 16285,
+      "completion_tokens": 74,
+      "latency_ms": 584.1,
+      "response": "Based on the documentation provided, there are two algorithm names listed for MD5:\n\n1. \"MD5\"\n2. \"MD5-SESS\"\n\nSo the two algorithm names that map to hashlib.md5 are:\n\n1. MD5\n2. MD5-SESS\n\nNote that these are just examples and might vary depending on the specific implementation details.",
+      "response_text": "Based on the documentation provided, there are two algorithm names listed for MD5:\n\n1. \"MD5\"\n2. \"MD5-SESS\"\n\nSo the two algorithm names that map to hashlib.md5 are:\n\n1. MD5\n2. MD5-SESS\n\nNote that these are just examples and might vary depending on the specific implementation details.",
+      "prompt_sha256": "sha256:d4366450b0f85677378e8b28aa45fc1ac40ad054866cd9b91dc6ddade8e9b9d9"
+    },
+    {
+      "op": "chat",
+      "arm": "truncate",
+      "objective_id": "b4v3-r4",
+      "agent": "reviewer",
+      "objective": "Which exception class in _exceptions.py is the base for stream errors, and which class in _models.py raises StreamConsumed when raw response iteration is attempted twice? Give both identifiers.",
+      "required": [
+        "StreamError",
+        "Response"
+      ],
+      "forbidden": [
+        "StreamClosed",
+        "RequestError",
+        "HTTPError"
+      ],
+      "missing": [
+        "StreamError"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 16285,
+      "completion_tokens": 96,
+      "latency_ms": 704.2,
+      "response": "Based on the provided code snippet, the base exception class for stream errors is:\n\n```python\nTraceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\n  File \"/usr/local/lib/python3.8/site-packages/httpx/__init__.py\", line 114, in request\n    raise StreamConsumed()\n```\n\nAnd the class that raises StreamConsumed when attempting to read from a raw response twice is:\n\n```",
+      "response_text": "Based on the provided code snippet, the base exception class for stream errors is:\n\n```python\nTraceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\n  File \"/usr/local/lib/python3.8/site-packages/httpx/__init__.py\", line 114, in request\n    raise StreamConsumed()\n```\n\nAnd the class that raises StreamConsumed when attempting to read from a raw response twice is:\n\n```",
+      "prompt_sha256": "sha256:e570ac7f497ae34eaf91a3d860c73b4667da4c64738c3b3717014a740f50b8be"
+    },
+    {
+      "op": "chat",
+      "arm": "truncate",
+      "objective_id": "b4v3-r5",
+      "agent": "reviewer",
+      "objective": "In _multipart.py, which helper function guesses a file's mimetype, and what fallback string does it return when guessing yields None? Give both.",
+      "required": [
+        "_guess_content_type",
+        "application/octet-stream"
+      ],
+      "forbidden": [
+        "_format_form_param",
+        "multipart/form-data",
+        "text/plain"
+      ],
+      "missing": [
+        "_guess_content_type",
+        "application/octet-stream"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 16285,
+      "completion_tokens": 96,
+      "latency_ms": 749.9,
+      "response": "To guess the MIME type of a file, `_multipart.py` uses the following helper functions:\n\n1. `guess_mimetype`: This function attempts to guess the MIME type of a file based on its extension.\n\n2. `fallback_mimetype`: This function provides a fallback MIME type if the first attempt fails.\n\nHere's the implementation details:\n\n```python\ndef guess_mimetype(filename):\n    \"\"\"\n    Guess the MIME type of a file based on its filename extension.\n    \n    Args",
+      "response_text": "To guess the MIME type of a file, `_multipart.py` uses the following helper functions:\n\n1. `guess_mimetype`: This function attempts to guess the MIME type of a file based on its extension.\n\n2. `fallback_mimetype`: This function provides a fallback MIME type if the first attempt fails.\n\nHere's the implementation details:\n\n```python\ndef guess_mimetype(filename):\n    \"\"\"\n    Guess the MIME type of a file based on its filename extension.\n    \n    Args",
+      "prompt_sha256": "sha256:dbda8263f59635fff8cb22526bfa99dae629cb064f7c86e6bcd8b67812bf7033"
+    },
+    {
+      "op": "chat",
+      "arm": "retrieval",
+      "objective_id": "b4v3-p1",
+      "agent": "planner",
+      "objective": "What integer is the default value of max_redirects used by httpx clients? Answer with the number only.",
+      "required": [
+        "20"
+      ],
+      "forbidden": [
+        "5.0",
+        "100",
+        "None"
+      ],
+      "missing": [
+        "20"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 4044,
+      "completion_tokens": 2,
+      "latency_ms": 136.5,
+      "response": "4",
+      "response_text": "4",
+      "prompt_sha256": "sha256:2960edf37b60636071f523b60999ea0e038e5c300b820d870b5f457b2060524b"
+    },
+    {
+      "op": "chat",
+      "arm": "retrieval",
+      "objective_id": "b4v3-p2",
+      "agent": "planner",
+      "objective": "When Client.build_request() merges query parameters and falls back to a default timeout, what class from _urls.py and what constant from _config.py are used? Give the two identifiers separated by a comma.",
+      "required": [
+        "QueryParams",
+        "DEFAULT_TIMEOUT_CONFIG"
+      ],
+      "forbidden": [
+        "URL",
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "prompt_tokens": 4061,
+      "completion_tokens": 55,
+      "latency_ms": 507.2,
+      "response": "In the `_urls.py` file, the class used to merge query parameters is `QueryParams`. The constant used to define the default timeout is `DEFAULT_TIMEOUT_CONFIG`. Therefore, the two identifiers separated by a comma are:\n\n`QueryParams`, `DEFAULT_TIMEOUT_CONFIG`",
+      "response_text": "In the `_urls.py` file, the class used to merge query parameters is `QueryParams`. The constant used to define the default timeout is `DEFAULT_TIMEOUT_CONFIG`. Therefore, the two identifiers separated by a comma are:\n\n`QueryParams`, `DEFAULT_TIMEOUT_CONFIG`",
+      "prompt_sha256": "sha256:2b8295116d0b620cd9839920165a683d470e187ca363c95d7a0498cfea9d21fd"
+    },
+    {
+      "op": "chat",
+      "arm": "retrieval",
+      "objective_id": "b4v3-p3",
+      "agent": "planner",
+      "objective": "In _transports/default.py, which base class defined in _transports/base.py does AsyncHTTPTransport inherit from? Give the class name only.",
+      "required": [
+        "AsyncBaseTransport"
+      ],
+      "forbidden": [
+        "BaseTransport",
+        "HTTPTransport",
+        "Client"
+      ],
+      "missing": [],
+      "wrong": [
+        "BaseTransport"
+      ],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 4053,
+      "completion_tokens": 61,
+      "latency_ms": 536.9,
+      "response": "Based on the code snippet provided, the class defined in _transports/base.py that inherits from AsyncHTTPTransport is:\n\n```python\nfrom .base import AsyncBaseTransport, BaseTransport\n```\n\nSo the answer is:\n\n```python\nfrom .base import AsyncBaseTransport, BaseTransport\n```",
+      "response_text": "Based on the code snippet provided, the class defined in _transports/base.py that inherits from AsyncHTTPTransport is:\n\n```python\nfrom .base import AsyncBaseTransport, BaseTransport\n```\n\nSo the answer is:\n\n```python\nfrom .base import AsyncBaseTransport, BaseTransport\n```",
+      "prompt_sha256": "sha256:8608623d4807e813fb53b6627c7b909b7bada77bdfd754010f36387176d6228d"
+    },
+    {
+      "op": "chat",
+      "arm": "retrieval",
+      "objective_id": "b4v3-p4",
+      "agent": "planner",
+      "objective": "In Client._redirect_method, which two status-code constants from _status_codes.py trigger a method change to GET when the original method is not HEAD? List both names.",
+      "required": [
+        "FOUND",
+        "SEE_OTHER"
+      ],
+      "forbidden": [
+        "MOVED_PERMANENTLY",
+        "TEMPORARY_REDIRECT",
+        "PERMANENT_REDIRECT"
+      ],
+      "missing": [
+        "FOUND",
+        "SEE_OTHER"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 4048,
+      "completion_tokens": 82,
+      "latency_ms": 706.4,
+      "response": "The two status code constants from `_status_codes.py` that trigger a method change to `GET` when the original method is not `HEAD` are:\n\n1. **405 Method Not Allowed**\n2. **401 Unauthorized**\n\nThese statuses indicate that the requested resource does not support the specified method (`GET`) because the server cannot perform the requested action due to authentication issues or other restrictions.",
+      "response_text": "The two status code constants from `_status_codes.py` that trigger a method change to `GET` when the original method is not `HEAD` are:\n\n1. **405 Method Not Allowed**\n2. **401 Unauthorized**\n\nThese statuses indicate that the requested resource does not support the specified method (`GET`) because the server cannot perform the requested action due to authentication issues or other restrictions.",
+      "prompt_sha256": "sha256:92622224086eb6184b2689499dc7c0b6d4fa34e5a6a1f9c5cb0a98747601eb17"
+    },
+    {
+      "op": "chat",
+      "arm": "retrieval",
+      "objective_id": "b4v3-p5",
+      "agent": "planner",
+      "objective": "In Client.__init__, what are the names of the two default config constants used for the limits and max_redirects parameters? List both identifiers.",
+      "required": [
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "forbidden": [
+        "DEFAULT_TIMEOUT_CONFIG",
+        "USE_CLIENT_DEFAULT",
+        "Limits"
+      ],
+      "missing": [
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 4041,
+      "completion_tokens": 96,
+      "latency_ms": 801.2,
+      "response": "The two default configuration constants used for the `limits` and `max_redirects` parameters in the `Client` class are:\n\n1. `DEFAULT_LIMITS`: A dictionary containing the following keys:\n   - `max_connections`: An integer representing the maximum number of concurrent connections that may be established.\n   - `max_keepalive_connections`: An integer representing the maximum number of keep-alive connections that can be maintained.\n   - `keepalive_expiry`: A float representing the time",
+      "response_text": "The two default configuration constants used for the `limits` and `max_redirects` parameters in the `Client` class are:\n\n1. `DEFAULT_LIMITS`: A dictionary containing the following keys:\n   - `max_connections`: An integer representing the maximum number of concurrent connections that may be established.\n   - `max_keepalive_connections`: An integer representing the maximum number of keep-alive connections that can be maintained.\n   - `keepalive_expiry`: A float representing the time",
+      "prompt_sha256": "sha256:6ce7c82a79fafd708ae0e06c7fe634d9e31ab9af3a453d2183067759901a3b47"
+    },
+    {
+      "op": "chat",
+      "arm": "retrieval",
+      "objective_id": "b4v3-i1",
+      "agent": "implementer",
+      "objective": "Which ContentDecoder subclass in _decoders.py handles 'zstd' responses? Give the class name only.",
+      "required": [
+        "ZStandardDecoder"
+      ],
+      "forbidden": [
+        "BrotliDecoder",
+        "GZipDecoder",
+        "DeflateDecoder"
+      ],
+      "missing": [
+        "ZStandardDecoder"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 4038,
+      "completion_tokens": 6,
+      "latency_ms": 164.8,
+      "response": "_BrotliDecoder_",
+      "response_text": "_BrotliDecoder_",
+      "prompt_sha256": "sha256:d06f33dc02d07247203fd7c22b937bcadee6c2f35d0e5a12423d9cd90ecc3a6b"
+    },
+    {
+      "op": "chat",
+      "arm": "retrieval",
+      "objective_id": "b4v3-i2",
+      "agent": "implementer",
+      "objective": "In the URL class, which property returns the URL-decoded path as a string, and which returns the raw bytes of the path plus query? List both property names.",
+      "required": [
+        "path",
+        "raw_path"
+      ],
+      "forbidden": [
+        "query",
+        "netloc",
+        "host"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "prompt_tokens": 4045,
+      "completion_tokens": 34,
+      "latency_ms": 361.8,
+      "response": "The property that returns the URL-decoded path as a string is `path`. The property that returns the raw bytes of the path plus query is `raw_path`.",
+      "response_text": "The property that returns the URL-decoded path as a string is `path`. The property that returns the raw bytes of the path plus query is `raw_path`.",
+      "prompt_sha256": "sha256:5841e13a5d1341ed13fea2de2110e626281b447bd2f7695deac1dc226939ea14"
+    },
+    {
+      "op": "chat",
+      "arm": "retrieval",
+      "objective_id": "b4v3-i3",
+      "agent": "implementer",
+      "objective": "When the optional brotli and zstandard packages are not installed, which two keys are removed from SUPPORTED_DECODERS in _decoders.py? List both keys.",
+      "required": [
+        "br",
+        "zstd"
+      ],
+      "forbidden": [
+        "gzip",
+        "deflate",
+        "identity"
+      ],
+      "missing": [
+        "br",
+        "zstd"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 4048,
+      "completion_tokens": 72,
+      "latency_ms": 639.5,
+      "response": "The two keys that are removed from SUPPORTED_DECODERS in _decoders.py when the optional brotli and zstandard packages are not installed are:\n\n1. 'brotlipy'\n2. 'Brotli'\n\nThese keys were previously defined in the original codebase and are now marked as optional due to the absence of these packages.",
+      "response_text": "The two keys that are removed from SUPPORTED_DECODERS in _decoders.py when the optional brotli and zstandard packages are not installed are:\n\n1. 'brotlipy'\n2. 'Brotli'\n\nThese keys were previously defined in the original codebase and are now marked as optional due to the absence of these packages.",
+      "prompt_sha256": "sha256:e43c9db1bd1472deecd9787ddfde3d90c192465a07715cfb987238f1e20cb188"
+    },
+    {
+      "op": "chat",
+      "arm": "retrieval",
+      "objective_id": "b4v3-i4",
+      "agent": "implementer",
+      "objective": "Which property on URL returns the IDNA-encoded host as bytes, and which class in _models.py stores HTTP headers as a case-insensitive multi-dict? Give both identifiers.",
+      "required": [
+        "raw_host",
+        "Headers"
+      ],
+      "forbidden": [
+        "host",
+        "netloc",
+        "QueryParams"
+      ],
+      "missing": [
+        "raw_host"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 4058,
+      "completion_tokens": 84,
+      "latency_ms": 634.9,
+      "response": "The property on URL that returns the IDNA-encoded host as bytes is:\n\n```python\nheaders = Headers(headers)\n```\n\nThis property is part of the `Headers` class in `_models.py`. \n\nThe class that stores HTTP headers as a case-insensitive multi-dict is:\n\n```python\nheaders = Headers(headers)\n```\n\nThis property is also part of the `Headers` class in `_models.py`.",
+      "response_text": "The property on URL that returns the IDNA-encoded host as bytes is:\n\n```python\nheaders = Headers(headers)\n```\n\nThis property is part of the `Headers` class in `_models.py`. \n\nThe class that stores HTTP headers as a case-insensitive multi-dict is:\n\n```python\nheaders = Headers(headers)\n```\n\nThis property is also part of the `Headers` class in `_models.py`.",
+      "prompt_sha256": "sha256:8a0101789f7f1409a19d16110a812e6b2a315fd116fbe8f5c567f8ac979e3916"
+    },
+    {
+      "op": "chat",
+      "arm": "retrieval",
+      "objective_id": "b4v3-i5",
+      "agent": "implementer",
+      "objective": "Which two ContentDecoder subclasses in _decoders.py handle 'gzip' and 'deflate' content encodings? List both class names.",
+      "required": [
+        "GZipDecoder",
+        "DeflateDecoder"
+      ],
+      "forbidden": [
+        "BrotliDecoder",
+        "ZStandardDecoder",
+        "IdentityDecoder"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "prompt_tokens": 4056,
+      "completion_tokens": 64,
+      "latency_ms": 577.4,
+      "response": "The two ContentDecoder subclasses in _decoders.py that handle 'gzip' and 'deflate' content encodings are:\n\n1. **GzipDecoder**\n2. **DeflateDecoder**\n\nBoth classes inherit from the BaseContentDecoder class and implement the `decode` method to handle gzip and deflate encoding respectively.",
+      "response_text": "The two ContentDecoder subclasses in _decoders.py that handle 'gzip' and 'deflate' content encodings are:\n\n1. **GzipDecoder**\n2. **DeflateDecoder**\n\nBoth classes inherit from the BaseContentDecoder class and implement the `decode` method to handle gzip and deflate encoding respectively.",
+      "prompt_sha256": "sha256:1ca76e19ba94dfe9eee3f52083b3c4037c2dd202eefeba988e79df87b0910015"
+    },
+    {
+      "op": "chat",
+      "arm": "retrieval",
+      "objective_id": "b4v3-t1",
+      "agent": "tester",
+      "objective": "What is the constant name for HTTP status 418 in httpx._status_codes? Give the identifier only.",
+      "required": [
+        "IM_A_TEAPOT"
+      ],
+      "forbidden": [
+        "IM_USED",
+        "TOO_EARLY",
+        "GONE"
+      ],
+      "missing": [
+        "IM_A_TEAPOT"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 4039,
+      "completion_tokens": 23,
+      "latency_ms": 305.9,
+      "response": "The constant name for HTTP status 418 in httpx._status_codes is `INTERNAL_SERVER_ERROR`.",
+      "response_text": "The constant name for HTTP status 418 in httpx._status_codes is `INTERNAL_SERVER_ERROR`.",
+      "prompt_sha256": "sha256:21bcb7f87af5b9e7840d0a68435fd68a90ca19ae84eb9083b717aabc270ab187"
+    },
+    {
+      "op": "chat",
+      "arm": "retrieval",
+      "objective_id": "b4v3-t2",
+      "agent": "tester",
+      "objective": "Which two methods on Request read the entire body into memory, one synchronous and one asynchronous? List both method names.",
+      "required": [
+        "read",
+        "aread"
+      ],
+      "forbidden": [
+        "iter_bytes",
+        "aiter_bytes",
+        "content"
+      ],
+      "missing": [],
+      "wrong": [
+        "content"
+      ],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 4042,
+      "completion_tokens": 75,
+      "latency_ms": 641.4,
+      "response": "The two methods on Request that read the entire body into memory are:\n\n1. `read()`: This method reads the entire request content into memory without waiting for the response to complete.\n2. `aread()`: This method reads the entire request content into memory after the response has been received, allowing for further processing or saving the content locally before sending it again.",
+      "response_text": "The two methods on Request that read the entire body into memory are:\n\n1. `read()`: This method reads the entire request content into memory without waiting for the response to complete.\n2. `aread()`: This method reads the entire request content into memory after the response has been received, allowing for further processing or saving the content locally before sending it again.",
+      "prompt_sha256": "sha256:ffb694e5e9ce25e729d6ca3695359037d6c5ce3105033268a9345f873f7f198b"
+    },
+    {
+      "op": "chat",
+      "arm": "retrieval",
+      "objective_id": "b4v3-t3",
+      "agent": "tester",
+      "objective": "Which Response property is True for 4xx or 5xx status codes, and which method raises HTTPStatusError for them? Give both identifiers.",
+      "required": [
+        "is_error",
+        "raise_for_status"
+      ],
+      "forbidden": [
+        "is_success",
+        "is_redirect",
+        "has_redirect_location"
+      ],
+      "missing": [
+        "is_error",
+        "raise_for_status"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 4051,
+      "completion_tokens": 46,
+      "latency_ms": 446.2,
+      "response": "For HTTPStatusError, the True identifier is:\n\n```python\nresponse.raise_for_status()\n```\n\nThis line will raise an HTTPStatusError if the response code is one of the 4xx or 5xx categories.",
+      "response_text": "For HTTPStatusError, the True identifier is:\n\n```python\nresponse.raise_for_status()\n```\n\nThis line will raise an HTTPStatusError if the response code is one of the 4xx or 5xx categories.",
+      "prompt_sha256": "sha256:a3380a5b7474a46801786c8fbef8add1503018f7c9b4c576c3c5d2b408535764"
+    },
+    {
+      "op": "chat",
+      "arm": "retrieval",
+      "objective_id": "b4v3-t4",
+      "agent": "tester",
+      "objective": "Which exception from _exceptions.py is raised when Request.content is accessed before the stream has been read? Give the class name only.",
+      "required": [
+        "RequestNotRead"
+      ],
+      "forbidden": [
+        "ResponseNotRead",
+        "StreamClosed",
+        "StreamConsumed"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "prompt_tokens": 4045,
+      "completion_tokens": 4,
+      "latency_ms": 123.7,
+      "response": "RequestNotRead",
+      "response_text": "RequestNotRead",
+      "prompt_sha256": "sha256:8aa6ff43aeaf9570ba7606532752009649394b82e36476c9dedce25c4be688b8"
+    },
+    {
+      "op": "chat",
+      "arm": "retrieval",
+      "objective_id": "b4v3-t5",
+      "agent": "tester",
+      "objective": "Which class in _exceptions.py is the base for request-level errors, and which top-level helper in _api.py creates a Client to issue a request? Give both identifiers.",
+      "required": [
+        "RequestError",
+        "request"
+      ],
+      "forbidden": [
+        "HTTPError",
+        "TransportError",
+        "get"
+      ],
+      "missing": [],
+      "wrong": [
+        "HTTPError"
+      ],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 4061,
+      "completion_tokens": 96,
+      "latency_ms": 793.9,
+      "response": "In the `_exceptions.py` file, the base class for request-level errors is `RequestError`. It's defined in line 94:\n\n```python\nclass RequestError(HTTPError):\n    \"\"\"\n    Base class for all exceptions that may occur when issuing a `.request()`.\n    \"\"\"\n\n```\n\nAnd in the `_api.py` file, the top-level helper that creates a Client to issue a request is `UseClientDefault`. It's defined in line 100",
+      "response_text": "In the `_exceptions.py` file, the base class for request-level errors is `RequestError`. It's defined in line 94:\n\n```python\nclass RequestError(HTTPError):\n    \"\"\"\n    Base class for all exceptions that may occur when issuing a `.request()`.\n    \"\"\"\n\n```\n\nAnd in the `_api.py` file, the top-level helper that creates a Client to issue a request is `UseClientDefault`. It's defined in line 100",
+      "prompt_sha256": "sha256:f87f820aa689525ed7cf6d5288ea3b4ac0176b1185779704f6bcea2825378c81"
+    },
+    {
+      "op": "chat",
+      "arm": "retrieval",
+      "objective_id": "b4v3-r1",
+      "agent": "reviewer",
+      "objective": "What is the default numeric value of keepalive_expiry in the Limits class? Give the value only.",
+      "required": [
+        "5.0"
+      ],
+      "forbidden": [
+        "None",
+        "100",
+        "20"
+      ],
+      "missing": [
+        "5.0"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 4034,
+      "completion_tokens": 19,
+      "latency_ms": 246.2,
+      "response": "The default numeric value of keepalive_expiry in the Limits class is 5.0.",
+      "response_text": "The default numeric value of keepalive_expiry in the Limits class is 5.0.",
+      "prompt_sha256": "sha256:3e98a63fb7e076f3c2547ccffd7849ce01071ef6d4fc848989cc1948c487d320"
+    },
+    {
+      "op": "chat",
+      "arm": "retrieval",
+      "objective_id": "b4v3-r2",
+      "agent": "reviewer",
+      "objective": "Which exception class in _exceptions.py is the base of RequestError, which is imported by _main.py? Give the class name only.",
+      "required": [
+        "HTTPError"
+      ],
+      "forbidden": [
+        "RequestError",
+        "TransportError",
+        "ValueError"
+      ],
+      "missing": [
+        "HTTPError"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 4041,
+      "completion_tokens": 3,
+      "latency_ms": 145.5,
+      "response": "RequestError",
+      "response_text": "RequestError",
+      "prompt_sha256": "sha256:2a0331b0abc15d6b9c6acf0367855defcd2f239f9bbefd68f42879b858c56d11"
+    },
+    {
+      "op": "chat",
+      "arm": "retrieval",
+      "objective_id": "b4v3-r3",
+      "agent": "reviewer",
+      "objective": "In DigestAuth, which two algorithm names map to hashlib.md5? List both names.",
+      "required": [
+        "MD5",
+        "MD5-SESS"
+      ],
+      "forbidden": [
+        "SHA",
+        "SHA-256",
+        "SHA-512"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "prompt_tokens": 4038,
+      "completion_tokens": 52,
+      "latency_ms": 487.9,
+      "response": "Based on the provided class definition, the two algorithm names that map to hashlib.md5 are:\n\n1. MD5\n2. MD5-SESS\n\nSo the complete answer would be:\n\n1. MD5\n2. MD5-SESS",
+      "response_text": "Based on the provided class definition, the two algorithm names that map to hashlib.md5 are:\n\n1. MD5\n2. MD5-SESS\n\nSo the complete answer would be:\n\n1. MD5\n2. MD5-SESS",
+      "prompt_sha256": "sha256:97501b7cc9c58ac91ac1d1eab8e021a688794a0bab3caced7d9ce59b46936357"
+    },
+    {
+      "op": "chat",
+      "arm": "retrieval",
+      "objective_id": "b4v3-r4",
+      "agent": "reviewer",
+      "objective": "Which exception class in _exceptions.py is the base for stream errors, and which class in _models.py raises StreamConsumed when raw response iteration is attempted twice? Give both identifiers.",
+      "required": [
+        "StreamError",
+        "Response"
+      ],
+      "forbidden": [
+        "StreamClosed",
+        "RequestError",
+        "HTTPError"
+      ],
+      "missing": [
+        "Response"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 4058,
+      "completion_tokens": 96,
+      "latency_ms": 779.6,
+      "response": "In the `_exceptions.py` file, the base exception class for stream errors is `StreamConsumed`. \n\nIn the `_models.py` file, the class `StreamConsumed` raises `StreamError` when attempting to read or stream content from a stream that has already been consumed.\n\nBoth these classes are identified by their respective identifiers:\n\n- `StreamConsumed`: Base class for stream errors.\n- `StreamError`: Class that inherits from `StreamConsumed` and includes",
+      "response_text": "In the `_exceptions.py` file, the base exception class for stream errors is `StreamConsumed`. \n\nIn the `_models.py` file, the class `StreamConsumed` raises `StreamError` when attempting to read or stream content from a stream that has already been consumed.\n\nBoth these classes are identified by their respective identifiers:\n\n- `StreamConsumed`: Base class for stream errors.\n- `StreamError`: Class that inherits from `StreamConsumed` and includes",
+      "prompt_sha256": "sha256:8bc09cac87683c23544a63929c62cbb7309ea210ef37c1ab74bb703552082932"
+    },
+    {
+      "op": "chat",
+      "arm": "retrieval",
+      "objective_id": "b4v3-r5",
+      "agent": "reviewer",
+      "objective": "In _multipart.py, which helper function guesses a file's mimetype, and what fallback string does it return when guessing yields None? Give both.",
+      "required": [
+        "_guess_content_type",
+        "application/octet-stream"
+      ],
+      "forbidden": [
+        "_format_form_param",
+        "multipart/form-data",
+        "text/plain"
+      ],
+      "missing": [
+        "application/octet-stream"
+      ],
+      "wrong": [
+        "text/plain"
+      ],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 4055,
+      "completion_tokens": 96,
+      "latency_ms": 812.1,
+      "response": "The `_guess_content_type` function in `_multipart.py` is responsible for guessing the MIME type of a file based on its filename. When it returns `None`, it falls back to a default value defined elsewhere in the module. Specifically, the fallback string is:\n\n```python\ndefault_mimetype = {\n    '.txt': 'text/plain',\n    '.pdf': 'application/pdf',\n    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',\n",
+      "response_text": "The `_guess_content_type` function in `_multipart.py` is responsible for guessing the MIME type of a file based on its filename. When it returns `None`, it falls back to a default value defined elsewhere in the module. Specifically, the fallback string is:\n\n```python\ndefault_mimetype = {\n    '.txt': 'text/plain',\n    '.pdf': 'application/pdf',\n    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',\n",
+      "prompt_sha256": "sha256:72f0d589cf874d22433a2b7dbdc0067e5f2f92b7d107554fd4f98c9c1fec3a7e"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "b4v3-p1",
+      "agent": "planner",
+      "objective": "What integer is the default value of max_redirects used by httpx clients? Answer with the number only.",
+      "required": [
+        "20"
+      ],
+      "forbidden": [
+        "5.0",
+        "100",
+        "None"
+      ],
+      "missing": [
+        "20"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 2910,
+      "completion_tokens": 2,
+      "latency_ms": 99.4,
+      "response": "7",
+      "response_text": "7",
+      "prompt_sha256": "sha256:53c80a875017f3f787144af3fd95390005502743f97361edaaa2cd822f132a2c"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "b4v3-p2",
+      "agent": "planner",
+      "objective": "When Client.build_request() merges query parameters and falls back to a default timeout, what class from _urls.py and what constant from _config.py are used? Give the two identifiers separated by a comma.",
+      "required": [
+        "QueryParams",
+        "DEFAULT_TIMEOUT_CONFIG"
+      ],
+      "forbidden": [
+        "URL",
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "missing": [
+        "QueryParams"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 2850,
+      "completion_tokens": 8,
+      "latency_ms": 130.4,
+      "response": "UseClientDefault, DEFAULT_TIMEOUT_CONFIG",
+      "response_text": "UseClientDefault, DEFAULT_TIMEOUT_CONFIG",
+      "prompt_sha256": "sha256:ae72e048cc08304f15e02d54219ce45117cee43eacfc78f958953627e7331b0b"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "b4v3-p3",
+      "agent": "planner",
+      "objective": "In _transports/default.py, which base class defined in _transports/base.py does AsyncHTTPTransport inherit from? Give the class name only.",
+      "required": [
+        "AsyncBaseTransport"
+      ],
+      "forbidden": [
+        "BaseTransport",
+        "HTTPTransport",
+        "Client"
+      ],
+      "missing": [
+        "AsyncBaseTransport"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 2845,
+      "completion_tokens": 3,
+      "latency_ms": 96.4,
+      "response": "HttpError",
+      "response_text": "HttpError",
+      "prompt_sha256": "sha256:7b94f05a0fc880123419974590dd241fb1aa5b3a36472450f64ecd6bdd3c9cfc"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "b4v3-p4",
+      "agent": "planner",
+      "objective": "In Client._redirect_method, which two status-code constants from _status_codes.py trigger a method change to GET when the original method is not HEAD? List both names.",
+      "required": [
+        "FOUND",
+        "SEE_OTHER"
+      ],
+      "forbidden": [
+        "MOVED_PERMANENTLY",
+        "TEMPORARY_REDIRECT",
+        "PERMANENT_REDIRECT"
+      ],
+      "missing": [
+        "FOUND",
+        "SEE_OTHER"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 2816,
+      "completion_tokens": 6,
+      "latency_ms": 112.5,
+      "response": "no_sentences\nno_sentences",
+      "response_text": "no_sentences\nno_sentences",
+      "prompt_sha256": "sha256:f1757e915a02a32efa0efe72ab9518d70ddec95a14c54437815f959c95791ce2"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "b4v3-p5",
+      "agent": "planner",
+      "objective": "In Client.__init__, what are the names of the two default config constants used for the limits and max_redirects parameters? List both identifiers.",
+      "required": [
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "forbidden": [
+        "DEFAULT_TIMEOUT_CONFIG",
+        "USE_CLIENT_DEFAULT",
+        "Limits"
+      ],
+      "missing": [
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 2840,
+      "completion_tokens": 6,
+      "latency_ms": 111.2,
+      "response": "no_sentences\nno_sentences",
+      "response_text": "no_sentences\nno_sentences",
+      "prompt_sha256": "sha256:ae6f1b91992141091ea5c4746d41542253434e6ea1dc36805ad2f8d57a0d908d"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "b4v3-i1",
+      "agent": "implementer",
+      "objective": "Which ContentDecoder subclass in _decoders.py handles 'zstd' responses? Give the class name only.",
+      "required": [
+        "ZStandardDecoder"
+      ],
+      "forbidden": [
+        "BrotliDecoder",
+        "GZipDecoder",
+        "DeflateDecoder"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "prompt_tokens": 2947,
+      "completion_tokens": 4,
+      "latency_ms": 101.7,
+      "response": "ZStandardDecoder",
+      "response_text": "ZStandardDecoder",
+      "prompt_sha256": "sha256:12258ea05674e2198ee9798cc201455d68a449acad3cdd07d7b4c1578b19d46b"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "b4v3-i2",
+      "agent": "implementer",
+      "objective": "In the URL class, which property returns the URL-decoded path as a string, and which returns the raw bytes of the path plus query? List both property names.",
+      "required": [
+        "path",
+        "raw_path"
+      ],
+      "forbidden": [
+        "query",
+        "netloc",
+        "host"
+      ],
+      "missing": [
+        "raw_path"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 2922,
+      "completion_tokens": 4,
+      "latency_ms": 104.6,
+      "response": "path, query",
+      "response_text": "path, query",
+      "prompt_sha256": "sha256:b6dcd5e66ea3a848d2222fdde3b4c50e9757fde6189d4988c605e95df914a481"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "b4v3-i3",
+      "agent": "implementer",
+      "objective": "When the optional brotli and zstandard packages are not installed, which two keys are removed from SUPPORTED_DECODERS in _decoders.py? List both keys.",
+      "required": [
+        "br",
+        "zstd"
+      ],
+      "forbidden": [
+        "gzip",
+        "deflate",
+        "identity"
+      ],
+      "missing": [
+        "br",
+        "zstd"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 2957,
+      "completion_tokens": 14,
+      "latency_ms": 181.4,
+      "response": "no_sentences\nno_explanation\nno_markdown\nno_code",
+      "response_text": "no_sentences\nno_explanation\nno_markdown\nno_code",
+      "prompt_sha256": "sha256:8ec3541ee16f157ec12fa8ed0c2c99b32e6b23deaa683cac09b6814878773496"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "b4v3-i4",
+      "agent": "implementer",
+      "objective": "Which property on URL returns the IDNA-encoded host as bytes, and which class in _models.py stores HTTP headers as a case-insensitive multi-dict? Give both identifiers.",
+      "required": [
+        "raw_host",
+        "Headers"
+      ],
+      "forbidden": [
+        "host",
+        "netloc",
+        "QueryParams"
+      ],
+      "missing": [
+        "raw_host",
+        "Headers"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 2861,
+      "completion_tokens": 33,
+      "latency_ms": 315.1,
+      "response": "URL.get('host') returns the IDNA-encoded host as bytes.\nHTTPModel.Headers.encode('utf-8') returns a case-insensitive multi-dict.",
+      "response_text": "URL.get('host') returns the IDNA-encoded host as bytes.\nHTTPModel.Headers.encode('utf-8') returns a case-insensitive multi-dict.",
+      "prompt_sha256": "sha256:05598d447f7ef04e98768e0c7b5a3e23243c22355fbf1b7cf7d0f06f3e7c4a44"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "b4v3-i5",
+      "agent": "implementer",
+      "objective": "Which two ContentDecoder subclasses in _decoders.py handle 'gzip' and 'deflate' content encodings? List both class names.",
+      "required": [
+        "GZipDecoder",
+        "DeflateDecoder"
+      ],
+      "forbidden": [
+        "BrotliDecoder",
+        "ZStandardDecoder",
+        "IdentityDecoder"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "prompt_tokens": 2939,
+      "completion_tokens": 59,
+      "latency_ms": 486.5,
+      "response": "The two ContentDecoder subclasses in `_decoders.py` that handle 'gzip' and 'deflate' content encodings are:\n\n1. `GzipDecoder`\n2. `DeflateDecoder`\n\nThese classes are part of the `ContentDecoder` class hierarchy within `_decoders.py`.",
+      "response_text": "The two ContentDecoder subclasses in `_decoders.py` that handle 'gzip' and 'deflate' content encodings are:\n\n1. `GzipDecoder`\n2. `DeflateDecoder`\n\nThese classes are part of the `ContentDecoder` class hierarchy within `_decoders.py`.",
+      "prompt_sha256": "sha256:09bd70241bc955bbfe8f99663f223184809c3d8a341d322973c518a00ca7383b"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "b4v3-t1",
+      "agent": "tester",
+      "objective": "What is the constant name for HTTP status 418 in httpx._status_codes? Give the identifier only.",
+      "required": [
+        "IM_A_TEAPOT"
+      ],
+      "forbidden": [
+        "IM_USED",
+        "TOO_EARLY",
+        "GONE"
+      ],
+      "missing": [
+        "IM_A_TEAPOT"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 3056,
+      "completion_tokens": 10,
+      "latency_ms": 144.0,
+      "response": "codes.UNAVAILABLE_FOR_LEGAL_REASONS",
+      "response_text": "codes.UNAVAILABLE_FOR_LEGAL_REASONS",
+      "prompt_sha256": "sha256:79129a4ba18e0d72290f03e4ee2902af7e5ac0758eaeb44327a2ae420ad3f311"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "b4v3-t2",
+      "agent": "tester",
+      "objective": "Which two methods on Request read the entire body into memory, one synchronous and one asynchronous? List both method names.",
+      "required": [
+        "read",
+        "aread"
+      ],
+      "forbidden": [
+        "iter_bytes",
+        "aiter_bytes",
+        "content"
+      ],
+      "missing": [
+        "read",
+        "aread"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 2110,
+      "completion_tokens": 6,
+      "latency_ms": 92.6,
+      "response": "no_sentences\nno_sentences",
+      "response_text": "no_sentences\nno_sentences",
+      "prompt_sha256": "sha256:bed3722c90f835ee52ec540dd025dfa04e6baa4d4e80ba72f5849deea510fb08"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "b4v3-t3",
+      "agent": "tester",
+      "objective": "Which Response property is True for 4xx or 5xx status codes, and which method raises HTTPStatusError for them? Give both identifiers.",
+      "required": [
+        "is_error",
+        "raise_for_status"
+      ],
+      "forbidden": [
+        "is_success",
+        "is_redirect",
+        "has_redirect_location"
+      ],
+      "missing": [
+        "is_error",
+        "raise_for_status"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 3032,
+      "completion_tokens": 6,
+      "latency_ms": 123.9,
+      "response": "no_sentences\nno_sentences",
+      "response_text": "no_sentences\nno_sentences",
+      "prompt_sha256": "sha256:c0eebf90362728dcb3a42b5bbd6db0203b612c8429c198a237065ff39007b36f"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "b4v3-t4",
+      "agent": "tester",
+      "objective": "Which exception from _exceptions.py is raised when Request.content is accessed before the stream has been read? Give the class name only.",
+      "required": [
+        "RequestNotRead"
+      ],
+      "forbidden": [
+        "ResponseNotRead",
+        "StreamClosed",
+        "StreamConsumed"
+      ],
+      "missing": [
+        "RequestNotRead"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 2918,
+      "completion_tokens": 3,
+      "latency_ms": 97.6,
+      "response": "HTTPRequestError",
+      "response_text": "HTTPRequestError",
+      "prompt_sha256": "sha256:2b9c57acd43361d63085f99d2ecdc94d3dfc108ecf55d835808145dd525f786d"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "b4v3-t5",
+      "agent": "tester",
+      "objective": "Which class in _exceptions.py is the base for request-level errors, and which top-level helper in _api.py creates a Client to issue a request? Give both identifiers.",
+      "required": [
+        "RequestError",
+        "request"
+      ],
+      "forbidden": [
+        "HTTPError",
+        "TransportError",
+        "get"
+      ],
+      "missing": [
+        "RequestError",
+        "request"
+      ],
+      "wrong": [
+        "HTTPError"
+      ],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 2926,
+      "completion_tokens": 19,
+      "latency_ms": 213.9,
+      "response": "request-level error: HTTPError\ntop-level helper in _api.py: create_ssl_context",
+      "response_text": "request-level error: HTTPError\ntop-level helper in _api.py: create_ssl_context",
+      "prompt_sha256": "sha256:0cfe8f9b3f5c21daf0fe54ef7f553f535e58c4171a0494dde5be4f76f86c94fc"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "b4v3-r1",
+      "agent": "reviewer",
+      "objective": "What is the default numeric value of keepalive_expiry in the Limits class? Give the value only.",
+      "required": [
+        "5.0"
+      ],
+      "forbidden": [
+        "None",
+        "100",
+        "20"
+      ],
+      "missing": [
+        "5.0"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 2900,
+      "completion_tokens": 9,
+      "latency_ms": 139.4,
+      "response": "no_sentences\nno_sentences\nno_sentences",
+      "response_text": "no_sentences\nno_sentences\nno_sentences",
+      "prompt_sha256": "sha256:0b70230a8ec8e1649ac18c031d1dd19f38221d3d9b46a6ccc59a92198a6924ea"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "b4v3-r2",
+      "agent": "reviewer",
+      "objective": "Which exception class in _exceptions.py is the base of RequestError, which is imported by _main.py? Give the class name only.",
+      "required": [
+        "HTTPError"
+      ],
+      "forbidden": [
+        "RequestError",
+        "TransportError",
+        "ValueError"
+      ],
+      "missing": [
+        "HTTPError"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 2948,
+      "completion_tokens": 3,
+      "latency_ms": 102.0,
+      "response": "RequestError",
+      "response_text": "RequestError",
+      "prompt_sha256": "sha256:429450754bb34ba79724216bbee55409966c355e8785b4e6ef9cc45d096dc898"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "b4v3-r3",
+      "agent": "reviewer",
+      "objective": "In DigestAuth, which two algorithm names map to hashlib.md5? List both names.",
+      "required": [
+        "MD5",
+        "MD5-SESS"
+      ],
+      "forbidden": [
+        "SHA",
+        "SHA-256",
+        "SHA-512"
+      ],
+      "missing": [
+        "MD5-SESS"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 2847,
+      "completion_tokens": 6,
+      "latency_ms": 122.5,
+      "response": "md5, sha1",
+      "response_text": "md5, sha1",
+      "prompt_sha256": "sha256:301c1f655dc7a8333b84fa5f881d3ccf7074f56430a9a6d48b94aee2479adff8"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "b4v3-r4",
+      "agent": "reviewer",
+      "objective": "Which exception class in _exceptions.py is the base for stream errors, and which class in _models.py raises StreamConsumed when raw response iteration is attempted twice? Give both identifiers.",
+      "required": [
+        "StreamError",
+        "Response"
+      ],
+      "forbidden": [
+        "StreamClosed",
+        "RequestError",
+        "HTTPError"
+      ],
+      "missing": [
+        "Response"
+      ],
+      "wrong": [],
+      "passed": false,
+      "error": null,
+      "prompt_tokens": 2864,
+      "completion_tokens": 17,
+      "latency_ms": 193.2,
+      "response": "StreamError in _exceptions.py\nReadStreamInIteratedMode in _models.py",
+      "response_text": "StreamError in _exceptions.py\nReadStreamInIteratedMode in _models.py",
+      "prompt_sha256": "sha256:7e8ae4c26b1ac5e786bc29ac52e58b7a3a9712e5c3fa6d934ad14e8a12dac0b7"
+    },
+    {
+      "op": "chat",
+      "arm": "compile",
+      "objective_id": "b4v3-r5",
+      "agent": "reviewer",
+      "objective": "In _multipart.py, which helper function guesses a file's mimetype, and what fallback string does it return when guessing yields None? Give both.",
+      "required": [
+        "_guess_content_type",
+        "application/octet-stream"
+      ],
+      "forbidden": [
+        "_format_form_param",
+        "multipart/form-data",
+        "text/plain"
+      ],
+      "missing": [],
+      "wrong": [],
+      "passed": true,
+      "error": null,
+      "prompt_tokens": 3011,
+      "completion_tokens": 47,
+      "latency_ms": 407.0,
+      "response": "In _multipart.py, the `_guess_content_type` function returns `None` when guessing a file's mimetype. It defaults to `'application/octet-stream'`. When guessing yields `None`, it returns `'application/octet-stream'`.",
+      "response_text": "In _multipart.py, the `_guess_content_type` function returns `None` when guessing a file's mimetype. It defaults to `'application/octet-stream'`. When guessing yields `None`, it returns `'application/octet-stream'`.",
+      "prompt_sha256": "sha256:9f2e6ffcb3a5f370fa4677423e4d3259d76c361d66e8f4c5e9f747a50d83cc81"
+    }
+  ],
+  "arms": {
+    "truncate": {
+      "requests": 20,
+      "prompt_tokens_total": 325700,
+      "completion_tokens_total": 1151,
+      "wall_ms": 64952.1,
+      "mean_latency_ms": 3245.2,
+      "passed": 4,
+      "total": 20,
+      "errors": 0,
+      "quality": 0.2,
+      "uncached_tokens": 65908
+    },
+    "retrieval": {
+      "requests": 20,
+      "prompt_tokens_total": 80956,
+      "completion_tokens_total": 1066,
+      "wall_ms": 9866.3,
+      "mean_latency_ms": 492.4,
+      "passed": 5,
+      "total": 20,
+      "errors": 0,
+      "quality": 0.25,
+      "uncached_tokens": 75212
+    },
+    "compile": {
+      "requests": 20,
+      "prompt_tokens_total": 57499,
+      "completion_tokens_total": 265,
+      "wall_ms": 3387.1,
+      "mean_latency_ms": 168.8,
+      "passed": 3,
+      "total": 20,
+      "errors": 0,
+      "quality": 0.15,
+      "uncached_tokens": 46907
+    }
+  },
+  "cache": {
+    "available": true,
+    "source": "upstream Prometheus /metrics (vLLM)",
+    "per_arm": {
+      "truncate": {
+        "prefix_cache_hits_delta": 259792.0,
+        "prefix_cache_queries_delta": 325700.0,
+        "kv_cache_usage_peak": 0.034581743271081655
+      },
+      "retrieval": {
+        "prefix_cache_hits_delta": 5744.0,
+        "prefix_cache_queries_delta": 80956.0,
+        "kv_cache_usage_peak": 0.008780520752423082
+      },
+      "compile": {
+        "prefix_cache_hits_delta": 10592.0,
+        "prefix_cache_queries_delta": 57499.0,
+        "kv_cache_usage_peak": 0.006484076863327859
+      }
+    }
+  },
+  "criteria": {
+    "verdict": "MIXED",
+    "n_objectives": 20,
+    "repeats": 1,
+    "quality": {
+      "pass": false,
+      "requirement": "compile passes >= retrieval AND >= truncate passes - 2",
+      "truncate_passes": 4,
+      "retrieval_passes": 5,
+      "compile_passes": 3
+    },
+    "tokens": {
+      "pass": true,
+      "requirement": "compile billed prompt tokens <= truncate billed / 3",
+      "truncate_billed": 325700,
+      "compile_billed": 57499,
+      "ratio_truncate_over_compile": 5.66
+    },
+    "unreliable_error_rate": false,
+    "error_rates": {
+      "truncate": 0.0,
+      "retrieval": 0.0,
+      "compile": 0.0
+    }
+  }
+}

@@ -8,7 +8,7 @@ One shared memory. One small, cache-aligned packet per agent.
 Every hand-off hashed, signable, and replayable.
 
 [![CI](https://github.com/Pranavk098/context-fabric/actions/workflows/ci.yml/badge.svg)](https://github.com/Pranavk098/context-fabric/actions/workflows/ci.yml)
-![tests](https://img.shields.io/badge/tests-376%20total-brightgreen)
+![tests](https://img.shields.io/badge/tests-388%20total-brightgreen)
 ![python](https://img.shields.io/badge/python-3.12%2B-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
 ![status](https://img.shields.io/badge/status-v0.1%20local--first-orange)
@@ -127,6 +127,10 @@ Honesty is the product, so the gaps are on the label:
   (httpx, 1.5B model, 4 roles): compiled packets lost on quality (21/36 vs 29/36) *and* on
   uncached prefill tokens to one shared, prefix-cached raw prompt
   ([`B4-RESULT.md`](docs/engineering/B4-RESULT.md)).
+- **When the repo does not fit, compiling is cheapest but not most accurate.** Pre-registered
+  B4 v3 (full httpx vs a 16k window, 1.5B and 0.5B models): compile used the fewest billed and
+  uncached tokens and the least KV, but plain BM25 retrieval at the same budget answered more
+  questions ([`B4-V3-RESULT.md`](docs/engineering/B4-V3-RESULT.md)).
 - **Postgres, multi-worker serving, OTel** are deferred with explicit triggers
   ([`ROADMAP-DECISIONS.md`](docs/engineering/ROADMAP-DECISIONS.md)); the full spec-vs-code map is
   [`IMPLEMENTATION-STATUS.md`](docs/engineering/IMPLEMENTATION-STATUS.md).

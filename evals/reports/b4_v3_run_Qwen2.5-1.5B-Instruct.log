@@ -1,0 +1,19 @@
+[20:27:10] reclaiming GPU/port
+[20:27:14] starting vllm serve
+[20:27:49] endpoint ready after ~40s
+[20:27:49] warming engine
+[20:27:49] engine warm
+[20:27:49] running evals.b4_v3
+b4_v3: kind=live model=Qwen/Qwen2.5-1.5B-Instruct upstream=http://localhost:8000
+arm        reqs prompt_tok  uncached  mean_s  quality
+truncate     20     325700     65908    1.22  10/20 (0.50)
+retrieval    20      80956     75212    1.09  9/20 (0.45)
+compile      20      57499     46907    0.28  7/20 (0.35)
+cache[truncate]: hits+=259792.0 queries+=325700.0 kv_peak=0.13091281002301203
+cache[retrieval]: hits+=5744.0 queries+=80956.0 kv_peak=0.0332395806699054
+cache[compile]: hits+=10592.0 queries+=57499.0 kv_peak=0.024546151879314748
+verdict: MIXED
+  quality: pass=False (compile passes >= retrieval AND >= truncate passes - 2)
+  tokens: pass=True (compile billed prompt tokens <= truncate billed / 3)
+receipt: /mnt/c/dev/Context-Fabric/evals/reports/b4_v3_20261018_202752.json
+[20:28:52] evals.b4_v3 rc=0
