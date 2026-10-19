@@ -1,0 +1,11 @@
+{
+  "subagent_query": "",
+  "parent_notes": "",
+  "candidate_files": [
+    "sphinx/cmd/quickstart.py",
+    "sphinx/ext/autodoc/__init__.py",
+    "sphinx/ext/napoleon/__init__.py",
+    "sphinx/directives/__init__.py",
+    "sphinx/locale/__init__.py"
+  ]
+}

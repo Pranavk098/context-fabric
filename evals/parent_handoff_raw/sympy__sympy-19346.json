@@ -1,0 +1,11 @@
+{
+  "subagent_query": "",
+  "parent_notes": "",
+  "candidate_files": [
+    "isympy.py",
+    "sympy/core/compatibility.py",
+    "sympy/combinatorics/permutations.py",
+    "sympy/simplify/epathtools.py",
+    "sympy/testing/runtests.py"
+  ]
+}

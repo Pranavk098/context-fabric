@@ -1,0 +1,11 @@
+{
+  "subagent_query": "",
+  "parent_notes": "",
+  "candidate_files": [
+    "django/forms/widgets.py",
+    "django/contrib/admin/widgets.py",
+    "tests/forms_tests/tests/test_forms.py",
+    "tests/forms_tests/widget_tests/test_select.py",
+    "django/forms/fields.py"
+  ]
+}

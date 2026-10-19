@@ -1,1 +1,2 @@
-{"instance_id": "astropy__astropy-7606", "model_name_or_path": "gpt-4.1-mini", "model_patch": "", "arm": "A"}
+{"instance_id": "django__django-11532", "model_name_or_path": "gpt-4.1-mini", "model_patch": "", "arm": "A"}
+{"instance_id": "django__django-12262", "model_name_or_path": "gpt-4.1-mini", "model_patch": "", "arm": "A"}

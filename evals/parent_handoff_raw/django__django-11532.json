@@ -1,0 +1,11 @@
+{
+  "subagent_query": "",
+  "parent_notes": "",
+  "candidate_files": [
+    "tests/mail/tests.py",
+    "django/core/mail/message.py",
+    "django/http/response.py",
+    "django/core/validators.py",
+    "django/core/mail/__init__.py"
+  ]
+}

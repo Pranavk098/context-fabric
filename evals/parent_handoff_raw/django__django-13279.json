@@ -1,0 +1,11 @@
+{
+  "subagent_query": "",
+  "parent_notes": "",
+  "candidate_files": [
+    "django/contrib/messages/storage/cookie.py",
+    "tests/messages_tests/test_cookie.py",
+    "django/contrib/auth/tokens.py",
+    "django/contrib/auth/hashers.py",
+    "django/test/client.py"
+  ]
+}

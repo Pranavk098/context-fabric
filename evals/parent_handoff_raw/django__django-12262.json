@@ -1,0 +1,11 @@
+{
+  "subagent_query": "",
+  "parent_notes": "",
+  "candidate_files": [
+    "django/template/library.py",
+    "tests/template_tests/test_custom.py",
+    "django/templatetags/i18n.py",
+    "django/template/defaulttags.py",
+    "django/apps/registry.py"
+  ]
+}

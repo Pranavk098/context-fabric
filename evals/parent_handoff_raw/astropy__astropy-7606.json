@@ -1,0 +1,11 @@
+{
+  "subagent_query": "",
+  "parent_notes": "",
+  "candidate_files": [
+    "astropy/units/core.py",
+    "astropy/units/function/core.py",
+    "astropy/units/tests/test_units.py",
+    "astropy/extern/configobj/validate.py",
+    "astropy/io/misc/asdf/tags/unit/unit.py"
+  ]
+}

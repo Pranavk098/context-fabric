@@ -1,0 +1,11 @@
+{
+  "subagent_query": "",
+  "parent_notes": "",
+  "candidate_files": [
+    "lib/matplotlib/pyplot.py",
+    "galleries/users_explain/text/pgf.py",
+    "galleries/tutorials/lifecycle.py",
+    "galleries/tutorials/artists.py",
+    "galleries/examples/subplots_axes_and_figures/shared_axis_demo.py"
+  ]
+}

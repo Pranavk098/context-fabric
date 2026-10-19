@@ -1,0 +1,11 @@
+{
+  "subagent_query": "",
+  "parent_notes": "",
+  "candidate_files": [
+    "django/core/management/base.py",
+    "django/core/management/commands/dbshell.py",
+    "tests/dbshell/test_postgresql.py",
+    "django/core/management/__init__.py",
+    "django/core/management/commands/inspectdb.py"
+  ]
+}

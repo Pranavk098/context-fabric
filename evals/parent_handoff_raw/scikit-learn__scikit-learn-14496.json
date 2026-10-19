@@ -1,0 +1,11 @@
+{
+  "subagent_query": "",
+  "parent_notes": "",
+  "candidate_files": [
+    "sklearn/cluster/optics_.py",
+    "sklearn/cluster/dbscan_.py",
+    "sklearn/neighbors/unsupervised.py",
+    "sklearn/neighbors/base.py",
+    "sklearn/cluster/mean_shift_.py"
+  ]
+}

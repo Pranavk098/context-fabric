@@ -1,0 +1,11 @@
+{
+  "subagent_query": "",
+  "parent_notes": "",
+  "candidate_files": [
+    "sympy/combinatorics/permutations.py",
+    "sympy/polys/agca/modules.py",
+    "sympy/codegen/ast.py",
+    "sympy/utilities/exceptions.py",
+    "sympy/combinatorics/polyhedron.py"
+  ]
+}
