@@ -1,0 +1,3437 @@
+{
+  "scenario": "rx_hybrid",
+  "kind": "live",
+  "note": "exploratory dev-set probe; the frozen result docs are B4-RESULT.md / B4-V3-RESULT.md",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "upstream": "http://localhost:8000",
+  "started_at": "2026-10-19T06:41:49.969315+00:00",
+  "ts": "20261018_234149",
+  "tokenizer": "qwen",
+  "budgets": [
+    2000,
+    4000
+  ],
+  "n_objectives": 20,
+  "records": [
+    {
+      "op": "chat",
+      "arm": "R:2000",
+      "objective_id": "b4v3-p1",
+      "agent": "planner",
+      "objective": "What integer is the default value of max_redirects used by httpx clients? Answer with the number only.",
+      "required": [
+        "20"
+      ],
+      "forbidden": [
+        "5.0",
+        "100",
+        "None"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "20"
+      ],
+      "wrong_fixed": [
+        "None"
+      ],
+      "error": null,
+      "prompt_tokens": 2042,
+      "completion_tokens": 2,
+      "latency_ms": 709.9,
+      "response": "None",
+      "response_text": "None"
+    },
+    {
+      "op": "chat",
+      "arm": "R:2000",
+      "objective_id": "b4v3-p2",
+      "agent": "planner",
+      "objective": "When Client.build_request() merges query parameters and falls back to a default timeout, what class from _urls.py and what constant from _config.py are used? Give the two identifiers separated by a comma.",
+      "required": [
+        "QueryParams",
+        "DEFAULT_TIMEOUT_CONFIG"
+      ],
+      "forbidden": [
+        "URL",
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "QueryParams",
+        "DEFAULT_TIMEOUT_CONFIG"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2061,
+      "completion_tokens": 9,
+      "latency_ms": 287.0,
+      "response": "get_environment_proxies(), USE_CLIENT_DEFAULT",
+      "response_text": "get_environment_proxies(), USE_CLIENT_DEFAULT"
+    },
+    {
+      "op": "chat",
+      "arm": "R:2000",
+      "objective_id": "b4v3-p3",
+      "agent": "planner",
+      "objective": "In _transports/default.py, which base class defined in _transports/base.py does AsyncHTTPTransport inherit from? Give the class name only.",
+      "required": [
+        "AsyncBaseTransport"
+      ],
+      "forbidden": [
+        "BaseTransport",
+        "HTTPTransport",
+        "Client"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "AsyncBaseTransport"
+      ],
+      "wrong_fixed": [
+        "BaseTransport"
+      ],
+      "error": null,
+      "prompt_tokens": 2050,
+      "completion_tokens": 3,
+      "latency_ms": 191.7,
+      "response": "BaseTransport",
+      "response_text": "BaseTransport"
+    },
+    {
+      "op": "chat",
+      "arm": "R:2000",
+      "objective_id": "b4v3-p4",
+      "agent": "planner",
+      "objective": "In Client._redirect_method, which two status-code constants from _status_codes.py trigger a method change to GET when the original method is not HEAD? List both names.",
+      "required": [
+        "FOUND",
+        "SEE_OTHER"
+      ],
+      "forbidden": [
+        "MOVED_PERMANENTLY",
+        "TEMPORARY_REDIRECT",
+        "PERMANENT_REDIRECT"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "SEE_OTHER"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2047,
+      "completion_tokens": 59,
+      "latency_ms": 905.2,
+      "response": "The two status-code constants from `_status_codes.py` that trigger a method change to GET when the original method is not HEAD are:\n\n1. **302 Found** (`HTTP_302`)\n2. **303 See Other** (`HTTP_303`)",
+      "response_text": "The two status-code constants from `_status_codes.py` that trigger a method change to GET when the original method is not HEAD are:\n\n1. **302 Found** (`HTTP_302`)\n2. **303 See Other** (`HTTP_303`)"
+    },
+    {
+      "op": "chat",
+      "arm": "R:2000",
+      "objective_id": "b4v3-p5",
+      "agent": "planner",
+      "objective": "In Client.__init__, what are the names of the two default config constants used for the limits and max_redirects parameters? List both identifiers.",
+      "required": [
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "forbidden": [
+        "DEFAULT_TIMEOUT_CONFIG",
+        "USE_CLIENT_DEFAULT",
+        "Limits"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2048,
+      "completion_tokens": 34,
+      "latency_ms": 580.1,
+      "response": "The two default config constants used for the limits and max_redirects parameters in Client.__init__ are:\n\n1. DEFAULT_MAX_REDIRECTS\n2. DEFAULT_LIMITS",
+      "response_text": "The two default config constants used for the limits and max_redirects parameters in Client.__init__ are:\n\n1. DEFAULT_MAX_REDIRECTS\n2. DEFAULT_LIMITS"
+    },
+    {
+      "op": "chat",
+      "arm": "R:2000",
+      "objective_id": "b4v3-i1",
+      "agent": "implementer",
+      "objective": "Which ContentDecoder subclass in _decoders.py handles 'zstd' responses? Give the class name only.",
+      "required": [
+        "ZStandardDecoder"
+      ],
+      "forbidden": [
+        "BrotliDecoder",
+        "GZipDecoder",
+        "DeflateDecoder"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2045,
+      "completion_tokens": 19,
+      "latency_ms": 389.1,
+      "response": "The ContentDecoder subclass that handles 'zstd' responses is named `ZStandardDecoder`.",
+      "response_text": "The ContentDecoder subclass that handles 'zstd' responses is named `ZStandardDecoder`."
+    },
+    {
+      "op": "chat",
+      "arm": "R:2000",
+      "objective_id": "b4v3-i2",
+      "agent": "implementer",
+      "objective": "In the URL class, which property returns the URL-decoded path as a string, and which returns the raw bytes of the path plus query? List both property names.",
+      "required": [
+        "path",
+        "raw_path"
+      ],
+      "forbidden": [
+        "query",
+        "netloc",
+        "host"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "raw_path"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2055,
+      "completion_tokens": 96,
+      "latency_ms": 1333.8,
+      "response": "The URL class in the `httpx` library provides two methods to access the path part of a URL:\n\n1. `decode`: This method returns the decoded path as a string. It decodes any percent-encoded characters in the path using the `percent_encoded` function.\n\n```python\ndecoded_path = url.decode()\n```\n\n2. `raw_bytes`: This method returns the raw bytes of the path plus query. It concatenates the path and query parts together without decoding any",
+      "response_text": "The URL class in the `httpx` library provides two methods to access the path part of a URL:\n\n1. `decode`: This method returns the decoded path as a string. It decodes any percent-encoded characters in the path using the `percent_encoded` function.\n\n```python\ndecoded_path = url.decode()\n```\n\n2. `raw_bytes`: This method returns the raw bytes of the path plus query. It concatenates the path and query parts together without decoding any"
+    },
+    {
+      "op": "chat",
+      "arm": "R:2000",
+      "objective_id": "b4v3-i3",
+      "agent": "implementer",
+      "objective": "When the optional brotli and zstandard packages are not installed, which two keys are removed from SUPPORTED_DECODERS in _decoders.py? List both keys.",
+      "required": [
+        "br",
+        "zstd"
+      ],
+      "forbidden": [
+        "gzip",
+        "deflate",
+        "identity"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "zstd"
+      ],
+      "wrong_fixed": [
+        "gzip"
+      ],
+      "error": null,
+      "prompt_tokens": 2059,
+      "completion_tokens": 93,
+      "latency_ms": 1302.1,
+      "response": "The two keys that are removed from SUPPORTED_DECODERS in _decoders.py when the optional brotli and zstandard packages are not installed are:\n\n1. 'gzip'\n2. 'br'\n\nThese keys were previously present in SUPPORTED_DECODERS because they supported gzip and brotli encoding respectively. When these packages are not installed, their corresponding decoders are not available, so those keys are removed from the list of supported decoders.",
+      "response_text": "The two keys that are removed from SUPPORTED_DECODERS in _decoders.py when the optional brotli and zstandard packages are not installed are:\n\n1. 'gzip'\n2. 'br'\n\nThese keys were previously present in SUPPORTED_DECODERS because they supported gzip and brotli encoding respectively. When these packages are not installed, their corresponding decoders are not available, so those keys are removed from the list of supported decoders."
+    },
+    {
+      "op": "chat",
+      "arm": "R:2000",
+      "objective_id": "b4v3-i4",
+      "agent": "implementer",
+      "objective": "Which property on URL returns the IDNA-encoded host as bytes, and which class in _models.py stores HTTP headers as a case-insensitive multi-dict? Give both identifiers.",
+      "required": [
+        "raw_host",
+        "Headers"
+      ],
+      "forbidden": [
+        "host",
+        "netloc",
+        "QueryParams"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "raw_host"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2059,
+      "completion_tokens": 52,
+      "latency_ms": 800.7,
+      "response": "The property on URL that returns the IDNA-encoded host as bytes is:\n\n```python\nhost.as_bytes()\n```\n\nAnd the class in _models.py that stores HTTP headers as a case-insensitive multi-dict is:\n\n```python\nHeaders\n```",
+      "response_text": "The property on URL that returns the IDNA-encoded host as bytes is:\n\n```python\nhost.as_bytes()\n```\n\nAnd the class in _models.py that stores HTTP headers as a case-insensitive multi-dict is:\n\n```python\nHeaders\n```"
+    },
+    {
+      "op": "chat",
+      "arm": "R:2000",
+      "objective_id": "b4v3-i5",
+      "agent": "implementer",
+      "objective": "Which two ContentDecoder subclasses in _decoders.py handle 'gzip' and 'deflate' content encodings? List both class names.",
+      "required": [
+        "GZipDecoder",
+        "DeflateDecoder"
+      ],
+      "forbidden": [
+        "BrotliDecoder",
+        "ZStandardDecoder",
+        "IdentityDecoder"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2046,
+      "completion_tokens": 67,
+      "latency_ms": 970.6,
+      "response": "The two ContentDecoder subclasses in `_decoders.py` that handle 'gzip' and 'deflate' content encodings are:\n\n1. **GZipDecoder**\n2. **DeflateDecoder**\n\nThese classes are defined within the `httpx/_decoders.py` file and are responsible for handling gzip and deflate encoding respectively.",
+      "response_text": "The two ContentDecoder subclasses in `_decoders.py` that handle 'gzip' and 'deflate' content encodings are:\n\n1. **GZipDecoder**\n2. **DeflateDecoder**\n\nThese classes are defined within the `httpx/_decoders.py` file and are responsible for handling gzip and deflate encoding respectively."
+    },
+    {
+      "op": "chat",
+      "arm": "R:2000",
+      "objective_id": "b4v3-t1",
+      "agent": "tester",
+      "objective": "What is the constant name for HTTP status 418 in httpx._status_codes? Give the identifier only.",
+      "required": [
+        "IM_A_TEAPOT"
+      ],
+      "forbidden": [
+        "IM_USED",
+        "TOO_EARLY",
+        "GONE"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2036,
+      "completion_tokens": 6,
+      "latency_ms": 230.2,
+      "response": "IM_A_TEAPOT",
+      "response_text": "IM_A_TEAPOT"
+    },
+    {
+      "op": "chat",
+      "arm": "R:2000",
+      "objective_id": "b4v3-t2",
+      "agent": "tester",
+      "objective": "Which two methods on Request read the entire body into memory, one synchronous and one asynchronous? List both method names.",
+      "required": [
+        "read",
+        "aread"
+      ],
+      "forbidden": [
+        "iter_bytes",
+        "aiter_bytes",
+        "content"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "aread"
+      ],
+      "wrong_fixed": [
+        "content"
+      ],
+      "error": null,
+      "prompt_tokens": 2045,
+      "completion_tokens": 96,
+      "latency_ms": 1363.7,
+      "response": "Based on the code provided in `_models.py`, there are two methods on the `Request` class that read the entire body into memory:\n\n1. The `read()` method, which is defined as follows:\n```python\ndef read(self) -> bytes:\n    \"\"\"\n    Read and return the request content.\n    \"\"\"\n    if not hasattr(self, \"_content\"):\n        assert isinstance(self.stream, typing.Iterable)\n        self._content = b\"\".join(self.stream)\n        if",
+      "response_text": "Based on the code provided in `_models.py`, there are two methods on the `Request` class that read the entire body into memory:\n\n1. The `read()` method, which is defined as follows:\n```python\ndef read(self) -> bytes:\n    \"\"\"\n    Read and return the request content.\n    \"\"\"\n    if not hasattr(self, \"_content\"):\n        assert isinstance(self.stream, typing.Iterable)\n        self._content = b\"\".join(self.stream)\n        if"
+    },
+    {
+      "op": "chat",
+      "arm": "R:2000",
+      "objective_id": "b4v3-t3",
+      "agent": "tester",
+      "objective": "Which Response property is True for 4xx or 5xx status codes, and which method raises HTTPStatusError for them? Give both identifiers.",
+      "required": [
+        "is_error",
+        "raise_for_status"
+      ],
+      "forbidden": [
+        "is_success",
+        "is_redirect",
+        "has_redirect_location"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "raise_for_status"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2029,
+      "completion_tokens": 96,
+      "latency_ms": 1338.0,
+      "response": "For 4xx or 5xx status codes, the `is_error` method returns `True`. \n\nTo raise an instance of `HTTPStatusError` specifically for these status codes, you can use the `is_client_error`, `is_server_error`, or `is_error` methods directly on the `codes` class. Here's how you can do it:\n\n```python\nif codes.is_client_error(response.status_code):\n    raise HTTPStatusError(\"Client error occurred\",",
+      "response_text": "For 4xx or 5xx status codes, the `is_error` method returns `True`. \n\nTo raise an instance of `HTTPStatusError` specifically for these status codes, you can use the `is_client_error`, `is_server_error`, or `is_error` methods directly on the `codes` class. Here's how you can do it:\n\n```python\nif codes.is_client_error(response.status_code):\n    raise HTTPStatusError(\"Client error occurred\","
+    },
+    {
+      "op": "chat",
+      "arm": "R:2000",
+      "objective_id": "b4v3-t4",
+      "agent": "tester",
+      "objective": "Which exception from _exceptions.py is raised when Request.content is accessed before the stream has been read? Give the class name only.",
+      "required": [
+        "RequestNotRead"
+      ],
+      "forbidden": [
+        "ResponseNotRead",
+        "StreamClosed",
+        "StreamConsumed"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "RequestNotRead"
+      ],
+      "wrong_fixed": [
+        "StreamConsumed"
+      ],
+      "error": null,
+      "prompt_tokens": 2038,
+      "completion_tokens": 4,
+      "latency_ms": 129.3,
+      "response": "StreamConsumed",
+      "response_text": "StreamConsumed"
+    },
+    {
+      "op": "chat",
+      "arm": "R:2000",
+      "objective_id": "b4v3-t5",
+      "agent": "tester",
+      "objective": "Which class in _exceptions.py is the base for request-level errors, and which top-level helper in _api.py creates a Client to issue a request? Give both identifiers.",
+      "required": [
+        "RequestError",
+        "request"
+      ],
+      "forbidden": [
+        "HTTPError",
+        "TransportError",
+        "get"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [],
+      "wrong_fixed": [
+        "HTTPError"
+      ],
+      "error": null,
+      "prompt_tokens": 2060,
+      "completion_tokens": 96,
+      "latency_ms": 1342.4,
+      "response": "In `_exceptions.py`, the base class for request-level errors is `RequestError`, defined as follows:\n\n```python\nclass RequestError(HTTPError):\n    \"\"\"\n    Base class for all exceptions that may occur when issuing a `.request()`.\n    \"\"\"\n```\n\nAnd in `_api.py`, the function that creates a `Client` object to issue a request is `create_client_from_config()`, defined as follows:\n\n```python\ndef create_client_from_config(config: Config) ->",
+      "response_text": "In `_exceptions.py`, the base class for request-level errors is `RequestError`, defined as follows:\n\n```python\nclass RequestError(HTTPError):\n    \"\"\"\n    Base class for all exceptions that may occur when issuing a `.request()`.\n    \"\"\"\n```\n\nAnd in `_api.py`, the function that creates a `Client` object to issue a request is `create_client_from_config()`, defined as follows:\n\n```python\ndef create_client_from_config(config: Config) ->"
+    },
+    {
+      "op": "chat",
+      "arm": "R:2000",
+      "objective_id": "b4v3-r1",
+      "agent": "reviewer",
+      "objective": "What is the default numeric value of keepalive_expiry in the Limits class? Give the value only.",
+      "required": [
+        "5.0"
+      ],
+      "forbidden": [
+        "None",
+        "100",
+        "20"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2044,
+      "completion_tokens": 23,
+      "latency_ms": 417.7,
+      "response": "The default numeric value of `keepalive_expiry` in the `Limits` class is `5.0`.",
+      "response_text": "The default numeric value of `keepalive_expiry` in the `Limits` class is `5.0`."
+    },
+    {
+      "op": "chat",
+      "arm": "R:2000",
+      "objective_id": "b4v3-r2",
+      "agent": "reviewer",
+      "objective": "Which exception class in _exceptions.py is the base of RequestError, which is imported by _main.py? Give the class name only.",
+      "required": [
+        "HTTPError"
+      ],
+      "forbidden": [
+        "RequestError",
+        "TransportError",
+        "ValueError"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2045,
+      "completion_tokens": 3,
+      "latency_ms": 194.0,
+      "response": "HTTPError",
+      "response_text": "HTTPError"
+    },
+    {
+      "op": "chat",
+      "arm": "R:2000",
+      "objective_id": "b4v3-r3",
+      "agent": "reviewer",
+      "objective": "In DigestAuth, which two algorithm names map to hashlib.md5? List both names.",
+      "required": [
+        "MD5",
+        "MD5-SESS"
+      ],
+      "forbidden": [
+        "SHA",
+        "SHA-256",
+        "SHA-512"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2026,
+      "completion_tokens": 84,
+      "latency_ms": 1190.3,
+      "response": "According to the code in `_DigestAuthChallenge` class:\n\n```python\n_ALGORITHM_TO_HASH_FUNCTION: dict[str, typing.Callable[[bytes], _Hash]] = {\n    \"MD5\": hashlib.md5,\n    \"MD5-SESS\": hashlib.md5,\n}\n```\n\nThe two algorithm names that map to hashlib.md5 are:\n\n1. MD5\n2. MD5-SESS",
+      "response_text": "According to the code in `_DigestAuthChallenge` class:\n\n```python\n_ALGORITHM_TO_HASH_FUNCTION: dict[str, typing.Callable[[bytes], _Hash]] = {\n    \"MD5\": hashlib.md5,\n    \"MD5-SESS\": hashlib.md5,\n}\n```\n\nThe two algorithm names that map to hashlib.md5 are:\n\n1. MD5\n2. MD5-SESS"
+    },
+    {
+      "op": "chat",
+      "arm": "R:2000",
+      "objective_id": "b4v3-r4",
+      "agent": "reviewer",
+      "objective": "Which exception class in _exceptions.py is the base for stream errors, and which class in _models.py raises StreamConsumed when raw response iteration is attempted twice? Give both identifiers.",
+      "required": [
+        "StreamError",
+        "Response"
+      ],
+      "forbidden": [
+        "StreamClosed",
+        "RequestError",
+        "HTTPError"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2054,
+      "completion_tokens": 45,
+      "latency_ms": 711.4,
+      "response": "In `_exceptions.py`, the base class for stream errors is `StreamError`.\n\nIn `_models.py`, the exception class that raises `StreamConsumed` when raw response iteration is attempted twice is `StreamConsumed`.",
+      "response_text": "In `_exceptions.py`, the base class for stream errors is `StreamError`.\n\nIn `_models.py`, the exception class that raises `StreamConsumed` when raw response iteration is attempted twice is `StreamConsumed`."
+    },
+    {
+      "op": "chat",
+      "arm": "R:2000",
+      "objective_id": "b4v3-r5",
+      "agent": "reviewer",
+      "objective": "In _multipart.py, which helper function guesses a file's mimetype, and what fallback string does it return when guessing yields None? Give both.",
+      "required": [
+        "_guess_content_type",
+        "application/octet-stream"
+      ],
+      "forbidden": [
+        "_format_form_param",
+        "multipart/form-data",
+        "text/plain"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "application/octet-stream"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2041,
+      "completion_tokens": 96,
+      "latency_ms": 1334.7,
+      "response": "The `_guess_content_type` function in `_multipart.py` is responsible for guessing the MIME type of a file based on its filename. When it returns `None`, it means that the file couldn't be successfully guessed due to various reasons such as invalid filenames, missing extensions, or other issues.\n\nHere's how the function works:\n\n```python\ndef _guess_content_type(filename: str | None) -> str | None:\n    \"\"\"\n    Guesses the mimetype based on a filename",
+      "response_text": "The `_guess_content_type` function in `_multipart.py` is responsible for guessing the MIME type of a file based on its filename. When it returns `None`, it means that the file couldn't be successfully guessed due to various reasons such as invalid filenames, missing extensions, or other issues.\n\nHere's how the function works:\n\n```python\ndef _guess_content_type(filename: str | None) -> str | None:\n    \"\"\"\n    Guesses the mimetype based on a filename"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:2000",
+      "objective_id": "b4v3-p1",
+      "agent": "planner",
+      "objective": "What integer is the default value of max_redirects used by httpx clients? Answer with the number only.",
+      "required": [
+        "20"
+      ],
+      "forbidden": [
+        "5.0",
+        "100",
+        "None"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "20"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1318,
+      "completion_tokens": 2,
+      "latency_ms": 128.2,
+      "response": "3",
+      "response_text": "3"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:2000",
+      "objective_id": "b4v3-p2",
+      "agent": "planner",
+      "objective": "When Client.build_request() merges query parameters and falls back to a default timeout, what class from _urls.py and what constant from _config.py are used? Give the two identifiers separated by a comma.",
+      "required": [
+        "QueryParams",
+        "DEFAULT_TIMEOUT_CONFIG"
+      ],
+      "forbidden": [
+        "URL",
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "QueryParams",
+        "DEFAULT_TIMEOUT_CONFIG"
+      ],
+      "wrong_fixed": [
+        "URL"
+      ],
+      "error": null,
+      "prompt_tokens": 1518,
+      "completion_tokens": 6,
+      "latency_ms": 154.5,
+      "response": "URL, USE_CLIENT_DEFAULT",
+      "response_text": "URL, USE_CLIENT_DEFAULT"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:2000",
+      "objective_id": "b4v3-p3",
+      "agent": "planner",
+      "objective": "In _transports/default.py, which base class defined in _transports/base.py does AsyncHTTPTransport inherit from? Give the class name only.",
+      "required": [
+        "AsyncBaseTransport"
+      ],
+      "forbidden": [
+        "BaseTransport",
+        "HTTPTransport",
+        "Client"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "AsyncBaseTransport"
+      ],
+      "wrong_fixed": [
+        "BaseTransport"
+      ],
+      "error": null,
+      "prompt_tokens": 1346,
+      "completion_tokens": 3,
+      "latency_ms": 106.6,
+      "response": "BaseTransport",
+      "response_text": "BaseTransport"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:2000",
+      "objective_id": "b4v3-p4",
+      "agent": "planner",
+      "objective": "In Client._redirect_method, which two status-code constants from _status_codes.py trigger a method change to GET when the original method is not HEAD? List both names.",
+      "required": [
+        "FOUND",
+        "SEE_OTHER"
+      ],
+      "forbidden": [
+        "MOVED_PERMANENTLY",
+        "TEMPORARY_REDIRECT",
+        "PERMANENT_REDIRECT"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "FOUND",
+        "SEE_OTHER"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 996,
+      "completion_tokens": 9,
+      "latency_ms": 153.5,
+      "response": "301, 302",
+      "response_text": "301, 302"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:2000",
+      "objective_id": "b4v3-p5",
+      "agent": "planner",
+      "objective": "In Client.__init__, what are the names of the two default config constants used for the limits and max_redirects parameters? List both identifiers.",
+      "required": [
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "forbidden": [
+        "DEFAULT_TIMEOUT_CONFIG",
+        "USE_CLIENT_DEFAULT",
+        "Limits"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1586,
+      "completion_tokens": 8,
+      "latency_ms": 186.3,
+      "response": "max_connections, max_keepalive_connections",
+      "response_text": "max_connections, max_keepalive_connections"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:2000",
+      "objective_id": "b4v3-i1",
+      "agent": "implementer",
+      "objective": "Which ContentDecoder subclass in _decoders.py handles 'zstd' responses? Give the class name only.",
+      "required": [
+        "ZStandardDecoder"
+      ],
+      "forbidden": [
+        "BrotliDecoder",
+        "GZipDecoder",
+        "DeflateDecoder"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1366,
+      "completion_tokens": 4,
+      "latency_ms": 116.8,
+      "response": "ZStandardDecoder",
+      "response_text": "ZStandardDecoder"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:2000",
+      "objective_id": "b4v3-i2",
+      "agent": "implementer",
+      "objective": "In the URL class, which property returns the URL-decoded path as a string, and which returns the raw bytes of the path plus query? List both property names.",
+      "required": [
+        "path",
+        "raw_path"
+      ],
+      "forbidden": [
+        "query",
+        "netloc",
+        "host"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "raw_path"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1409,
+      "completion_tokens": 4,
+      "latency_ms": 121.1,
+      "response": "path,query",
+      "response_text": "path,query"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:2000",
+      "objective_id": "b4v3-i3",
+      "agent": "implementer",
+      "objective": "When the optional brotli and zstandard packages are not installed, which two keys are removed from SUPPORTED_DECODERS in _decoders.py? List both keys.",
+      "required": [
+        "br",
+        "zstd"
+      ],
+      "forbidden": [
+        "gzip",
+        "deflate",
+        "identity"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "br",
+        "zstd"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1546,
+      "completion_tokens": 6,
+      "latency_ms": 157.2,
+      "response": "content_type, charset_encoding",
+      "response_text": "content_type, charset_encoding"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:2000",
+      "objective_id": "b4v3-i4",
+      "agent": "implementer",
+      "objective": "Which property on URL returns the IDNA-encoded host as bytes, and which class in _models.py stores HTTP headers as a case-insensitive multi-dict? Give both identifiers.",
+      "required": [
+        "raw_host",
+        "Headers"
+      ],
+      "forbidden": [
+        "host",
+        "netloc",
+        "QueryParams"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "raw_host"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 910,
+      "completion_tokens": 7,
+      "latency_ms": 126.7,
+      "response": "idna_encoded_host, Headers",
+      "response_text": "idna_encoded_host, Headers"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:2000",
+      "objective_id": "b4v3-i5",
+      "agent": "implementer",
+      "objective": "Which two ContentDecoder subclasses in _decoders.py handle 'gzip' and 'deflate' content encodings? List both class names.",
+      "required": [
+        "GZipDecoder",
+        "DeflateDecoder"
+      ],
+      "forbidden": [
+        "BrotliDecoder",
+        "ZStandardDecoder",
+        "IdentityDecoder"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1561,
+      "completion_tokens": 8,
+      "latency_ms": 184.4,
+      "response": "GZipDecoder, DeflateDecoder",
+      "response_text": "GZipDecoder, DeflateDecoder"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:2000",
+      "objective_id": "b4v3-t1",
+      "agent": "tester",
+      "objective": "What is the constant name for HTTP status 418 in httpx._status_codes? Give the identifier only.",
+      "required": [
+        "IM_A_TEAPOT"
+      ],
+      "forbidden": [
+        "IM_USED",
+        "TOO_EARLY",
+        "GONE"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "IM_A_TEAPOT"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1031,
+      "completion_tokens": 3,
+      "latency_ms": 80.8,
+      "response": "UNAUTHORIZED",
+      "response_text": "UNAUTHORIZED"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:2000",
+      "objective_id": "b4v3-t2",
+      "agent": "tester",
+      "objective": "Which two methods on Request read the entire body into memory, one synchronous and one asynchronous? List both method names.",
+      "required": [
+        "read",
+        "aread"
+      ],
+      "forbidden": [
+        "iter_bytes",
+        "aiter_bytes",
+        "content"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1130,
+      "completion_tokens": 5,
+      "latency_ms": 109.7,
+      "response": "read, aread",
+      "response_text": "read, aread"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:2000",
+      "objective_id": "b4v3-t3",
+      "agent": "tester",
+      "objective": "Which Response property is True for 4xx or 5xx status codes, and which method raises HTTPStatusError for them? Give both identifiers.",
+      "required": [
+        "is_error",
+        "raise_for_status"
+      ],
+      "forbidden": [
+        "is_success",
+        "is_redirect",
+        "has_redirect_location"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "raise_for_status"
+      ],
+      "wrong_fixed": [
+        "is_success",
+        "is_redirect"
+      ],
+      "error": null,
+      "prompt_tokens": 1034,
+      "completion_tokens": 21,
+      "latency_ms": 303.7,
+      "response": "is_informational, is_success, is_redirect, is_client_error, is_server_error, is_error",
+      "response_text": "is_informational, is_success, is_redirect, is_client_error, is_server_error, is_error"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:2000",
+      "objective_id": "b4v3-t4",
+      "agent": "tester",
+      "objective": "Which exception from _exceptions.py is raised when Request.content is accessed before the stream has been read? Give the class name only.",
+      "required": [
+        "RequestNotRead"
+      ],
+      "forbidden": [
+        "ResponseNotRead",
+        "StreamClosed",
+        "StreamConsumed"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "RequestNotRead"
+      ],
+      "wrong_fixed": [
+        "StreamConsumed"
+      ],
+      "error": null,
+      "prompt_tokens": 1512,
+      "completion_tokens": 4,
+      "latency_ms": 126.1,
+      "response": "StreamConsumed",
+      "response_text": "StreamConsumed"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:2000",
+      "objective_id": "b4v3-t5",
+      "agent": "tester",
+      "objective": "Which class in _exceptions.py is the base for request-level errors, and which top-level helper in _api.py creates a Client to issue a request? Give both identifiers.",
+      "required": [
+        "RequestError",
+        "request"
+      ],
+      "forbidden": [
+        "HTTPError",
+        "TransportError",
+        "get"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "request"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1641,
+      "completion_tokens": 7,
+      "latency_ms": 173.4,
+      "response": "RequestError, UseClientDefault",
+      "response_text": "RequestError, UseClientDefault"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:2000",
+      "objective_id": "b4v3-r1",
+      "agent": "reviewer",
+      "objective": "What is the default numeric value of keepalive_expiry in the Limits class? Give the value only.",
+      "required": [
+        "5.0"
+      ],
+      "forbidden": [
+        "None",
+        "100",
+        "20"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1482,
+      "completion_tokens": 4,
+      "latency_ms": 127.1,
+      "response": "5.0",
+      "response_text": "5.0"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:2000",
+      "objective_id": "b4v3-r2",
+      "agent": "reviewer",
+      "objective": "Which exception class in _exceptions.py is the base of RequestError, which is imported by _main.py? Give the class name only.",
+      "required": [
+        "HTTPError"
+      ],
+      "forbidden": [
+        "RequestError",
+        "TransportError",
+        "ValueError"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "HTTPError"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1288,
+      "completion_tokens": 3,
+      "latency_ms": 100.4,
+      "response": "RequestError",
+      "response_text": "RequestError"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:2000",
+      "objective_id": "b4v3-r3",
+      "agent": "reviewer",
+      "objective": "In DigestAuth, which two algorithm names map to hashlib.md5? List both names.",
+      "required": [
+        "MD5",
+        "MD5-SESS"
+      ],
+      "forbidden": [
+        "SHA",
+        "SHA-256",
+        "SHA-512"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "MD5-SESS"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1196,
+      "completion_tokens": 6,
+      "latency_ms": 129.3,
+      "response": "MD5, SHA1",
+      "response_text": "MD5, SHA1"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:2000",
+      "objective_id": "b4v3-r4",
+      "agent": "reviewer",
+      "objective": "Which exception class in _exceptions.py is the base for stream errors, and which class in _models.py raises StreamConsumed when raw response iteration is attempted twice? Give both identifiers.",
+      "required": [
+        "StreamError",
+        "Response"
+      ],
+      "forbidden": [
+        "StreamClosed",
+        "RequestError",
+        "HTTPError"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "StreamError",
+        "Response"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1658,
+      "completion_tokens": 8,
+      "latency_ms": 194.7,
+      "response": "StreamConsumed, ResponseNotRead",
+      "response_text": "StreamConsumed, ResponseNotRead"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:2000",
+      "objective_id": "b4v3-r5",
+      "agent": "reviewer",
+      "objective": "In _multipart.py, which helper function guesses a file's mimetype, and what fallback string does it return when guessing yields None? Give both.",
+      "required": [
+        "_guess_content_type",
+        "application/octet-stream"
+      ],
+      "forbidden": [
+        "_format_form_param",
+        "multipart/form-data",
+        "text/plain"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1357,
+      "completion_tokens": 8,
+      "latency_ms": 171.1,
+      "response": "_guess_content_type, application/octet-stream",
+      "response_text": "_guess_content_type, application/octet-stream"
+    },
+    {
+      "op": "chat",
+      "arm": "H2:2000",
+      "objective_id": "b4v3-p1",
+      "agent": "planner",
+      "objective": "What integer is the default value of max_redirects used by httpx clients? Answer with the number only.",
+      "required": [
+        "20"
+      ],
+      "forbidden": [
+        "5.0",
+        "100",
+        "None"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "20"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2047,
+      "completion_tokens": 3,
+      "latency_ms": 198.1,
+      "response": "10",
+      "response_text": "10"
+    },
+    {
+      "op": "chat",
+      "arm": "H2:2000",
+      "objective_id": "b4v3-p2",
+      "agent": "planner",
+      "objective": "When Client.build_request() merges query parameters and falls back to a default timeout, what class from _urls.py and what constant from _config.py are used? Give the two identifiers separated by a comma.",
+      "required": [
+        "QueryParams",
+        "DEFAULT_TIMEOUT_CONFIG"
+      ],
+      "forbidden": [
+        "URL",
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1846,
+      "completion_tokens": 28,
+      "latency_ms": 461.6,
+      "response": "The class from `_urls.py` used is `QueryParams`. The constant from `_config.py` used is `DEFAULT_TIMEOUT_CONFIG`.",
+      "response_text": "The class from `_urls.py` used is `QueryParams`. The constant from `_config.py` used is `DEFAULT_TIMEOUT_CONFIG`."
+    },
+    {
+      "op": "chat",
+      "arm": "H2:2000",
+      "objective_id": "b4v3-p3",
+      "agent": "planner",
+      "objective": "In _transports/default.py, which base class defined in _transports/base.py does AsyncHTTPTransport inherit from? Give the class name only.",
+      "required": [
+        "AsyncBaseTransport"
+      ],
+      "forbidden": [
+        "BaseTransport",
+        "HTTPTransport",
+        "Client"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "AsyncBaseTransport"
+      ],
+      "wrong_fixed": [
+        "BaseTransport"
+      ],
+      "error": null,
+      "prompt_tokens": 2021,
+      "completion_tokens": 3,
+      "latency_ms": 141.2,
+      "response": "BaseTransport",
+      "response_text": "BaseTransport"
+    },
+    {
+      "op": "chat",
+      "arm": "H2:2000",
+      "objective_id": "b4v3-p4",
+      "agent": "planner",
+      "objective": "In Client._redirect_method, which two status-code constants from _status_codes.py trigger a method change to GET when the original method is not HEAD? List both names.",
+      "required": [
+        "FOUND",
+        "SEE_OTHER"
+      ],
+      "forbidden": [
+        "MOVED_PERMANENTLY",
+        "TEMPORARY_REDIRECT",
+        "PERMANENT_REDIRECT"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "FOUND",
+        "SEE_OTHER"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2053,
+      "completion_tokens": 96,
+      "latency_ms": 1302.0,
+      "response": "The two status-code constants from `_status_codes.py` that trigger a method change to GET when the original method is not HEAD are:\n\n1. **codes.HTTP_100_CONTINUE**\n2. **codes.HTTP_101_SWITCHING_PROTOCOLS**\n\nThese status codes typically indicate that the server is processing the request or transitioning between protocols, respectively. When these statuses occur after a HEAD request, the client's behavior changes to follow the new protocol or continue with the existing one",
+      "response_text": "The two status-code constants from `_status_codes.py` that trigger a method change to GET when the original method is not HEAD are:\n\n1. **codes.HTTP_100_CONTINUE**\n2. **codes.HTTP_101_SWITCHING_PROTOCOLS**\n\nThese status codes typically indicate that the server is processing the request or transitioning between protocols, respectively. When these statuses occur after a HEAD request, the client's behavior changes to follow the new protocol or continue with the existing one"
+    },
+    {
+      "op": "chat",
+      "arm": "H2:2000",
+      "objective_id": "b4v3-p5",
+      "agent": "planner",
+      "objective": "In Client.__init__, what are the names of the two default config constants used for the limits and max_redirects parameters? List both identifiers.",
+      "required": [
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "forbidden": [
+        "DEFAULT_TIMEOUT_CONFIG",
+        "USE_CLIENT_DEFAULT",
+        "Limits"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2039,
+      "completion_tokens": 37,
+      "latency_ms": 580.1,
+      "response": "The two default config constants used for the limits and max_redirects parameters in Client.__init__ are:\n\n1. `DEFAULT_LIMITS`\n2. `DEFAULT_MAX_REDIRECTS`",
+      "response_text": "The two default config constants used for the limits and max_redirects parameters in Client.__init__ are:\n\n1. `DEFAULT_LIMITS`\n2. `DEFAULT_MAX_REDIRECTS`"
+    },
+    {
+      "op": "chat",
+      "arm": "H2:2000",
+      "objective_id": "b4v3-i1",
+      "agent": "implementer",
+      "objective": "Which ContentDecoder subclass in _decoders.py handles 'zstd' responses? Give the class name only.",
+      "required": [
+        "ZStandardDecoder"
+      ],
+      "forbidden": [
+        "BrotliDecoder",
+        "GZipDecoder",
+        "DeflateDecoder"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1827,
+      "completion_tokens": 4,
+      "latency_ms": 152.1,
+      "response": "ZStandardDecoder",
+      "response_text": "ZStandardDecoder"
+    },
+    {
+      "op": "chat",
+      "arm": "H2:2000",
+      "objective_id": "b4v3-i2",
+      "agent": "implementer",
+      "objective": "In the URL class, which property returns the URL-decoded path as a string, and which returns the raw bytes of the path plus query? List both property names.",
+      "required": [
+        "path",
+        "raw_path"
+      ],
+      "forbidden": [
+        "query",
+        "netloc",
+        "host"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "raw_path"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2008,
+      "completion_tokens": 34,
+      "latency_ms": 537.6,
+      "response": "The `url.path` property returns the URL-decoded path as a string.\n\nThe `url.raw_path` property returns the raw bytes of the path plus query.",
+      "response_text": "The `url.path` property returns the URL-decoded path as a string.\n\nThe `url.raw_path` property returns the raw bytes of the path plus query."
+    },
+    {
+      "op": "chat",
+      "arm": "H2:2000",
+      "objective_id": "b4v3-i3",
+      "agent": "implementer",
+      "objective": "When the optional brotli and zstandard packages are not installed, which two keys are removed from SUPPORTED_DECODERS in _decoders.py? List both keys.",
+      "required": [
+        "br",
+        "zstd"
+      ],
+      "forbidden": [
+        "gzip",
+        "deflate",
+        "identity"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "br",
+        "zstd"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2051,
+      "completion_tokens": 96,
+      "latency_ms": 1294.0,
+      "response": "The two keys that are removed from SUPPORTED_DECODERS in _decoders.py when the optional brotli and zstandard packages are not installed are:\n\n1. 'brotli'\n2. 'ZStandard'\n\nThese keys were previously present in the SUPPORTED_DECODERS dictionary because the respective decoders (BrotliDecoder and ZStandardDecoder) were imported from those packages. When these packages are not installed, their corresponding decoders cannot be found, so they",
+      "response_text": "The two keys that are removed from SUPPORTED_DECODERS in _decoders.py when the optional brotli and zstandard packages are not installed are:\n\n1. 'brotli'\n2. 'ZStandard'\n\nThese keys were previously present in the SUPPORTED_DECODERS dictionary because the respective decoders (BrotliDecoder and ZStandardDecoder) were imported from those packages. When these packages are not installed, their corresponding decoders cannot be found, so they"
+    },
+    {
+      "op": "chat",
+      "arm": "H2:2000",
+      "objective_id": "b4v3-i4",
+      "agent": "implementer",
+      "objective": "Which property on URL returns the IDNA-encoded host as bytes, and which class in _models.py stores HTTP headers as a case-insensitive multi-dict? Give both identifiers.",
+      "required": [
+        "raw_host",
+        "Headers"
+      ],
+      "forbidden": [
+        "host",
+        "netloc",
+        "QueryParams"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "raw_host"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1058,
+      "completion_tokens": 96,
+      "latency_ms": 1218.1,
+      "response": "The property on `URL` that returns the IDNA-encoded host as bytes is `_idna_encoded_host`. This can be accessed using `url._idna_encoded_host`.\n\nIn `_models.py`, the class that stores HTTP headers as a case-insensitive multi-dict is `Headers`. It provides methods like `update`, `copy`, etc., to manage the headers with case insensitivity.\n\nHere's how you would access these properties:\n\n```python\nfrom httpx import URL",
+      "response_text": "The property on `URL` that returns the IDNA-encoded host as bytes is `_idna_encoded_host`. This can be accessed using `url._idna_encoded_host`.\n\nIn `_models.py`, the class that stores HTTP headers as a case-insensitive multi-dict is `Headers`. It provides methods like `update`, `copy`, etc., to manage the headers with case insensitivity.\n\nHere's how you would access these properties:\n\n```python\nfrom httpx import URL"
+    },
+    {
+      "op": "chat",
+      "arm": "H2:2000",
+      "objective_id": "b4v3-i5",
+      "agent": "implementer",
+      "objective": "Which two ContentDecoder subclasses in _decoders.py handle 'gzip' and 'deflate' content encodings? List both class names.",
+      "required": [
+        "GZipDecoder",
+        "DeflateDecoder"
+      ],
+      "forbidden": [
+        "BrotliDecoder",
+        "ZStandardDecoder",
+        "IdentityDecoder"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1831,
+      "completion_tokens": 67,
+      "latency_ms": 923.8,
+      "response": "The two ContentDecoder subclasses in `_decoders.py` that handle 'gzip' and 'deflate' content encodings are:\n\n1. **GZipDecoder**\n2. **DeflateDecoder**\n\nThese classes are defined within the `httpx/_decoders.py` file and are responsible for handling gzip and deflate compression respectively.",
+      "response_text": "The two ContentDecoder subclasses in `_decoders.py` that handle 'gzip' and 'deflate' content encodings are:\n\n1. **GZipDecoder**\n2. **DeflateDecoder**\n\nThese classes are defined within the `httpx/_decoders.py` file and are responsible for handling gzip and deflate compression respectively."
+    },
+    {
+      "op": "chat",
+      "arm": "H2:2000",
+      "objective_id": "b4v3-t1",
+      "agent": "tester",
+      "objective": "What is the constant name for HTTP status 418 in httpx._status_codes? Give the identifier only.",
+      "required": [
+        "IM_A_TEAPOT"
+      ],
+      "forbidden": [
+        "IM_USED",
+        "TOO_EARLY",
+        "GONE"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "IM_A_TEAPOT"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1271,
+      "completion_tokens": 31,
+      "latency_ms": 438.6,
+      "response": "The constant name for HTTP status 418 (I'm a teapot) in httpx._status_codes is `UNPROCESSABLE_ENTITY`.",
+      "response_text": "The constant name for HTTP status 418 (I'm a teapot) in httpx._status_codes is `UNPROCESSABLE_ENTITY`."
+    },
+    {
+      "op": "chat",
+      "arm": "H2:2000",
+      "objective_id": "b4v3-t2",
+      "agent": "tester",
+      "objective": "Which two methods on Request read the entire body into memory, one synchronous and one asynchronous? List both method names.",
+      "required": [
+        "read",
+        "aread"
+      ],
+      "forbidden": [
+        "iter_bytes",
+        "aiter_bytes",
+        "content"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [],
+      "wrong_fixed": [
+        "content"
+      ],
+      "error": null,
+      "prompt_tokens": 2031,
+      "completion_tokens": 51,
+      "latency_ms": 740.9,
+      "response": "The two methods on `Request` that read the entire body into memory are:\n\n1. `read()` - This method reads and returns the request content synchronously.\n2. `aread()` - This method reads and returns the request content asynchronously.",
+      "response_text": "The two methods on `Request` that read the entire body into memory are:\n\n1. `read()` - This method reads and returns the request content synchronously.\n2. `aread()` - This method reads and returns the request content asynchronously."
+    },
+    {
+      "op": "chat",
+      "arm": "H2:2000",
+      "objective_id": "b4v3-t3",
+      "agent": "tester",
+      "objective": "Which Response property is True for 4xx or 5xx status codes, and which method raises HTTPStatusError for them? Give both identifiers.",
+      "required": [
+        "is_error",
+        "raise_for_status"
+      ],
+      "forbidden": [
+        "is_success",
+        "is_redirect",
+        "has_redirect_location"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "is_error",
+        "raise_for_status"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 962,
+      "completion_tokens": 96,
+      "latency_ms": 1216.4,
+      "response": "For responses with 4xx (Client Error) or 5xx (Server Error) status codes, the following properties are true:\n\n1. **Response.is_informational**: This property returns `False`. It indicates that the response is neither informational nor success.\n   \n2. **Response.is_success**: This property returns `False`. It indicates that the response was not successful.\n\n3. **Response.is_redirect**: This property returns `True`. It indicates that the response contains information about",
+      "response_text": "For responses with 4xx (Client Error) or 5xx (Server Error) status codes, the following properties are true:\n\n1. **Response.is_informational**: This property returns `False`. It indicates that the response is neither informational nor success.\n   \n2. **Response.is_success**: This property returns `False`. It indicates that the response was not successful.\n\n3. **Response.is_redirect**: This property returns `True`. It indicates that the response contains information about"
+    },
+    {
+      "op": "chat",
+      "arm": "H2:2000",
+      "objective_id": "b4v3-t4",
+      "agent": "tester",
+      "objective": "Which exception from _exceptions.py is raised when Request.content is accessed before the stream has been read? Give the class name only.",
+      "required": [
+        "RequestNotRead"
+      ],
+      "forbidden": [
+        "ResponseNotRead",
+        "StreamClosed",
+        "StreamConsumed"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "RequestNotRead"
+      ],
+      "wrong_fixed": [
+        "StreamConsumed"
+      ],
+      "error": null,
+      "prompt_tokens": 1964,
+      "completion_tokens": 4,
+      "latency_ms": 148.9,
+      "response": "StreamConsumed",
+      "response_text": "StreamConsumed"
+    },
+    {
+      "op": "chat",
+      "arm": "H2:2000",
+      "objective_id": "b4v3-t5",
+      "agent": "tester",
+      "objective": "Which class in _exceptions.py is the base for request-level errors, and which top-level helper in _api.py creates a Client to issue a request? Give both identifiers.",
+      "required": [
+        "RequestError",
+        "request"
+      ],
+      "forbidden": [
+        "HTTPError",
+        "TransportError",
+        "get"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2036,
+      "completion_tokens": 96,
+      "latency_ms": 1304.0,
+      "response": "The base class for request-level errors in `_exceptions.py` is `RequestError`.\n\nThe top-level helper in `_api.py` that creates a `Client` to issue a request is `create_client()`.\n\nHere's how they relate to each other:\n\n1. **Creating a Client**:\n   - In `_api.py`, there is no direct method called `create_client()` that instantiates a `Client`.\n   - Instead, the creation of a `Client` happens implicitly",
+      "response_text": "The base class for request-level errors in `_exceptions.py` is `RequestError`.\n\nThe top-level helper in `_api.py` that creates a `Client` to issue a request is `create_client()`.\n\nHere's how they relate to each other:\n\n1. **Creating a Client**:\n   - In `_api.py`, there is no direct method called `create_client()` that instantiates a `Client`.\n   - Instead, the creation of a `Client` happens implicitly"
+    },
+    {
+      "op": "chat",
+      "arm": "H2:2000",
+      "objective_id": "b4v3-r1",
+      "agent": "reviewer",
+      "objective": "What is the default numeric value of keepalive_expiry in the Limits class? Give the value only.",
+      "required": [
+        "5.0"
+      ],
+      "forbidden": [
+        "None",
+        "100",
+        "20"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1952,
+      "completion_tokens": 23,
+      "latency_ms": 398.4,
+      "response": "The default numeric value of `keepalive_expiry` in the `Limits` class is `5.0`.",
+      "response_text": "The default numeric value of `keepalive_expiry` in the `Limits` class is `5.0`."
+    },
+    {
+      "op": "chat",
+      "arm": "H2:2000",
+      "objective_id": "b4v3-r2",
+      "agent": "reviewer",
+      "objective": "Which exception class in _exceptions.py is the base of RequestError, which is imported by _main.py? Give the class name only.",
+      "required": [
+        "HTTPError"
+      ],
+      "forbidden": [
+        "RequestError",
+        "TransportError",
+        "ValueError"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1439,
+      "completion_tokens": 3,
+      "latency_ms": 110.2,
+      "response": "HTTPError",
+      "response_text": "HTTPError"
+    },
+    {
+      "op": "chat",
+      "arm": "H2:2000",
+      "objective_id": "b4v3-r3",
+      "agent": "reviewer",
+      "objective": "In DigestAuth, which two algorithm names map to hashlib.md5? List both names.",
+      "required": [
+        "MD5",
+        "MD5-SESS"
+      ],
+      "forbidden": [
+        "SHA",
+        "SHA-256",
+        "SHA-512"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "MD5-SESS"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1338,
+      "completion_tokens": 96,
+      "latency_ms": 1249.8,
+      "response": "In the context of Digest Authentication (also known as MD5/MD4), there are two commonly used algorithms:\n\n1. **md5** - This is one of the older and more widely supported algorithms for generating the \"nonce\" value in the challenge-response mechanism.\n\n2. **md4** - While less common due to its lower security compared to md5, it's still sometimes used in certain implementations.\n\nBoth `md5` and `md4` are part of",
+      "response_text": "In the context of Digest Authentication (also known as MD5/MD4), there are two commonly used algorithms:\n\n1. **md5** - This is one of the older and more widely supported algorithms for generating the \"nonce\" value in the challenge-response mechanism.\n\n2. **md4** - While less common due to its lower security compared to md5, it's still sometimes used in certain implementations.\n\nBoth `md5` and `md4` are part of"
+    },
+    {
+      "op": "chat",
+      "arm": "H2:2000",
+      "objective_id": "b4v3-r4",
+      "agent": "reviewer",
+      "objective": "Which exception class in _exceptions.py is the base for stream errors, and which class in _models.py raises StreamConsumed when raw response iteration is attempted twice? Give both identifiers.",
+      "required": [
+        "StreamError",
+        "Response"
+      ],
+      "forbidden": [
+        "StreamClosed",
+        "RequestError",
+        "HTTPError"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2046,
+      "completion_tokens": 44,
+      "latency_ms": 667.5,
+      "response": "In `_exceptions.py`, the base class for stream errors is `StreamError`. \n\nIn `_models.py`, the class that raises `StreamConsumed` when raw response iteration is attempted twice is `StreamError`.",
+      "response_text": "In `_exceptions.py`, the base class for stream errors is `StreamError`. \n\nIn `_models.py`, the class that raises `StreamConsumed` when raw response iteration is attempted twice is `StreamError`."
+    },
+    {
+      "op": "chat",
+      "arm": "H2:2000",
+      "objective_id": "b4v3-r5",
+      "agent": "reviewer",
+      "objective": "In _multipart.py, which helper function guesses a file's mimetype, and what fallback string does it return when guessing yields None? Give both.",
+      "required": [
+        "_guess_content_type",
+        "application/octet-stream"
+      ],
+      "forbidden": [
+        "_format_form_param",
+        "multipart/form-data",
+        "text/plain"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1949,
+      "completion_tokens": 96,
+      "latency_ms": 1348.1,
+      "response": "The `_guess_content_type` function in `_multipart.py` guesses a file's MIME type based on its filename. When it fails to guess the MIME type, it returns `None`.\n\nHere's the relevant part of the `_guess_content_type` function:\n\n```python\ndef _guess_content_type(filename: str | None) -> str | None:\n    \"\"\"\n    Guesses the mimetype based on a filename. Defaults to `application/octet-stream`.\n    \n    Returns `None` if",
+      "response_text": "The `_guess_content_type` function in `_multipart.py` guesses a file's MIME type based on its filename. When it fails to guess the MIME type, it returns `None`.\n\nHere's the relevant part of the `_guess_content_type` function:\n\n```python\ndef _guess_content_type(filename: str | None) -> str | None:\n    \"\"\"\n    Guesses the mimetype based on a filename. Defaults to `application/octet-stream`.\n    \n    Returns `None` if"
+    },
+    {
+      "op": "chat",
+      "arm": "R:4000",
+      "objective_id": "b4v3-p1",
+      "agent": "planner",
+      "objective": "What integer is the default value of max_redirects used by httpx clients? Answer with the number only.",
+      "required": [
+        "20"
+      ],
+      "forbidden": [
+        "5.0",
+        "100",
+        "None"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "20"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 4044,
+      "completion_tokens": 5,
+      "latency_ms": 453.9,
+      "response": "DEFAULT_MAX_REDIRECTS",
+      "response_text": "DEFAULT_MAX_REDIRECTS"
+    },
+    {
+      "op": "chat",
+      "arm": "R:4000",
+      "objective_id": "b4v3-p2",
+      "agent": "planner",
+      "objective": "When Client.build_request() merges query parameters and falls back to a default timeout, what class from _urls.py and what constant from _config.py are used? Give the two identifiers separated by a comma.",
+      "required": [
+        "QueryParams",
+        "DEFAULT_TIMEOUT_CONFIG"
+      ],
+      "forbidden": [
+        "URL",
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "QueryParams"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 4061,
+      "completion_tokens": 96,
+      "latency_ms": 1623.8,
+      "response": "The `_urls.py` file does not contain any specific classes related to merging query parameters or timeouts. However, the `_config.py` file contains constants like `DEFAULT_TIMEOUT_CONFIG` which could potentially be used for timeouts.\n\nIn your provided code snippet:\n\n```python\nself.timeout = self._timeout\n```\n\nIt seems you're trying to assign the current value of `_timeout` to `self.timeout`. \n\nIf you meant to merge query parameters with the client's defaults, you",
+      "response_text": "The `_urls.py` file does not contain any specific classes related to merging query parameters or timeouts. However, the `_config.py` file contains constants like `DEFAULT_TIMEOUT_CONFIG` which could potentially be used for timeouts.\n\nIn your provided code snippet:\n\n```python\nself.timeout = self._timeout\n```\n\nIt seems you're trying to assign the current value of `_timeout` to `self.timeout`. \n\nIf you meant to merge query parameters with the client's defaults, you"
+    },
+    {
+      "op": "chat",
+      "arm": "R:4000",
+      "objective_id": "b4v3-p3",
+      "agent": "planner",
+      "objective": "In _transports/default.py, which base class defined in _transports/base.py does AsyncHTTPTransport inherit from? Give the class name only.",
+      "required": [
+        "AsyncBaseTransport"
+      ],
+      "forbidden": [
+        "BaseTransport",
+        "HTTPTransport",
+        "Client"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "AsyncBaseTransport"
+      ],
+      "wrong_fixed": [
+        "BaseTransport"
+      ],
+      "error": null,
+      "prompt_tokens": 4053,
+      "completion_tokens": 3,
+      "latency_ms": 403.9,
+      "response": "BaseTransport",
+      "response_text": "BaseTransport"
+    },
+    {
+      "op": "chat",
+      "arm": "R:4000",
+      "objective_id": "b4v3-p4",
+      "agent": "planner",
+      "objective": "In Client._redirect_method, which two status-code constants from _status_codes.py trigger a method change to GET when the original method is not HEAD? List both names.",
+      "required": [
+        "FOUND",
+        "SEE_OTHER"
+      ],
+      "forbidden": [
+        "MOVED_PERMANENTLY",
+        "TEMPORARY_REDIRECT",
+        "PERMANENT_REDIRECT"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "FOUND",
+        "SEE_OTHER"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 4048,
+      "completion_tokens": 90,
+      "latency_ms": 1512.5,
+      "response": "The two status code constants from `_status_codes.py` that trigger a method change to GET when the original method is not HEAD are:\n\n1. **codes.MOVED_PERMANENTLY**\n2. **codes.FOUND**\n\nThese status codes indicate that the server has moved the requested resource to a different URI permanently. In such cases, the client should switch its request method from `POST` to `GET` to fetch the updated resource.",
+      "response_text": "The two status code constants from `_status_codes.py` that trigger a method change to GET when the original method is not HEAD are:\n\n1. **codes.MOVED_PERMANENTLY**\n2. **codes.FOUND**\n\nThese status codes indicate that the server has moved the requested resource to a different URI permanently. In such cases, the client should switch its request method from `POST` to `GET` to fetch the updated resource."
+    },
+    {
+      "op": "chat",
+      "arm": "R:4000",
+      "objective_id": "b4v3-p5",
+      "agent": "planner",
+      "objective": "In Client.__init__, what are the names of the two default config constants used for the limits and max_redirects parameters? List both identifiers.",
+      "required": [
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "forbidden": [
+        "DEFAULT_TIMEOUT_CONFIG",
+        "USE_CLIENT_DEFAULT",
+        "Limits"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 4041,
+      "completion_tokens": 55,
+      "latency_ms": 1047.0,
+      "response": "The two default config constants used for the limits and max_redirects parameters in Client.__init__ are:\n\n1. `DEFAULT_MAX_REDIRECTS`\n2. `DEFAULT_LIMITS`\n\nThese constants are defined in the `_config.py` file under the `Limits` class.",
+      "response_text": "The two default config constants used for the limits and max_redirects parameters in Client.__init__ are:\n\n1. `DEFAULT_MAX_REDIRECTS`\n2. `DEFAULT_LIMITS`\n\nThese constants are defined in the `_config.py` file under the `Limits` class."
+    },
+    {
+      "op": "chat",
+      "arm": "R:4000",
+      "objective_id": "b4v3-i1",
+      "agent": "implementer",
+      "objective": "Which ContentDecoder subclass in _decoders.py handles 'zstd' responses? Give the class name only.",
+      "required": [
+        "ZStandardDecoder"
+      ],
+      "forbidden": [
+        "BrotliDecoder",
+        "GZipDecoder",
+        "DeflateDecoder"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 4038,
+      "completion_tokens": 23,
+      "latency_ms": 633.1,
+      "response": "The ContentDecoder subclass in _decoders.py that handles 'zstd' responses is called ZStandardDecoder.",
+      "response_text": "The ContentDecoder subclass in _decoders.py that handles 'zstd' responses is called ZStandardDecoder."
+    },
+    {
+      "op": "chat",
+      "arm": "R:4000",
+      "objective_id": "b4v3-i2",
+      "agent": "implementer",
+      "objective": "In the URL class, which property returns the URL-decoded path as a string, and which returns the raw bytes of the path plus query? List both property names.",
+      "required": [
+        "path",
+        "raw_path"
+      ],
+      "forbidden": [
+        "query",
+        "netloc",
+        "host"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 4045,
+      "completion_tokens": 96,
+      "latency_ms": 1538.7,
+      "response": "The URL class has two properties related to the path:\n\n1. `path`: Returns the URL-decoded path as a string. For example:\n\n```python\nurl = httpx.URL(\"https://example.com/pa%20th\")\nassert url.path == \"/pa th\"\n```\n\n2. `raw_path`: Returns the raw bytes of the path plus query. For example:\n\n```python\nurl = httpx.URL(\"https://example.com/?filter=some%",
+      "response_text": "The URL class has two properties related to the path:\n\n1. `path`: Returns the URL-decoded path as a string. For example:\n\n```python\nurl = httpx.URL(\"https://example.com/pa%20th\")\nassert url.path == \"/pa th\"\n```\n\n2. `raw_path`: Returns the raw bytes of the path plus query. For example:\n\n```python\nurl = httpx.URL(\"https://example.com/?filter=some%"
+    },
+    {
+      "op": "chat",
+      "arm": "R:4000",
+      "objective_id": "b4v3-i3",
+      "agent": "implementer",
+      "objective": "When the optional brotli and zstandard packages are not installed, which two keys are removed from SUPPORTED_DECODERS in _decoders.py? List both keys.",
+      "required": [
+        "br",
+        "zstd"
+      ],
+      "forbidden": [
+        "gzip",
+        "deflate",
+        "identity"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "br"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 4048,
+      "completion_tokens": 96,
+      "latency_ms": 1522.3,
+      "response": "If the optional brotli and/or zstandard packages are not installed, the following two keys are removed from the `SUPPORTED_DECODERS` dictionary in `_decoders.py`:\n\n1. `'brotli'`\n2. `'zstd'`\n\nThese keys are present in the original codebase, but their removal indicates that these specific decoders were not intended to be supported without the required dependencies being installed. This change suggests that the library's behavior may differ depending",
+      "response_text": "If the optional brotli and/or zstandard packages are not installed, the following two keys are removed from the `SUPPORTED_DECODERS` dictionary in `_decoders.py`:\n\n1. `'brotli'`\n2. `'zstd'`\n\nThese keys are present in the original codebase, but their removal indicates that these specific decoders were not intended to be supported without the required dependencies being installed. This change suggests that the library's behavior may differ depending"
+    },
+    {
+      "op": "chat",
+      "arm": "R:4000",
+      "objective_id": "b4v3-i4",
+      "agent": "implementer",
+      "objective": "Which property on URL returns the IDNA-encoded host as bytes, and which class in _models.py stores HTTP headers as a case-insensitive multi-dict? Give both identifiers.",
+      "required": [
+        "raw_host",
+        "Headers"
+      ],
+      "forbidden": [
+        "host",
+        "netloc",
+        "QueryParams"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 4058,
+      "completion_tokens": 96,
+      "latency_ms": 1218.6,
+      "response": "The property on `URL` that returns the IDNA-encoded host as bytes is `raw_host`. This method is defined in `_urls.py` under the `@property` decorator.\n\nIn `_models.py`, the class that stores HTTP headers as a case-insensitive multi-dict is `Headers`. This class is also part of the `_models` module and is responsible for managing the collection of HTTP headers associated with a URL. The `Headers` class uses a dictionary-like structure",
+      "response_text": "The property on `URL` that returns the IDNA-encoded host as bytes is `raw_host`. This method is defined in `_urls.py` under the `@property` decorator.\n\nIn `_models.py`, the class that stores HTTP headers as a case-insensitive multi-dict is `Headers`. This class is also part of the `_models` module and is responsible for managing the collection of HTTP headers associated with a URL. The `Headers` class uses a dictionary-like structure"
+    },
+    {
+      "op": "chat",
+      "arm": "R:4000",
+      "objective_id": "b4v3-i5",
+      "agent": "implementer",
+      "objective": "Which two ContentDecoder subclasses in _decoders.py handle 'gzip' and 'deflate' content encodings? List both class names.",
+      "required": [
+        "GZipDecoder",
+        "DeflateDecoder"
+      ],
+      "forbidden": [
+        "BrotliDecoder",
+        "ZStandardDecoder",
+        "IdentityDecoder"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 4056,
+      "completion_tokens": 67,
+      "latency_ms": 1161.3,
+      "response": "The two ContentDecoder subclasses in `_decoders.py` that handle 'gzip' and 'deflate' content encodings are:\n\n1. **GZipDecoder**\n2. **DeflateDecoder**\n\nThese classes are defined within the `httpx/_decoders.py` file and are responsible for handling gzip and deflate encoding respectively.",
+      "response_text": "The two ContentDecoder subclasses in `_decoders.py` that handle 'gzip' and 'deflate' content encodings are:\n\n1. **GZipDecoder**\n2. **DeflateDecoder**\n\nThese classes are defined within the `httpx/_decoders.py` file and are responsible for handling gzip and deflate encoding respectively."
+    },
+    {
+      "op": "chat",
+      "arm": "R:4000",
+      "objective_id": "b4v3-t1",
+      "agent": "tester",
+      "objective": "What is the constant name for HTTP status 418 in httpx._status_codes? Give the identifier only.",
+      "required": [
+        "IM_A_TEAPOT"
+      ],
+      "forbidden": [
+        "IM_USED",
+        "TOO_EARLY",
+        "GONE"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "IM_A_TEAPOT"
+      ],
+      "wrong_fixed": [
+        "IM_USED"
+      ],
+      "error": null,
+      "prompt_tokens": 4039,
+      "completion_tokens": 3,
+      "latency_ms": 368.2,
+      "response": "IM_USED",
+      "response_text": "IM_USED"
+    },
+    {
+      "op": "chat",
+      "arm": "R:4000",
+      "objective_id": "b4v3-t2",
+      "agent": "tester",
+      "objective": "Which two methods on Request read the entire body into memory, one synchronous and one asynchronous? List both method names.",
+      "required": [
+        "read",
+        "aread"
+      ],
+      "forbidden": [
+        "iter_bytes",
+        "aiter_bytes",
+        "content"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "aread"
+      ],
+      "wrong_fixed": [
+        "content"
+      ],
+      "error": null,
+      "prompt_tokens": 4042,
+      "completion_tokens": 96,
+      "latency_ms": 1555.6,
+      "response": "Based on the code provided, there are two methods on the `Request` class that read the entire body into memory:\n\n1. `read`: This is a synchronous method that reads the entire body of the request into memory using the underlying byte stream (`stream`). It returns the entire body as a string.\n\n```python\ndef read(self) -> bytes:\n    \"\"\"\n    Read and return the request content.\n    \"\"\"\n    if not hasattr(self, \"_content\"):\n        assert isinstance(self",
+      "response_text": "Based on the code provided, there are two methods on the `Request` class that read the entire body into memory:\n\n1. `read`: This is a synchronous method that reads the entire body of the request into memory using the underlying byte stream (`stream`). It returns the entire body as a string.\n\n```python\ndef read(self) -> bytes:\n    \"\"\"\n    Read and return the request content.\n    \"\"\"\n    if not hasattr(self, \"_content\"):\n        assert isinstance(self"
+    },
+    {
+      "op": "chat",
+      "arm": "R:4000",
+      "objective_id": "b4v3-t3",
+      "agent": "tester",
+      "objective": "Which Response property is True for 4xx or 5xx status codes, and which method raises HTTPStatusError for them? Give both identifiers.",
+      "required": [
+        "is_error",
+        "raise_for_status"
+      ],
+      "forbidden": [
+        "is_success",
+        "is_redirect",
+        "has_redirect_location"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 4051,
+      "completion_tokens": 96,
+      "latency_ms": 1537.1,
+      "response": "For 4xx or 5xx status codes, the `is_error` method returns `True`, and the `raise_for_status` method raises the corresponding `HTTPStatusError` subclass.\n\nHere's how you can check these properties using Python code:\n\n```python\nfrom httpx import codes, Response\n\n# Check if the status code is 4xx or 5xx\nif codes.is_error(response.status_code):\n    print(\"The status code is either 4xx",
+      "response_text": "For 4xx or 5xx status codes, the `is_error` method returns `True`, and the `raise_for_status` method raises the corresponding `HTTPStatusError` subclass.\n\nHere's how you can check these properties using Python code:\n\n```python\nfrom httpx import codes, Response\n\n# Check if the status code is 4xx or 5xx\nif codes.is_error(response.status_code):\n    print(\"The status code is either 4xx"
+    },
+    {
+      "op": "chat",
+      "arm": "R:4000",
+      "objective_id": "b4v3-t4",
+      "agent": "tester",
+      "objective": "Which exception from _exceptions.py is raised when Request.content is accessed before the stream has been read? Give the class name only.",
+      "required": [
+        "RequestNotRead"
+      ],
+      "forbidden": [
+        "ResponseNotRead",
+        "StreamClosed",
+        "StreamConsumed"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 4045,
+      "completion_tokens": 4,
+      "latency_ms": 308.3,
+      "response": "RequestNotRead",
+      "response_text": "RequestNotRead"
+    },
+    {
+      "op": "chat",
+      "arm": "R:4000",
+      "objective_id": "b4v3-t5",
+      "agent": "tester",
+      "objective": "Which class in _exceptions.py is the base for request-level errors, and which top-level helper in _api.py creates a Client to issue a request? Give both identifiers.",
+      "required": [
+        "RequestError",
+        "request"
+      ],
+      "forbidden": [
+        "HTTPError",
+        "TransportError",
+        "get"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [],
+      "wrong_fixed": [
+        "HTTPError",
+        "TransportError"
+      ],
+      "error": null,
+      "prompt_tokens": 4061,
+      "completion_tokens": 80,
+      "latency_ms": 1365.3,
+      "response": "In `_exceptions.py`, the `RequestError` class is the base for request-level errors. It inherits from the `HTTPError` class, which itself inherits from the `TransportError` class.\n\nIn `_api.py`, the `Client` class is created to issue a request. It's defined in the `httpx.Client` module, which is imported at the beginning of the file.",
+      "response_text": "In `_exceptions.py`, the `RequestError` class is the base for request-level errors. It inherits from the `HTTPError` class, which itself inherits from the `TransportError` class.\n\nIn `_api.py`, the `Client` class is created to issue a request. It's defined in the `httpx.Client` module, which is imported at the beginning of the file."
+    },
+    {
+      "op": "chat",
+      "arm": "R:4000",
+      "objective_id": "b4v3-r1",
+      "agent": "reviewer",
+      "objective": "What is the default numeric value of keepalive_expiry in the Limits class? Give the value only.",
+      "required": [
+        "5.0"
+      ],
+      "forbidden": [
+        "None",
+        "100",
+        "20"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 4034,
+      "completion_tokens": 19,
+      "latency_ms": 551.5,
+      "response": "The default numeric value of keepalive_expiry in the Limits class is 5.0.",
+      "response_text": "The default numeric value of keepalive_expiry in the Limits class is 5.0."
+    },
+    {
+      "op": "chat",
+      "arm": "R:4000",
+      "objective_id": "b4v3-r2",
+      "agent": "reviewer",
+      "objective": "Which exception class in _exceptions.py is the base of RequestError, which is imported by _main.py? Give the class name only.",
+      "required": [
+        "HTTPError"
+      ],
+      "forbidden": [
+        "RequestError",
+        "TransportError",
+        "ValueError"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "HTTPError"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 4041,
+      "completion_tokens": 3,
+      "latency_ms": 370.8,
+      "response": "RequestError",
+      "response_text": "RequestError"
+    },
+    {
+      "op": "chat",
+      "arm": "R:4000",
+      "objective_id": "b4v3-r3",
+      "agent": "reviewer",
+      "objective": "In DigestAuth, which two algorithm names map to hashlib.md5? List both names.",
+      "required": [
+        "MD5",
+        "MD5-SESS"
+      ],
+      "forbidden": [
+        "SHA",
+        "SHA-256",
+        "SHA-512"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 4038,
+      "completion_tokens": 96,
+      "latency_ms": 1545.5,
+      "response": "According to the `_DigestAuthChallenge` namedtuple definition in the provided code snippet, there are two algorithm names that map to hashlib.md5:\n\n1. MD5\n2. MD5-SESS\n\nThese correspond to the following lines in the code:\n\n```python\n_ALGORITHM_TO_HASH_FUNCTION: dict[str, typing.Callable[[bytes], _Hash]] = {\n    \"MD5\": hashlib.md5,\n    \"MD5-SESS\": hashlib.md5,\n   ",
+      "response_text": "According to the `_DigestAuthChallenge` namedtuple definition in the provided code snippet, there are two algorithm names that map to hashlib.md5:\n\n1. MD5\n2. MD5-SESS\n\nThese correspond to the following lines in the code:\n\n```python\n_ALGORITHM_TO_HASH_FUNCTION: dict[str, typing.Callable[[bytes], _Hash]] = {\n    \"MD5\": hashlib.md5,\n    \"MD5-SESS\": hashlib.md5,\n   "
+    },
+    {
+      "op": "chat",
+      "arm": "R:4000",
+      "objective_id": "b4v3-r4",
+      "agent": "reviewer",
+      "objective": "Which exception class in _exceptions.py is the base for stream errors, and which class in _models.py raises StreamConsumed when raw response iteration is attempted twice? Give both identifiers.",
+      "required": [
+        "StreamError",
+        "Response"
+      ],
+      "forbidden": [
+        "StreamClosed",
+        "RequestError",
+        "HTTPError"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 4058,
+      "completion_tokens": 44,
+      "latency_ms": 954.8,
+      "response": "In `_exceptions.py`, the base class for stream errors is `StreamError`. In `_models.py`, the class that raises `StreamConsumed` when raw response iteration is attempted twice is `StreamConsumed`.",
+      "response_text": "In `_exceptions.py`, the base class for stream errors is `StreamError`. In `_models.py`, the class that raises `StreamConsumed` when raw response iteration is attempted twice is `StreamConsumed`."
+    },
+    {
+      "op": "chat",
+      "arm": "R:4000",
+      "objective_id": "b4v3-r5",
+      "agent": "reviewer",
+      "objective": "In _multipart.py, which helper function guesses a file's mimetype, and what fallback string does it return when guessing yields None? Give both.",
+      "required": [
+        "_guess_content_type",
+        "application/octet-stream"
+      ],
+      "forbidden": [
+        "_format_form_param",
+        "multipart/form-data",
+        "text/plain"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 4055,
+      "completion_tokens": 96,
+      "latency_ms": 1574.5,
+      "response": "The `_guess_content_type` function in `_multipart.py` attempts to guess the MIME type of a file based on its filename. When it fails to guess a MIME type, it returns `None`. Here's how it works:\n\n```python\ndef _guess_content_type(filename: str | None) -> str | None:\n    \"\"\"\n    Guesses the mimetype based on a filename. Defaults to `application/octet-stream`.\n\n    Returns `None` if `filename` is `None",
+      "response_text": "The `_guess_content_type` function in `_multipart.py` attempts to guess the MIME type of a file based on its filename. When it fails to guess a MIME type, it returns `None`. Here's how it works:\n\n```python\ndef _guess_content_type(filename: str | None) -> str | None:\n    \"\"\"\n    Guesses the mimetype based on a filename. Defaults to `application/octet-stream`.\n\n    Returns `None` if `filename` is `None"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:4000",
+      "objective_id": "b4v3-p1",
+      "agent": "planner",
+      "objective": "What integer is the default value of max_redirects used by httpx clients? Answer with the number only.",
+      "required": [
+        "20"
+      ],
+      "forbidden": [
+        "5.0",
+        "100",
+        "None"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "20"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1692,
+      "completion_tokens": 3,
+      "latency_ms": 169.6,
+      "response": "10",
+      "response_text": "10"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:4000",
+      "objective_id": "b4v3-p2",
+      "agent": "planner",
+      "objective": "When Client.build_request() merges query parameters and falls back to a default timeout, what class from _urls.py and what constant from _config.py are used? Give the two identifiers separated by a comma.",
+      "required": [
+        "QueryParams",
+        "DEFAULT_TIMEOUT_CONFIG"
+      ],
+      "forbidden": [
+        "URL",
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "QueryParams",
+        "DEFAULT_TIMEOUT_CONFIG"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1725,
+      "completion_tokens": 6,
+      "latency_ms": 173.5,
+      "response": "UrlResolver, DEFAULT_TIMEOUT",
+      "response_text": "UrlResolver, DEFAULT_TIMEOUT"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:4000",
+      "objective_id": "b4v3-p3",
+      "agent": "planner",
+      "objective": "In _transports/default.py, which base class defined in _transports/base.py does AsyncHTTPTransport inherit from? Give the class name only.",
+      "required": [
+        "AsyncBaseTransport"
+      ],
+      "forbidden": [
+        "BaseTransport",
+        "HTTPTransport",
+        "Client"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "AsyncBaseTransport"
+      ],
+      "wrong_fixed": [
+        "BaseTransport"
+      ],
+      "error": null,
+      "prompt_tokens": 2472,
+      "completion_tokens": 3,
+      "latency_ms": 189.3,
+      "response": "BaseTransport",
+      "response_text": "BaseTransport"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:4000",
+      "objective_id": "b4v3-p4",
+      "agent": "planner",
+      "objective": "In Client._redirect_method, which two status-code constants from _status_codes.py trigger a method change to GET when the original method is not HEAD? List both names.",
+      "required": [
+        "FOUND",
+        "SEE_OTHER"
+      ],
+      "forbidden": [
+        "MOVED_PERMANENTLY",
+        "TEMPORARY_REDIRECT",
+        "PERMANENT_REDIRECT"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "FOUND",
+        "SEE_OTHER"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1700,
+      "completion_tokens": 19,
+      "latency_ms": 339.3,
+      "response": "codes.HTTP_100_CONTINUE, codes.HTTP_101_SWITCHING_PROTOCOLS",
+      "response_text": "codes.HTTP_100_CONTINUE, codes.HTTP_101_SWITCHING_PROTOCOLS"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:4000",
+      "objective_id": "b4v3-p5",
+      "agent": "planner",
+      "objective": "In Client.__init__, what are the names of the two default config constants used for the limits and max_redirects parameters? List both identifiers.",
+      "required": [
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "forbidden": [
+        "DEFAULT_TIMEOUT_CONFIG",
+        "USE_CLIENT_DEFAULT",
+        "Limits"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1697,
+      "completion_tokens": 9,
+      "latency_ms": 205.2,
+      "response": "DEFAULT_LIMITS, DEFAULT_MAX_REDIRECTS",
+      "response_text": "DEFAULT_LIMITS, DEFAULT_MAX_REDIRECTS"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:4000",
+      "objective_id": "b4v3-i1",
+      "agent": "implementer",
+      "objective": "Which ContentDecoder subclass in _decoders.py handles 'zstd' responses? Give the class name only.",
+      "required": [
+        "ZStandardDecoder"
+      ],
+      "forbidden": [
+        "BrotliDecoder",
+        "GZipDecoder",
+        "DeflateDecoder"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2449,
+      "completion_tokens": 4,
+      "latency_ms": 210.6,
+      "response": "ZStandardDecoder",
+      "response_text": "ZStandardDecoder"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:4000",
+      "objective_id": "b4v3-i2",
+      "agent": "implementer",
+      "objective": "In the URL class, which property returns the URL-decoded path as a string, and which returns the raw bytes of the path plus query? List both property names.",
+      "required": [
+        "path",
+        "raw_path"
+      ],
+      "forbidden": [
+        "query",
+        "netloc",
+        "host"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "raw_path"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1386,
+      "completion_tokens": 4,
+      "latency_ms": 120.6,
+      "response": "path,query",
+      "response_text": "path,query"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:4000",
+      "objective_id": "b4v3-i3",
+      "agent": "implementer",
+      "objective": "When the optional brotli and zstandard packages are not installed, which two keys are removed from SUPPORTED_DECODERS in _decoders.py? List both keys.",
+      "required": [
+        "br",
+        "zstd"
+      ],
+      "forbidden": [
+        "gzip",
+        "deflate",
+        "identity"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "br",
+        "zstd"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2070,
+      "completion_tokens": 42,
+      "latency_ms": 658.0,
+      "response": "The two keys that are removed from SUPPORTED_DECODERS in _decoders.py when the optional brotli and zstandard packages are not installed are \"brotli\" and \"ZStandard\".",
+      "response_text": "The two keys that are removed from SUPPORTED_DECODERS in _decoders.py when the optional brotli and zstandard packages are not installed are \"brotli\" and \"ZStandard\"."
+    },
+    {
+      "op": "chat",
+      "arm": "H1:4000",
+      "objective_id": "b4v3-i4",
+      "agent": "implementer",
+      "objective": "Which property on URL returns the IDNA-encoded host as bytes, and which class in _models.py stores HTTP headers as a case-insensitive multi-dict? Give both identifiers.",
+      "required": [
+        "raw_host",
+        "Headers"
+      ],
+      "forbidden": [
+        "host",
+        "netloc",
+        "QueryParams"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "raw_host",
+        "Headers"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1405,
+      "completion_tokens": 7,
+      "latency_ms": 157.5,
+      "response": "idna_host, Headers.values",
+      "response_text": "idna_host, Headers.values"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:4000",
+      "objective_id": "b4v3-i5",
+      "agent": "implementer",
+      "objective": "Which two ContentDecoder subclasses in _decoders.py handle 'gzip' and 'deflate' content encodings? List both class names.",
+      "required": [
+        "GZipDecoder",
+        "DeflateDecoder"
+      ],
+      "forbidden": [
+        "BrotliDecoder",
+        "ZStandardDecoder",
+        "IdentityDecoder"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2696,
+      "completion_tokens": 8,
+      "latency_ms": 284.5,
+      "response": "GZipDecoder\nDeflateDecoder",
+      "response_text": "GZipDecoder\nDeflateDecoder"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:4000",
+      "objective_id": "b4v3-t1",
+      "agent": "tester",
+      "objective": "What is the constant name for HTTP status 418 in httpx._status_codes? Give the identifier only.",
+      "required": [
+        "IM_A_TEAPOT"
+      ],
+      "forbidden": [
+        "IM_USED",
+        "TOO_EARLY",
+        "GONE"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "IM_A_TEAPOT"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2200,
+      "completion_tokens": 3,
+      "latency_ms": 177.8,
+      "response": "UNAUTHORIZED",
+      "response_text": "UNAUTHORIZED"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:4000",
+      "objective_id": "b4v3-t2",
+      "agent": "tester",
+      "objective": "Which two methods on Request read the entire body into memory, one synchronous and one asynchronous? List both method names.",
+      "required": [
+        "read",
+        "aread"
+      ],
+      "forbidden": [
+        "iter_bytes",
+        "aiter_bytes",
+        "content"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "aread"
+      ],
+      "wrong_fixed": [
+        "aiter_bytes"
+      ],
+      "error": null,
+      "prompt_tokens": 2256,
+      "completion_tokens": 6,
+      "latency_ms": 222.3,
+      "response": "read\naiter_bytes",
+      "response_text": "read\naiter_bytes"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:4000",
+      "objective_id": "b4v3-t3",
+      "agent": "tester",
+      "objective": "Which Response property is True for 4xx or 5xx status codes, and which method raises HTTPStatusError for them? Give both identifiers.",
+      "required": [
+        "is_error",
+        "raise_for_status"
+      ],
+      "forbidden": [
+        "is_success",
+        "is_redirect",
+        "has_redirect_location"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "raise_for_status"
+      ],
+      "wrong_fixed": [
+        "is_success",
+        "is_redirect"
+      ],
+      "error": null,
+      "prompt_tokens": 2212,
+      "completion_tokens": 21,
+      "latency_ms": 398.6,
+      "response": "is_informational, is_success, is_redirect, is_client_error, is_server_error, is_error",
+      "response_text": "is_informational, is_success, is_redirect, is_client_error, is_server_error, is_error"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:4000",
+      "objective_id": "b4v3-t4",
+      "agent": "tester",
+      "objective": "Which exception from _exceptions.py is raised when Request.content is accessed before the stream has been read? Give the class name only.",
+      "required": [
+        "RequestNotRead"
+      ],
+      "forbidden": [
+        "ResponseNotRead",
+        "StreamClosed",
+        "StreamConsumed"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "RequestNotRead"
+      ],
+      "wrong_fixed": [
+        "StreamConsumed"
+      ],
+      "error": null,
+      "prompt_tokens": 1952,
+      "completion_tokens": 4,
+      "latency_ms": 166.8,
+      "response": "StreamConsumed",
+      "response_text": "StreamConsumed"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:4000",
+      "objective_id": "b4v3-t5",
+      "agent": "tester",
+      "objective": "Which class in _exceptions.py is the base for request-level errors, and which top-level helper in _api.py creates a Client to issue a request? Give both identifiers.",
+      "required": [
+        "RequestError",
+        "request"
+      ],
+      "forbidden": [
+        "HTTPError",
+        "TransportError",
+        "get"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "request"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2533,
+      "completion_tokens": 7,
+      "latency_ms": 262.7,
+      "response": "RequestError, UseClientDefault",
+      "response_text": "RequestError, UseClientDefault"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:4000",
+      "objective_id": "b4v3-r1",
+      "agent": "reviewer",
+      "objective": "What is the default numeric value of keepalive_expiry in the Limits class? Give the value only.",
+      "required": [
+        "5.0"
+      ],
+      "forbidden": [
+        "None",
+        "100",
+        "20"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1747,
+      "completion_tokens": 4,
+      "latency_ms": 156.1,
+      "response": "5.0",
+      "response_text": "5.0"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:4000",
+      "objective_id": "b4v3-r2",
+      "agent": "reviewer",
+      "objective": "Which exception class in _exceptions.py is the base of RequestError, which is imported by _main.py? Give the class name only.",
+      "required": [
+        "HTTPError"
+      ],
+      "forbidden": [
+        "RequestError",
+        "TransportError",
+        "ValueError"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "HTTPError"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2464,
+      "completion_tokens": 3,
+      "latency_ms": 200.6,
+      "response": "RequestError",
+      "response_text": "RequestError"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:4000",
+      "objective_id": "b4v3-r3",
+      "agent": "reviewer",
+      "objective": "In DigestAuth, which two algorithm names map to hashlib.md5? List both names.",
+      "required": [
+        "MD5",
+        "MD5-SESS"
+      ],
+      "forbidden": [
+        "SHA",
+        "SHA-256",
+        "SHA-512"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "MD5-SESS"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2373,
+      "completion_tokens": 3,
+      "latency_ms": 195.2,
+      "response": "MD5",
+      "response_text": "MD5"
+    },
+    {
+      "op": "chat",
+      "arm": "H1:4000",
+      "objective_id": "b4v3-r4",
+      "agent": "reviewer",
+      "objective": "Which exception class in _exceptions.py is the base for stream errors, and which class in _models.py raises StreamConsumed when raw response iteration is attempted twice? Give both identifiers.",
+      "required": [
+        "StreamError",
+        "Response"
+      ],
+      "forbidden": [
+        "StreamClosed",
+        "RequestError",
+        "HTTPError"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "StreamError",
+        "Response"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1979,
+      "completion_tokens": 7,
+      "latency_ms": 208.7,
+      "response": "StreamConsumed, Request.",
+      "response_text": "StreamConsumed, Request."
+    },
+    {
+      "op": "chat",
+      "arm": "H1:4000",
+      "objective_id": "b4v3-r5",
+      "agent": "reviewer",
+      "objective": "In _multipart.py, which helper function guesses a file's mimetype, and what fallback string does it return when guessing yields None? Give both.",
+      "required": [
+        "_guess_content_type",
+        "application/octet-stream"
+      ],
+      "forbidden": [
+        "_format_form_param",
+        "multipart/form-data",
+        "text/plain"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 2103,
+      "completion_tokens": 10,
+      "latency_ms": 252.3,
+      "response": "_guess_content_type, \"application/octet-stream\"",
+      "response_text": "_guess_content_type, \"application/octet-stream\""
+    },
+    {
+      "op": "chat",
+      "arm": "H2:4000",
+      "objective_id": "b4v3-p1",
+      "agent": "planner",
+      "objective": "What integer is the default value of max_redirects used by httpx clients? Answer with the number only.",
+      "required": [
+        "20"
+      ],
+      "forbidden": [
+        "5.0",
+        "100",
+        "None"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "20"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1919,
+      "completion_tokens": 3,
+      "latency_ms": 193.3,
+      "response": "10",
+      "response_text": "10"
+    },
+    {
+      "op": "chat",
+      "arm": "H2:4000",
+      "objective_id": "b4v3-p2",
+      "agent": "planner",
+      "objective": "When Client.build_request() merges query parameters and falls back to a default timeout, what class from _urls.py and what constant from _config.py are used? Give the two identifiers separated by a comma.",
+      "required": [
+        "QueryParams",
+        "DEFAULT_TIMEOUT_CONFIG"
+      ],
+      "forbidden": [
+        "URL",
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1979,
+      "completion_tokens": 28,
+      "latency_ms": 519.4,
+      "response": "The class from `_urls.py` used is `QueryParams`. The constant from `_config.py` used is `DEFAULT_TIMEOUT_CONFIG`.",
+      "response_text": "The class from `_urls.py` used is `QueryParams`. The constant from `_config.py` used is `DEFAULT_TIMEOUT_CONFIG`."
+    },
+    {
+      "op": "chat",
+      "arm": "H2:4000",
+      "objective_id": "b4v3-p3",
+      "agent": "planner",
+      "objective": "In _transports/default.py, which base class defined in _transports/base.py does AsyncHTTPTransport inherit from? Give the class name only.",
+      "required": [
+        "AsyncBaseTransport"
+      ],
+      "forbidden": [
+        "BaseTransport",
+        "HTTPTransport",
+        "Client"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "AsyncBaseTransport"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 3964,
+      "completion_tokens": 4,
+      "latency_ms": 318.8,
+      "response": "AsyncHTTPTransport",
+      "response_text": "AsyncHTTPTransport"
+    },
+    {
+      "op": "chat",
+      "arm": "H2:4000",
+      "objective_id": "b4v3-p4",
+      "agent": "planner",
+      "objective": "In Client._redirect_method, which two status-code constants from _status_codes.py trigger a method change to GET when the original method is not HEAD? List both names.",
+      "required": [
+        "FOUND",
+        "SEE_OTHER"
+      ],
+      "forbidden": [
+        "MOVED_PERMANENTLY",
+        "TEMPORARY_REDIRECT",
+        "PERMANENT_REDIRECT"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "FOUND",
+        "SEE_OTHER"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 3977,
+      "completion_tokens": 84,
+      "latency_ms": 1383.3,
+      "response": "The two status code constants from `_status_codes.py` that trigger a method change to GET when the original method is not HEAD are:\n\n1. **codes.MOVED_PERMANENTLY**\n2. **codes.FOUND**\n\nThese status codes indicate that the resource has been moved permanently to another location, and according to the specifications, they typically result in a GET request to fetch the updated version of the resource.",
+      "response_text": "The two status code constants from `_status_codes.py` that trigger a method change to GET when the original method is not HEAD are:\n\n1. **codes.MOVED_PERMANENTLY**\n2. **codes.FOUND**\n\nThese status codes indicate that the resource has been moved permanently to another location, and according to the specifications, they typically result in a GET request to fetch the updated version of the resource."
+    },
+    {
+      "op": "chat",
+      "arm": "H2:4000",
+      "objective_id": "b4v3-p5",
+      "agent": "planner",
+      "objective": "In Client.__init__, what are the names of the two default config constants used for the limits and max_redirects parameters? List both identifiers.",
+      "required": [
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "forbidden": [
+        "DEFAULT_TIMEOUT_CONFIG",
+        "USE_CLIENT_DEFAULT",
+        "Limits"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1962,
+      "completion_tokens": 53,
+      "latency_ms": 770.8,
+      "response": "The two default config constants used for the limits and max_redirects parameters in Client.__init__ are:\n\n1. `DEFAULT_LIMITS`\n2. `DEFAULT_MAX_REDIRECTS`\n\nThese constants define the default configurations for the limits and max_redirects parameters respectively.",
+      "response_text": "The two default config constants used for the limits and max_redirects parameters in Client.__init__ are:\n\n1. `DEFAULT_LIMITS`\n2. `DEFAULT_MAX_REDIRECTS`\n\nThese constants define the default configurations for the limits and max_redirects parameters respectively."
+    },
+    {
+      "op": "chat",
+      "arm": "H2:4000",
+      "objective_id": "b4v3-i1",
+      "agent": "implementer",
+      "objective": "Which ContentDecoder subclass in _decoders.py handles 'zstd' responses? Give the class name only.",
+      "required": [
+        "ZStandardDecoder"
+      ],
+      "forbidden": [
+        "BrotliDecoder",
+        "GZipDecoder",
+        "DeflateDecoder"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 4010,
+      "completion_tokens": 4,
+      "latency_ms": 343.9,
+      "response": "ZStandardDecoder",
+      "response_text": "ZStandardDecoder"
+    },
+    {
+      "op": "chat",
+      "arm": "H2:4000",
+      "objective_id": "b4v3-i2",
+      "agent": "implementer",
+      "objective": "In the URL class, which property returns the URL-decoded path as a string, and which returns the raw bytes of the path plus query? List both property names.",
+      "required": [
+        "path",
+        "raw_path"
+      ],
+      "forbidden": [
+        "query",
+        "netloc",
+        "host"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 4054,
+      "completion_tokens": 34,
+      "latency_ms": 746.7,
+      "response": "The property that returns the URL-decoded path as a string is `path`. The property that returns the raw bytes of the path plus query is `raw_path`.",
+      "response_text": "The property that returns the URL-decoded path as a string is `path`. The property that returns the raw bytes of the path plus query is `raw_path`."
+    },
+    {
+      "op": "chat",
+      "arm": "H2:4000",
+      "objective_id": "b4v3-i3",
+      "agent": "implementer",
+      "objective": "When the optional brotli and zstandard packages are not installed, which two keys are removed from SUPPORTED_DECODERS in _decoders.py? List both keys.",
+      "required": [
+        "br",
+        "zstd"
+      ],
+      "forbidden": [
+        "gzip",
+        "deflate",
+        "identity"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "br",
+        "zstd"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 3985,
+      "completion_tokens": 96,
+      "latency_ms": 1494.9,
+      "response": "If the optional brotli and/or zstandard packages are not installed, the following two keys are removed from the `SUPPORTED_DECODERS` dictionary in `_decoders.py`:\n\n1. `'brotli'`\n2. `'ZStandard'`\n\nThese keys are present in the `SUPPORTED_DECODERS` dictionary because they were previously supported decoders before the removal of these packages. The removal ensures compatibility with the current version of `httpx`, which does",
+      "response_text": "If the optional brotli and/or zstandard packages are not installed, the following two keys are removed from the `SUPPORTED_DECODERS` dictionary in `_decoders.py`:\n\n1. `'brotli'`\n2. `'ZStandard'`\n\nThese keys are present in the `SUPPORTED_DECODERS` dictionary because they were previously supported decoders before the removal of these packages. The removal ensures compatibility with the current version of `httpx`, which does"
+    },
+    {
+      "op": "chat",
+      "arm": "H2:4000",
+      "objective_id": "b4v3-i4",
+      "agent": "implementer",
+      "objective": "Which property on URL returns the IDNA-encoded host as bytes, and which class in _models.py stores HTTP headers as a case-insensitive multi-dict? Give both identifiers.",
+      "required": [
+        "raw_host",
+        "Headers"
+      ],
+      "forbidden": [
+        "host",
+        "netloc",
+        "QueryParams"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "raw_host"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 1660,
+      "completion_tokens": 96,
+      "latency_ms": 1276.5,
+      "response": "The property on `URL` that returns the IDNA-encoded host as bytes is `_idna_host`.\n\nIn `_models.py`, the class that stores HTTP headers as a case-insensitive multi-dict is `Headers`. Specifically, it uses the following methods:\n\n- `keys()`: Returns a view object providing access to the dictionary's keys.\n- `values()`: Returns a view object providing access to the dictionary's values.\n- `items()`: Returns a view object providing",
+      "response_text": "The property on `URL` that returns the IDNA-encoded host as bytes is `_idna_host`.\n\nIn `_models.py`, the class that stores HTTP headers as a case-insensitive multi-dict is `Headers`. Specifically, it uses the following methods:\n\n- `keys()`: Returns a view object providing access to the dictionary's keys.\n- `values()`: Returns a view object providing access to the dictionary's values.\n- `items()`: Returns a view object providing"
+    },
+    {
+      "op": "chat",
+      "arm": "H2:4000",
+      "objective_id": "b4v3-i5",
+      "agent": "implementer",
+      "objective": "Which two ContentDecoder subclasses in _decoders.py handle 'gzip' and 'deflate' content encodings? List both class names.",
+      "required": [
+        "GZipDecoder",
+        "DeflateDecoder"
+      ],
+      "forbidden": [
+        "BrotliDecoder",
+        "ZStandardDecoder",
+        "IdentityDecoder"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 3934,
+      "completion_tokens": 63,
+      "latency_ms": 1088.9,
+      "response": "The two ContentDecoder subclasses in `_decoders.py` that handle 'gzip' and 'deflate' content encodings are:\n\n1. **GZipDecoder**\n2. **DeflateDecoder**\n\nThese classes are defined within the `ContentDecoder` class and are responsible for handling gzip and deflate compression respectively.",
+      "response_text": "The two ContentDecoder subclasses in `_decoders.py` that handle 'gzip' and 'deflate' content encodings are:\n\n1. **GZipDecoder**\n2. **DeflateDecoder**\n\nThese classes are defined within the `ContentDecoder` class and are responsible for handling gzip and deflate compression respectively."
+    },
+    {
+      "op": "chat",
+      "arm": "H2:4000",
+      "objective_id": "b4v3-t1",
+      "agent": "tester",
+      "objective": "What is the constant name for HTTP status 418 in httpx._status_codes? Give the identifier only.",
+      "required": [
+        "IM_A_TEAPOT"
+      ],
+      "forbidden": [
+        "IM_USED",
+        "TOO_EARLY",
+        "GONE"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "IM_A_TEAPOT"
+      ],
+      "wrong_fixed": [
+        "IM_USED"
+      ],
+      "error": null,
+      "prompt_tokens": 4005,
+      "completion_tokens": 3,
+      "latency_ms": 332.8,
+      "response": "IM_USED",
+      "response_text": "IM_USED"
+    },
+    {
+      "op": "chat",
+      "arm": "H2:4000",
+      "objective_id": "b4v3-t2",
+      "agent": "tester",
+      "objective": "Which two methods on Request read the entire body into memory, one synchronous and one asynchronous? List both method names.",
+      "required": [
+        "read",
+        "aread"
+      ],
+      "forbidden": [
+        "iter_bytes",
+        "aiter_bytes",
+        "content"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "aread"
+      ],
+      "wrong_fixed": [
+        "content"
+      ],
+      "error": null,
+      "prompt_tokens": 3912,
+      "completion_tokens": 96,
+      "latency_ms": 1508.1,
+      "response": "Based on the code provided, there are two methods on the `Request` class that read the entire body into memory:\n\n1. `read`: This method reads and returns the request content synchronously. It raises a `RequestNotRead` exception if called before the request has been prepared.\n\n```python\ndef read(self) -> bytes:\n    \"\"\"\n    Read and return the request content.\n    \"\"\"\n    if not hasattr(self, \"_content\"):\n        assert isinstance(self.stream, typing",
+      "response_text": "Based on the code provided, there are two methods on the `Request` class that read the entire body into memory:\n\n1. `read`: This method reads and returns the request content synchronously. It raises a `RequestNotRead` exception if called before the request has been prepared.\n\n```python\ndef read(self) -> bytes:\n    \"\"\"\n    Read and return the request content.\n    \"\"\"\n    if not hasattr(self, \"_content\"):\n        assert isinstance(self.stream, typing"
+    },
+    {
+      "op": "chat",
+      "arm": "H2:4000",
+      "objective_id": "b4v3-t3",
+      "agent": "tester",
+      "objective": "Which Response property is True for 4xx or 5xx status codes, and which method raises HTTPStatusError for them? Give both identifiers.",
+      "required": [
+        "is_error",
+        "raise_for_status"
+      ],
+      "forbidden": [
+        "is_success",
+        "is_redirect",
+        "has_redirect_location"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "is_error"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 3950,
+      "completion_tokens": 40,
+      "latency_ms": 795.0,
+      "response": "For 4xx or 5xx status codes, the `is_client_error` method returns `True`, and the `raise_for_status` method raises the `HTTPStatusError` exception.",
+      "response_text": "For 4xx or 5xx status codes, the `is_client_error` method returns `True`, and the `raise_for_status` method raises the `HTTPStatusError` exception."
+    },
+    {
+      "op": "chat",
+      "arm": "H2:4000",
+      "objective_id": "b4v3-t4",
+      "agent": "tester",
+      "objective": "Which exception from _exceptions.py is raised when Request.content is accessed before the stream has been read? Give the class name only.",
+      "required": [
+        "RequestNotRead"
+      ],
+      "forbidden": [
+        "ResponseNotRead",
+        "StreamClosed",
+        "StreamConsumed"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "RequestNotRead"
+      ],
+      "wrong_fixed": [
+        "StreamConsumed"
+      ],
+      "error": null,
+      "prompt_tokens": 4021,
+      "completion_tokens": 4,
+      "latency_ms": 334.0,
+      "response": "StreamConsumed",
+      "response_text": "StreamConsumed"
+    },
+    {
+      "op": "chat",
+      "arm": "H2:4000",
+      "objective_id": "b4v3-t5",
+      "agent": "tester",
+      "objective": "Which class in _exceptions.py is the base for request-level errors, and which top-level helper in _api.py creates a Client to issue a request? Give both identifiers.",
+      "required": [
+        "RequestError",
+        "request"
+      ],
+      "forbidden": [
+        "HTTPError",
+        "TransportError",
+        "get"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [],
+      "wrong_fixed": [
+        "HTTPError"
+      ],
+      "error": null,
+      "prompt_tokens": 4003,
+      "completion_tokens": 91,
+      "latency_ms": 1467.0,
+      "response": "In `_exceptions.py`, the base class for request-level errors is `RequestError`, which inherits from `HTTPError`. \n\nIn `_api.py`, the top-level helper function that creates a `Client` object to issue a request is `create_client()`. This function takes various optional parameters including `base_url`, `headers`, `cookies`, `auth`, `proxies`, etc., and returns a new instance of the `Client` class.",
+      "response_text": "In `_exceptions.py`, the base class for request-level errors is `RequestError`, which inherits from `HTTPError`. \n\nIn `_api.py`, the top-level helper function that creates a `Client` object to issue a request is `create_client()`. This function takes various optional parameters including `base_url`, `headers`, `cookies`, `auth`, `proxies`, etc., and returns a new instance of the `Client` class."
+    },
+    {
+      "op": "chat",
+      "arm": "H2:4000",
+      "objective_id": "b4v3-r1",
+      "agent": "reviewer",
+      "objective": "What is the default numeric value of keepalive_expiry in the Limits class? Give the value only.",
+      "required": [
+        "5.0"
+      ],
+      "forbidden": [
+        "None",
+        "100",
+        "20"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 3958,
+      "completion_tokens": 20,
+      "latency_ms": 541.1,
+      "response": "The default numeric value of keepalive_expiry in the Limits class is 5.0 seconds.",
+      "response_text": "The default numeric value of keepalive_expiry in the Limits class is 5.0 seconds."
+    },
+    {
+      "op": "chat",
+      "arm": "H2:4000",
+      "objective_id": "b4v3-r2",
+      "agent": "reviewer",
+      "objective": "Which exception class in _exceptions.py is the base of RequestError, which is imported by _main.py? Give the class name only.",
+      "required": [
+        "HTTPError"
+      ],
+      "forbidden": [
+        "RequestError",
+        "TransportError",
+        "ValueError"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 3926,
+      "completion_tokens": 3,
+      "latency_ms": 350.1,
+      "response": "HTTPError",
+      "response_text": "HTTPError"
+    },
+    {
+      "op": "chat",
+      "arm": "H2:4000",
+      "objective_id": "b4v3-r3",
+      "agent": "reviewer",
+      "objective": "In DigestAuth, which two algorithm names map to hashlib.md5? List both names.",
+      "required": [
+        "MD5",
+        "MD5-SESS"
+      ],
+      "forbidden": [
+        "SHA",
+        "SHA-256",
+        "SHA-512"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 4004,
+      "completion_tokens": 32,
+      "latency_ms": 721.1,
+      "response": "According to the code snippet provided in the question, the following two algorithm names map to hashlib.md5:\n\n- MD5\n- MD5-SESS",
+      "response_text": "According to the code snippet provided in the question, the following two algorithm names map to hashlib.md5:\n\n- MD5\n- MD5-SESS"
+    },
+    {
+      "op": "chat",
+      "arm": "H2:4000",
+      "objective_id": "b4v3-r4",
+      "agent": "reviewer",
+      "objective": "Which exception class in _exceptions.py is the base for stream errors, and which class in _models.py raises StreamConsumed when raw response iteration is attempted twice? Give both identifiers.",
+      "required": [
+        "StreamError",
+        "Response"
+      ],
+      "forbidden": [
+        "StreamClosed",
+        "RequestError",
+        "HTTPError"
+      ],
+      "passed_frozen": true,
+      "passed_fixed": true,
+      "missing_fixed": [],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 3916,
+      "completion_tokens": 44,
+      "latency_ms": 847.1,
+      "response": "In `_exceptions.py`, the base class for stream errors is `StreamError`.\n\nIn `_models.py`, the class that raises `StreamConsumed` when raw response iteration is attempted twice is `StreamConsumed`.",
+      "response_text": "In `_exceptions.py`, the base class for stream errors is `StreamError`.\n\nIn `_models.py`, the class that raises `StreamConsumed` when raw response iteration is attempted twice is `StreamConsumed`."
+    },
+    {
+      "op": "chat",
+      "arm": "H2:4000",
+      "objective_id": "b4v3-r5",
+      "agent": "reviewer",
+      "objective": "In _multipart.py, which helper function guesses a file's mimetype, and what fallback string does it return when guessing yields None? Give both.",
+      "required": [
+        "_guess_content_type",
+        "application/octet-stream"
+      ],
+      "forbidden": [
+        "_format_form_param",
+        "multipart/form-data",
+        "text/plain"
+      ],
+      "passed_frozen": false,
+      "passed_fixed": false,
+      "missing_fixed": [
+        "application/octet-stream"
+      ],
+      "wrong_fixed": [],
+      "error": null,
+      "prompt_tokens": 3838,
+      "completion_tokens": 96,
+      "latency_ms": 1485.6,
+      "response": "The `_guess_content_type` function in `_multipart.py` attempts to guess the MIME type of a file based on its filename. When it returns `None`, it means that the file couldn't be successfully guessed due to missing information or issues with the filename itself.\n\nHere's how the function works:\n\n```python\ndef _guess_content_type(filename: str | None) -> str | None:\n    \"\"\"\n    Guesses the mimetype based on a filename. Defaults to `application/octet",
+      "response_text": "The `_guess_content_type` function in `_multipart.py` attempts to guess the MIME type of a file based on its filename. When it returns `None`, it means that the file couldn't be successfully guessed due to missing information or issues with the filename itself.\n\nHere's how the function works:\n\n```python\ndef _guess_content_type(filename: str | None) -> str | None:\n    \"\"\"\n    Guesses the mimetype based on a filename. Defaults to `application/octet"
+    }
+  ],
+  "arms": {
+    "R:2000": {
+      "requests": 20,
+      "prompt_tokens_total": 40930,
+      "completion_tokens_total": 983,
+      "wall_ms": 15732.1,
+      "mean_latency_ms": 786.1,
+      "arm": "R",
+      "budget": 2000,
+      "passed_frozen": 8,
+      "passed_fixed": 8,
+      "total": 20,
+      "errors": 0,
+      "quality_frozen": 0.4,
+      "quality_fixed": 0.4,
+      "uncached_tokens": 39058
+    },
+    "H1:2000": {
+      "requests": 20,
+      "prompt_tokens_total": 26885,
+      "completion_tokens_total": 126,
+      "wall_ms": 2958.4,
+      "mean_latency_ms": 147.6,
+      "arm": "H1",
+      "budget": 2000,
+      "passed_frozen": 5,
+      "passed_fixed": 5,
+      "total": 20,
+      "errors": 0,
+      "quality_frozen": 0.25,
+      "quality_fixed": 0.25,
+      "uncached_tokens": 16245
+    },
+    "H2:2000": {
+      "requests": 20,
+      "prompt_tokens_total": 35769,
+      "completion_tokens_total": 1004,
+      "wall_ms": 14441.9,
+      "mean_latency_ms": 721.6,
+      "arm": "H2",
+      "budget": 2000,
+      "passed_frozen": 9,
+      "passed_fixed": 9,
+      "total": 20,
+      "errors": 0,
+      "quality_frozen": 0.45,
+      "quality_fixed": 0.45,
+      "uncached_tokens": 24329
+    },
+    "R:4000": {
+      "requests": 20,
+      "prompt_tokens_total": 80956,
+      "completion_tokens_total": 1164,
+      "wall_ms": 21263.2,
+      "mean_latency_ms": 1062.3,
+      "arm": "R",
+      "budget": 4000,
+      "passed_frozen": 9,
+      "passed_fixed": 11,
+      "total": 20,
+      "errors": 0,
+      "quality_frozen": 0.45,
+      "quality_fixed": 0.55,
+      "uncached_tokens": 75212
+    },
+    "H1:4000": {
+      "requests": 20,
+      "prompt_tokens_total": 41111,
+      "completion_tokens_total": 173,
+      "wall_ms": 4757.6,
+      "mean_latency_ms": 237.5,
+      "arm": "H1",
+      "budget": 4000,
+      "passed_frozen": 5,
+      "passed_fixed": 5,
+      "total": 20,
+      "errors": 0,
+      "quality_frozen": 0.25,
+      "quality_fixed": 0.25,
+      "uncached_tokens": 30471
+    },
+    "H2:4000": {
+      "requests": 20,
+      "prompt_tokens_total": 70977,
+      "completion_tokens_total": 894,
+      "wall_ms": 16532.5,
+      "mean_latency_ms": 825.9,
+      "arm": "H2",
+      "budget": 4000,
+      "passed_frozen": 9,
+      "passed_fixed": 9,
+      "total": 20,
+      "errors": 0,
+      "quality_frozen": 0.45,
+      "quality_fixed": 0.45,
+      "uncached_tokens": 59425
+    }
+  },
+  "cache": {
+    "available": true,
+    "source": "upstream Prometheus /metrics (vLLM)",
+    "per_arm": {
+      "R:2000": {
+        "prefix_cache_hits_delta": 1872.0,
+        "prefix_cache_queries_delta": 40930.0,
+        "kv_cache_usage_peak": 0.017259013040143212
+      },
+      "H1:2000": {
+        "prefix_cache_hits_delta": 10640.0,
+        "prefix_cache_queries_delta": 26885.0,
+        "kv_cache_usage_peak": 0.013423676809000251
+      },
+      "H2:2000": {
+        "prefix_cache_hits_delta": 11440.0,
+        "prefix_cache_queries_delta": 35769.0,
+        "kv_cache_usage_peak": 0.017259013040143212
+      },
+      "R:4000": {
+        "prefix_cache_hits_delta": 5744.0,
+        "prefix_cache_queries_delta": 80956.0,
+        "kv_cache_usage_peak": 0.0332395806699054
+      },
+      "H1:4000": {
+        "prefix_cache_hits_delta": 10640.0,
+        "prefix_cache_queries_delta": 41111.0,
+        "kv_cache_usage_peak": 0.021605727435438538
+      },
+      "H2:4000": {
+        "prefix_cache_hits_delta": 11552.0,
+        "prefix_cache_queries_delta": 70977.0,
+        "kv_cache_usage_peak": 0.032728202505753035
+      }
+    }
+  }
+}

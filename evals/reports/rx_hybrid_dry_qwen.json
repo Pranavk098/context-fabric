@@ -1,0 +1,3206 @@
+{
+  "scenario": "rx_hybrid",
+  "kind": "dry_run",
+  "note": "exploratory dev-set probe; the frozen result docs are B4-RESULT.md / B4-V3-RESULT.md",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "tokenizer": "qwen",
+  "budgets": [
+    1000,
+    2000,
+    4000
+  ],
+  "n_objectives": 20,
+  "n_files": 23,
+  "bundle_tokens_tiktoken": 64778,
+  "cartridge_tokens_tiktoken": 545,
+  "arms": {
+    "R:1000": {
+      "arm": "R",
+      "budget": 1000,
+      "prompt_tokens_total": 20704,
+      "max_objective_prompt_tokens": 1049,
+      "objectives": {
+        "b4v3-p1": {
+          "role": "planner",
+          "prompt_tokens": 1024
+        },
+        "b4v3-p2": {
+          "role": "planner",
+          "prompt_tokens": 1049
+        },
+        "b4v3-p3": {
+          "role": "planner",
+          "prompt_tokens": 1039
+        },
+        "b4v3-p4": {
+          "role": "planner",
+          "prompt_tokens": 1028
+        },
+        "b4v3-p5": {
+          "role": "planner",
+          "prompt_tokens": 1037
+        },
+        "b4v3-i1": {
+          "role": "implementer",
+          "prompt_tokens": 1033
+        },
+        "b4v3-i2": {
+          "role": "implementer",
+          "prompt_tokens": 1042
+        },
+        "b4v3-i3": {
+          "role": "implementer",
+          "prompt_tokens": 1037
+        },
+        "b4v3-i4": {
+          "role": "implementer",
+          "prompt_tokens": 1046
+        },
+        "b4v3-i5": {
+          "role": "implementer",
+          "prompt_tokens": 1041
+        },
+        "b4v3-t1": {
+          "role": "tester",
+          "prompt_tokens": 1025
+        },
+        "b4v3-t2": {
+          "role": "tester",
+          "prompt_tokens": 1034
+        },
+        "b4v3-t3": {
+          "role": "tester",
+          "prompt_tokens": 1027
+        },
+        "b4v3-t4": {
+          "role": "tester",
+          "prompt_tokens": 1031
+        },
+        "b4v3-t5": {
+          "role": "tester",
+          "prompt_tokens": 1044
+        },
+        "b4v3-r1": {
+          "role": "reviewer",
+          "prompt_tokens": 1030
+        },
+        "b4v3-r2": {
+          "role": "reviewer",
+          "prompt_tokens": 1039
+        },
+        "b4v3-r3": {
+          "role": "reviewer",
+          "prompt_tokens": 1016
+        },
+        "b4v3-r4": {
+          "role": "reviewer",
+          "prompt_tokens": 1040
+        },
+        "b4v3-r5": {
+          "role": "reviewer",
+          "prompt_tokens": 1042
+        }
+      }
+    },
+    "H1:1000": {
+      "arm": "H1",
+      "budget": 1000,
+      "prompt_tokens_total": 19324,
+      "max_objective_prompt_tokens": 1103,
+      "objectives": {
+        "b4v3-p1": {
+          "role": "planner",
+          "prompt_tokens": 1086
+        },
+        "b4v3-p2": {
+          "role": "planner",
+          "prompt_tokens": 998
+        },
+        "b4v3-p3": {
+          "role": "planner",
+          "prompt_tokens": 957
+        },
+        "b4v3-p4": {
+          "role": "planner",
+          "prompt_tokens": 800
+        },
+        "b4v3-p5": {
+          "role": "planner",
+          "prompt_tokens": 916
+        },
+        "b4v3-i1": {
+          "role": "implementer",
+          "prompt_tokens": 1057
+        },
+        "b4v3-i2": {
+          "role": "implementer",
+          "prompt_tokens": 841
+        },
+        "b4v3-i3": {
+          "role": "implementer",
+          "prompt_tokens": 820
+        },
+        "b4v3-i4": {
+          "role": "implementer",
+          "prompt_tokens": 936
+        },
+        "b4v3-i5": {
+          "role": "implementer",
+          "prompt_tokens": 1075
+        },
+        "b4v3-t1": {
+          "role": "tester",
+          "prompt_tokens": 979
+        },
+        "b4v3-t2": {
+          "role": "tester",
+          "prompt_tokens": 822
+        },
+        "b4v3-t3": {
+          "role": "tester",
+          "prompt_tokens": 985
+        },
+        "b4v3-t4": {
+          "role": "tester",
+          "prompt_tokens": 1052
+        },
+        "b4v3-t5": {
+          "role": "tester",
+          "prompt_tokens": 849
+        },
+        "b4v3-r1": {
+          "role": "reviewer",
+          "prompt_tokens": 1020
+        },
+        "b4v3-r2": {
+          "role": "reviewer",
+          "prompt_tokens": 1079
+        },
+        "b4v3-r3": {
+          "role": "reviewer",
+          "prompt_tokens": 951
+        },
+        "b4v3-r4": {
+          "role": "reviewer",
+          "prompt_tokens": 1103
+        },
+        "b4v3-r5": {
+          "role": "reviewer",
+          "prompt_tokens": 998
+        }
+      }
+    },
+    "H2:1000": {
+      "arm": "H2",
+      "budget": 1000,
+      "prompt_tokens_total": 19471,
+      "max_objective_prompt_tokens": 1046,
+      "objectives": {
+        "b4v3-p1": {
+          "role": "planner",
+          "prompt_tokens": 952
+        },
+        "b4v3-p2": {
+          "role": "planner",
+          "prompt_tokens": 1046
+        },
+        "b4v3-p3": {
+          "role": "planner",
+          "prompt_tokens": 994
+        },
+        "b4v3-p4": {
+          "role": "planner",
+          "prompt_tokens": 810
+        },
+        "b4v3-p5": {
+          "role": "planner",
+          "prompt_tokens": 945
+        },
+        "b4v3-i1": {
+          "role": "implementer",
+          "prompt_tokens": 1034
+        },
+        "b4v3-i2": {
+          "role": "implementer",
+          "prompt_tokens": 849
+        },
+        "b4v3-i3": {
+          "role": "implementer",
+          "prompt_tokens": 1046
+        },
+        "b4v3-i4": {
+          "role": "implementer",
+          "prompt_tokens": 914
+        },
+        "b4v3-i5": {
+          "role": "implementer",
+          "prompt_tokens": 1033
+        },
+        "b4v3-t1": {
+          "role": "tester",
+          "prompt_tokens": 999
+        },
+        "b4v3-t2": {
+          "role": "tester",
+          "prompt_tokens": 861
+        },
+        "b4v3-t3": {
+          "role": "tester",
+          "prompt_tokens": 1035
+        },
+        "b4v3-t4": {
+          "role": "tester",
+          "prompt_tokens": 1005
+        },
+        "b4v3-t5": {
+          "role": "tester",
+          "prompt_tokens": 836
+        },
+        "b4v3-r1": {
+          "role": "reviewer",
+          "prompt_tokens": 1028
+        },
+        "b4v3-r2": {
+          "role": "reviewer",
+          "prompt_tokens": 1022
+        },
+        "b4v3-r3": {
+          "role": "reviewer",
+          "prompt_tokens": 993
+        },
+        "b4v3-r4": {
+          "role": "reviewer",
+          "prompt_tokens": 1039
+        },
+        "b4v3-r5": {
+          "role": "reviewer",
+          "prompt_tokens": 1030
+        }
+      }
+    },
+    "R:2000": {
+      "arm": "R",
+      "budget": 2000,
+      "prompt_tokens_total": 40670,
+      "max_objective_prompt_tokens": 2048,
+      "objectives": {
+        "b4v3-p1": {
+          "role": "planner",
+          "prompt_tokens": 2029
+        },
+        "b4v3-p2": {
+          "role": "planner",
+          "prompt_tokens": 2048
+        },
+        "b4v3-p3": {
+          "role": "planner",
+          "prompt_tokens": 2037
+        },
+        "b4v3-p4": {
+          "role": "planner",
+          "prompt_tokens": 2034
+        },
+        "b4v3-p5": {
+          "role": "planner",
+          "prompt_tokens": 2035
+        },
+        "b4v3-i1": {
+          "role": "implementer",
+          "prompt_tokens": 2032
+        },
+        "b4v3-i2": {
+          "role": "implementer",
+          "prompt_tokens": 2042
+        },
+        "b4v3-i3": {
+          "role": "implementer",
+          "prompt_tokens": 2046
+        },
+        "b4v3-i4": {
+          "role": "implementer",
+          "prompt_tokens": 2046
+        },
+        "b4v3-i5": {
+          "role": "implementer",
+          "prompt_tokens": 2033
+        },
+        "b4v3-t1": {
+          "role": "tester",
+          "prompt_tokens": 2023
+        },
+        "b4v3-t2": {
+          "role": "tester",
+          "prompt_tokens": 2032
+        },
+        "b4v3-t3": {
+          "role": "tester",
+          "prompt_tokens": 2016
+        },
+        "b4v3-t4": {
+          "role": "tester",
+          "prompt_tokens": 2025
+        },
+        "b4v3-t5": {
+          "role": "tester",
+          "prompt_tokens": 2047
+        },
+        "b4v3-r1": {
+          "role": "reviewer",
+          "prompt_tokens": 2031
+        },
+        "b4v3-r2": {
+          "role": "reviewer",
+          "prompt_tokens": 2032
+        },
+        "b4v3-r3": {
+          "role": "reviewer",
+          "prompt_tokens": 2013
+        },
+        "b4v3-r4": {
+          "role": "reviewer",
+          "prompt_tokens": 2041
+        },
+        "b4v3-r5": {
+          "role": "reviewer",
+          "prompt_tokens": 2028
+        }
+      }
+    },
+    "H1:2000": {
+      "arm": "H1",
+      "budget": 2000,
+      "prompt_tokens_total": 26625,
+      "max_objective_prompt_tokens": 1645,
+      "objectives": {
+        "b4v3-p1": {
+          "role": "planner",
+          "prompt_tokens": 1305
+        },
+        "b4v3-p2": {
+          "role": "planner",
+          "prompt_tokens": 1505
+        },
+        "b4v3-p3": {
+          "role": "planner",
+          "prompt_tokens": 1333
+        },
+        "b4v3-p4": {
+          "role": "planner",
+          "prompt_tokens": 983
+        },
+        "b4v3-p5": {
+          "role": "planner",
+          "prompt_tokens": 1573
+        },
+        "b4v3-i1": {
+          "role": "implementer",
+          "prompt_tokens": 1353
+        },
+        "b4v3-i2": {
+          "role": "implementer",
+          "prompt_tokens": 1396
+        },
+        "b4v3-i3": {
+          "role": "implementer",
+          "prompt_tokens": 1533
+        },
+        "b4v3-i4": {
+          "role": "implementer",
+          "prompt_tokens": 897
+        },
+        "b4v3-i5": {
+          "role": "implementer",
+          "prompt_tokens": 1548
+        },
+        "b4v3-t1": {
+          "role": "tester",
+          "prompt_tokens": 1018
+        },
+        "b4v3-t2": {
+          "role": "tester",
+          "prompt_tokens": 1117
+        },
+        "b4v3-t3": {
+          "role": "tester",
+          "prompt_tokens": 1021
+        },
+        "b4v3-t4": {
+          "role": "tester",
+          "prompt_tokens": 1499
+        },
+        "b4v3-t5": {
+          "role": "tester",
+          "prompt_tokens": 1628
+        },
+        "b4v3-r1": {
+          "role": "reviewer",
+          "prompt_tokens": 1469
+        },
+        "b4v3-r2": {
+          "role": "reviewer",
+          "prompt_tokens": 1275
+        },
+        "b4v3-r3": {
+          "role": "reviewer",
+          "prompt_tokens": 1183
+        },
+        "b4v3-r4": {
+          "role": "reviewer",
+          "prompt_tokens": 1645
+        },
+        "b4v3-r5": {
+          "role": "reviewer",
+          "prompt_tokens": 1344
+        }
+      }
+    },
+    "H2:2000": {
+      "arm": "H2",
+      "budget": 2000,
+      "prompt_tokens_total": 35509,
+      "max_objective_prompt_tokens": 2040,
+      "objectives": {
+        "b4v3-p1": {
+          "role": "planner",
+          "prompt_tokens": 2034
+        },
+        "b4v3-p2": {
+          "role": "planner",
+          "prompt_tokens": 1833
+        },
+        "b4v3-p3": {
+          "role": "planner",
+          "prompt_tokens": 2008
+        },
+        "b4v3-p4": {
+          "role": "planner",
+          "prompt_tokens": 2040
+        },
+        "b4v3-p5": {
+          "role": "planner",
+          "prompt_tokens": 2026
+        },
+        "b4v3-i1": {
+          "role": "implementer",
+          "prompt_tokens": 1814
+        },
+        "b4v3-i2": {
+          "role": "implementer",
+          "prompt_tokens": 1995
+        },
+        "b4v3-i3": {
+          "role": "implementer",
+          "prompt_tokens": 2038
+        },
+        "b4v3-i4": {
+          "role": "implementer",
+          "prompt_tokens": 1045
+        },
+        "b4v3-i5": {
+          "role": "implementer",
+          "prompt_tokens": 1818
+        },
+        "b4v3-t1": {
+          "role": "tester",
+          "prompt_tokens": 1258
+        },
+        "b4v3-t2": {
+          "role": "tester",
+          "prompt_tokens": 2018
+        },
+        "b4v3-t3": {
+          "role": "tester",
+          "prompt_tokens": 949
+        },
+        "b4v3-t4": {
+          "role": "tester",
+          "prompt_tokens": 1951
+        },
+        "b4v3-t5": {
+          "role": "tester",
+          "prompt_tokens": 2023
+        },
+        "b4v3-r1": {
+          "role": "reviewer",
+          "prompt_tokens": 1939
+        },
+        "b4v3-r2": {
+          "role": "reviewer",
+          "prompt_tokens": 1426
+        },
+        "b4v3-r3": {
+          "role": "reviewer",
+          "prompt_tokens": 1325
+        },
+        "b4v3-r4": {
+          "role": "reviewer",
+          "prompt_tokens": 2033
+        },
+        "b4v3-r5": {
+          "role": "reviewer",
+          "prompt_tokens": 1936
+        }
+      }
+    },
+    "R:4000": {
+      "arm": "R",
+      "budget": 4000,
+      "prompt_tokens_total": 80696,
+      "max_objective_prompt_tokens": 4048,
+      "objectives": {
+        "b4v3-p1": {
+          "role": "planner",
+          "prompt_tokens": 4031
+        },
+        "b4v3-p2": {
+          "role": "planner",
+          "prompt_tokens": 4048
+        },
+        "b4v3-p3": {
+          "role": "planner",
+          "prompt_tokens": 4040
+        },
+        "b4v3-p4": {
+          "role": "planner",
+          "prompt_tokens": 4035
+        },
+        "b4v3-p5": {
+          "role": "planner",
+          "prompt_tokens": 4028
+        },
+        "b4v3-i1": {
+          "role": "implementer",
+          "prompt_tokens": 4025
+        },
+        "b4v3-i2": {
+          "role": "implementer",
+          "prompt_tokens": 4032
+        },
+        "b4v3-i3": {
+          "role": "implementer",
+          "prompt_tokens": 4035
+        },
+        "b4v3-i4": {
+          "role": "implementer",
+          "prompt_tokens": 4045
+        },
+        "b4v3-i5": {
+          "role": "implementer",
+          "prompt_tokens": 4043
+        },
+        "b4v3-t1": {
+          "role": "tester",
+          "prompt_tokens": 4026
+        },
+        "b4v3-t2": {
+          "role": "tester",
+          "prompt_tokens": 4029
+        },
+        "b4v3-t3": {
+          "role": "tester",
+          "prompt_tokens": 4038
+        },
+        "b4v3-t4": {
+          "role": "tester",
+          "prompt_tokens": 4032
+        },
+        "b4v3-t5": {
+          "role": "tester",
+          "prompt_tokens": 4048
+        },
+        "b4v3-r1": {
+          "role": "reviewer",
+          "prompt_tokens": 4021
+        },
+        "b4v3-r2": {
+          "role": "reviewer",
+          "prompt_tokens": 4028
+        },
+        "b4v3-r3": {
+          "role": "reviewer",
+          "prompt_tokens": 4025
+        },
+        "b4v3-r4": {
+          "role": "reviewer",
+          "prompt_tokens": 4045
+        },
+        "b4v3-r5": {
+          "role": "reviewer",
+          "prompt_tokens": 4042
+        }
+      }
+    },
+    "H1:4000": {
+      "arm": "H1",
+      "budget": 4000,
+      "prompt_tokens_total": 40851,
+      "max_objective_prompt_tokens": 2683,
+      "objectives": {
+        "b4v3-p1": {
+          "role": "planner",
+          "prompt_tokens": 1679
+        },
+        "b4v3-p2": {
+          "role": "planner",
+          "prompt_tokens": 1712
+        },
+        "b4v3-p3": {
+          "role": "planner",
+          "prompt_tokens": 2459
+        },
+        "b4v3-p4": {
+          "role": "planner",
+          "prompt_tokens": 1687
+        },
+        "b4v3-p5": {
+          "role": "planner",
+          "prompt_tokens": 1684
+        },
+        "b4v3-i1": {
+          "role": "implementer",
+          "prompt_tokens": 2436
+        },
+        "b4v3-i2": {
+          "role": "implementer",
+          "prompt_tokens": 1373
+        },
+        "b4v3-i3": {
+          "role": "implementer",
+          "prompt_tokens": 2057
+        },
+        "b4v3-i4": {
+          "role": "implementer",
+          "prompt_tokens": 1392
+        },
+        "b4v3-i5": {
+          "role": "implementer",
+          "prompt_tokens": 2683
+        },
+        "b4v3-t1": {
+          "role": "tester",
+          "prompt_tokens": 2187
+        },
+        "b4v3-t2": {
+          "role": "tester",
+          "prompt_tokens": 2243
+        },
+        "b4v3-t3": {
+          "role": "tester",
+          "prompt_tokens": 2199
+        },
+        "b4v3-t4": {
+          "role": "tester",
+          "prompt_tokens": 1939
+        },
+        "b4v3-t5": {
+          "role": "tester",
+          "prompt_tokens": 2520
+        },
+        "b4v3-r1": {
+          "role": "reviewer",
+          "prompt_tokens": 1734
+        },
+        "b4v3-r2": {
+          "role": "reviewer",
+          "prompt_tokens": 2451
+        },
+        "b4v3-r3": {
+          "role": "reviewer",
+          "prompt_tokens": 2360
+        },
+        "b4v3-r4": {
+          "role": "reviewer",
+          "prompt_tokens": 1966
+        },
+        "b4v3-r5": {
+          "role": "reviewer",
+          "prompt_tokens": 2090
+        }
+      }
+    },
+    "H2:4000": {
+      "arm": "H2",
+      "budget": 4000,
+      "prompt_tokens_total": 70717,
+      "max_objective_prompt_tokens": 4041,
+      "objectives": {
+        "b4v3-p1": {
+          "role": "planner",
+          "prompt_tokens": 1906
+        },
+        "b4v3-p2": {
+          "role": "planner",
+          "prompt_tokens": 1966
+        },
+        "b4v3-p3": {
+          "role": "planner",
+          "prompt_tokens": 3951
+        },
+        "b4v3-p4": {
+          "role": "planner",
+          "prompt_tokens": 3964
+        },
+        "b4v3-p5": {
+          "role": "planner",
+          "prompt_tokens": 1949
+        },
+        "b4v3-i1": {
+          "role": "implementer",
+          "prompt_tokens": 3997
+        },
+        "b4v3-i2": {
+          "role": "implementer",
+          "prompt_tokens": 4041
+        },
+        "b4v3-i3": {
+          "role": "implementer",
+          "prompt_tokens": 3972
+        },
+        "b4v3-i4": {
+          "role": "implementer",
+          "prompt_tokens": 1647
+        },
+        "b4v3-i5": {
+          "role": "implementer",
+          "prompt_tokens": 3921
+        },
+        "b4v3-t1": {
+          "role": "tester",
+          "prompt_tokens": 3992
+        },
+        "b4v3-t2": {
+          "role": "tester",
+          "prompt_tokens": 3899
+        },
+        "b4v3-t3": {
+          "role": "tester",
+          "prompt_tokens": 3937
+        },
+        "b4v3-t4": {
+          "role": "tester",
+          "prompt_tokens": 4008
+        },
+        "b4v3-t5": {
+          "role": "tester",
+          "prompt_tokens": 3990
+        },
+        "b4v3-r1": {
+          "role": "reviewer",
+          "prompt_tokens": 3945
+        },
+        "b4v3-r2": {
+          "role": "reviewer",
+          "prompt_tokens": 3913
+        },
+        "b4v3-r3": {
+          "role": "reviewer",
+          "prompt_tokens": 3991
+        },
+        "b4v3-r4": {
+          "role": "reviewer",
+          "prompt_tokens": 3903
+        },
+        "b4v3-r5": {
+          "role": "reviewer",
+          "prompt_tokens": 3825
+        }
+      }
+    }
+  },
+  "recall": [
+    {
+      "arm": "R:1000",
+      "objective_id": "b4v3-p1",
+      "role": "planner",
+      "required": [
+        "20"
+      ],
+      "facts_in_packet": {
+        "20": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "R:1000",
+      "objective_id": "b4v3-p2",
+      "role": "planner",
+      "required": [
+        "QueryParams",
+        "DEFAULT_TIMEOUT_CONFIG"
+      ],
+      "facts_in_packet": {
+        "QueryParams": false,
+        "DEFAULT_TIMEOUT_CONFIG": true
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "R:1000",
+      "objective_id": "b4v3-p3",
+      "role": "planner",
+      "required": [
+        "AsyncBaseTransport"
+      ],
+      "facts_in_packet": {
+        "AsyncBaseTransport": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:1000",
+      "objective_id": "b4v3-p4",
+      "role": "planner",
+      "required": [
+        "FOUND",
+        "SEE_OTHER"
+      ],
+      "facts_in_packet": {
+        "FOUND": false,
+        "SEE_OTHER": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "R:1000",
+      "objective_id": "b4v3-p5",
+      "role": "planner",
+      "required": [
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "facts_in_packet": {
+        "DEFAULT_LIMITS": true,
+        "DEFAULT_MAX_REDIRECTS": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:1000",
+      "objective_id": "b4v3-i1",
+      "role": "implementer",
+      "required": [
+        "ZStandardDecoder"
+      ],
+      "facts_in_packet": {
+        "ZStandardDecoder": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:1000",
+      "objective_id": "b4v3-i2",
+      "role": "implementer",
+      "required": [
+        "path",
+        "raw_path"
+      ],
+      "facts_in_packet": {
+        "path": true,
+        "raw_path": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "R:1000",
+      "objective_id": "b4v3-i3",
+      "role": "implementer",
+      "required": [
+        "br",
+        "zstd"
+      ],
+      "facts_in_packet": {
+        "br": false,
+        "zstd": true
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "R:1000",
+      "objective_id": "b4v3-i4",
+      "role": "implementer",
+      "required": [
+        "raw_host",
+        "Headers"
+      ],
+      "facts_in_packet": {
+        "raw_host": false,
+        "Headers": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "R:1000",
+      "objective_id": "b4v3-i5",
+      "role": "implementer",
+      "required": [
+        "GZipDecoder",
+        "DeflateDecoder"
+      ],
+      "facts_in_packet": {
+        "GZipDecoder": true,
+        "DeflateDecoder": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:1000",
+      "objective_id": "b4v3-t1",
+      "role": "tester",
+      "required": [
+        "IM_A_TEAPOT"
+      ],
+      "facts_in_packet": {
+        "IM_A_TEAPOT": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "R:1000",
+      "objective_id": "b4v3-t2",
+      "role": "tester",
+      "required": [
+        "read",
+        "aread"
+      ],
+      "facts_in_packet": {
+        "read": true,
+        "aread": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "R:1000",
+      "objective_id": "b4v3-t3",
+      "role": "tester",
+      "required": [
+        "is_error",
+        "raise_for_status"
+      ],
+      "facts_in_packet": {
+        "is_error": false,
+        "raise_for_status": true
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "R:1000",
+      "objective_id": "b4v3-t4",
+      "role": "tester",
+      "required": [
+        "RequestNotRead"
+      ],
+      "facts_in_packet": {
+        "RequestNotRead": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "R:1000",
+      "objective_id": "b4v3-t5",
+      "role": "tester",
+      "required": [
+        "RequestError",
+        "request"
+      ],
+      "facts_in_packet": {
+        "RequestError": true,
+        "request": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:1000",
+      "objective_id": "b4v3-r1",
+      "role": "reviewer",
+      "required": [
+        "5.0"
+      ],
+      "facts_in_packet": {
+        "5.0": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:1000",
+      "objective_id": "b4v3-r2",
+      "role": "reviewer",
+      "required": [
+        "HTTPError"
+      ],
+      "facts_in_packet": {
+        "HTTPError": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:1000",
+      "objective_id": "b4v3-r3",
+      "role": "reviewer",
+      "required": [
+        "MD5",
+        "MD5-SESS"
+      ],
+      "facts_in_packet": {
+        "MD5": false,
+        "MD5-SESS": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "R:1000",
+      "objective_id": "b4v3-r4",
+      "role": "reviewer",
+      "required": [
+        "StreamError",
+        "Response"
+      ],
+      "facts_in_packet": {
+        "StreamError": true,
+        "Response": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:1000",
+      "objective_id": "b4v3-r5",
+      "role": "reviewer",
+      "required": [
+        "_guess_content_type",
+        "application/octet-stream"
+      ],
+      "facts_in_packet": {
+        "_guess_content_type": true,
+        "application/octet-stream": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:1000",
+      "objective_id": "b4v3-p1",
+      "role": "planner",
+      "required": [
+        "20"
+      ],
+      "facts_in_packet": {
+        "20": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:1000",
+      "objective_id": "b4v3-p2",
+      "role": "planner",
+      "required": [
+        "QueryParams",
+        "DEFAULT_TIMEOUT_CONFIG"
+      ],
+      "facts_in_packet": {
+        "QueryParams": false,
+        "DEFAULT_TIMEOUT_CONFIG": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:1000",
+      "objective_id": "b4v3-p3",
+      "role": "planner",
+      "required": [
+        "AsyncBaseTransport"
+      ],
+      "facts_in_packet": {
+        "AsyncBaseTransport": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:1000",
+      "objective_id": "b4v3-p4",
+      "role": "planner",
+      "required": [
+        "FOUND",
+        "SEE_OTHER"
+      ],
+      "facts_in_packet": {
+        "FOUND": false,
+        "SEE_OTHER": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:1000",
+      "objective_id": "b4v3-p5",
+      "role": "planner",
+      "required": [
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "facts_in_packet": {
+        "DEFAULT_LIMITS": false,
+        "DEFAULT_MAX_REDIRECTS": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:1000",
+      "objective_id": "b4v3-i1",
+      "role": "implementer",
+      "required": [
+        "ZStandardDecoder"
+      ],
+      "facts_in_packet": {
+        "ZStandardDecoder": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:1000",
+      "objective_id": "b4v3-i2",
+      "role": "implementer",
+      "required": [
+        "path",
+        "raw_path"
+      ],
+      "facts_in_packet": {
+        "path": true,
+        "raw_path": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:1000",
+      "objective_id": "b4v3-i3",
+      "role": "implementer",
+      "required": [
+        "br",
+        "zstd"
+      ],
+      "facts_in_packet": {
+        "br": false,
+        "zstd": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:1000",
+      "objective_id": "b4v3-i4",
+      "role": "implementer",
+      "required": [
+        "raw_host",
+        "Headers"
+      ],
+      "facts_in_packet": {
+        "raw_host": false,
+        "Headers": true
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:1000",
+      "objective_id": "b4v3-i5",
+      "role": "implementer",
+      "required": [
+        "GZipDecoder",
+        "DeflateDecoder"
+      ],
+      "facts_in_packet": {
+        "GZipDecoder": true,
+        "DeflateDecoder": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:1000",
+      "objective_id": "b4v3-t1",
+      "role": "tester",
+      "required": [
+        "IM_A_TEAPOT"
+      ],
+      "facts_in_packet": {
+        "IM_A_TEAPOT": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:1000",
+      "objective_id": "b4v3-t2",
+      "role": "tester",
+      "required": [
+        "read",
+        "aread"
+      ],
+      "facts_in_packet": {
+        "read": true,
+        "aread": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:1000",
+      "objective_id": "b4v3-t3",
+      "role": "tester",
+      "required": [
+        "is_error",
+        "raise_for_status"
+      ],
+      "facts_in_packet": {
+        "is_error": true,
+        "raise_for_status": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:1000",
+      "objective_id": "b4v3-t4",
+      "role": "tester",
+      "required": [
+        "RequestNotRead"
+      ],
+      "facts_in_packet": {
+        "RequestNotRead": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:1000",
+      "objective_id": "b4v3-t5",
+      "role": "tester",
+      "required": [
+        "RequestError",
+        "request"
+      ],
+      "facts_in_packet": {
+        "RequestError": true,
+        "request": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:1000",
+      "objective_id": "b4v3-r1",
+      "role": "reviewer",
+      "required": [
+        "5.0"
+      ],
+      "facts_in_packet": {
+        "5.0": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:1000",
+      "objective_id": "b4v3-r2",
+      "role": "reviewer",
+      "required": [
+        "HTTPError"
+      ],
+      "facts_in_packet": {
+        "HTTPError": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:1000",
+      "objective_id": "b4v3-r3",
+      "role": "reviewer",
+      "required": [
+        "MD5",
+        "MD5-SESS"
+      ],
+      "facts_in_packet": {
+        "MD5": false,
+        "MD5-SESS": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:1000",
+      "objective_id": "b4v3-r4",
+      "role": "reviewer",
+      "required": [
+        "StreamError",
+        "Response"
+      ],
+      "facts_in_packet": {
+        "StreamError": true,
+        "Response": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:1000",
+      "objective_id": "b4v3-r5",
+      "role": "reviewer",
+      "required": [
+        "_guess_content_type",
+        "application/octet-stream"
+      ],
+      "facts_in_packet": {
+        "_guess_content_type": true,
+        "application/octet-stream": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:1000",
+      "objective_id": "b4v3-p1",
+      "role": "planner",
+      "required": [
+        "20"
+      ],
+      "facts_in_packet": {
+        "20": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H2:1000",
+      "objective_id": "b4v3-p2",
+      "role": "planner",
+      "required": [
+        "QueryParams",
+        "DEFAULT_TIMEOUT_CONFIG"
+      ],
+      "facts_in_packet": {
+        "QueryParams": true,
+        "DEFAULT_TIMEOUT_CONFIG": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:1000",
+      "objective_id": "b4v3-p3",
+      "role": "planner",
+      "required": [
+        "AsyncBaseTransport"
+      ],
+      "facts_in_packet": {
+        "AsyncBaseTransport": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:1000",
+      "objective_id": "b4v3-p4",
+      "role": "planner",
+      "required": [
+        "FOUND",
+        "SEE_OTHER"
+      ],
+      "facts_in_packet": {
+        "FOUND": false,
+        "SEE_OTHER": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H2:1000",
+      "objective_id": "b4v3-p5",
+      "role": "planner",
+      "required": [
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "facts_in_packet": {
+        "DEFAULT_LIMITS": true,
+        "DEFAULT_MAX_REDIRECTS": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:1000",
+      "objective_id": "b4v3-i1",
+      "role": "implementer",
+      "required": [
+        "ZStandardDecoder"
+      ],
+      "facts_in_packet": {
+        "ZStandardDecoder": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H2:1000",
+      "objective_id": "b4v3-i2",
+      "role": "implementer",
+      "required": [
+        "path",
+        "raw_path"
+      ],
+      "facts_in_packet": {
+        "path": true,
+        "raw_path": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H2:1000",
+      "objective_id": "b4v3-i3",
+      "role": "implementer",
+      "required": [
+        "br",
+        "zstd"
+      ],
+      "facts_in_packet": {
+        "br": false,
+        "zstd": true
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H2:1000",
+      "objective_id": "b4v3-i4",
+      "role": "implementer",
+      "required": [
+        "raw_host",
+        "Headers"
+      ],
+      "facts_in_packet": {
+        "raw_host": false,
+        "Headers": true
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H2:1000",
+      "objective_id": "b4v3-i5",
+      "role": "implementer",
+      "required": [
+        "GZipDecoder",
+        "DeflateDecoder"
+      ],
+      "facts_in_packet": {
+        "GZipDecoder": true,
+        "DeflateDecoder": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H2:1000",
+      "objective_id": "b4v3-t1",
+      "role": "tester",
+      "required": [
+        "IM_A_TEAPOT"
+      ],
+      "facts_in_packet": {
+        "IM_A_TEAPOT": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H2:1000",
+      "objective_id": "b4v3-t2",
+      "role": "tester",
+      "required": [
+        "read",
+        "aread"
+      ],
+      "facts_in_packet": {
+        "read": true,
+        "aread": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:1000",
+      "objective_id": "b4v3-t3",
+      "role": "tester",
+      "required": [
+        "is_error",
+        "raise_for_status"
+      ],
+      "facts_in_packet": {
+        "is_error": true,
+        "raise_for_status": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:1000",
+      "objective_id": "b4v3-t4",
+      "role": "tester",
+      "required": [
+        "RequestNotRead"
+      ],
+      "facts_in_packet": {
+        "RequestNotRead": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:1000",
+      "objective_id": "b4v3-t5",
+      "role": "tester",
+      "required": [
+        "RequestError",
+        "request"
+      ],
+      "facts_in_packet": {
+        "RequestError": true,
+        "request": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:1000",
+      "objective_id": "b4v3-r1",
+      "role": "reviewer",
+      "required": [
+        "5.0"
+      ],
+      "facts_in_packet": {
+        "5.0": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:1000",
+      "objective_id": "b4v3-r2",
+      "role": "reviewer",
+      "required": [
+        "HTTPError"
+      ],
+      "facts_in_packet": {
+        "HTTPError": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:1000",
+      "objective_id": "b4v3-r3",
+      "role": "reviewer",
+      "required": [
+        "MD5",
+        "MD5-SESS"
+      ],
+      "facts_in_packet": {
+        "MD5": false,
+        "MD5-SESS": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H2:1000",
+      "objective_id": "b4v3-r4",
+      "role": "reviewer",
+      "required": [
+        "StreamError",
+        "Response"
+      ],
+      "facts_in_packet": {
+        "StreamError": true,
+        "Response": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:1000",
+      "objective_id": "b4v3-r5",
+      "role": "reviewer",
+      "required": [
+        "_guess_content_type",
+        "application/octet-stream"
+      ],
+      "facts_in_packet": {
+        "_guess_content_type": true,
+        "application/octet-stream": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:2000",
+      "objective_id": "b4v3-p1",
+      "role": "planner",
+      "required": [
+        "20"
+      ],
+      "facts_in_packet": {
+        "20": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "R:2000",
+      "objective_id": "b4v3-p2",
+      "role": "planner",
+      "required": [
+        "QueryParams",
+        "DEFAULT_TIMEOUT_CONFIG"
+      ],
+      "facts_in_packet": {
+        "QueryParams": false,
+        "DEFAULT_TIMEOUT_CONFIG": true
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "R:2000",
+      "objective_id": "b4v3-p3",
+      "role": "planner",
+      "required": [
+        "AsyncBaseTransport"
+      ],
+      "facts_in_packet": {
+        "AsyncBaseTransport": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:2000",
+      "objective_id": "b4v3-p4",
+      "role": "planner",
+      "required": [
+        "FOUND",
+        "SEE_OTHER"
+      ],
+      "facts_in_packet": {
+        "FOUND": false,
+        "SEE_OTHER": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "R:2000",
+      "objective_id": "b4v3-p5",
+      "role": "planner",
+      "required": [
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "facts_in_packet": {
+        "DEFAULT_LIMITS": true,
+        "DEFAULT_MAX_REDIRECTS": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:2000",
+      "objective_id": "b4v3-i1",
+      "role": "implementer",
+      "required": [
+        "ZStandardDecoder"
+      ],
+      "facts_in_packet": {
+        "ZStandardDecoder": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:2000",
+      "objective_id": "b4v3-i2",
+      "role": "implementer",
+      "required": [
+        "path",
+        "raw_path"
+      ],
+      "facts_in_packet": {
+        "path": true,
+        "raw_path": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:2000",
+      "objective_id": "b4v3-i3",
+      "role": "implementer",
+      "required": [
+        "br",
+        "zstd"
+      ],
+      "facts_in_packet": {
+        "br": false,
+        "zstd": true
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "R:2000",
+      "objective_id": "b4v3-i4",
+      "role": "implementer",
+      "required": [
+        "raw_host",
+        "Headers"
+      ],
+      "facts_in_packet": {
+        "raw_host": false,
+        "Headers": true
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "R:2000",
+      "objective_id": "b4v3-i5",
+      "role": "implementer",
+      "required": [
+        "GZipDecoder",
+        "DeflateDecoder"
+      ],
+      "facts_in_packet": {
+        "GZipDecoder": true,
+        "DeflateDecoder": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:2000",
+      "objective_id": "b4v3-t1",
+      "role": "tester",
+      "required": [
+        "IM_A_TEAPOT"
+      ],
+      "facts_in_packet": {
+        "IM_A_TEAPOT": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:2000",
+      "objective_id": "b4v3-t2",
+      "role": "tester",
+      "required": [
+        "read",
+        "aread"
+      ],
+      "facts_in_packet": {
+        "read": true,
+        "aread": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:2000",
+      "objective_id": "b4v3-t3",
+      "role": "tester",
+      "required": [
+        "is_error",
+        "raise_for_status"
+      ],
+      "facts_in_packet": {
+        "is_error": true,
+        "raise_for_status": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:2000",
+      "objective_id": "b4v3-t4",
+      "role": "tester",
+      "required": [
+        "RequestNotRead"
+      ],
+      "facts_in_packet": {
+        "RequestNotRead": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:2000",
+      "objective_id": "b4v3-t5",
+      "role": "tester",
+      "required": [
+        "RequestError",
+        "request"
+      ],
+      "facts_in_packet": {
+        "RequestError": true,
+        "request": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:2000",
+      "objective_id": "b4v3-r1",
+      "role": "reviewer",
+      "required": [
+        "5.0"
+      ],
+      "facts_in_packet": {
+        "5.0": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:2000",
+      "objective_id": "b4v3-r2",
+      "role": "reviewer",
+      "required": [
+        "HTTPError"
+      ],
+      "facts_in_packet": {
+        "HTTPError": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:2000",
+      "objective_id": "b4v3-r3",
+      "role": "reviewer",
+      "required": [
+        "MD5",
+        "MD5-SESS"
+      ],
+      "facts_in_packet": {
+        "MD5": true,
+        "MD5-SESS": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:2000",
+      "objective_id": "b4v3-r4",
+      "role": "reviewer",
+      "required": [
+        "StreamError",
+        "Response"
+      ],
+      "facts_in_packet": {
+        "StreamError": true,
+        "Response": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:2000",
+      "objective_id": "b4v3-r5",
+      "role": "reviewer",
+      "required": [
+        "_guess_content_type",
+        "application/octet-stream"
+      ],
+      "facts_in_packet": {
+        "_guess_content_type": true,
+        "application/octet-stream": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:2000",
+      "objective_id": "b4v3-p1",
+      "role": "planner",
+      "required": [
+        "20"
+      ],
+      "facts_in_packet": {
+        "20": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:2000",
+      "objective_id": "b4v3-p2",
+      "role": "planner",
+      "required": [
+        "QueryParams",
+        "DEFAULT_TIMEOUT_CONFIG"
+      ],
+      "facts_in_packet": {
+        "QueryParams": false,
+        "DEFAULT_TIMEOUT_CONFIG": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:2000",
+      "objective_id": "b4v3-p3",
+      "role": "planner",
+      "required": [
+        "AsyncBaseTransport"
+      ],
+      "facts_in_packet": {
+        "AsyncBaseTransport": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:2000",
+      "objective_id": "b4v3-p4",
+      "role": "planner",
+      "required": [
+        "FOUND",
+        "SEE_OTHER"
+      ],
+      "facts_in_packet": {
+        "FOUND": false,
+        "SEE_OTHER": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:2000",
+      "objective_id": "b4v3-p5",
+      "role": "planner",
+      "required": [
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "facts_in_packet": {
+        "DEFAULT_LIMITS": false,
+        "DEFAULT_MAX_REDIRECTS": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:2000",
+      "objective_id": "b4v3-i1",
+      "role": "implementer",
+      "required": [
+        "ZStandardDecoder"
+      ],
+      "facts_in_packet": {
+        "ZStandardDecoder": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:2000",
+      "objective_id": "b4v3-i2",
+      "role": "implementer",
+      "required": [
+        "path",
+        "raw_path"
+      ],
+      "facts_in_packet": {
+        "path": true,
+        "raw_path": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:2000",
+      "objective_id": "b4v3-i3",
+      "role": "implementer",
+      "required": [
+        "br",
+        "zstd"
+      ],
+      "facts_in_packet": {
+        "br": false,
+        "zstd": true
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:2000",
+      "objective_id": "b4v3-i4",
+      "role": "implementer",
+      "required": [
+        "raw_host",
+        "Headers"
+      ],
+      "facts_in_packet": {
+        "raw_host": false,
+        "Headers": true
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:2000",
+      "objective_id": "b4v3-i5",
+      "role": "implementer",
+      "required": [
+        "GZipDecoder",
+        "DeflateDecoder"
+      ],
+      "facts_in_packet": {
+        "GZipDecoder": true,
+        "DeflateDecoder": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:2000",
+      "objective_id": "b4v3-t1",
+      "role": "tester",
+      "required": [
+        "IM_A_TEAPOT"
+      ],
+      "facts_in_packet": {
+        "IM_A_TEAPOT": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:2000",
+      "objective_id": "b4v3-t2",
+      "role": "tester",
+      "required": [
+        "read",
+        "aread"
+      ],
+      "facts_in_packet": {
+        "read": true,
+        "aread": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:2000",
+      "objective_id": "b4v3-t3",
+      "role": "tester",
+      "required": [
+        "is_error",
+        "raise_for_status"
+      ],
+      "facts_in_packet": {
+        "is_error": true,
+        "raise_for_status": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:2000",
+      "objective_id": "b4v3-t4",
+      "role": "tester",
+      "required": [
+        "RequestNotRead"
+      ],
+      "facts_in_packet": {
+        "RequestNotRead": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:2000",
+      "objective_id": "b4v3-t5",
+      "role": "tester",
+      "required": [
+        "RequestError",
+        "request"
+      ],
+      "facts_in_packet": {
+        "RequestError": true,
+        "request": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:2000",
+      "objective_id": "b4v3-r1",
+      "role": "reviewer",
+      "required": [
+        "5.0"
+      ],
+      "facts_in_packet": {
+        "5.0": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:2000",
+      "objective_id": "b4v3-r2",
+      "role": "reviewer",
+      "required": [
+        "HTTPError"
+      ],
+      "facts_in_packet": {
+        "HTTPError": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:2000",
+      "objective_id": "b4v3-r3",
+      "role": "reviewer",
+      "required": [
+        "MD5",
+        "MD5-SESS"
+      ],
+      "facts_in_packet": {
+        "MD5": false,
+        "MD5-SESS": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:2000",
+      "objective_id": "b4v3-r4",
+      "role": "reviewer",
+      "required": [
+        "StreamError",
+        "Response"
+      ],
+      "facts_in_packet": {
+        "StreamError": true,
+        "Response": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:2000",
+      "objective_id": "b4v3-r5",
+      "role": "reviewer",
+      "required": [
+        "_guess_content_type",
+        "application/octet-stream"
+      ],
+      "facts_in_packet": {
+        "_guess_content_type": true,
+        "application/octet-stream": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:2000",
+      "objective_id": "b4v3-p1",
+      "role": "planner",
+      "required": [
+        "20"
+      ],
+      "facts_in_packet": {
+        "20": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H2:2000",
+      "objective_id": "b4v3-p2",
+      "role": "planner",
+      "required": [
+        "QueryParams",
+        "DEFAULT_TIMEOUT_CONFIG"
+      ],
+      "facts_in_packet": {
+        "QueryParams": true,
+        "DEFAULT_TIMEOUT_CONFIG": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:2000",
+      "objective_id": "b4v3-p3",
+      "role": "planner",
+      "required": [
+        "AsyncBaseTransport"
+      ],
+      "facts_in_packet": {
+        "AsyncBaseTransport": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:2000",
+      "objective_id": "b4v3-p4",
+      "role": "planner",
+      "required": [
+        "FOUND",
+        "SEE_OTHER"
+      ],
+      "facts_in_packet": {
+        "FOUND": false,
+        "SEE_OTHER": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H2:2000",
+      "objective_id": "b4v3-p5",
+      "role": "planner",
+      "required": [
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "facts_in_packet": {
+        "DEFAULT_LIMITS": true,
+        "DEFAULT_MAX_REDIRECTS": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:2000",
+      "objective_id": "b4v3-i1",
+      "role": "implementer",
+      "required": [
+        "ZStandardDecoder"
+      ],
+      "facts_in_packet": {
+        "ZStandardDecoder": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:2000",
+      "objective_id": "b4v3-i2",
+      "role": "implementer",
+      "required": [
+        "path",
+        "raw_path"
+      ],
+      "facts_in_packet": {
+        "path": true,
+        "raw_path": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:2000",
+      "objective_id": "b4v3-i3",
+      "role": "implementer",
+      "required": [
+        "br",
+        "zstd"
+      ],
+      "facts_in_packet": {
+        "br": false,
+        "zstd": true
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H2:2000",
+      "objective_id": "b4v3-i4",
+      "role": "implementer",
+      "required": [
+        "raw_host",
+        "Headers"
+      ],
+      "facts_in_packet": {
+        "raw_host": false,
+        "Headers": true
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H2:2000",
+      "objective_id": "b4v3-i5",
+      "role": "implementer",
+      "required": [
+        "GZipDecoder",
+        "DeflateDecoder"
+      ],
+      "facts_in_packet": {
+        "GZipDecoder": true,
+        "DeflateDecoder": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:2000",
+      "objective_id": "b4v3-t1",
+      "role": "tester",
+      "required": [
+        "IM_A_TEAPOT"
+      ],
+      "facts_in_packet": {
+        "IM_A_TEAPOT": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H2:2000",
+      "objective_id": "b4v3-t2",
+      "role": "tester",
+      "required": [
+        "read",
+        "aread"
+      ],
+      "facts_in_packet": {
+        "read": true,
+        "aread": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:2000",
+      "objective_id": "b4v3-t3",
+      "role": "tester",
+      "required": [
+        "is_error",
+        "raise_for_status"
+      ],
+      "facts_in_packet": {
+        "is_error": true,
+        "raise_for_status": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:2000",
+      "objective_id": "b4v3-t4",
+      "role": "tester",
+      "required": [
+        "RequestNotRead"
+      ],
+      "facts_in_packet": {
+        "RequestNotRead": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:2000",
+      "objective_id": "b4v3-t5",
+      "role": "tester",
+      "required": [
+        "RequestError",
+        "request"
+      ],
+      "facts_in_packet": {
+        "RequestError": true,
+        "request": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:2000",
+      "objective_id": "b4v3-r1",
+      "role": "reviewer",
+      "required": [
+        "5.0"
+      ],
+      "facts_in_packet": {
+        "5.0": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:2000",
+      "objective_id": "b4v3-r2",
+      "role": "reviewer",
+      "required": [
+        "HTTPError"
+      ],
+      "facts_in_packet": {
+        "HTTPError": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:2000",
+      "objective_id": "b4v3-r3",
+      "role": "reviewer",
+      "required": [
+        "MD5",
+        "MD5-SESS"
+      ],
+      "facts_in_packet": {
+        "MD5": false,
+        "MD5-SESS": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H2:2000",
+      "objective_id": "b4v3-r4",
+      "role": "reviewer",
+      "required": [
+        "StreamError",
+        "Response"
+      ],
+      "facts_in_packet": {
+        "StreamError": true,
+        "Response": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:2000",
+      "objective_id": "b4v3-r5",
+      "role": "reviewer",
+      "required": [
+        "_guess_content_type",
+        "application/octet-stream"
+      ],
+      "facts_in_packet": {
+        "_guess_content_type": true,
+        "application/octet-stream": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:4000",
+      "objective_id": "b4v3-p1",
+      "role": "planner",
+      "required": [
+        "20"
+      ],
+      "facts_in_packet": {
+        "20": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "R:4000",
+      "objective_id": "b4v3-p2",
+      "role": "planner",
+      "required": [
+        "QueryParams",
+        "DEFAULT_TIMEOUT_CONFIG"
+      ],
+      "facts_in_packet": {
+        "QueryParams": true,
+        "DEFAULT_TIMEOUT_CONFIG": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:4000",
+      "objective_id": "b4v3-p3",
+      "role": "planner",
+      "required": [
+        "AsyncBaseTransport"
+      ],
+      "facts_in_packet": {
+        "AsyncBaseTransport": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:4000",
+      "objective_id": "b4v3-p4",
+      "role": "planner",
+      "required": [
+        "FOUND",
+        "SEE_OTHER"
+      ],
+      "facts_in_packet": {
+        "FOUND": false,
+        "SEE_OTHER": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "R:4000",
+      "objective_id": "b4v3-p5",
+      "role": "planner",
+      "required": [
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "facts_in_packet": {
+        "DEFAULT_LIMITS": true,
+        "DEFAULT_MAX_REDIRECTS": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:4000",
+      "objective_id": "b4v3-i1",
+      "role": "implementer",
+      "required": [
+        "ZStandardDecoder"
+      ],
+      "facts_in_packet": {
+        "ZStandardDecoder": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:4000",
+      "objective_id": "b4v3-i2",
+      "role": "implementer",
+      "required": [
+        "path",
+        "raw_path"
+      ],
+      "facts_in_packet": {
+        "path": true,
+        "raw_path": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:4000",
+      "objective_id": "b4v3-i3",
+      "role": "implementer",
+      "required": [
+        "br",
+        "zstd"
+      ],
+      "facts_in_packet": {
+        "br": false,
+        "zstd": true
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "R:4000",
+      "objective_id": "b4v3-i4",
+      "role": "implementer",
+      "required": [
+        "raw_host",
+        "Headers"
+      ],
+      "facts_in_packet": {
+        "raw_host": true,
+        "Headers": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:4000",
+      "objective_id": "b4v3-i5",
+      "role": "implementer",
+      "required": [
+        "GZipDecoder",
+        "DeflateDecoder"
+      ],
+      "facts_in_packet": {
+        "GZipDecoder": true,
+        "DeflateDecoder": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:4000",
+      "objective_id": "b4v3-t1",
+      "role": "tester",
+      "required": [
+        "IM_A_TEAPOT"
+      ],
+      "facts_in_packet": {
+        "IM_A_TEAPOT": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:4000",
+      "objective_id": "b4v3-t2",
+      "role": "tester",
+      "required": [
+        "read",
+        "aread"
+      ],
+      "facts_in_packet": {
+        "read": true,
+        "aread": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:4000",
+      "objective_id": "b4v3-t3",
+      "role": "tester",
+      "required": [
+        "is_error",
+        "raise_for_status"
+      ],
+      "facts_in_packet": {
+        "is_error": true,
+        "raise_for_status": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:4000",
+      "objective_id": "b4v3-t4",
+      "role": "tester",
+      "required": [
+        "RequestNotRead"
+      ],
+      "facts_in_packet": {
+        "RequestNotRead": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:4000",
+      "objective_id": "b4v3-t5",
+      "role": "tester",
+      "required": [
+        "RequestError",
+        "request"
+      ],
+      "facts_in_packet": {
+        "RequestError": true,
+        "request": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:4000",
+      "objective_id": "b4v3-r1",
+      "role": "reviewer",
+      "required": [
+        "5.0"
+      ],
+      "facts_in_packet": {
+        "5.0": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:4000",
+      "objective_id": "b4v3-r2",
+      "role": "reviewer",
+      "required": [
+        "HTTPError"
+      ],
+      "facts_in_packet": {
+        "HTTPError": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:4000",
+      "objective_id": "b4v3-r3",
+      "role": "reviewer",
+      "required": [
+        "MD5",
+        "MD5-SESS"
+      ],
+      "facts_in_packet": {
+        "MD5": true,
+        "MD5-SESS": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:4000",
+      "objective_id": "b4v3-r4",
+      "role": "reviewer",
+      "required": [
+        "StreamError",
+        "Response"
+      ],
+      "facts_in_packet": {
+        "StreamError": true,
+        "Response": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "R:4000",
+      "objective_id": "b4v3-r5",
+      "role": "reviewer",
+      "required": [
+        "_guess_content_type",
+        "application/octet-stream"
+      ],
+      "facts_in_packet": {
+        "_guess_content_type": true,
+        "application/octet-stream": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:4000",
+      "objective_id": "b4v3-p1",
+      "role": "planner",
+      "required": [
+        "20"
+      ],
+      "facts_in_packet": {
+        "20": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:4000",
+      "objective_id": "b4v3-p2",
+      "role": "planner",
+      "required": [
+        "QueryParams",
+        "DEFAULT_TIMEOUT_CONFIG"
+      ],
+      "facts_in_packet": {
+        "QueryParams": false,
+        "DEFAULT_TIMEOUT_CONFIG": true
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:4000",
+      "objective_id": "b4v3-p3",
+      "role": "planner",
+      "required": [
+        "AsyncBaseTransport"
+      ],
+      "facts_in_packet": {
+        "AsyncBaseTransport": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:4000",
+      "objective_id": "b4v3-p4",
+      "role": "planner",
+      "required": [
+        "FOUND",
+        "SEE_OTHER"
+      ],
+      "facts_in_packet": {
+        "FOUND": false,
+        "SEE_OTHER": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:4000",
+      "objective_id": "b4v3-p5",
+      "role": "planner",
+      "required": [
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "facts_in_packet": {
+        "DEFAULT_LIMITS": true,
+        "DEFAULT_MAX_REDIRECTS": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:4000",
+      "objective_id": "b4v3-i1",
+      "role": "implementer",
+      "required": [
+        "ZStandardDecoder"
+      ],
+      "facts_in_packet": {
+        "ZStandardDecoder": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:4000",
+      "objective_id": "b4v3-i2",
+      "role": "implementer",
+      "required": [
+        "path",
+        "raw_path"
+      ],
+      "facts_in_packet": {
+        "path": true,
+        "raw_path": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:4000",
+      "objective_id": "b4v3-i3",
+      "role": "implementer",
+      "required": [
+        "br",
+        "zstd"
+      ],
+      "facts_in_packet": {
+        "br": false,
+        "zstd": true
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:4000",
+      "objective_id": "b4v3-i4",
+      "role": "implementer",
+      "required": [
+        "raw_host",
+        "Headers"
+      ],
+      "facts_in_packet": {
+        "raw_host": false,
+        "Headers": true
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:4000",
+      "objective_id": "b4v3-i5",
+      "role": "implementer",
+      "required": [
+        "GZipDecoder",
+        "DeflateDecoder"
+      ],
+      "facts_in_packet": {
+        "GZipDecoder": true,
+        "DeflateDecoder": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:4000",
+      "objective_id": "b4v3-t1",
+      "role": "tester",
+      "required": [
+        "IM_A_TEAPOT"
+      ],
+      "facts_in_packet": {
+        "IM_A_TEAPOT": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:4000",
+      "objective_id": "b4v3-t2",
+      "role": "tester",
+      "required": [
+        "read",
+        "aread"
+      ],
+      "facts_in_packet": {
+        "read": true,
+        "aread": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:4000",
+      "objective_id": "b4v3-t3",
+      "role": "tester",
+      "required": [
+        "is_error",
+        "raise_for_status"
+      ],
+      "facts_in_packet": {
+        "is_error": true,
+        "raise_for_status": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:4000",
+      "objective_id": "b4v3-t4",
+      "role": "tester",
+      "required": [
+        "RequestNotRead"
+      ],
+      "facts_in_packet": {
+        "RequestNotRead": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:4000",
+      "objective_id": "b4v3-t5",
+      "role": "tester",
+      "required": [
+        "RequestError",
+        "request"
+      ],
+      "facts_in_packet": {
+        "RequestError": true,
+        "request": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:4000",
+      "objective_id": "b4v3-r1",
+      "role": "reviewer",
+      "required": [
+        "5.0"
+      ],
+      "facts_in_packet": {
+        "5.0": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:4000",
+      "objective_id": "b4v3-r2",
+      "role": "reviewer",
+      "required": [
+        "HTTPError"
+      ],
+      "facts_in_packet": {
+        "HTTPError": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:4000",
+      "objective_id": "b4v3-r3",
+      "role": "reviewer",
+      "required": [
+        "MD5",
+        "MD5-SESS"
+      ],
+      "facts_in_packet": {
+        "MD5": false,
+        "MD5-SESS": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H1:4000",
+      "objective_id": "b4v3-r4",
+      "role": "reviewer",
+      "required": [
+        "StreamError",
+        "Response"
+      ],
+      "facts_in_packet": {
+        "StreamError": true,
+        "Response": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H1:4000",
+      "objective_id": "b4v3-r5",
+      "role": "reviewer",
+      "required": [
+        "_guess_content_type",
+        "application/octet-stream"
+      ],
+      "facts_in_packet": {
+        "_guess_content_type": true,
+        "application/octet-stream": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:4000",
+      "objective_id": "b4v3-p1",
+      "role": "planner",
+      "required": [
+        "20"
+      ],
+      "facts_in_packet": {
+        "20": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H2:4000",
+      "objective_id": "b4v3-p2",
+      "role": "planner",
+      "required": [
+        "QueryParams",
+        "DEFAULT_TIMEOUT_CONFIG"
+      ],
+      "facts_in_packet": {
+        "QueryParams": true,
+        "DEFAULT_TIMEOUT_CONFIG": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:4000",
+      "objective_id": "b4v3-p3",
+      "role": "planner",
+      "required": [
+        "AsyncBaseTransport"
+      ],
+      "facts_in_packet": {
+        "AsyncBaseTransport": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:4000",
+      "objective_id": "b4v3-p4",
+      "role": "planner",
+      "required": [
+        "FOUND",
+        "SEE_OTHER"
+      ],
+      "facts_in_packet": {
+        "FOUND": false,
+        "SEE_OTHER": false
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H2:4000",
+      "objective_id": "b4v3-p5",
+      "role": "planner",
+      "required": [
+        "DEFAULT_LIMITS",
+        "DEFAULT_MAX_REDIRECTS"
+      ],
+      "facts_in_packet": {
+        "DEFAULT_LIMITS": true,
+        "DEFAULT_MAX_REDIRECTS": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:4000",
+      "objective_id": "b4v3-i1",
+      "role": "implementer",
+      "required": [
+        "ZStandardDecoder"
+      ],
+      "facts_in_packet": {
+        "ZStandardDecoder": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:4000",
+      "objective_id": "b4v3-i2",
+      "role": "implementer",
+      "required": [
+        "path",
+        "raw_path"
+      ],
+      "facts_in_packet": {
+        "path": true,
+        "raw_path": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:4000",
+      "objective_id": "b4v3-i3",
+      "role": "implementer",
+      "required": [
+        "br",
+        "zstd"
+      ],
+      "facts_in_packet": {
+        "br": false,
+        "zstd": true
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H2:4000",
+      "objective_id": "b4v3-i4",
+      "role": "implementer",
+      "required": [
+        "raw_host",
+        "Headers"
+      ],
+      "facts_in_packet": {
+        "raw_host": false,
+        "Headers": true
+      },
+      "all_in_packet": false
+    },
+    {
+      "arm": "H2:4000",
+      "objective_id": "b4v3-i5",
+      "role": "implementer",
+      "required": [
+        "GZipDecoder",
+        "DeflateDecoder"
+      ],
+      "facts_in_packet": {
+        "GZipDecoder": true,
+        "DeflateDecoder": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:4000",
+      "objective_id": "b4v3-t1",
+      "role": "tester",
+      "required": [
+        "IM_A_TEAPOT"
+      ],
+      "facts_in_packet": {
+        "IM_A_TEAPOT": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:4000",
+      "objective_id": "b4v3-t2",
+      "role": "tester",
+      "required": [
+        "read",
+        "aread"
+      ],
+      "facts_in_packet": {
+        "read": true,
+        "aread": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:4000",
+      "objective_id": "b4v3-t3",
+      "role": "tester",
+      "required": [
+        "is_error",
+        "raise_for_status"
+      ],
+      "facts_in_packet": {
+        "is_error": true,
+        "raise_for_status": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:4000",
+      "objective_id": "b4v3-t4",
+      "role": "tester",
+      "required": [
+        "RequestNotRead"
+      ],
+      "facts_in_packet": {
+        "RequestNotRead": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:4000",
+      "objective_id": "b4v3-t5",
+      "role": "tester",
+      "required": [
+        "RequestError",
+        "request"
+      ],
+      "facts_in_packet": {
+        "RequestError": true,
+        "request": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:4000",
+      "objective_id": "b4v3-r1",
+      "role": "reviewer",
+      "required": [
+        "5.0"
+      ],
+      "facts_in_packet": {
+        "5.0": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:4000",
+      "objective_id": "b4v3-r2",
+      "role": "reviewer",
+      "required": [
+        "HTTPError"
+      ],
+      "facts_in_packet": {
+        "HTTPError": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:4000",
+      "objective_id": "b4v3-r3",
+      "role": "reviewer",
+      "required": [
+        "MD5",
+        "MD5-SESS"
+      ],
+      "facts_in_packet": {
+        "MD5": true,
+        "MD5-SESS": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:4000",
+      "objective_id": "b4v3-r4",
+      "role": "reviewer",
+      "required": [
+        "StreamError",
+        "Response"
+      ],
+      "facts_in_packet": {
+        "StreamError": true,
+        "Response": true
+      },
+      "all_in_packet": true
+    },
+    {
+      "arm": "H2:4000",
+      "objective_id": "b4v3-r5",
+      "role": "reviewer",
+      "required": [
+        "_guess_content_type",
+        "application/octet-stream"
+      ],
+      "facts_in_packet": {
+        "_guess_content_type": true,
+        "application/octet-stream": true
+      },
+      "all_in_packet": true
+    }
+  ]
+}
