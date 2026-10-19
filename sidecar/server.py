@@ -26,6 +26,8 @@ import httpx
 from pydantic import ValidationError
 
 from kernel.router.compiler import CompileResult, compile_packet
+from kernel.router.hints import packet_cache_hints
+from kernel.router.kv_hints_envelope import HTTP_FIELD, build_kv_hints_envelope
 from kernel.store import CompileManifest, SqliteStore, StoreConflict
 from protocol.models import ContextBlock, Recipient, Scope
 from sidecar import b8, obsfold
@@ -198,6 +200,7 @@ def _make_handler(
     window_cap: int | None = None,
     b8_ledger: b8.Ledger | None = None,
     b8_daily_cap: int = b8.DEFAULT_DAILY_CAP,
+    kv_hints: bool = False,
 ) -> type[BaseHTTPRequestHandler]:
     fabric: list[ContextBlock] = list(blocks)
     # One shared sqlite3 connection: event_seq allocation plus append/dedupe must be
@@ -405,6 +408,8 @@ def _make_handler(
             payload.setdefault("messages", []).insert(
                 0, {"role": "system", "content": render_packet(result.packet)}
             )
+            if kv_hints:
+                payload[HTTP_FIELD] = build_kv_hints_envelope(packet_cache_hints(result.packet))
             stats.add("compiled")
             return (
                 json.dumps(payload).encode("utf-8"),
@@ -701,6 +706,7 @@ def make_server(
     window_cap: int | None = None,
     b8_ledger: b8.Ledger | None = None,
     b8_daily_cap: int = b8.DEFAULT_DAILY_CAP,
+    kv_hints: bool = False,
 ) -> ThreadingHTTPServer:
     client = httpx.Client(timeout=_TIMEOUT, trust_env=False)
     handler = _make_handler(
@@ -718,6 +724,7 @@ def make_server(
         window_cap=window_cap,
         b8_ledger=b8_ledger,
         b8_daily_cap=b8_daily_cap,
+        kv_hints=kv_hints,
     )
     return _Server(("127.0.0.1", port), handler)
 
@@ -736,6 +743,7 @@ def serve(
     window_cap: int | None = None,
     b8_ledger: b8.Ledger | None = None,
     b8_daily_cap: int = b8.DEFAULT_DAILY_CAP,
+    kv_hints: bool = False,
 ) -> None:
     """Load the fabric file (if any) and run the proxy until interrupted."""
     blocks: tuple[ContextBlock, ...] = ()
@@ -756,6 +764,7 @@ def serve(
         window_cap=window_cap,
         b8_ledger=b8_ledger,
         b8_daily_cap=b8_daily_cap,
+        kv_hints=kv_hints,
     )
     print(f"context-fabric sidecar: mode={mode} upstream={upstream} blocks={len(blocks)}")
     print(f"listening on http://127.0.0.1:{port}/v1")
