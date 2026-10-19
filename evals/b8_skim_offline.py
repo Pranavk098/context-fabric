@@ -53,6 +53,7 @@ from protocol.models import Recipient
 REPORTS = Path(__file__).parent / "reports"
 
 ARMS = ("R", "SKIM", "C")
+MODEL_ARMS = ("SKIM-PPL", "SKIM-PRUNER")
 BUDGETS = (1000, 2000, 4000)
 NOTE = (
     "exploratory dev-set recall diagnostic; the frozen result docs are "
@@ -210,6 +211,120 @@ def _print_dry_run(receipt: dict[str, Any]) -> None:
         )
 
 
+def _p95(vals: Sequence[float]) -> float:
+    if not vals:
+        return 0.0
+    s = sorted(vals)
+    return s[max(int(len(s) * 0.95) - 1, 0)]
+
+
+def model_arms_payload(
+    fixture: Path, objectives: Sequence[AgentSpec], *, model: str
+) -> dict[str, Any]:
+    """SKIM-PPL / SKIM-PRUNER at 1k/2k/4k (local GPU, lazy torch) + recall + latency."""
+    from kernel.router.skim_model import ModelSkimmer, ppl_scorer, pruner_scorer
+
+    files = package_files(fixture)
+    counter = _Counter(model)
+    factories = {"SKIM-PPL": ppl_scorer, "SKIM-PRUNER": pruner_scorer}
+
+    per_arm: dict[str, dict[str, Any]] = {}
+    recall: list[dict[str, Any]] = []
+    latency: dict[str, dict[str, Any]] = {}
+    for arm in MODEL_ARMS:
+        sk = ModelSkimmer(fixture, files, scorer=factories[arm](), counter=counter.count)
+        cold_ms: list[float] = []
+        warm_ms: list[float] = []
+        for budget in BUDGETS:
+            total = 0
+            rows: dict[str, dict[str, Any]] = {}
+            for agent in objectives:
+                t0 = time.perf_counter()
+                system = sk.skim(agent.objective, budget=budget)
+                dt = (time.perf_counter() - t0) * 1000.0
+                if budget == BUDGETS[0]:
+                    cold_ms.append(dt)
+                else:
+                    warm_ms.append(dt)
+                tokens = counter.count(system) + counter.count(agent.objective)
+                total += tokens
+                rows[agent.objective_id] = {"role": agent.role, "prompt_tokens": tokens}
+                facts = {fact: _fact_present_fixed(system, fact) for fact in agent.required}
+                recall.append(
+                    {
+                        "arm": _arm_key(arm, budget),
+                        "objective_id": agent.objective_id,
+                        "role": agent.role,
+                        "required": list(agent.required),
+                        "facts_in_packet": facts,
+                        "all_in_packet": all(facts.values()),
+                    }
+                )
+            per_arm[_arm_key(arm, budget)] = {
+                "arm": arm,
+                "budget": budget,
+                "prompt_tokens_total": total,
+                "max_objective_prompt_tokens": max(r["prompt_tokens"] for r in rows.values()),
+                "objectives": rows,
+            }
+        latency[arm] = {
+            "cold_ms_mean": round(sum(cold_ms) / len(cold_ms), 1) if cold_ms else 0.0,
+            "cold_ms_p95": round(_p95(cold_ms), 1),
+            "warm_ms_mean": round(sum(warm_ms) / len(warm_ms), 2) if warm_ms else 0.0,
+        }
+    return {
+        "scenario": "b8_skim_offline",
+        "kind": "model_arms",
+        "note": NOTE,
+        "model": model,
+        "tokenizer": counter.kind,
+        "budgets": list(BUDGETS),
+        "n_objectives": len(objectives),
+        "n_files": len(files),
+        "bundle_tokens_tiktoken": count_tokens(
+            "\n\n".join(
+                (fixture / rel).read_text(encoding="utf-8", errors="replace") for rel in files
+            )
+        ),
+        "arms": per_arm,
+        "recall": recall,
+        "latency": latency,
+    }
+
+
+def _print_model_arms(receipt: dict[str, Any]) -> None:
+    print(
+        f"b8_skim_offline: kind=model_arms model={receipt['model']} "
+        f"tokenizer={receipt['tokenizer']} n_objectives={receipt['n_objectives']}"
+    )
+    by_arm: dict[str, dict[str, Any]] = {}
+    for row in receipt["recall"]:
+        a = by_arm.setdefault(row["arm"], {"all": 0, "facts": 0, "total": 0})
+        a["all"] += 1 if row["all_in_packet"] else 0
+        a["facts"] += sum(row["facts_in_packet"].values())
+        a["total"] += len(row["required"])
+    n_obj = receipt["n_objectives"]
+    print(
+        f"{'arm':<12}{'prompt_tok_total':>17}{'max_obj':>9}{'all_facts':>10}{'fact_cov':>9}"
+        f"{'cold_ms':>10}{'warm_ms':>10}"
+    )
+    for key, arm in receipt["arms"].items():
+        r = by_arm[key]
+        arm_name = key.split(":")[0]
+        lat = receipt["latency"][arm_name]
+        print(
+            f"{key:<12}{arm['prompt_tokens_total']:>17}{arm['max_objective_prompt_tokens']:>9}"
+            f"{str(r['all']) + '/' + str(n_obj):>10}"
+            f"{str(r['facts']) + '/' + str(r['total']):>9}"
+            f"{lat['cold_ms_mean']:>10.0f}{lat['warm_ms_mean']:>10.2f}"
+        )
+    for row in receipt["recall"]:
+        marks = " ".join(
+            f"{fact}={'Y' if hit else 'N'}" for fact, hit in row["facts_in_packet"].items()
+        )
+        print(f"  {row['arm']:<12} {row['objective_id']:<10} {marks}")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m evals.b8_skim_offline",
@@ -218,6 +333,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--fixture", default=os.environ.get("CF_B4_FIXTURE", ""))
     parser.add_argument("--model", default=os.environ.get("CF_MODEL", "Qwen/Qwen2.5-1.5B-Instruct"))
     parser.add_argument("--dry-run", action="store_true", help="build packets offline, no network")
+    parser.add_argument(
+        "--model-arms",
+        action="store_true",
+        help="also run SKIM-PPL / SKIM-PRUNER (local GPU, torch; WSL only)",
+    )
     parser.add_argument("--out", default="", help="receipt path override")
     args = parser.parse_args(argv)
 
@@ -233,14 +353,20 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     objectives = load_objectives()
-    receipt = dry_run_payload(fixture, objectives, model=args.model)
-
     ts = time.strftime("%Y%m%d_%H%M%S")
     REPORTS.mkdir(parents=True, exist_ok=True)
+    receipt = dry_run_payload(fixture, objectives, model=args.model)
     out = Path(args.out) if args.out else REPORTS / f"b8_skim_offline_{ts}.json"
     out.write_text(json.dumps(receipt, indent=2), encoding="utf-8")
     _print_dry_run(receipt)
     print(f"receipt: {out}")
+
+    if args.model_arms:
+        mreceipt = model_arms_payload(fixture, objectives, model=args.model)
+        mout = Path(args.out) if args.out else REPORTS / f"b8_skim_model_{ts}.json"
+        mout.write_text(json.dumps(mreceipt, indent=2), encoding="utf-8")
+        _print_model_arms(mreceipt)
+        print(f"receipt: {mout}")
     return 0
 
 
