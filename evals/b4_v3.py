@@ -39,7 +39,7 @@ import os
 import re
 import sys
 import time
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -254,18 +254,27 @@ def _tokens(text: str) -> list[str]:
     return _SCORE_TOKEN.findall(text.lower())
 
 
+def _tokens_v2(text: str) -> list[str]:
+    """Scorer-v2 tokens: strip leading/trailing ``. - /`` from each v1 token."""
+    return [t for tok in _SCORE_TOKEN.findall(text.lower()) if (t := tok.strip("./-"))]
+
+
 def _run_present(haystack: list[str], needle: list[str]) -> bool:
     n = len(needle)
     return n > 0 and any(haystack[i : i + n] == needle for i in range(len(haystack) - n + 1))
 
 
-def _match_longest(answer: list[str], items: Sequence[str]) -> tuple[set[int], list[bool]]:
+def _match_longest(
+    answer: list[str],
+    items: Sequence[str],
+    tokenizer: Callable[[str], list[str]] = _tokens,
+) -> tuple[set[int], list[bool]]:
     """Match items against answer tokens, longest-first, each match consuming its tokens."""
     consumed = [False] * len(answer)
     matched: set[int] = set()
-    order = sorted(range(len(items)), key=lambda i: (-len(_tokens(items[i])), -len(items[i])))
+    order = sorted(range(len(items)), key=lambda i: (-len(tokenizer(items[i])), -len(items[i])))
     for idx in order:
-        toks = _tokens(items[idx])
+        toks = tokenizer(items[idx])
         if not toks:
             continue
         n = len(toks)
@@ -296,6 +305,23 @@ def score_quality(
     active = [f for f in forbidden if not _run_present(objective_tokens, _tokens(f))]
     remaining = [t for t, c in zip(answer, consumed, strict=True) if not c]
     matched_forb, _ = _match_longest(remaining, active)
+    wrong = [active[i] for i in sorted(matched_forb)]
+    return (not missing and not wrong, missing, wrong)
+
+
+def score_quality_v2(
+    text: str, objective: str, required: Sequence[str], forbidden: Sequence[str]
+) -> tuple[bool, list[str], list[str]]:
+    """Scorer v2: same contract as :func:`score_quality`, but tokens strip leading/trailing
+    ``. - /`` (e.g. ``"read."`` and ``"read"`` now match). Selected explicitly via
+    ``--scorer v2``; the frozen v1 scorer and every past receipt/verdict are unchanged."""
+    answer = _tokens_v2(text)
+    objective_tokens = _tokens_v2(objective)
+    matched_req, consumed = _match_longest(answer, required, _tokens_v2)
+    missing = [required[i] for i in range(len(required)) if i not in matched_req]
+    active = [f for f in forbidden if not _run_present(objective_tokens, _tokens_v2(f))]
+    remaining = [t for t, c in zip(answer, consumed, strict=True) if not c]
+    matched_forb, _ = _match_longest(remaining, active, _tokens_v2)
     wrong = [active[i] for i in sorted(matched_forb)]
     return (not missing and not wrong, missing, wrong)
 
@@ -655,10 +681,12 @@ def run(
     model: str,
     fixture: Path,
     ts: str,
+    scorer: str = "v1",
 ) -> dict[str, Any]:
     started_at = datetime.now(tz=UTC).isoformat()
     objectives = load_objectives()
     bundle = build_arms(fixture, objectives, model=model)
+    score = score_quality_v2 if scorer == "v2" else score_quality
 
     fixture_manifest = {
         "repo": PREGISTERED_REPO,
@@ -688,7 +716,7 @@ def run(
                 completion = _chat(
                     client, root, model=model, messages=messages, max_tokens=MAX_TOKENS
                 )
-                passed, missing, wrong = score_quality(
+                passed, missing, wrong = score(
                     completion.text, agent.objective, agent.required, agent.forbidden
                 )
                 error = None
@@ -850,6 +878,12 @@ def main(argv: list[str] | None = None) -> int:
         help="OpenAI-compatible upstream root (env: CF_UPSTREAM / CF_BASE_URL)",
     )
     parser.add_argument("--model", default=os.environ.get("CF_MODEL", "Qwen/Qwen2.5-1.5B-Instruct"))
+    parser.add_argument(
+        "--scorer",
+        choices=("v1", "v2"),
+        default="v1",
+        help="scorer version: v1 = frozen token match; v2 = strip leading/trailing . - /",
+    )
     parser.add_argument("--dry-run", action="store_true", help="build prompts offline, no network")
     parser.add_argument("--live", action="store_true", help="run against the upstream")
     parser.add_argument("--out", default="", help="receipt path override")
@@ -871,7 +905,9 @@ def main(argv: list[str] | None = None) -> int:
         upstream = _upstream_url(args.upstream)
         with httpx.Client(timeout=900.0, trust_env=False) as client:
             try:
-                receipt = run(client, upstream, model=args.model, fixture=fixture, ts=ts)
+                receipt = run(
+                    client, upstream, model=args.model, fixture=fixture, ts=ts, scorer=args.scorer
+                )
             except httpx.HTTPError as exc:
                 print(f"b4_v3: request failed: {exc}", file=sys.stderr)
                 return 2
