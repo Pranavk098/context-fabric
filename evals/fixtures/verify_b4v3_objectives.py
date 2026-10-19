@@ -3,6 +3,7 @@
 Also checks that recorded source excerpts match the actual file lines and that the
 fixture meets the file-coverage / cross-file constraints.
 """
+
 from __future__ import annotations
 
 import json
@@ -42,9 +43,7 @@ def main() -> int:
         for src in obj["source"]:
             actual = file_lines[src["file"]].get(src["line"], "")
             if actual.rstrip() != src["excerpt"].rstrip():
-                errors.append(
-                    f"{obj_id}: excerpt mismatch at {src['file']}:{src['line']}"
-                )
+                errors.append(f"{obj_id}: excerpt mismatch at {src['file']}:{src['line']}")
 
         # Required strings must appear in at least one referenced source file.
         for req in obj["required"]:

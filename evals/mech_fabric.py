@@ -146,12 +146,20 @@ def _block(
     )
 
 
-def build_blocks(repo_root: str | Path, files: Sequence[str]) -> list[ContextBlock]:
+def build_blocks(
+    repo_root: str | Path,
+    files: Sequence[str],
+    *,
+    import_statements: bool = False,
+) -> list[ContextBlock]:
     """Build mechanical memory blocks for ``files`` under ``repo_root`` (see module docstring).
 
     Reads only ``(repo_root, files)`` — no objectives, answer keys, or hand-written content
     enter the output. ``ref_uri`` carries the source file for source-derived blocks; the
-    trailing cartridge block has ``ref_uri=None``.
+    trailing cartridge block has ``ref_uri=None``. With ``import_statements=True`` the
+    per-file imports block carries full ``from <module> import <names>`` statements (symbol
+    -> module mapping, the B4 v3 lever) instead of root module names; the default is
+    unchanged.
     """
     root = Path(repo_root)
     blocks: list[ContextBlock] = []
@@ -187,14 +195,18 @@ def build_blocks(repo_root: str | Path, files: Sequence[str]) -> list[ContextBlo
                     (name,),
                 )
             )
-        imports = _import_roots(tree)
+        imports = _import_statements(tree) if import_statements else _import_roots(tree)
         if imports:
             seq += 1
             blocks.append(
                 _block(
                     f"blk_{sha256_hex(f'{rel}:imports'.encode())[:16]}",
                     BlockKind.fact,
-                    f"{rel}: imports {', '.join(imports)}",
+                    (
+                        f"{rel}: {', '.join(imports)}"
+                        if import_statements
+                        else f"{rel}: imports {', '.join(imports)}"
+                    ),
                     seq,
                     rel,
                     (),
