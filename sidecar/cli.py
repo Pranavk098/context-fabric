@@ -13,11 +13,21 @@ from typing import Any
 from kernel.mmu.epoch_folder import DEFAULT_K
 from kernel.store import SqliteStore, StoreConflict
 from protocol import epoch
-from sidecar import demo, foldfork, mcp, obsfold
+from sidecar import b8, demo, foldfork, mcp, obsfold
 from sidecar.blocks import build_block, stored_block
 from sidecar.replay import replay, seal
 from sidecar.repro import run_repro
 from sidecar.server import open_store, serve
+
+
+def _int_env(name: str, default: int | None = None) -> int | None:
+    value = os.environ.get(name)
+    if value is None or value == "":
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
 
 
 def _add_serve_arguments(parser: argparse.ArgumentParser) -> None:
@@ -72,6 +82,30 @@ def _add_serve_arguments(parser: argparse.ArgumentParser) -> None:
         default=None,
         help="window guard: fold more, oldest first, until the request fits (optional)",
     )
+    parser.add_argument(
+        "--window-cap",
+        type=int,
+        default=_int_env(b8.WINDOW_CAP_ENV),
+        help=(
+            "hard sub-agent input window cap: 400 context_length_exceeded when "
+            "input+max_tokens exceeds N (env: CF_B8_WINDOW_CAP)"
+        ),
+    )
+    parser.add_argument(
+        "--b8-ledger-dir",
+        default=os.environ.get(b8.LEDGER_DIR_ENV) or None,
+        help=(
+            "enable B8 money safety (model allow-list + daily token ledger) writing JSONL "
+            "under this directory (env: CF_B8_LEDGER_DIR)"
+        ),
+    )
+    parser.add_argument(
+        "--b8-daily-cap",
+        type=int,
+        default=_int_env(b8.DAILY_CAP_ENV, b8.DEFAULT_DAILY_CAP),
+        help=f"daily token cap for the B8 ledger (default {b8.DEFAULT_DAILY_CAP}) "
+        "(env: CF_B8_DAILY_CAP)",
+    )
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -96,6 +130,9 @@ def _build_parser() -> argparse.ArgumentParser:
             except (sqlite3.Error, OSError) as exc:
                 print(f"cfx serve: cannot open obs store {args.obs_store}: {exc}", file=sys.stderr)
                 return 2
+        b8_ledger: b8.Ledger | None = None
+        if args.b8_ledger_dir:
+            b8_ledger = b8.Ledger(args.b8_ledger_dir)
         try:
             serve(
                 upstream=args.upstream,
@@ -107,6 +144,9 @@ def _build_parser() -> argparse.ArgumentParser:
                 obs_n=args.obs_n,
                 obs_k=args.obs_k,
                 obs_max_tokens=args.obs_max_tokens,
+                window_cap=args.window_cap,
+                b8_ledger=b8_ledger,
+                b8_daily_cap=args.b8_daily_cap,
             )
         except FileNotFoundError as exc:
             print(f"cfx serve: {exc}", file=sys.stderr)

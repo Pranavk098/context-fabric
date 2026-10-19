@@ -28,7 +28,7 @@ from pydantic import ValidationError
 from kernel.router.compiler import CompileResult, compile_packet
 from kernel.store import CompileManifest, SqliteStore, StoreConflict
 from protocol.models import ContextBlock, Recipient, Scope
-from sidecar import obsfold
+from sidecar import b8, obsfold
 from sidecar.blocks import build_block, stored_block
 from sidecar.render import render_packet
 
@@ -195,6 +195,9 @@ def _make_handler(
     obs_n: int = obsfold.DEFAULT_N,
     obs_k: int = obsfold.DEFAULT_K,
     obs_max_tokens: int | None = None,
+    window_cap: int | None = None,
+    b8_ledger: b8.Ledger | None = None,
+    b8_daily_cap: int = b8.DEFAULT_DAILY_CAP,
 ) -> type[BaseHTTPRequestHandler]:
     fabric: list[ContextBlock] = list(blocks)
     # One shared sqlite3 connection: event_seq allocation plus append/dedupe must be
@@ -300,6 +303,8 @@ def _make_handler(
                 if folded is None:
                     return
                 body = folded
+            if not self._b8_gate(body):
+                return
             self._proxy("POST", f"{upstream}/v1/chat/completions", body, extra)
 
         def _route_get(self) -> None:
@@ -450,6 +455,80 @@ def _make_handler(
             payload["messages"] = result.messages
             return json.dumps(payload).encode("utf-8")
 
+        def _b8_gate(self, body: bytes) -> bool:
+            """Model allow-list, window cap, and daily cap — all before any upstream spend.
+
+            Returns ``False`` after sending a rejection response, ``True`` to forward.
+            Off (no window cap, no ledger) it is a no-op, so passthrough stays
+            byte-identical. A non-JSON or non-object body is forwarded untouched (it is
+            already framed, not validated, by ``_read_body``).
+            """
+            if window_cap is None and b8_ledger is None:
+                return True
+            try:
+                payload = json.loads(body)
+            except ValueError:
+                return True
+            if not isinstance(payload, dict):
+                return True
+            messages = payload.get("messages")
+            if not isinstance(messages, list):
+                return True
+            model = payload.get("model")
+            if b8_ledger is not None:
+                if not isinstance(model, str) or not b8.is_allowed_model(model):
+                    self._send_json(
+                        400,
+                        {
+                            "error": {
+                                "message": (
+                                    f"model {model!r} is not in the B8 allow-list; use one "
+                                    f"of {b8.ALLOWED_MODELS}"
+                                ),
+                                "type": "invalid_request_error",
+                                "param": "model",
+                                "code": "model_not_allowed",
+                            }
+                        },
+                    )
+                    return False
+            input_tokens = b8.estimate_messages_tokens(messages)
+            max_tokens = b8.max_completion_tokens(payload)
+            if window_cap is not None and input_tokens + max_tokens > window_cap:
+                self._send_json(400, b8.context_window_error(input_tokens, max_tokens, window_cap))
+                return False
+            if b8_ledger is not None:
+                day = b8.utc_day()
+                used = b8_ledger.day_total(day)
+                max_possible = input_tokens + max_tokens
+                if used + max_possible > b8_daily_cap:
+                    self._send_json(429, b8.daily_cap_error(used, max_possible, b8_daily_cap, day))
+                    return False
+            return True
+
+        def _record_usage(self, payload: bytes) -> None:
+            """Append an upstream response's usage to the daily ledger (money safety)."""
+            if b8_ledger is None:
+                return
+            try:
+                data = json.loads(payload)
+            except ValueError:
+                return
+            if not isinstance(data, dict):
+                return
+            usage = b8.parse_usage(data)
+            if "prompt_tokens" not in usage:
+                return
+            model = data.get("model")
+            b8_ledger.append(
+                b8.utc_day(),
+                model=model if isinstance(model, str) else "",
+                prompt_tokens=usage.get("prompt_tokens", 0),
+                completion_tokens=usage.get("completion_tokens", 0),
+                reasoning_tokens=usage.get("reasoning_tokens", 0),
+                cached_tokens=usage.get("cached_tokens", 0),
+            )
+
         def _log_compile(
             self,
             result: CompileResult,
@@ -549,6 +628,7 @@ def _make_handler(
             tokens = _prompt_tokens(payload)
             if tokens is not None:
                 stats.add("upstream_prompt_tokens", tokens)
+            self._record_usage(payload)
 
         def _start_relay(self, status: int, content_type: str, extra: dict[str, str]) -> None:
             self._response_started = True
@@ -618,6 +698,9 @@ def make_server(
     obs_n: int = obsfold.DEFAULT_N,
     obs_k: int = obsfold.DEFAULT_K,
     obs_max_tokens: int | None = None,
+    window_cap: int | None = None,
+    b8_ledger: b8.Ledger | None = None,
+    b8_daily_cap: int = b8.DEFAULT_DAILY_CAP,
 ) -> ThreadingHTTPServer:
     client = httpx.Client(timeout=_TIMEOUT, trust_env=False)
     handler = _make_handler(
@@ -632,6 +715,9 @@ def make_server(
         obs_n=obs_n,
         obs_k=obs_k,
         obs_max_tokens=obs_max_tokens,
+        window_cap=window_cap,
+        b8_ledger=b8_ledger,
+        b8_daily_cap=b8_daily_cap,
     )
     return _Server(("127.0.0.1", port), handler)
 
@@ -647,6 +733,9 @@ def serve(
     obs_n: int = obsfold.DEFAULT_N,
     obs_k: int = obsfold.DEFAULT_K,
     obs_max_tokens: int | None = None,
+    window_cap: int | None = None,
+    b8_ledger: b8.Ledger | None = None,
+    b8_daily_cap: int = b8.DEFAULT_DAILY_CAP,
 ) -> None:
     """Load the fabric file (if any) and run the proxy until interrupted."""
     blocks: tuple[ContextBlock, ...] = ()
@@ -664,6 +753,9 @@ def serve(
         obs_n=obs_n,
         obs_k=obs_k,
         obs_max_tokens=obs_max_tokens,
+        window_cap=window_cap,
+        b8_ledger=b8_ledger,
+        b8_daily_cap=b8_daily_cap,
     )
     print(f"context-fabric sidecar: mode={mode} upstream={upstream} blocks={len(blocks)}")
     print(f"listening on http://127.0.0.1:{port}/v1")

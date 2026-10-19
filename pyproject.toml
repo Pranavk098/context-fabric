@@ -44,6 +44,11 @@ module = ["langgraph", "langgraph.*"]
 follow_imports = "skip"
 ignore_missing_imports = true
 
+# B8 live harness deps: installed only in the WSL2 agent/grader venv, never on Windows.
+[[tool.mypy.overrides]]
+module = ["minisweagent", "minisweagent.*", "swebench", "swebench.*", "datasets", "datasets.*"]
+ignore_missing_imports = true
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"

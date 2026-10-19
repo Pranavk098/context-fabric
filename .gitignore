@@ -5,6 +5,7 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 evals/reports/
+evals/parent_handoff_raw/
 *.egg-info/
 dist/
 build/
