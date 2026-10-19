@@ -15,12 +15,16 @@ import json
 import sqlite3
 import sys
 from pathlib import Path
+from typing import Any
 
 from kernel.router.compiler import compile_packet
 from kernel.store import CompileManifest, SqliteStore
 from protocol import epoch
+from protocol.canonical import canonicalize, sha256_hex
 from protocol.models import ContextBlock
 from protocol.signing import Signer
+from sidecar.blocks import stored_block
+from sidecar.obsfold import make_stub
 
 _TOKENIZER_ID = "o200k_base"  # the tokenizer used for token estimates (kernel/router/packer.py)
 
@@ -94,6 +98,132 @@ def replay(store_path: str | Path, packet_id: str) -> int:
         print(f"REPLAY MISMATCH {manifest.content_hash} != {replayed_hash}")
         return 1
     print(f"REPLAY OK {packet_id} {replayed_hash}")
+    return 0
+
+
+def _folded_from_events(
+    messages: list[dict[str, Any]], events: list[Any]
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """Reconstruct the folded message list from the recorded unfoldeds + fold events.
+
+    Each fold event names a message index whose content was replaced by a stub; the stub is
+    regenerated deterministically (``obsfold.make_stub``) and the event's ``content_hash``
+    must match the message content it folds, so tampering with either is caught before the
+    ``seen_hash`` comparison in ``replay_fold``.
+    """
+    folded = [dict(message) for message in messages]
+    drifts: list[str] = []
+    for event in events:
+        if not isinstance(event, dict):
+            drifts.append("malformed fold event")
+            continue
+        index = event.get("message_index")
+        if not isinstance(index, int) or not 0 <= index < len(folded):
+            drifts.append(f"fold event index {index!r} out of range")
+            continue
+        content = folded[index].get("content")
+        if not isinstance(content, str):
+            drifts.append(f"message {index} has non-string content")
+            continue
+        if event.get("content_hash") != "sha256:" + sha256_hex(content.encode("utf-8")):
+            drifts.append(f"message {index} content hash changed")
+            continue
+        stub, stub_id = make_stub(content, str(event.get("tool_name") or "tool"))
+        if stub_id != event.get("stub_id"):
+            drifts.append(f"message {index} stub id drifted")
+        folded[index]["content"] = stub
+    return folded, drifts
+
+
+def _verify_expansion(
+    store: SqliteStore, messages: list[dict[str, Any]], events: list[Any]
+) -> list[str]:
+    """Each folded observation must expand losslessly from the ``ctx://`` store ``obs_`` blocks."""
+    drifts: list[str] = []
+    for event in events:
+        if not isinstance(event, dict):
+            continue  # already reported by _folded_from_events
+        index = event.get("message_index")
+        stub_id = event.get("stub_id")
+        if not isinstance(index, int) or not 0 <= index < len(messages):
+            continue  # already reported by _folded_from_events
+        if not isinstance(stub_id, str):
+            drifts.append("fold event missing stub id")
+            continue
+        block = stored_block(store, "obs_" + stub_id)
+        if block is None or block.content_hash != event.get("content_hash"):
+            drifts.append(f"stub {stub_id} missing/changed in the ctx:// store")
+            continue
+        original = messages[index].get("content")
+        if isinstance(original, str) and block.content != original:
+            drifts.append(f"stub {stub_id} expansion is not lossless")
+    return drifts
+
+
+def fold_replay_bodies(
+    store: SqliteStore, session_id: str | None = None, *, expand: bool = False
+) -> tuple[list[bytes], list[str]]:
+    """Reconstruct every recorded folded request: ``(bodies, drift lines)``.
+
+    Each body is the byte-exact request the sidecar forwarded upstream — the recorded
+    unfolded request with fold events applied — or, with ``expand``, the original unfolded
+    request. Drift lines describe any hash mismatch against the recorded receipts.
+    """
+    bodies: list[bytes] = []
+    drifts: list[str] = []
+    for request in store.load_fold_requests(session_id):
+        seq = request["request_seq"]
+        payload = request["request"]
+        if not isinstance(payload, dict):
+            drifts.append(f"request {seq}: recorded request is not an object")
+            bodies.append(b"")
+            continue
+        messages = payload.get("messages")
+        if not isinstance(messages, list) or not all(
+            isinstance(message, dict) for message in messages
+        ):
+            drifts.append(f"request {seq}: recorded request has no message list")
+            bodies.append(b"")
+            continue
+        events = request["events"] if isinstance(request["events"], list) else []
+        folded, fold_drifts = _folded_from_events(messages, events)
+        drifts.extend(fold_drifts)
+        if not fold_drifts and "sha256:" + sha256_hex(canonicalize(folded)) != request["seen_hash"]:
+            drifts.append(f"request {seq}: seen hash mismatch")
+        if expand:
+            drifts.extend(_verify_expansion(store, messages, events))
+        out = dict(payload)
+        out["messages"] = messages if expand else folded
+        bodies.append(json.dumps(out).encode("utf-8"))
+    return bodies, drifts
+
+
+def replay_fold(
+    store_path: str | Path, session_id: str | None = None, *, expand: bool = False
+) -> int:
+    """Replay every recorded folded request and verify the recorded receipts.
+
+    Exit codes: 0 every reconstructed request matches its ``seen_hash`` (and, with
+    ``--expand``, its stored ``obs_`` content); 1 no recorded requests, or drift/mismatch;
+    2 the store cannot be opened.
+    """
+    store = _open_store(store_path, "replay-fold")
+    if store is None:
+        return 2
+    requests = store.load_fold_requests(session_id)
+    if not requests:
+        print("cfx replay-fold: no folded requests recorded in the store", file=sys.stderr)
+        return 1
+    bodies, drifts = fold_replay_bodies(store, session_id, expand=expand)
+    if drifts:
+        for line in drifts:
+            print(f"cfx replay-fold: {line}", file=sys.stderr)
+        return 1
+    for request, body in zip(requests, bodies, strict=True):
+        if expand:
+            sys.stdout.write(body.decode("utf-8") + "\n")
+        else:
+            print(f"FOLD REPLAY OK {request['request_seq']} {request['seen_hash']}")
     return 0
 
 

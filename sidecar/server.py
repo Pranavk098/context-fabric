@@ -450,6 +450,26 @@ def _make_handler(
                         session_id=session_id,
                         created_at=created_at,
                     )
+                    if result.folded:
+                        # Record the unfolded request for ``cfx replay-fold``; the fold events
+                        # are already in fold_log, but only this record carries the verbatim
+                        # (non-folded) messages needed to reconstruct the forwarded bytes.
+                        obs_store.log_fold_request(
+                            session_id,
+                            payload,
+                            [
+                                {
+                                    "message_index": event.message_index,
+                                    "stub_id": event.stub_id,
+                                    "content_hash": event.content_hash,
+                                    "tool_name": event.tool_name,
+                                    "content_bytes": event.content_bytes,
+                                }
+                                for event in result.events
+                            ],
+                            result.seen_hash,
+                            created_at,
+                        )
             if not result.folded:
                 return body
             payload["messages"] = result.messages

@@ -79,6 +79,15 @@ CREATE TABLE IF NOT EXISTS fold_log (
     created_at      TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_fold_log_session ON fold_log (session_id);
+CREATE TABLE IF NOT EXISTS fold_requests (
+    request_seq     INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id      TEXT NOT NULL,
+    seen_hash       TEXT NOT NULL,
+    request_json    TEXT NOT NULL,
+    events_json     TEXT NOT NULL,
+    created_at      TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_fold_requests_session ON fold_requests (session_id);
 """
 
 _MANIFEST_COLUMNS = (
@@ -432,6 +441,62 @@ class SqliteStore:
                 "content_bytes": int(row[6]),
                 "seen_hash": row[7],
                 "created_at": row[8],
+            }
+            for row in rows
+        ]
+
+    def log_fold_request(
+        self,
+        session_id: str,
+        request: dict[str, Any],
+        events: Iterable[dict[str, Any]],
+        seen_hash: str,
+        created_at: datetime,
+    ) -> None:
+        """Record one fold pass's original (unfolded) request + its fold events for replay.
+
+        ``request`` is the full parsed request body *before* folding (the bytes the client
+        sent, re-serializable with ``json.dumps`` so replay reproduces the forwarded body
+        byte-for-byte); ``events`` are the fold events written to ``fold_log`` by the same
+        pass (``message_index``, ``stub_id``, ``content_hash``, ``tool_name``,
+        ``content_bytes``). ``seen_hash`` is the sha256 of the folded message list the model
+        saw, denormalized here so replay can verify reconstruction without a fold_log join.
+        """
+        self._conn.execute(
+            "INSERT INTO fold_requests"
+            " (session_id, seen_hash, request_json, events_json, created_at)"
+            " VALUES (?, ?, ?, ?, ?)",
+            (
+                session_id,
+                seen_hash,
+                json.dumps(request),
+                json.dumps([dict(event) for event in events]),
+                created_at.isoformat(),
+            ),
+        )
+        self._conn.commit()
+
+    def load_fold_requests(self, session_id: str | None = None) -> list[dict[str, Any]]:
+        """Fold-request replay records in append order (``request_seq``), optionally per session."""
+        if session_id is None:
+            rows = self._conn.execute(
+                "SELECT request_seq, session_id, seen_hash, request_json, events_json, created_at"
+                " FROM fold_requests ORDER BY request_seq"
+            ).fetchall()
+        else:
+            rows = self._conn.execute(
+                "SELECT request_seq, session_id, seen_hash, request_json, events_json, created_at"
+                " FROM fold_requests WHERE session_id = ? ORDER BY request_seq",
+                (session_id,),
+            ).fetchall()
+        return [
+            {
+                "request_seq": int(row[0]),
+                "session_id": row[1],
+                "seen_hash": row[2],
+                "request": json.loads(row[3]),
+                "events": json.loads(row[4]),
+                "created_at": row[5],
             }
             for row in rows
         ]

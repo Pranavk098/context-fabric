@@ -15,7 +15,7 @@ from kernel.store import SqliteStore, StoreConflict
 from protocol import epoch
 from sidecar import b8, demo, foldfork, mcp, obsfold
 from sidecar.blocks import build_block, stored_block
-from sidecar.replay import replay, seal
+from sidecar.replay import replay, replay_fold, seal
 from sidecar.repro import run_repro
 from sidecar.server import open_store, serve
 
@@ -179,6 +179,23 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     replay_parser.set_defaults(func=_cmd_replay)
 
+    replay_fold_parser = subparsers.add_parser(
+        "replay-fold",
+        help="reconstruct every folded request a session forwarded and verify its receipts",
+    )
+    replay_fold_parser.add_argument("--store", required=True, help="obs store path (.db/.sqlite)")
+    replay_fold_parser.add_argument(
+        "--session",
+        default=None,
+        help="only replay this session id (default: every recorded session)",
+    )
+    replay_fold_parser.add_argument(
+        "--expand",
+        action="store_true",
+        help="emit the original unfolded requests (verified against the ctx:// store)",
+    )
+    replay_fold_parser.set_defaults(func=_cmd_replay_fold)
+
     fold_parser = subparsers.add_parser(
         "fold", help="fold raw tool-output events into Tier-1 facts (append-only, idempotent)"
     )
@@ -309,6 +326,10 @@ def _cmd_verify(args: argparse.Namespace) -> int:
 
 def _cmd_replay(args: argparse.Namespace) -> int:
     return replay(args.store, args.packet_id)
+
+
+def _cmd_replay_fold(args: argparse.Namespace) -> int:
+    return replay_fold(args.store, args.session, expand=args.expand)
 
 
 def _cmd_fold(args: argparse.Namespace) -> int:

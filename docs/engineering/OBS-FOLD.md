@@ -42,6 +42,30 @@ cfx expand --store obs.db ctx://obs/<id>          # CLI
 The MCP `expand` tool resolves against whatever store the MCP server was launched with
 (`--store`/`CF_FABRIC`); point it at the obs store to expand folded observations.
 
+## Replay (executable)
+
+`cfx replay-fold` reconstructs every request a session forwarded and verifies the receipts.
+The sidecar records one row per fold pass in the store's `fold_requests` table — the full
+original (unfolded) request plus its fold events — the one thing the `fold_log` receipt does
+not already carry: the verbatim, non-folded messages. Replay re-applies the recorded events
+to that request, regenerates each stub deterministically, and compares the result's
+canonical sha256 to the recorded `seen_hash`; `--expand` additionally checks each folded
+observation still expands losslessly from its `obs_` block.
+
+```powershell
+uv run cfx replay-fold --store obs.db [--session AGENT] [--expand]
+```
+
+- **default** — reconstruct each forwarded request (stubs in place) and verify `seen_hash`;
+  exit `0` when every request matches, `1` on drift/mismatch, `2` when the store cannot be
+  opened.
+- **`--expand`** — emit the original unfolded request and verify each folded observation's
+  `obs_` block still matches its recorded `content_hash` (lossless expansion).
+
+The reconstruction is byte-identical to what was forwarded upstream: it re-serializes the
+recorded request with the re-derived folded messages exactly as `cfx serve` did. It proves
+the folded bytes the model saw — never the model's answer.
+
 ## Configuration
 
 `cfx serve --obs-fold [--obs-store obs.db] [--obs-n 3] [--obs-k 3] [--obs-max-tokens N]`
