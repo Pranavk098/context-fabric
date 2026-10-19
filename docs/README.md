@@ -22,6 +22,7 @@ Everything that matters is here. "Main" documents are marked ⭐.
 - `SHARED-MEMORY-PRIOR-ART.md` — cross-agent sharing prior art; the unclaimed contract.
 - `PATH-VIABILITY.md` — brutal market/post-mortem check + falsification tests per step.
 - `REFERENCES.md` — sourced-claims ledger (verified vs `[HYPOTHESIS]`).
+- `B7-FOLD-IN.md` — original three-report promise ledger, contradicted claims, unfolded research, and external RFC/LMCache status.
 
 ## engineering/
 - ⭐ `IMPLEMENTATION-STATUS.md` — spec-vs-code map: what is built, partial, pending.
