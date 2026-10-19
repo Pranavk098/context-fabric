@@ -49,6 +49,11 @@ ignore_missing_imports = true
 module = ["minisweagent", "minisweagent.*", "swebench", "swebench.*", "datasets", "datasets.*", "litellm", "litellm.*"]
 ignore_missing_imports = true
 
+# Model-based skimmer (kernel/router/skim_model.py): lazy, local-GPU only, never on Windows.
+[[tool.mypy.overrides]]
+module = ["torch", "torch.*", "transformers", "transformers.*", "safetensors", "safetensors.*", "huggingface_hub", "huggingface_hub.*"]
+ignore_missing_imports = true
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"
