@@ -1,5 +1,7 @@
 # B8 Pre-Registration — does a sub-agent on a small window do better with Context Fabric? (pilot, n = 10)
 
+**SUPERSEDED by `B8-PREREGISTRATION-v2.md` after 2 runs (harness bug, see `B8-DEVIATIONS.md` D1); kept for the audit trail.**
+
 **Status: PRE-REGISTERED. Frozen 2026-10-19 (UTC), before any of the sampled tasks below was run.**
 The only live runs before this freeze are the harness smoke on `astropy__astropy-7606`
 (`evals/reports/b8_smoke_report.md`), which debugged the harness and is not part of this result.

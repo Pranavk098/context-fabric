@@ -12,11 +12,14 @@ arms, settings or criteria in `B8-PREREGISTRATION.md`.
   only `candidate_files` from the BM25 fallback.
 - **When found:** after 2 of 30 task × arm runs (arm A on `django__django-11532` and
   `django__django-12262`). All 10 parent hand-offs had already been generated and cached.
-- **Decision:** keep the cached hand-offs for the whole pilot and do not fix the bug mid-run.
+- **Initial decision (day 1):** keep the cached hand-offs and do not fix the bug mid-run.
+- **Revised decision (same day, by the user, before any A/B/C comparison was observed):** void the
+  2 completed runs, fix the bug, and restart the pilot under `B8-PREREGISTRATION-v2.md` so every
+  run of the result uses a real LLM parent. Void artifacts: `evals/reports/b8_void_20261019/`.
+- **Superseded rationale for the initial decision:**
   All three arms of a task read the same cached hand-off, so the A/B/C comparison is unaffected.
   Fixing it now would give the remaining runs different hand-offs from the two completed ones.
-- **Effect:** the "parent" is effectively a deterministic code-search localizer with no
-  model-written guidance. Arm C's chunk ranking still has a query: it uses the task's
-  `problem_statement` concatenated with the (empty) parent query (`evals/b8_live.py`, the
-  arm C hand-off builder). The result must say the parent was not an LLM.
-- **Follow-up:** fix the URL join before any later run that needs an LLM parent.
+- **Effect (void v1 runs only):** the "parent" was a deterministic code-search localizer with no
+  model-written guidance. This does not apply to v2 runs.
+- **Follow-up:** the URL join is fixed and the silent fallback removed before the first v2 run
+  (parent failures are recorded as `parent_status: llm_failed` and the task is excluded).
