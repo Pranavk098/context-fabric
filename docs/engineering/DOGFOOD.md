@@ -15,12 +15,12 @@ repo (copied to `~/dogfood/httpx_scratch`; the original at
 `C:\Users\<user>\AppData\Local\Temp\opencode\httpx_pilot` was never touched).
 
 ```bash
-# vLLM (WSL) — three flags beyond the task's spec were REQUIRED, see bug 1/2:
+# vLLM (WSL) — three flags beyond the task's spec were REQUIRED, see bug S1:
 source ~/.venvs/vllm/bin/activate
 export VLLM_TORCH_COMPILE_LEVEL=0
 export VLLM_USE_FLASHINFER_SAMPLER=0
 vllm serve Qwen/Qwen2.5-1.5B-Instruct \
-  --enable-prefix-caching --enable-auto-tool-choice --tool-call-parser hermes \
+  --enable-prefix-caching --enable-auto-tool-choice \
   --max-model-len 16384 --gpu-memory-utilization 0.85 --port 8000 --enforce-eager
 
 # cfx serve (WSL, the worktree's editable install: ~/.venvs/swe/bin/cfx)
@@ -91,8 +91,13 @@ consistent (replay hashes the post-compile list), but worth knowing when reconci
   `hermes_tool_parser.extract_tool_calls` throws
   `json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)` whenever the model
   emits text instead of native tool calls. Qwen2.5 emits OpenAI-format tool calls natively via
-  its chat template, so the parser should be omitted (or `--tool-call-parser qwen25`). This
-  contributes directly to the model's "No tool calls found" failures under mini-swe-agent.
+  its chat template, so the parser should be **omitted** — `--enable-auto-tool-choice` alone is
+  enough. vLLM 0.31 registers no Qwen-specific parser (`qwen25`/`qwen25_native` are absent from
+  `vllm/tool_parsers/__init__.py` at tag v0.31.0), and vLLM's tool-calling docs still list
+  `--tool-call-parser hermes` under "Qwen Models"
+  (https://docs.vllm.ai/en/stable/features/tool_calling/), so that recommendation is wrong on
+  this box — "omit" is the correct option. This contributes directly to the model's "No tool
+  calls found" failures under mini-swe-agent.
 - **S3 (low) — `packet_id` is not content-addressed to the fabric.** Same objective + agent →
   same `packet_id` regardless of block set (0-block vs 2-block fabrics both returned
   `cpk_ddb6c803e553dc14`). Only `content_hash` distinguishes the content, and CD-06 keeps the

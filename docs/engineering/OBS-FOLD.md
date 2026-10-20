@@ -52,6 +52,17 @@ kept separate from the fabric store so stashed observations are never compiled i
 packets. With the flag on but no `--obs-store`, folding still reduces tokens but stubs are
 not reversible.
 
+### Weak / short-lived agents
+
+With the defaults (`--obs-n 3 --obs-k 3`) nothing folds until a session has **6** tool
+messages: the mask keeps the last `n=3` verbatim and the fold boundary only advances every
+`k=3` new observations, so the first fold fires at `n+k=6`. A weak or short-lived sub-agent
+(e.g. a 1.5B model that errors or wanders off after 2–4 tool calls) rarely reaches that, so
+the feature silently does nothing on exactly the traffic it targets (measured in
+`docs/engineering/DOGFOOD.md` §3/§5 S6). For those agents, run
+`cfx serve --obs-fold --obs-n 1 --obs-k 1 --obs-max-tokens <window>` so folding engages from
+the first couple of tool messages. The defaults are unchanged (frozen for the B8 pilot).
+
 ## What it does NOT claim
 
 * **No savings numbers.** Token, KV, and cost reductions are not measured here; the
