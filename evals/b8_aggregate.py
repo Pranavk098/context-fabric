@@ -165,8 +165,11 @@ def mcnemar_table(
     return table
 
 
-def _verdict(x: dict[str, int], a: dict[str, int]) -> str:
-    """The §5 verdict for arm X vs arm A over their paired intersection."""
+def _verdict(x: dict[str, int], a: dict[str, int], n: int) -> str:
+    """The §5 verdict for arm X vs arm A over their ``n`` paired tasks."""
+    if n == 0:
+        # No paired tasks is no evidence: 0 >= 0 and 0 <= 0.75 * 0 must not read as SIGNAL.
+        return "INCONCLUSIVE"
     if x["R"] >= a["R"] + 3:
         return "STRONG SIGNAL"
     if x["R"] >= a["R"] and x["O"] <= math.ceil(a["O"] / 2) and x["U"] <= 0.75 * a["U"]:
@@ -187,7 +190,7 @@ def verdicts(
         a_totals = _totals({iid: outcomes["A"][iid] for iid in common})
         result[(arm_x, "A")] = {
             "n": len(common),
-            "verdict": _verdict(x_totals, a_totals),
+            "verdict": _verdict(x_totals, a_totals, len(common)),
             "x": x_totals,
             "a": a_totals,
             "dropped_x": sorted(set(outcomes[arm_x]) - common),

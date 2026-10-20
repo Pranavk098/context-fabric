@@ -1065,11 +1065,19 @@ def test_verdict_rules() -> None:
     from evals.b8_aggregate import _verdict
 
     a = {"R": 2, "O": 4, "U": 1000, "tasks": 10}
-    assert _verdict({"R": 5, "O": 4, "U": 2000, "tasks": 10}, a) == "STRONG SIGNAL"
+    assert _verdict({"R": 5, "O": 4, "U": 2000, "tasks": 10}, a, 10) == "STRONG SIGNAL"
     # SIGNAL: R >= A and O <= ceil(4/2)=2 and U <= 0.75*1000
-    assert _verdict({"R": 2, "O": 2, "U": 750, "tasks": 10}, a) == "SIGNAL"
-    assert _verdict({"R": 0, "O": 4, "U": 1000, "tasks": 10}, a) == "NEGATIVE"
-    assert _verdict({"R": 2, "O": 3, "U": 800, "tasks": 10}, a) == "INCONCLUSIVE"
+    assert _verdict({"R": 2, "O": 2, "U": 750, "tasks": 10}, a, 10) == "SIGNAL"
+    assert _verdict({"R": 0, "O": 4, "U": 1000, "tasks": 10}, a, 10) == "NEGATIVE"
+    assert _verdict({"R": 2, "O": 3, "U": 800, "tasks": 10}, a, 10) == "INCONCLUSIVE"
+
+
+def test_verdict_with_no_paired_tasks_is_inconclusive() -> None:
+    """Zero paired tasks satisfy 0 >= 0 and 0 <= 0.75*0 vacuously; that must not be SIGNAL."""
+    from evals.b8_aggregate import _verdict
+
+    zero = {"R": 0, "O": 0, "U": 0, "tasks": 0}
+    assert _verdict(zero, zero, 0) == "INCONCLUSIVE"
 
 
 def test_verdicts_paired_intersection() -> None:
