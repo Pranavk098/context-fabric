@@ -181,7 +181,7 @@ Release notes, README, and external summaries may cite **only** entries register
 | `b4_v3_billed_ratio` | `5.66x` | display-only | B4 v3 compile billed-token reduction vs truncation (**MIXED** / **KILL** under fixed scorer) | `evals/reports/b4_v3_20261018_202752.json` |
 | `a4_kv_peak_n32` / `a4_token_ratio` | `1.9x` / `10.9x` | display-only | A4 concurrency peak-KV reduction at `N=32` and per-request prompt-token reduction vs shared raw | `evals/reports/a4_compile_20261019_160730.json` |
 | `cost_*` (12 entries) | see [`COSTS.md`](COSTS.md) | display-only | modeled list-price cost (`openai:gpt-4o`, `anthropic:sonnet`, warm vs TTL miss) | `docs/engineering/COSTS.md` |
-| `test_count` | `536` | display-only | `uv run python -m pytest --collect-only -q` (`531 passed, 6 skipped` without optional extras) | — |
+| `test_count` | `552` (re-counted after the T1-T3 merges) | display-only | `uv run python -m pytest --collect-only -q` (`531 passed, 6 skipped` without optional extras) | — |
 
 ---
 

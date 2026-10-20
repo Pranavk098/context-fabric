@@ -8,7 +8,7 @@ One shared memory. One small, cache-aligned packet per agent.
 Every hand-off hashed, signable, and replayable.
 
 [![CI](https://github.com/Pranavk098/context-fabric/actions/workflows/ci.yml/badge.svg)](https://github.com/Pranavk098/context-fabric/actions/workflows/ci.yml)
-![tests](https://img.shields.io/badge/tests-536%20total-brightgreen)
+![tests](https://img.shields.io/badge/tests-552%20total-brightgreen)
 ![python](https://img.shields.io/badge/python-3.12%2B-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
 ![status](https://img.shields.io/badge/status-v0.1%20local--first-orange)
@@ -120,7 +120,7 @@ registry; failures are stated as plainly as wins.
 ```bash
 uv sync
 uv run python -m evals.spike_deterministic   # zero-GPU deterministic-core check
-uv run pytest -q                             # 536 tests collected (531 pass, 6 skip without optional extras)
+uv run pytest -q                             # 552 tests collected (547 pass, 5 skip without optional extras)
 uv run cfx repro                             # recompute every offline claim from its artifact
 
 # The plug, in front of your local model server
@@ -168,7 +168,7 @@ protocol/   CPP v1.0 frozen schemas · RFC 8785 canonicalization · Ed25519 · e
 kernel/     9-stage context compiler · .cfx cartridge · BM25/hybrid recall · λ-MMR packer · CoW epochs · SQLite store
 sidecar/    cfx CLI + OpenAI-compatible proxy · writable quarantined memory · MCP server · replay/seal · demo
 evals/      telemetry harness + every Stage-B experiment that produced a number in this README
-tests/      536 tests (deterministic core, verifiers, replay, MCP, perf budget)
+tests/      552 tests (deterministic core, verifiers, replay, MCP, perf budget)
 scripts/    WSL/GPU bring-up and runners
 docs/       the full record — see the index below
 ```
