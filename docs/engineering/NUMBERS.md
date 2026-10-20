@@ -42,7 +42,7 @@ Legend
 | `packing_redundancy` | `-13.4%` | strict | `README.md`, `CHANGELOG.md` | `evals/reports/packing_bench_20261017_231759.json` | (0.205616 − 0.177986) = 0.0276 jaccard delta; /0.205616 = 13.4% |
 | `quality_parity_ratio` | `~5.6x` | strict | `README.md`, `CHANGELOG.md` | `evals/reports/audit_b6_20261016_173804.json` | 408 / 73 = 5.589 → 5.6 (1.5B, lossless arm; N7 caveats) |
 | `httpx_compression` | `~17x` | display-only | `README.md`, `CHANGELOG.md` | — (N5: no stored report) | 64,066 → 3,806 tokens; drifts with the installed `httpx` version |
-| `test_count` | `486` | display-only | `README.md` | — | `uv run python -m pytest --collect-only -q` on the current tree (`481 passed, 6 skipped`: 2 fastembed + 2 litellm/swebench + 1 symlink + 1 langgraph module-level, without the optional extras); recount and update README + this row together |
+| `test_count` | `536` | display-only | `README.md` | — | `uv run python -m pytest --collect-only -q` on the current tree (`531 passed, 6 skipped`: 2 fastembed + 2 litellm/swebench + 1 symlink + 1 langgraph module-level, without the optional extras); recount and update README + this row together |
 
 Stale patterns (must never appear as current numbers in their scoped docs; historical
 docs that explicitly quote superseded runs are exempt via `historical_ok`):
@@ -480,7 +480,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
     {
       "id": "test_count",
       "claim": "test-suite size badge (current tree; recount with pytest when tests change)",
-      "display": "486",
+      "display": "536",
       "kind": "display-only",
       "must_appear_in": ["README.md"]
     },
@@ -542,6 +542,16 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "pattern": "tests-476",
       "docs": ["README.md"],
       "why": "old test badge count (476); superseded by the current collected count (see test_count)"
+    },
+    {
+      "pattern": "tests-486",
+      "docs": ["README.md"],
+      "why": "old test badge count (486); superseded by the current collected count (see test_count)"
+    },
+    {
+      "pattern": "486 tests",
+      "docs": ["README.md"],
+      "why": "old test count (486); superseded by the current collected count (see test_count)"
     }
   ],
   "historical_ok": [

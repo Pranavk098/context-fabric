@@ -69,7 +69,8 @@ the folded bytes the model saw — never the model's answer.
 ## Configuration
 
 `cfx serve --obs-fold [--obs-store obs.db] [--obs-n 3] [--obs-k 3] [--obs-max-tokens N]`
-(env: `CF_OBS_FOLD`, `CF_OBS_STORE`, `CF_OBS_N`, `CF_OBS_K`, `CF_OBS_MAX_TOKENS`). The
+(env: `CF_OBS_FOLD`, `CF_OBS_STORE`; `--obs-n`, `--obs-k`, and `--obs-max-tokens` are CLI
+flags only). The
 flag is **OFF by default**; when off the proxy is byte-identical to the pre-folding
 sidecar. The obs store is a dedicated SQLite file (folded content + `fold_log` receipt),
 kept separate from the fabric store so stashed observations are never compiled into
