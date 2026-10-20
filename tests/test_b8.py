@@ -12,15 +12,30 @@ from typing import Any
 import httpx
 import pytest
 
+from evals.b8_aggregate import aggregate, mcnemar_p
 from evals.b8_live import (
+    FROZEN_INSTANCE_IDS,
     _arm_predictions_path,
+    _bm25_file_listing,
+    _classify_exception,
     _is_cap_error,
+    _print_report,
+    _salvage_git_diff,
+    append_run,
+    assert_frozen_sample,
+    build_handoff,
+    build_subagent_task,
+    build_task_header,
     chat_completions_url,
     finished_pairs,
+    list_python_files,
     localize_parent,
+    pair_fits,
     parent_handoff,
     pending_pairs,
+    recover_patch,
     sample_instances,
+    tooling_failures,
 )
 from sidecar import b8
 from sidecar.server import make_server
@@ -164,6 +179,8 @@ def test_daily_cap_stop_returns_resume_tomorrow(tmp_path: Path) -> None:
 
 
 def test_daily_cap_records_usage_after_proxy(tmp_path: Path) -> None:
+    # AU3-M1: usage is recorded BEFORE the response body is written, so by the time the
+    # client observes a complete response the ledger already holds the tokens (no delta race).
     ledger = b8.Ledger(tmp_path / "ledger")
     upstream, upstream_url = _start_upstream()
     sidecar = make_server(
@@ -571,3 +588,378 @@ def test_arm_predictions_path_filters_by_arm(tmp_path: Path) -> None:
     assert json.loads(lines[0])["instance_id"] == "x"
     # an arm with no rows is "nothing to grade", not an error
     assert _arm_predictions_path(predictions, "C") is None
+
+
+# ------------------------------------------------------------------- audit B8 harness fixes
+
+
+def test_task_header_identical_across_arms(tmp_path: Path) -> None:
+    """F1: A/B/C share the identical task header; they differ only after it."""
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "mod.py").write_text("def f():\n    return 1\n", encoding="utf-8")
+    (repo / "other.py").write_text("x = 1\n", encoding="utf-8")
+    problem = "the counter is off by one"
+    query = "Fix the off-by-one in mod.py."
+    notes = "Index error in the loop."
+    header = build_task_header(problem, query, notes)
+    assert "===== TASK =====" in header
+    assert problem in header and query in header and notes in header
+    tasks: dict[str, str] = {}
+    for arm in ("A", "B", "C"):
+        handoff = build_handoff(
+            arm, repo, ["mod.py", "other.py"], f"{problem} {query}", project_id="repo"
+        )
+        tasks[arm] = build_subagent_task(header, handoff)
+    for arm in ("A", "B", "C"):
+        assert tasks[arm].startswith(header), f"arm {arm} must share the header prefix"
+    assert tasks["A"][len(header) :] != tasks["B"][len(header) :]
+    assert tasks["B"][len(header) :] != tasks["C"][len(header) :]
+
+
+def test_bm25_file_listing_ranks_and_signs(tmp_path: Path) -> None:
+    """F2: the parent listing is BM25-ranked with a signature, not alphabetical."""
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "aaa.py").write_text("def unrelated():\n    pass\n", encoding="utf-8")
+    (repo / "target.py").write_text("def fix_off_by_one():\n    return 1\n", encoding="utf-8")
+    listing = _bm25_file_listing(repo, list_python_files(repo), "fix off by one")
+    assert listing[0].startswith("target.py:")
+    assert "def fix_off_by_one" in listing[0]
+    assert any(line.startswith("aaa.py:") for line in listing)
+
+
+def test_parent_cap_stopped_is_not_cached(tmp_path: Path) -> None:
+    """F14: a cap hit during the parent phase is not cached, so the task retries next day."""
+    ledger = b8.Ledger(tmp_path / "ledger")
+    ledger.append(b8.utc_day(), model="gpt-4.1-mini", prompt_tokens=990, completion_tokens=0)
+    upstream, upstream_url = _start_upstream_with(_ParentUpstream)
+    sidecar = make_server(
+        upstream=upstream_url, mode="passthrough", port=0, b8_ledger=ledger, b8_daily_cap=1000
+    )
+    sidecar_url = _serve(sidecar)
+    cache_dir = tmp_path / "cache"
+    instance = {**_INSTANCE, "instance_id": "cap__0"}
+    try:
+        result = parent_handoff(
+            instance,
+            _write_repo(tmp_path),
+            model="gpt-4.1-mini",
+            base_url=f"{sidecar_url}/v1",
+            cache_dir=cache_dir,
+        )
+        assert result["parent_status"] == "cap_stopped"
+        assert not (cache_dir / "cap__0.json").exists()
+    finally:
+        _stop(sidecar, upstream)
+
+
+def test_parent_cache_records_provenance(tmp_path: Path) -> None:
+    """F2/F14: the parent cache carries model, prompt hash, sha, timestamp, listing."""
+    upstream, upstream_url = _start_upstream_with(_ParentUpstream)
+    sidecar, sidecar_url = _start_parent_sidecar(upstream_url, tmp_path)
+    cache_dir = tmp_path / "cache"
+    instance = {**_INSTANCE, "instance_id": "prov__0"}
+    try:
+        result = parent_handoff(
+            instance,
+            _write_repo(tmp_path),
+            model="gpt-4.1-mini",
+            base_url=f"{sidecar_url}/v1",
+            cache_dir=cache_dir,
+        )
+        assert result["parent_status"] == "llm_ok"
+        cached = json.loads((cache_dir / "prov__0.json").read_text(encoding="utf-8"))
+        assert cached["model"] == "gpt-4.1-mini"
+        assert "created_at" in cached
+        assert cached["harness_sha"]  # non-empty in a git checkout
+        assert cached["prompt_sha256"]
+        assert "listing_shown" in cached
+    finally:
+        _stop(sidecar, upstream)
+
+
+class _DupCandidateUpstream(_ParentUpstream):
+    content = json.dumps(
+        {
+            "candidate_files": ["mod.py", "mod.py", "other.py"],
+            "subagent_query": "Fix it.",
+            "parent_notes": "n",
+        }
+    )
+
+
+def test_parent_dedupes_candidate_files(tmp_path: Path) -> None:
+    """F9: a duplicate candidate path no longer consumes a candidate seat."""
+    upstream, upstream_url = _start_upstream_with(_DupCandidateUpstream)
+    sidecar, sidecar_url = _start_parent_sidecar(upstream_url, tmp_path)
+    try:
+        result = localize_parent(
+            _INSTANCE, _write_repo(tmp_path), model="gpt-4.1-mini", base_url=f"{sidecar_url}/v1"
+        )
+        assert result["parent_status"] == "llm_ok"
+        assert result["candidate_files"].count("mod.py") == 1
+        assert "other.py" in result["candidate_files"]
+    finally:
+        _stop(sidecar, upstream)
+
+
+def test_pair_fits_reserves_before_starting() -> None:
+    """F3: a pair starts only when the remaining budget covers --pair-reserve."""
+    assert pair_fits(0, 550_000, 2_200_000)
+    assert pair_fits(1_650_000, 550_000, 2_200_000)
+    assert not pair_fits(1_650_001, 550_000, 2_200_000)
+
+
+def test_print_report_skips_tokenless_rows(capsys: pytest.CaptureFixture[str]) -> None:
+    """F4: an earlier-day resolved-only row (no tokens) must not crash the report."""
+    receipt = {
+        "arms": {"A": {"earlier": {"resolved": 0}}, "B": {}, "C": {}},
+        "ledger": {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0},
+        "day": "2026-10-20",
+    }
+    _print_report(receipt, Path("out.json"))  # must not raise KeyError
+    assert "tasks=0" in capsys.readouterr().out
+
+
+def test_recover_patch_is_uniform_across_exit_statuses() -> None:
+    """F5: one patch-recovery rule for every non-cap exit status."""
+    assert recover_patch("cap_stopped", "", "diff") == ("", "")
+    assert recover_patch("Submitted", "patch", "diff") == ("patch", "agent_submission")
+    assert recover_patch("LimitsExceeded", "", "diff") == ("diff", "working_tree_git_diff")
+    assert recover_patch("ContextWindowExceededError", "", "diff") == (
+        "diff",
+        "working_tree_git_diff",
+    )
+    assert recover_patch("Submitted", "", "") == ("", "")
+
+
+def test_salvage_git_diff_reads_working_tree() -> None:
+    class _Env:
+        def execute(self, command: dict[str, str]) -> dict[str, Any]:
+            assert command == {"command": "git diff"}
+            return {"output": "diff --git a/x b/x", "returncode": 0}
+
+    assert _salvage_git_diff(_Env()) == "diff --git a/x b/x"
+
+    class _Broken:
+        def execute(self, command: dict[str, str]) -> dict[str, Any]:
+            raise RuntimeError("boom")
+
+    assert _salvage_git_diff(_Broken()) == ""
+
+
+def test_aggregate_excludes_non_results(tmp_path: Path) -> None:
+    """F6: R/O/U exclude cap_stopped and parent_failed; latest row wins."""
+    runs = tmp_path / "runs.jsonl"
+    reports = tmp_path / "reports"
+    reports.mkdir()
+    append_run(
+        runs,
+        {
+            "instance_id": "a1",
+            "arm": "A",
+            "exit_status": "Submitted",
+            "overflow": False,
+            "tokens": {"uncached_tokens": 100},
+        },
+    )
+    append_run(
+        runs,
+        {
+            "instance_id": "a2",
+            "arm": "A",
+            "exit_status": "ContextWindowExceededError",
+            "overflow": True,
+            "tokens": {"uncached_tokens": 200},
+        },
+    )
+    append_run(
+        runs,
+        {
+            "instance_id": "a3",
+            "arm": "A",
+            "exit_status": "cap_stopped",
+            "overflow": False,
+            "tokens": {"uncached_tokens": 999},
+        },
+    )
+    append_run(
+        runs,
+        {
+            "instance_id": "a4",
+            "arm": "A",
+            "exit_status": "parent_failed",
+            "overflow": False,
+            "tokens": {"uncached_tokens": 999},
+        },
+    )
+    (reports / "gpt-4.1-mini.b8_A.json").write_text(
+        json.dumps({"resolved_ids": ["a1"]}), encoding="utf-8"
+    )
+    result = aggregate(runs, "gpt-4.1-mini", reports)
+    assert result["A"]["R"] == 1
+    assert result["A"]["O"] == 1
+    assert result["A"]["U"] == 300  # 100 + 200; the non-results are excluded
+    assert result["A"]["tasks"] == 2
+
+
+def test_tooling_failures_latest_row_wins(tmp_path: Path) -> None:
+    """F12: a re-run supersedes a tooling_failure; the flag gates re-runs."""
+    runs = tmp_path / "runs.jsonl"
+    append_run(runs, {"instance_id": "x", "arm": "A", "exit_status": "tooling_failure"})
+    assert tooling_failures(runs) == {("x", "A")}
+    append_run(runs, {"instance_id": "x", "arm": "A", "exit_status": "Submitted"})
+    assert tooling_failures(runs) == set()
+
+
+def test_mcnemar_exact() -> None:
+    assert mcnemar_p(0, 0) == 1.0
+    assert mcnemar_p(3, 0) == pytest.approx(0.25)
+    assert mcnemar_p(0, 3) == pytest.approx(0.25)
+
+
+def test_stream_rejected_when_ledger_on(tmp_path: Path) -> None:
+    """AU3-H1: stream=true is refused with a clear 400 when the ledger is on."""
+    ledger = b8.Ledger(tmp_path / "ledger")
+    upstream, upstream_url = _start_upstream()
+    sidecar = make_server(upstream=upstream_url, mode="passthrough", port=0, b8_ledger=ledger)
+    sidecar_url = _serve(sidecar)
+    try:
+        response = httpx.post(
+            f"{sidecar_url}/v1/chat/completions",
+            json={"model": "gpt-4.1-mini", "messages": _messages("hi"), "stream": True},
+            timeout=10.0,
+        )
+        assert response.status_code == 400
+        assert response.json()["error"]["code"] == "stream_not_ledgered"
+    finally:
+        _stop(sidecar, upstream)
+
+
+def test_fold_stats_surfaced_in_sidecar_stats(tmp_path: Path) -> None:
+    """F7: fold events and folded bytes are counted and exposed at /fabric/stats."""
+    upstream, upstream_url = _start_upstream()
+    sidecar = make_server(upstream=upstream_url, mode="passthrough", port=0, obs_fold=True)
+    sidecar_url = _serve(sidecar)
+    try:
+        messages: list[dict[str, Any]] = [
+            {"role": "system", "content": "sys"},
+            {"role": "user", "content": "fix it"},
+        ]
+        for i in range(6):
+            messages.append({"role": "assistant", "content": f"calling {i}"})
+            messages.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": f"call_{i}",
+                    "content": "line one\n" + " ".join(f"b{i}_{j}" for j in range(50)),
+                }
+            )
+        response = _post(sidecar_url, {"model": "gpt-4.1-mini", "messages": messages})
+        assert response.status_code == 200
+        stats = httpx.get(f"{sidecar_url}/fabric/stats", timeout=10.0).json()
+        assert stats["folded_events"] >= 3
+        assert stats["folded_bytes"] > 0
+    finally:
+        _stop(sidecar, upstream)
+
+
+def test_window_cap_estimate_counts_tools_and_framing() -> None:
+    """F8: the window-cap estimate adds the tools schema and per-message framing."""
+    from kernel.cartridge.serializer import count_tokens
+
+    tools = [{"type": "function", "function": {"name": "bash", "parameters": {"type": "object"}}}]
+    messages = [{"role": "user", "content": "hello world"}]
+    base = b8.estimate_messages_tokens(messages)
+    with_tools = b8.estimate_messages_tokens(messages, tools=tools)
+    assert with_tools - base == count_tokens(json.dumps(tools))
+    assert base == count_tokens("hello world") + b8._FRAME_TOKENS
+    # The old 4-token framing undercounted the recorded first arm-A request by 40 tokens
+    # (9,223 vs 9,183); the raised framing must not undercount.
+    assert b8._FRAME_TOKENS >= 7
+
+
+def test_ledger_reads_and_appends_are_thread_safe(tmp_path: Path) -> None:
+    """F11/M1: concurrent appends and summaries do not interleave or lose rows."""
+    ledger = b8.Ledger(tmp_path / "ledger")
+    day = b8.utc_day()
+
+    def appender() -> None:
+        for _ in range(50):
+            ledger.append(day, model="gpt-4.1-mini", prompt_tokens=1, completion_tokens=0)
+
+    threads = [threading.Thread(target=appender) for _ in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert ledger.summary(day)["total_tokens"] == 200
+
+
+def test_utc_day_boundary() -> None:
+    """F10: the UTC day is computed per pair, and the boundary is correct."""
+    from datetime import UTC, datetime
+
+    assert b8.utc_day(datetime(2026, 10, 19, 23, 59, tzinfo=UTC)) == "2026-10-19"
+    assert b8.utc_day(datetime(2026, 10, 20, 0, 0, tzinfo=UTC)) == "2026-10-20"
+
+
+def test_assert_frozen_sample_guards_drift() -> None:
+    """F15: the seeded n=10 draw is asserted against the frozen list."""
+    assert_frozen_sample([{"instance_id": i} for i in FROZEN_INSTANCE_IDS], 20261019, 10)
+    with pytest.raises(SystemExit):
+        assert_frozen_sample([{"instance_id": "something__else"}] * 10, 20261019, 10)
+
+
+def test_transient_exception_is_tooling_failure_not_finished() -> None:
+    """AU4-13/d: a transient network/API fault maps to tooling_failure, not a prediction."""
+
+    class APIConnectionError(Exception):
+        pass
+
+    class ContextWindowExceededError(Exception):
+        pass
+
+    assert _classify_exception(APIConnectionError("connection reset")) == (
+        "tooling_failure",
+        "APIConnectionError: connection reset",
+    )
+    assert _classify_exception(ContextWindowExceededError("window full")) == (
+        "ContextWindowExceededError",
+        "",
+    )
+    assert _classify_exception(Exception("daily_cap_reached ... CF_B8_DAILY_CAP=1")) == (
+        "cap_stopped",
+        "",
+    )
+
+
+def test_sqlite_store_close_checkpoints_wal(tmp_path: Path) -> None:
+    """AU5-a: closing the store checkpoints the WAL, so no data is left only in -wal."""
+    from kernel.store.sqlite_store import SqliteStore
+    from protocol.models import BlockKind, ContextBlock, Creator, CreatorType, Fidelity, MemoryTier
+
+    db = tmp_path / "obs.db"
+    store = SqliteStore(db, check_same_thread=False)
+    store.append(
+        ContextBlock(
+            block_id="b1",
+            block_kind=BlockKind.observation,
+            memory_tier=MemoryTier.register,
+            content="folded content",
+            content_hash="sha256:b1",
+            token_estimate=3,
+            source_event_seq=1,
+            creator=Creator(type=CreatorType.tool, id="t"),
+            fidelity=Fidelity.raw,
+            trust_domain="default",
+        )
+    )
+    store.close()
+    # A clean close checkpoints the WAL into the main file and removes/empties the -wal.
+    wal = tmp_path / "obs.db-wal"
+    assert not wal.exists() or wal.stat().st_size == 0
+    reopened = SqliteStore(db)
+    assert reopened.count() == 1
+    reopened.close()

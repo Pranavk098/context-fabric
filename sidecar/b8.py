@@ -41,9 +41,11 @@ WINDOW_CAP_ENV = "CF_B8_WINDOW_CAP"
 LEDGER_DIR_ENV = "CF_B8_LEDGER_DIR"
 DAILY_CAP_ENV = "CF_B8_DAILY_CAP"
 
-# Per-message role/content framing overhead, matching ``obsfold``'s estimate so the window
-# cap and the folder count the same rendered prompt.
-_FRAME_TOKENS = 4
+# Per-message role/content/name/tool_call framing overhead. The real o200k_base chat
+# template costs ~7-8 tokens per message (the old 4-token constant undercounted the
+# recorded prompts by ~3.5 tokens/message — audit F8), so 8 plus the serialized ``tools``
+# schema makes the window cap an upper bound rather than an undercount.
+_FRAME_TOKENS = 8
 
 
 def utc_day(now: datetime | None = None) -> str:
@@ -61,12 +63,15 @@ def max_completion_tokens(payload: dict[str, Any]) -> int:
     return 0
 
 
-def estimate_messages_tokens(messages: Sequence[dict[str, Any]]) -> int:
+def estimate_messages_tokens(
+    messages: Sequence[dict[str, Any]], tools: Sequence[dict[str, Any]] | None = None
+) -> int:
     """Token estimate for an OpenAI-style message list (o200k_base plus framing).
 
-    Counts string/list ``content`` and any function-call ``tool_calls`` (mini-swe-agent
-    routes bash commands as tool calls), so the window cap sees the same tokens the model
-    does.
+    Counts string/list ``content``, any function-call ``tool_calls`` (mini-swe-agent routes
+    bash commands as tool calls), the serialized ``tools`` schema, and per-message chat
+    framing — so the window cap is an upper bound on the real prompt, not an undercount
+    (audit F8).
     """
 
     def text(message: dict[str, Any]) -> str:
@@ -89,7 +94,10 @@ def estimate_messages_tokens(messages: Sequence[dict[str, Any]]) -> int:
                 parts.append(function.get("arguments", ""))
         return " ".join(parts)
 
-    return sum(count_tokens(text(m)) + _FRAME_TOKENS for m in messages)
+    total = sum(count_tokens(text(m)) + _FRAME_TOKENS for m in messages)
+    if tools:
+        total += count_tokens(json.dumps(tools))
+    return total
 
 
 def is_allowed_model(model: str) -> bool:
@@ -160,6 +168,10 @@ class Ledger:
 
     def summary(self, day: str) -> dict[str, int]:
         """Sum every token field recorded for ``day`` (0s when the day has no ledger file)."""
+        with self._lock:
+            return self._summary_locked(day)
+
+    def _summary_locked(self, day: str) -> dict[str, int]:
         path = self.day_path(day)
         keys = (
             "prompt_tokens",
