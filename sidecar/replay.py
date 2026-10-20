@@ -12,6 +12,7 @@ Replay proves the context bytes handed to the agent — never the model's answer
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 import sys
 from pathlib import Path
@@ -227,6 +228,23 @@ def replay_fold(
     return 0
 
 
+def _read_seed_hex(key_file: str | Path | None) -> str:
+    """The Ed25519 seed hex from ``key_file`` or the ``CF_SEAL_KEY`` env var.
+
+    Never argv: a seed on the command line is visible in ``ps`` / shell history
+    (audit AU2-M2).
+    """
+    if key_file is not None:
+        try:
+            return Path(key_file).read_text(encoding="utf-8").strip()
+        except OSError as exc:
+            raise ValueError(f"cannot read key file {key_file}: {exc}") from exc
+    seed = os.environ.get("CF_SEAL_KEY", "").strip()
+    if not seed:
+        raise ValueError("set CF_SEAL_KEY (32-byte hex) or pass --key-file <path>")
+    return seed
+
+
 def _load_epochs(out: Path) -> list[epoch.Epoch] | None:
     if not out.exists():
         return []
@@ -240,13 +258,16 @@ def _load_epochs(out: Path) -> list[epoch.Epoch] | None:
 
 def seal(
     store_path: str | Path,
-    private_key_hex: str,
     out_path: str | Path,
     *,
+    key_file: str | Path | None = None,
     model: str = "",
     engine: str = "",
 ) -> int:
     """Commit the whole compile log as one signed epoch, appending to ``out_path``.
+
+    The signing seed is read from ``key_file`` (a file containing the 32-byte hex) or the
+    ``CF_SEAL_KEY`` environment variable — never from argv (audit AU2-M2).
 
     ``packet_hashes`` = the logged content hashes; ``watermark_event_seq`` = the maximum
     recorded watermark; ``created_at`` = the latest recorded manifest time (so re-sealing
@@ -257,9 +278,14 @@ def seal(
     epochs file; 2 bad key or unreadable store.
     """
     try:
-        signer = Signer.from_seed_hex(private_key_hex)
+        seed_hex = _read_seed_hex(key_file)
+    except ValueError as exc:
+        print(f"cfx seal: {exc}", file=sys.stderr)
+        return 2
+    try:
+        signer = Signer.from_seed_hex(seed_hex)
     except (TypeError, ValueError) as exc:
-        print(f"cfx seal: --private-key must be 32-byte hex: {exc}", file=sys.stderr)
+        print(f"cfx seal: seed must be 32-byte hex: {exc}", file=sys.stderr)
         return 2
     store = _open_store(store_path, "seal")
     if store is None:

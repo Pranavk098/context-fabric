@@ -5,8 +5,9 @@ fabric blocks, prepends its rendered text as a system message, and forwards.
 ``passthrough`` forwards untouched, for honest A/B comparisons.
 
 ``POST /fabric/blocks`` appends a block to a SQLite fabric (writable memory). Written
-blocks are quarantined as ``draft`` unless the request marks them trusted; draft blocks
-are denied by the policy gate (reason ``lifecycle:draft``) until promoted at write time.
+blocks are quarantined as ``draft`` unless the server was started with ``--trusted`` (an
+operator setting, never request-controlled); draft blocks are denied by the policy gate
+(reason ``lifecycle:draft``) until promoted at write time.
 """
 
 from __future__ import annotations
@@ -37,6 +38,9 @@ from sidecar.render import render_packet
 _TIMEOUT = httpx.Timeout(600.0, connect=10.0)
 _MAX_BODY_BYTES = 33_554_432
 _STREAM_BUFFER_LIMIT = 262_144
+_DRAIN_CHUNK = 64 * 1024
+_MAX_DRAIN_BYTES = 8 * 1024 * 1024
+_DRAIN_TIMEOUT = 5.0
 _SKIP_HEADERS = frozenset(
     {
         "host",
@@ -215,11 +219,17 @@ def _make_handler(
     b8_ledger: b8.Ledger | None = None,
     b8_daily_cap: int = b8.DEFAULT_DAILY_CAP,
     kv_hints: bool = False,
+    allowed_origins: Sequence[str] = (),
+    trust_blocks: bool = False,
 ) -> type[BaseHTTPRequestHandler]:
     fabric: list[ContextBlock] = list(blocks)
     # One shared sqlite3 connection: event_seq allocation plus append/dedupe must be
     # atomic across handler threads, so all writes take this lock.
     write_lock = threading.Lock()
+    # Browser Origins the operator explicitly allow-lists (CORS opt-in). Empty = CORS off;
+    # the sidecar is a loopback service with no same-origin web UI, so any Origin header
+    # is cross-origin and is rejected unless listed here (audit AU2-H1).
+    allowed = frozenset(allowed_origins)
     # The B8 cap check-and-reserve is atomic: when the ledger is on, the daily-cap check
     # and the response's usage append are serialized so two concurrent requests cannot both
     # pass the check before either is recorded (audit F11). Only chat/completions take it;
@@ -230,25 +240,58 @@ def _make_handler(
         protocol_version = "HTTP/1.1"
 
         def send_response(self, code: int, message: str | None = None) -> None:
-            # Centralized so every path, including stdlib send_error(), carries CORS.
+            # Centralized so every path, including stdlib send_error(), carries CORS for an
+            # allow-listed Origin. No ``*``: CORS is opt-in (audit AU2-H1).
             super().send_response(code, message)
-            self.send_header("Access-Control-Allow-Origin", "*")
+            origin = self.headers.get("Origin")
+            if origin is not None and origin in allowed:
+                self.send_header("Access-Control-Allow-Origin", origin)
+                self.send_header("Vary", "Origin")
             self.send_header("Access-Control-Expose-Headers", _CORS_EXPOSED)
+
+        def _enforce_origin(self) -> bool:
+            """Reject a browser Origin that is not allow-listed; ``True`` to continue.
+
+            CSRF-style guard for a loopback service: the sidecar has no same-origin web UI,
+            so any ``Origin`` header is cross-origin and must be explicitly allow-listed
+            (``--cors-origin`` / ``CF_CORS_ORIGINS``). Non-browser clients (the agent's
+            httpx/litellm) send no Origin and pass through untouched.
+            """
+            origin = self.headers.get("Origin")
+            if origin is None or origin in allowed:
+                return True
+            self._send_json(
+                403,
+                {
+                    "error": {
+                        "message": (
+                            f"Origin {origin!r} is not allow-listed (start with "
+                            "--cors-origin <origin>)"
+                        )
+                    }
+                },
+                close=True,
+            )
+            return False
 
         def do_POST(self) -> None:
             try:
-                self._route_post()
+                if self._enforce_origin():
+                    self._route_post()
             except (BrokenPipeError, ConnectionResetError):
                 pass
 
         def do_GET(self) -> None:
             try:
-                self._route_get()
+                if self._enforce_origin():
+                    self._route_get()
             except (BrokenPipeError, ConnectionResetError):
                 pass
 
         def do_OPTIONS(self) -> None:
             try:
+                if not self._enforce_origin():
+                    return
                 self.send_response(204)
                 for key, value in _CORS_HEADERS.items():
                     self.send_header(key, value)
@@ -308,17 +351,29 @@ def _make_handler(
 
             On Windows, closing with unread inbound bytes is an abortive RST that can race
             the 413 off the wire (WinError 10053). Read in bounded chunks so a large
-            Content-Length never allocates a matching buffer.
-            shortcut: reads the full rejected body (up to Content-Length) before responding;
-            a client that declares a huge length but never sends it stalls this handler —
-            bound the drain if that ever becomes a real DoS.
+            Content-Length never allocates a matching buffer. The drain is bounded in both
+            bytes and time so a client that declares a huge length and then trickles (or
+            stalls) cannot pin a handler thread: we drain at most ``_MAX_DRAIN_BYTES`` and
+            abort a stalled read after ``_DRAIN_TIMEOUT`` (audit AU2-M1).
             """
-            remaining = length
-            while remaining > 0:
-                chunk = self.rfile.read(min(remaining, 64 * 1024))
-                if not chunk:
-                    return
-                remaining -= len(chunk)
+            remaining = min(length, _MAX_DRAIN_BYTES)
+            previous_timeout = self.connection.gettimeout()
+            self.connection.settimeout(_DRAIN_TIMEOUT)
+            try:
+                while remaining > 0:
+                    chunk = self.rfile.read(min(remaining, _DRAIN_CHUNK))
+                    if not chunk:
+                        break
+                    remaining -= len(chunk)
+            except OSError:
+                # Stalled (socket.timeout) or reset mid-drain: give up and close; the 413 is
+                # already the response for an oversized body, so a partial drain is acceptable.
+                self.close_connection = True
+            finally:
+                try:
+                    self.connection.settimeout(previous_timeout)
+                except OSError:
+                    pass
 
         def _route_post(self) -> None:
             path = self.path.split("?", 1)[0]
@@ -389,9 +444,11 @@ def _make_handler(
                 return
             with write_lock:
                 try:
+                    # Trust is a server-side setting (--trusted), never the request body:
+                    # a caller cannot mark its own block routable (audit AU2-H2).
                     block = build_block(
                         payload,
-                        trusted=payload.get("trusted") is True,
+                        trusted=trust_blocks,
                         event_seq=store.max_source_event_seq() + 1,
                     )
                     inserted = store.append(block)
@@ -771,9 +828,20 @@ class _Server(ThreadingHTTPServer):
     connections (measured with ``evals/bench_sidecar.py`` at N=64: refused connections and
     ~1 s SYN-retransmit stalls on Windows) overflows it. 256 costs nothing and absorbs the
     burst; ``daemon_threads``/``allow_reuse_address`` are already True/1 in the stdlib base.
+
+    ``upstream_client`` is the shared httpx client ``make_server`` creates for the handler;
+    ``server_close`` closes it so a long-lived server does not leak the connection pool
+    (audit AU3-L9).
     """
 
     request_queue_size = 256
+    upstream_client: httpx.Client | None = None
+
+    def server_close(self) -> None:
+        if self.upstream_client is not None:
+            self.upstream_client.close()
+            self.upstream_client = None
+        super().server_close()
 
 
 def make_server(
@@ -792,6 +860,8 @@ def make_server(
     b8_ledger: b8.Ledger | None = None,
     b8_daily_cap: int = b8.DEFAULT_DAILY_CAP,
     kv_hints: bool = False,
+    allowed_origins: Sequence[str] = (),
+    trust_blocks: bool = False,
 ) -> ThreadingHTTPServer:
     client = httpx.Client(timeout=_TIMEOUT, trust_env=False)
     handler = _make_handler(
@@ -810,8 +880,12 @@ def make_server(
         b8_ledger=b8_ledger,
         b8_daily_cap=b8_daily_cap,
         kv_hints=kv_hints,
+        allowed_origins=allowed_origins,
+        trust_blocks=trust_blocks,
     )
-    return _Server(("127.0.0.1", port), handler)
+    server = _Server(("127.0.0.1", port), handler)
+    server.upstream_client = client
+    return server
 
 
 def serve(
@@ -829,6 +903,8 @@ def serve(
     b8_ledger: b8.Ledger | None = None,
     b8_daily_cap: int = b8.DEFAULT_DAILY_CAP,
     kv_hints: bool = False,
+    allowed_origins: Sequence[str] = (),
+    trust_blocks: bool = False,
 ) -> None:
     """Load the fabric file (if any) and run the proxy until interrupted."""
     blocks: tuple[ContextBlock, ...] = ()
@@ -850,6 +926,8 @@ def serve(
         b8_ledger=b8_ledger,
         b8_daily_cap=b8_daily_cap,
         kv_hints=kv_hints,
+        allowed_origins=allowed_origins,
+        trust_blocks=trust_blocks,
     )
     print(f"context-fabric sidecar: mode={mode} upstream={upstream} blocks={len(blocks)}")
     print(f"listening on http://127.0.0.1:{port}/v1")

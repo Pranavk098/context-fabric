@@ -41,6 +41,13 @@ KEY_HEX = "42" * 32
 PUB_HEX = Signer.from_seed_hex(KEY_HEX).public_hex
 
 
+def _keyfile(tmp_path: Path, seed_hex: str = KEY_HEX) -> Path:
+    """Write the signing seed to a file (the CLI no longer accepts it on argv)."""
+    path = tmp_path / "seal.key"
+    path.write_text(seed_hex + "\n", encoding="utf-8")
+    return path
+
+
 def block(bid: str, seq: int, content: str, *, content_hash: str | None = None) -> ContextBlock:
     return ContextBlock(
         block_id=bid,
@@ -208,7 +215,7 @@ def test_seal_verify_roundtrip(tmp_path: Path, capsys: pytest.CaptureFixture[str
     compile_and_log(store, "objective one")
     compile_and_log(store, "objective two")
     out = tmp_path / "epochs.json"
-    assert seal(db, KEY_HEX, out, model="m", engine="e") == 0
+    assert seal(db, out, key_file=_keyfile(tmp_path), model="m", engine="e") == 0
     assert "epoch_id: epc_" in capsys.readouterr().out
     (sealed,) = [epoch.Epoch.model_validate(x) for x in json.loads(out.read_text())]
     assert sealed.packet_count == 2
@@ -229,15 +236,15 @@ def test_seal_appends_linked_epochs_and_reseal_is_noop(
     store.append(block("d1", 1, "Use Postgres for canonical storage"))
     compile_and_log(store, "objective one")
     out = tmp_path / "epochs.json"
-    assert seal(db, KEY_HEX, out) == 0
+    assert seal(db, out, key_file=_keyfile(tmp_path)) == 0
     store.append(block("d2", 2, "Now with a second note"))
     compile_and_log(store, "objective two")
-    assert seal(db, KEY_HEX, out) == 0
+    assert seal(db, out, key_file=_keyfile(tmp_path)) == 0
     epochs = [epoch.Epoch.model_validate(x) for x in json.loads(out.read_text())]
     assert len(epochs) == 2
     assert epochs[1].prev_epoch_hash == epoch.epoch_content_hash(epochs[0])
     assert epoch.main(["verify", str(out), "--pubkey", PUB_HEX]) == 0
-    assert seal(db, KEY_HEX, out) == 0
+    assert seal(db, out, key_file=_keyfile(tmp_path)) == 0
     assert "nothing new" in capsys.readouterr().out
     assert len(json.loads(out.read_text())) == 2
 
@@ -245,7 +252,7 @@ def test_seal_appends_linked_epochs_and_reseal_is_noop(
 def test_seal_empty_compile_log_fails(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     db = tmp_path / "fabric.db"
     SqliteStore(db)
-    assert seal(db, KEY_HEX, tmp_path / "epochs.json") == 1
+    assert seal(db, tmp_path / "epochs.json", key_file=_keyfile(tmp_path)) == 1
     assert "compile log is empty" in capsys.readouterr().err
 
 
@@ -254,8 +261,20 @@ def test_seal_rejects_bad_private_key(tmp_path: Path, capsys: pytest.CaptureFixt
     store = SqliteStore(db)
     store.append(block("d1", 1, "Use Postgres"))
     compile_and_log(store)
-    assert seal(db, "not-hex", tmp_path / "epochs.json") == 2
-    assert "--private-key" in capsys.readouterr().err
+    assert seal(db, tmp_path / "epochs.json", key_file=_keyfile(tmp_path, "not-hex")) == 2
+    assert "32-byte hex" in capsys.readouterr().err
+
+
+def test_seal_requires_key_file_or_env(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    db = tmp_path / "fabric.db"
+    store = SqliteStore(db)
+    store.append(block("d1", 1, "Use Postgres"))
+    compile_and_log(store)
+    monkeypatch.delenv("CF_SEAL_KEY", raising=False)
+    assert seal(db, tmp_path / "epochs.json") == 2
+    assert "CF_SEAL_KEY" in capsys.readouterr().err
 
 
 def test_cli_seal_then_verify_wiring(tmp_path: Path) -> None:
@@ -268,8 +287,8 @@ def test_cli_seal_then_verify_wiring(tmp_path: Path) -> None:
         "seal",
         "--store",
         str(db),
-        "--private-key",
-        KEY_HEX,
+        "--key-file",
+        str(_keyfile(tmp_path)),
         "--out",
         str(out),
         "--model",
@@ -412,7 +431,7 @@ def test_manifest_matches_compile_snapshot_under_concurrent_write(
                 assert entered.wait(5), "compile did not reach the pause"
                 added = httpx.post(
                     f"{sidecar_url}/fabric/blocks",
-                    json={"block_kind": "decision", "content": "late note", "trusted": True},
+                    json={"block_kind": "decision", "content": "late note"},
                     timeout=10.0,
                 )
                 assert added.status_code == 201

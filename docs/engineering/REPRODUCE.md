@@ -88,7 +88,7 @@ Every packet hand-off can be re-derived from its own recorded manifest:
 
 ```bash
 uv run cfx replay --store fabric.db --packet-id <cpk_...>   # recompile, prove byte-equality or report drift
-uv run cfx seal   --store fabric.db --private-key <hex> --out epochs.json
+uv run cfx seal   --store fabric.db --key-file seal.key --out epochs.json
 uv run cfx verify epochs.json --pubkey <hex>                # signed epoch chain + Merkle proofs
 ```
 

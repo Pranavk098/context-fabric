@@ -111,7 +111,7 @@ uv run cfx demo --repo .                     # run the receipt on your own repo
 uv run cfx add --store fabric.db --file block.json --trusted
 uv run cfx mcp --store fabric.db             # MCP tools: search / verify / add
 uv run cfx replay --store fabric.db --packet-id <cpk_...>
-uv run cfx seal --store fabric.db --private-key <hex> --out epochs.json
+uv run cfx seal --store fabric.db --key-file seal.key --out epochs.json
 ```
 
 Setup takes minutes — see [`SIDECAR.md`](docs/engineering/SIDECAR.md) (10-minute setup) and

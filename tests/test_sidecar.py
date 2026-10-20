@@ -8,6 +8,7 @@ import json
 import socket
 import sys
 import threading
+from collections.abc import Sequence
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -133,8 +134,18 @@ def _start_sidecar(
     mode: str,
     blocks: tuple[ContextBlock, ...] = (),
     store: SqliteStore | None = None,
+    trust_blocks: bool = False,
+    allowed_origins: Sequence[str] = (),
 ) -> tuple[ThreadingHTTPServer, str]:
-    server = make_server(upstream=upstream_url, mode=mode, blocks=blocks, port=0, store=store)
+    server = make_server(
+        upstream=upstream_url,
+        mode=mode,
+        blocks=blocks,
+        port=0,
+        store=store,
+        trust_blocks=trust_blocks,
+        allowed_origins=allowed_origins,
+    )
     return server, _serve(server)
 
 
@@ -420,10 +431,12 @@ def _post_block(base_url: str, payload: dict[str, Any]) -> httpx.Response:
 
 
 def _writable_sidecar(
-    tmp_path: Path, upstream_url: str, mode: str = "compile"
+    tmp_path: Path, upstream_url: str, mode: str = "compile", trust_blocks: bool = False
 ) -> tuple[ThreadingHTTPServer, str, Path]:
     db = tmp_path / "fabric.db"
-    server, url = _start_sidecar(upstream_url, mode, store=open_store(db))
+    server, url = _start_sidecar(
+        upstream_url, mode, store=open_store(db), trust_blocks=trust_blocks
+    )
     return server, url, db
 
 
@@ -465,6 +478,23 @@ def test_draft_block_is_quarantined_from_compile(tmp_path: Path) -> None:
 
 def test_trusted_block_is_included_in_compile(tmp_path: Path) -> None:
     upstream, upstream_url = _start_upstream()
+    sidecar, sidecar_url, _ = _writable_sidecar(tmp_path, upstream_url, trust_blocks=True)
+    try:
+        response = _post_block(
+            sidecar_url,
+            {"block_kind": "decision", "content": "Use Postgres"},
+        )
+        assert response.status_code == 201
+        assert response.json()["lifecycle_status"] == "routable"
+        content = _chat(sidecar_url).json()["choices"][0]["message"]["content"]
+        assert "Use Postgres" in content
+    finally:
+        _stop(sidecar, upstream)
+
+
+def test_body_cannot_mark_block_trusted(tmp_path: Path) -> None:
+    # A request body's "trusted": true must be ignored — trust is server-side only.
+    upstream, upstream_url = _start_upstream()
     sidecar, sidecar_url, _ = _writable_sidecar(tmp_path, upstream_url)
     try:
         response = _post_block(
@@ -472,9 +502,7 @@ def test_trusted_block_is_included_in_compile(tmp_path: Path) -> None:
             {"block_kind": "decision", "content": "Use Postgres", "trusted": True},
         )
         assert response.status_code == 201
-        assert response.json()["lifecycle_status"] == "routable"
-        content = _chat(sidecar_url).json()["choices"][0]["message"]["content"]
-        assert "Use Postgres" in content
+        assert response.json()["lifecycle_status"] == "draft"
     finally:
         _stop(sidecar, upstream)
 
@@ -546,7 +574,9 @@ def test_request_body_over_cap_returns_413(tmp_path: Path, monkeypatch: pytest.M
 
 def test_options_preflight_returns_204_with_cors(tmp_path: Path) -> None:
     upstream, upstream_url = _start_upstream()
-    sidecar, sidecar_url = _start_sidecar(upstream_url, "passthrough")
+    sidecar, sidecar_url = _start_sidecar(
+        upstream_url, "passthrough", allowed_origins=("http://localhost",)
+    )
     try:
         response = httpx.request(
             "OPTIONS",
@@ -555,7 +585,7 @@ def test_options_preflight_returns_204_with_cors(tmp_path: Path) -> None:
             timeout=10.0,
         )
         assert response.status_code == 204
-        assert response.headers["access-control-allow-origin"] == "*"
+        assert response.headers["access-control-allow-origin"] == "http://localhost"
         assert "POST" in response.headers["access-control-allow-methods"]
         assert "X-Fabric-Agent" in response.headers["access-control-allow-headers"]
         assert "X-Fabric-Role" in response.headers["access-control-allow-headers"]
@@ -566,11 +596,58 @@ def test_options_preflight_returns_204_with_cors(tmp_path: Path) -> None:
 
 def test_cors_header_on_local_and_relayed_responses(tmp_path: Path) -> None:
     upstream, upstream_url = _start_upstream()
+    sidecar, sidecar_url = _start_sidecar(
+        upstream_url, "passthrough", allowed_origins=("http://localhost",)
+    )
+    try:
+        headers = {"Origin": "http://localhost"}
+        health = httpx.get(f"{sidecar_url}/fabric/health", headers=headers, timeout=10.0)
+        assert health.headers["access-control-allow-origin"] == "http://localhost"
+        assert _chat(sidecar_url, headers=headers).headers["access-control-allow-origin"] == (
+            "http://localhost"
+        )
+    finally:
+        _stop(sidecar, upstream)
+
+
+def test_no_cors_header_without_allow_list(tmp_path: Path) -> None:
+    # CORS is off by default: no Origin, no Access-Control-Allow-Origin header.
+    upstream, upstream_url = _start_upstream()
     sidecar, sidecar_url = _start_sidecar(upstream_url, "passthrough")
     try:
         health = httpx.get(f"{sidecar_url}/fabric/health", timeout=10.0)
-        assert health.headers["access-control-allow-origin"] == "*"
-        assert _chat(sidecar_url).headers["access-control-allow-origin"] == "*"
+        assert health.status_code == 200
+        assert "access-control-allow-origin" not in health.headers
+        assert _chat(sidecar_url).status_code == 200
+    finally:
+        _stop(sidecar, upstream)
+
+
+def test_cross_origin_rejected_unless_allow_listed(tmp_path: Path) -> None:
+    upstream, upstream_url = _start_upstream()
+    sidecar, sidecar_url = _start_sidecar(
+        upstream_url, "passthrough", allowed_origins=("http://localhost",)
+    )
+    try:
+        # Allow-listed origin passes.
+        ok = httpx.get(
+            f"{sidecar_url}/fabric/health", headers={"Origin": "http://localhost"}, timeout=10.0
+        )
+        assert ok.status_code == 200
+        # Any other Origin is rejected (CSRF-style protection).
+        blocked = httpx.get(
+            f"{sidecar_url}/fabric/health", headers={"Origin": "http://evil.example"}, timeout=10.0
+        )
+        assert blocked.status_code == 403
+        assert "not allow-listed" in blocked.json()["error"]["message"]
+        # A disallowed Origin is also rejected on the proxy path.
+        blocked_post = httpx.post(
+            f"{sidecar_url}/v1/chat/completions",
+            json={"model": "test", "messages": [{"role": "user", "content": "hi"}]},
+            headers={"Origin": "http://evil.example"},
+            timeout=10.0,
+        )
+        assert blocked_post.status_code == 403
     finally:
         _stop(sidecar, upstream)
 
@@ -761,16 +838,23 @@ def test_http11_keepalive_relayed_chat_then_health() -> None:
 
 def test_cors_on_stdlib_error_path() -> None:
     upstream, upstream_url = _start_upstream()
-    sidecar, sidecar_url = _start_sidecar(upstream_url, "passthrough")
+    sidecar, sidecar_url = _start_sidecar(
+        upstream_url, "passthrough", allowed_origins=("http://localhost",)
+    )
     try:
         # PUT hits stdlib send_error() (no do_PUT). Deliberately no request body: the
         # 501 path closes without reading a body, and on Windows closing with unread
         # inbound bytes is an abortive close (RST) that can race the response off the
         # wire — reproduced 30/30 when the body arrives as a separate segment. No body
         # means nothing unread, so the graceful close (and the response) is reliable.
-        response = httpx.request("PUT", f"{sidecar_url}/fabric/health", timeout=10.0)
+        response = httpx.request(
+            "PUT",
+            f"{sidecar_url}/fabric/health",
+            headers={"Origin": "http://localhost"},
+            timeout=10.0,
+        )
         assert response.status_code == 501
-        assert response.headers["access-control-allow-origin"] == "*"
+        assert response.headers["access-control-allow-origin"] == "http://localhost"
         assert response.headers["content-length"]
     finally:
         _stop(sidecar, upstream)
@@ -789,7 +873,7 @@ def test_derived_fields_are_server_computed(tmp_path: Path) -> None:
                 "content_hash": "sha256:evil",
                 "token_estimate": 999999,
                 "source_event_seq": 99,
-                "lifecycle_status": "draft",
+                "lifecycle_status": "routable",
                 "memory_tier": 0,
                 "fidelity": "raw",
             },
@@ -797,12 +881,12 @@ def test_derived_fields_are_server_computed(tmp_path: Path) -> None:
         assert response.status_code == 201
         data = response.json()
         assert data["content_hash"] != "sha256:evil"
-        assert data["lifecycle_status"] == "routable"
+        assert data["lifecycle_status"] == "draft"  # "trusted"/"lifecycle_status" are ignored
         assert data["source_event_seq"] == 1
         (stored,) = SqliteStore(db).load_blocks()
         assert stored.content_hash == data["content_hash"]
         assert stored.token_estimate != 999999
-        assert stored.lifecycle_status.value == "routable"
+        assert stored.lifecycle_status.value == "draft"
     finally:
         _stop(sidecar, upstream)
 

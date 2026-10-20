@@ -107,9 +107,9 @@ _TOOLS: list[dict[str, Any]] = [
         "name": "memory_add",
         "description": (
             "Append one memory block to the fabric. Blocks are quarantined as draft "
-            "unless trusted is true; draft blocks are denied by the policy gate until "
-            "promoted. Disabled when the server runs with --readonly. Returns block_id "
-            "and lifecycle_status."
+            "unless the server was started with --trusted; draft blocks are denied by the "
+            "policy gate until promoted. Disabled when the server runs with --readonly. "
+            "Returns block_id and lifecycle_status."
         ),
         "inputSchema": {
             "type": "object",
@@ -119,11 +119,6 @@ _TOOLS: list[dict[str, Any]] = [
                     "description": "Block kind (decision, fact, observation, ...).",
                 },
                 "content": {"type": "string", "description": "Non-empty block content."},
-                "trusted": {
-                    "type": "boolean",
-                    "default": False,
-                    "description": "Write as routable instead of quarantined draft.",
-                },
             },
             "required": ["block_kind", "content"],
         },
@@ -202,9 +197,11 @@ def _score(query_tokens: list[str], text: str) -> int:
 class FabricServer:
     """JSON-RPC request handler over one SqliteStore (single-threaded)."""
 
-    def __init__(self, store: SqliteStore, *, readonly: bool) -> None:
+    def __init__(self, store: SqliteStore, *, readonly: bool, trusted: bool = False) -> None:
         self._store = store
         self._readonly = readonly
+        # Trust is a server-side setting, never a tool argument (audit AU2-H2).
+        self._trusted = trusted
 
     def handle(self, raw: str) -> dict[str, Any] | None:
         """Handle one raw JSON line; ``None`` means no response (notification)."""
@@ -340,11 +337,10 @@ class FabricServer:
             raise JsonRpcError(READONLY_ERROR, "readonly mode: memory_add is disabled")
         block_kind = _str_arg(arguments, "block_kind")
         content = _str_arg(arguments, "content")
-        trusted = _bool_arg(arguments, "trusted", False)
         try:
             block = build_block(
                 {"block_kind": block_kind, "content": content},
-                trusted=trusted,
+                trusted=self._trusted,
                 event_seq=self._store.max_source_event_seq() + 1,
             )
             inserted = self._store.append(block)
@@ -369,9 +365,9 @@ class FabricServer:
         return {"uri": uri, "found": True, "content": content}
 
 
-def serve(store: SqliteStore, *, readonly: bool) -> int:
+def serve(store: SqliteStore, *, readonly: bool, trusted: bool = False) -> int:
     """Run the stdio loop until EOF; one JSON-RPC message per line."""
-    server = FabricServer(store, readonly=readonly)
+    server = FabricServer(store, readonly=readonly, trusted=trusted)
     try:
         for line in sys.stdin:
             if not line.strip():
@@ -408,6 +404,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="reject writes: memory_add returns a JSON-RPC error (env: CF_FABRIC)",
     )
+    parser.add_argument(
+        "--trusted",
+        action="store_true",
+        help="memory_add writes routable instead of quarantined draft (server-side trust)",
+    )
     args = parser.parse_args(argv)
     if not args.store:
         print("cfx mcp: --store (or CF_FABRIC) is required", file=sys.stderr)
@@ -428,7 +429,7 @@ def main(argv: list[str] | None = None) -> int:
         f"context-fabric mcp: store={path} readonly={args.readonly}",
         file=sys.stderr,
     )
-    return serve(store, readonly=args.readonly)
+    return serve(store, readonly=args.readonly, trusted=args.trusted)
 
 
 if __name__ == "__main__":

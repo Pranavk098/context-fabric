@@ -981,7 +981,8 @@ def run_negative(
     notes = [
         "Fixture is synthetic Project Atlas state (generated in `sidecar/demo.py`; no real "
         "project data); treated dead ends are written through the real write path "
-        "(POST /fabric/blocks, trusted=true).",
+        "(POST /fabric/blocks; the treated server runs with trust_blocks so dead ends are "
+        "routable).",
         "Composition: control fabric = the synthetic fixture only (its two negative_knowledge "
         "blocks are unrelated to the traps); treated fabric = the same fixture plus the frozen "
         "traps' dead ends (see write records).",
@@ -1095,6 +1096,7 @@ def run_negative(
             blocks=tuple(treated_store.load_blocks()),
             port=0,
             store=treated_store,
+            trust_blocks=True,
         )
         treated_url = _serve(treated_server)
         for candidate in chosen:
@@ -1103,7 +1105,6 @@ def run_negative(
                 json={
                     "block_kind": "negative_knowledge",
                     "content": candidate.dead_end,
-                    "trusted": True,
                 },
             )
             response.raise_for_status()
