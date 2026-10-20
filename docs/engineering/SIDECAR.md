@@ -64,6 +64,15 @@ uv run cfx add --store fabric.db --file block.json     # writes a quarantined dr
 uv run cfx add --store fabric.db --file block.json --trusted   # writes routable
 uv run cfx add --store fabric.db --file -              # read block JSON from stdin
 uv run cfx verify receipts.json --pubkey <hex>         # epoch-chain check (delegates to protocol/epoch.py)
+uv run cfx replay --store fabric.db --packet-id <cpk_...>      # recompile a logged packet, prove byte-equality
+uv run cfx seal --store fabric.db --key-file seal.key --out epochs.json  # signed epoch receipt
+uv run cfx replay-fold --store obs.db [--session ID] [--expand]  # verify folded-session receipts
+uv run cfx expand --store obs.db ctx://obs/<id>        # unfold a folded observation stub
+uv run cfx fold --store fabric.db --k 3                # fold tool-output events into Tier-1 facts
+uv run cfx fork --store fabric.db --packet-id <cpk_...> --agent <id> --role <r> --objective <o>  # COW child packet
+uv run cfx mcp --store fabric.db                       # stdio MCP server (search / verify / add / expand)
+uv run cfx demo --scenario fleet                       # fleet receipt demo (--mock for zero-GPU)
+uv run cfx repro                                       # recompute the offline-verifiable numbers
 ```
 
 Compiles against a `.db` fabric are recorded as replayable compile manifests in the store;
@@ -133,6 +142,52 @@ every caller remembering the external lock. The default sqlite3 build
 body is drained in bounded chunks with a read timeout (`_MAX_DRAIN_BYTES` / `_DRAIN_TIMEOUT`)
 so a client that declares a huge `Content-Length` and then stalls cannot pin a handler
 thread; `tiktoken` tokenizes up to `CF_MAX_BODY_BYTES` per block.
+
+## Using `cfx serve` with an agent tool
+
+The sidecar speaks the OpenAI chat-completions API, so any agent tool that accepts a custom
+base URL can point straight at it. The v0.2 sub-agent workflow folds long tool outputs so the
+window stops growing, and keeps a replayable receipt of exactly what the model saw.
+
+```powershell
+# 1. point the tool at the sidecar — base URL http://127.0.0.1:8080/v1 (default port 8080;
+#    any API key is accepted and forwarded upstream)
+uv run cfx serve --upstream http://127.0.0.1:8000 --fabric fabric.db `
+    --obs-fold --obs-store obs.db --obs-n 1 --obs-k 1
+```
+
+**Observation folding** (`--obs-fold`, default OFF; env `CF_OBS_FOLD`) masks older
+`role: "tool"` messages into reversible `[ctx://obs/<sha256-12> ...]` stubs, keeping the last
+`N` verbatim (`--obs-n`, default 3) and advancing the fold boundary only every `K` new outputs
+(`--obs-k`, default 3) so consecutive prompts stay append-only and the upstream prefix cache
+survives. With `--obs-store obs.db` (env `CF_OBS_STORE`) the full output is stored so stubs
+reverse exactly; `--obs-max-tokens <N>` is an optional guard that folds more oldest-first until
+the request fits.
+
+**Expand and replay the fold:**
+
+```powershell
+uv run cfx expand --store obs.db ctx://obs/<id>        # print the stored tool output verbatim
+uv run cfx replay-fold --store obs.db [--session ID]   # re-apply fold events, verify seen_hash
+uv run cfx replay-fold --store obs.db --expand         # also reconstruct the unfolded request
+```
+
+**Security flags** (all server-side; a client cannot opt itself in):
+
+```powershell
+uv run cfx serve ... --cors-origin http://localhost:3000   # repeatable; any other Origin -> 403
+uv run cfx serve ... --trusted                             # accept POST /fabric/blocks as routable
+uv run cfx seal --store fabric.db --key-file seal.key --out epochs.json   # key from file/env, never argv
+```
+
+- **`--cors-origin <origin>`** (repeatable) / `CF_CORS_ORIGINS` (comma-separated) — CORS is
+  **off by default**: a request carrying a browser `Origin` not in the list is rejected `403`.
+  Non-browser CLI/SDK tools (which send no `Origin` header) require no change.
+- **`--trusted`** / `CF_TRUST_BLOCKS` — without it, `POST /fabric/blocks` writes `draft`
+  (quarantined); the request body cannot mark a block trusted.
+- **`cfx seal`** reads the Ed25519 seed from `--key-file <path>` (env `CF_SEAL_KEY_FILE`) or
+  `CF_SEAL_KEY`, never a raw CLI flag, so the key stays out of `ps` and shell history.
+- Uploads are bounded by `CF_MAX_BODY_BYTES` (default 33,554,432) with a bounded `413` drain.
 
 ## Honest A/B recipe
 

@@ -5,6 +5,60 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Security hardening (G2/G3, 2026-10-19)
+- **CORS opt-in allow-list** — `cfx serve` no longer emits permissive
+  `Access-Control-Allow-Origin: *`; CORS is off by default and any request with a browser
+  `Origin` not in `--cors-origin <origin>` (repeatable) / `CF_CORS_ORIGINS` is rejected `403`.
+  Non-browser agent tools (no `Origin` header) are unaffected.
+- **Server-side trust only** — `POST /fabric/blocks` and MCP `memory_add` ignore
+  client-supplied `"trusted"`; blocks land `draft` unless the operator starts with `--trusted`
+  (`CF_TRUST_BLOCKS`) or runs `cfx add --trusted` out-of-band.
+- **Bounded uploads** — single valid `Content-Length` required (`411`/`400`/`413`); bodies over
+  `CF_MAX_BODY_BYTES` (33,554,432) are drained in bounded chunks before closing (`AU2-M1`).
+- **Seal key off argv** — `cfx seal` reads the Ed25519 seed from `--key-file` (env
+  `CF_SEAL_KEY_FILE`) or `CF_SEAL_KEY`, never a raw CLI flag (`AU2-M2`).
+- Store multi-statement write lock and server connection-pool close (`AU3-M4`, `AU3-L9`).
+
+### Added (v0.2 release candidate)
+- **Observation folding & folded-session replay** — `cfx serve --obs-fold` (default OFF) masks
+  older `role:"tool"` messages into reversible `ctx://obs/<id>` stubs, keeps the last `N`
+  verbatim, and advances the fold boundary every `K` outputs for ReFold-style prefix-cache
+  alignment; `cfx expand` (and MCP `expand`) recover the stored output, and `cfx replay-fold`
+  deterministically re-applies fold events and verifies `seen_hash`
+  (`docs/engineering/OBS-FOLD.md`).
+- **KvHintsEnvelope adapter** — `cfx serve --kv-hints` (default OFF) maps `packet_cache_hints`
+  into the vLLM PR #53423 schema; off by default so forwarded requests stay byte-identical
+  (`docs/engineering/AGENT-HINTS.md`).
+- **LangGraph adapter** — `adapters/langgraph/` (`compile_node_packet` / `node_model_input`)
+  turns a LangGraph state dict into a compiled packet on the exact kernel compile path, with an
+  offline example and semantic-parity test (`docs/engineering/ADAPTERS.md`).
+- **Agent-tool compatibility** — compiled-objective extraction skips injected tool-error and
+  output-limit reminder messages (S4); bare `GET /models` proxied alongside `GET /v1/models`
+  (S5); purpose compartments (`X-Fabric-Purpose`) wired end-to-end through `cfx serve`.
+- **B8 live-test harness** — `--window-cap` (400 `context_length_exceeded`), model allow-list +
+  atomic daily token ledger (`--b8-ledger-dir` / `--b8-daily-cap`) for live SWE-bench runs
+  (`sidecar/b8.py`).
+- **Store auto-migration** — existing `.db` stores migrate `compile_log` in place (adds the
+  `purpose` column) and create `fold_log` / `fold_requests` automatically.
+
+### Results — negative & exploratory (not claims)
+- **Pilot on mechanical memory** — **13.62× fewer billed prompt tokens at 5/6 parity**
+  (193,366 vs 14,193); on a warm prefix cache raw pays 182 uncached vs 11,857 for compile, so
+  the win is window fit and KV, not prefill (`docs/engineering/PILOT-MECH-RESULT.md`).
+- **B4 KILL** — divergent-role compile lost to one shared, prefix-cached raw prompt on quality
+  (21/36 vs 29/36) and uncached prefill (`docs/engineering/B4-RESULT.md`).
+- **B4 v3 MIXED (KILL under corrected scoring)** — when the repo exceeds the window, compile is
+  cheapest (5.66× billed reduction) but plain BM25 chunks answered more questions
+  (`docs/engineering/B4-V3-RESULT.md`).
+- **A4 concurrency** — compile holds less peak KV at every N (10.8×→1.9×) and wins p99 through
+  N=16, but raw's shared prefix wins throughput and p99 at N=32
+  (`docs/engineering/A4-CONCURRENCY-RESULT.md`).
+- **Skim / skim-model FAIL** — neither deterministic nor model-based question-guided skimmers
+  beat whole-chunk BM25 (`docs/engineering/SKIM.md`, `SKIM-MODEL.md`).
+- **B2 cost model** — modeled list-price cost vs native prefix caching (`docs/engineering/COSTS.md`).
+- **B8 SWE-bench live pilot is in progress** — no task-resolution claim is made
+  (`docs/engineering/B8-PREREGISTRATION-v2.md`).
+
 ### Added
 - **Packet-level fold/fork** — `kernel/mmu/`: k-step `EPOCH_FOLD` (raw tool outputs → Tier 1
   facts + `ctx://` handles, append-only, deterministic) and `COW_FORK` (children share Tier

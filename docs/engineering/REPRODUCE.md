@@ -47,7 +47,7 @@ Expected numbers below are the load-bearing ones; the full per-arm detail is in 
 uv run cfx demo --repo . --mock
 ```
 
-Expected: fixture `7 files / 9,325 raw_tokens`, six objectives, cartridge `cfx_repo_af83f34b`.
+Expected: fixture `7 files / 9,326 raw_tokens`, six objectives, cartridge `cfx_repo_8a08abd7`.
 Mock accuracy is meaningless and labeled so; only the token accounting is real. (The fixture
 walks `*.py` in sorted order to a token target, so the exact file count and cartridge id can
 shift if the repo gains files; re-run the command to confirm.)

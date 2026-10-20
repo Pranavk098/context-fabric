@@ -11,6 +11,8 @@ ships a minimal MCP **stdio server** (`sidecar/mcp.py`, launched as `cfx mcp` or
 - **`memory_search`** — query fabric blocks, with quarantine respected by default.
 - **`receipt_verify`** — verify a signed epoch receipt chain (the SEAL).
 - **`memory_add`** — append a block through the same quarantine path as `cfx add`.
+- **`expand`** — resolve a folded observation stub (`ctx://obs/<id>`) back to its full
+  stored content (pairs with `cfx serve --obs-fold`).
 
 ## Spec revision targeted
 
@@ -68,6 +70,7 @@ mark a block trusted). If `--store` is omitted, `CF_FABRIC` is read from the env
 | `memory_search` | `query: str` (required), `limit: int = 5` (capped at 50), `include_quarantined: bool = false` | JSON text: `{query, results: [{block_id, block_kind, content_excerpt (≤300 chars), lifecycle_status, score}]}` |
 | `receipt_verify` | `epochs_json: str` (required; JSON array of epoch objects) | JSON text: `{ok: bool, epochs_verified?/key_id?}` or `{ok: false, reason}` |
 | `memory_add` | `block_kind: str`, `content: str` (both required) | JSON text: `{block_id, content_hash, lifecycle_status, source_event_seq, deduplicated}` |
+| `expand` | `uri: str` (required; `ctx://obs/<id>` or bare `obs_<id>`) | JSON text: `{uri, found: bool, content?}` (verbatim stored output when `found: true`) |
 
 ### memory_search
 
