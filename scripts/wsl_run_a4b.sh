@@ -11,7 +11,7 @@ set -uo pipefail
 export PATH="$HOME/.local/bin:$PATH"
 export XDG_RUNTIME_DIR="/run/user/$(id -u)"
 VENV="$HOME/.venvs/vllm"
-REPO="${CF_REPO:-/mnt/c/Users/<user>/orca/workspaces/Context-Fabric/track-t3-concurrency}"
+REPO="${CF_REPO:-/mnt/c/dev/Context-Fabric}"
 FIXTURE="${CF_A4_FIXTURE:?set CF_A4_FIXTURE to the httpx clone (WSL path)}"
 MODEL="${VLLM_MODEL:-Qwen/Qwen2.5-1.5B-Instruct}"
 MAX_LEN="${VLLM_MAX_LEN:-32768}"
