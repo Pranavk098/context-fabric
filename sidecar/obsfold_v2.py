@@ -8,7 +8,8 @@ folds only the removed remainder into a *reversible* stub:
   and the last traceback frames;
 * **diffs** — keep ``diff --git`` / hunk headers (``@@``) and the changed (``+``/``-``)
   lines, dropping unchanged context lines;
-* **long file reads** — keep head + tail plus any line matching a task identifier;
+* **long file reads** — keep head + tail plus any line matching a task identifier; a read
+  with *no* task-identifier match is low-value and folds whole, exactly like ``obsfold``;
 * **anything else** — fold the whole content into the same reversible ``ctx://obs/`` stub
   as :mod:`sidecar.obsfold`.
 
@@ -44,8 +45,9 @@ from sidecar.obsfold import (
     make_stub,
 )
 
-_HEAD = 20
-_TAIL = 20
+_FILE_MIN_LINES = 40  # a read longer than this is classified "file"
+_FILE_HEAD = 5  # leading lines kept for a file read (context), not the whole header
+_FILE_TAIL = 5  # trailing lines kept for a file read
 _TRACEBACK_TAIL = 15
 
 _PATH_RE = re.compile(r"[\w./-]+\.py")
@@ -81,7 +83,7 @@ def _classify(content: str) -> str:
         )
     ) or any("::" in line and ("FAILED" in line or "ERROR" in line) for line in lines):
         return "test"
-    if len(lines) > _HEAD + _TAIL:
+    if len(lines) > _FILE_MIN_LINES:
         return "file"
     return "other"
 
@@ -124,14 +126,19 @@ def _test_kept(lines: Sequence[str]) -> set[int]:
 
 def _file_kept(lines: Sequence[str], task_identifiers: Sequence[str]) -> set[int]:
     total = len(lines)
-    kept: set[int] = set(range(min(_HEAD, total)))
-    kept.update(range(max(0, total - _TAIL), total))
-    for identifier in task_identifiers:
-        if not identifier:
-            continue
-        for index, line in enumerate(lines):
-            if identifier in line:
-                kept.add(index)
+    id_indices = {
+        index
+        for identifier in task_identifiers
+        if identifier
+        for index, line in enumerate(lines)
+        if identifier in line
+    }
+    if not id_indices:
+        # low-value read (no task symbol): fold the whole content, as aggressive as obsfold.
+        return set()
+    kept: set[int] = set(range(min(_FILE_HEAD, total)))
+    kept.update(range(max(0, total - _FILE_TAIL), total))
+    kept.update(id_indices)
     return kept
 
 
@@ -152,6 +159,9 @@ def fold_content(content: str, *, task_identifiers: Sequence[str] = ()) -> tuple
         kept_indices = _test_kept(lines)
     else:  # file
         kept_indices = _file_kept(lines, task_identifiers)
+        if not kept_indices:
+            # no task symbol -> low-value read, fold the whole content like obsfold
+            return "", content
     removed_lines = [line for i, line in enumerate(lines) if i not in kept_indices]
     if not removed_lines:
         return content, ""
@@ -272,6 +282,37 @@ if __name__ == "__main__":
     kept, removed = fold_content(long_file, task_identifiers=("line 33",))
     assert "line 0" in kept and "line 59" in kept and "line 33" in kept and removed != ""
 
+    # low-value file read (no task identifier) folds whole, like obsfold
+    kept, removed = fold_content(long_file, task_identifiers=("no_such_symbol",))
+    assert kept == "" and removed != ""
+
     stub, stub_id = make_stub("plain output", "bash")
     assert stub_id == sha256_hex(b"plain output")[:12]
-    print("obsfold_v2.py self-check: OK (test/diff/file folding, reversible stub)")
+
+    # stable prefix (k=3 batching): 6 -> 7 -> 8 obs is append-only leading bytes
+    def _messages(count: int) -> list[dict[str, Any]]:
+        msgs: list[dict[str, Any]] = [
+            {"role": "system", "content": "sys"},
+            {"role": "user", "content": "fix compute_cached in mod.py"},
+        ]
+        for i in range(count):
+            msgs.append({"role": "assistant", "content": f"call {i}"})
+            msgs.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": f"call_{i}",
+                    "name": "bash",
+                    "content": f"plain output {i}",
+                }
+            )
+        return msgs
+
+    def _render(msgs: Sequence[dict[str, Any]]) -> bytes:
+        return b"\n".join(canonicalize(m) for m in msgs)
+
+    r6 = _render(fold_messages(_messages(6)).messages)
+    r7 = _render(fold_messages(_messages(7)).messages)
+    r8 = _render(fold_messages(_messages(8)).messages)
+    assert r7.startswith(r6) and r8.startswith(r7)
+    assert fold_messages(_messages(6)).folded == 3 and fold_messages(_messages(9)).folded == 6
+    print("obsfold_v2.py self-check: OK (test/diff/file folding, low-value fold, stable prefix)")

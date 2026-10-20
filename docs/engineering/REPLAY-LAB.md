@@ -21,8 +21,10 @@ shape of each:
 Per step and policy it reports input tokens (tiktoken `o200k_base` via
 `sidecar.obsfold.estimate_tokens`), what was folded, would-overflow at the 24,576 and
 16,384 window caps, and the byte-identical leading prefix length vs the previous step (a
-cache-hit proxy). It also reports the share of tokens that are tool outputs, and
-cross-checks the recorded `prompt_tokens`/`cached_tokens` when the trajectory records them.
+cache-hit proxy). It also reports the share of tokens that are tool outputs, cross-checks
+the recorded `prompt_tokens`/`cached_tokens` when the trajectory records them, and an
+information-retention proxy (do failing-test names, traceback frames and task identifiers
+still survive in the folded context at every step?).
 
 Run: `python -m evals.replay_lab --traj-dir <dir>  # scans for *.traj.json` (receipt →
 `evals/reports/replay_lab_*.json`).
@@ -139,3 +141,67 @@ No clock, no RNG, no model. `fold_content` / `fold_messages` are pure functions 
 content and task identifiers; replay is a pure function of the message list. Stub ids are
 content-addressed (same `make_stub` as `sidecar/obsfold`), and `seen_hash` uses RFC 8785
 canonicalization.
+
+## v2-tuned (2026-10-20, exploratory)
+
+> **EXPLORATORY. Not a result of record.** Same caveat as the top of this page: replay
+> reports context *shape* — tokens, overflow, prefix stability, and a retention proxy — not
+> task success.
+
+### What changed
+
+`obsfold_v2` was too conservative: for a `file` read it kept `head`+`tail` (20+20 lines)
+unconditionally, which for the ~43-line `sed`-range reads in these trajectories kept nearly
+the whole observation. Two changes (in `sidecar/obsfold_v2.py`, still not wired into the
+server):
+
+1. **File reads fold harder.** `_FILE_HEAD`/`_FILE_TAIL` reduced 20→5, and a file read with
+   **no** task-identifier match is now low-value: it folds the whole content into the
+   reversible `ctx://obs/` stub, byte-identical to `obsfold`'s action on the same content.
+2. **Stable-prefix k=3 batching** was already inherited from `obsfold` (same mask schedule,
+   `DEFAULT_K=3`); it is verified append-only and locked with
+   `tests/test_obsfold_v2.py::test_fold_messages_stable_prefix_k3`.
+
+The test/diff rules (keep failing-test names, assertion/traceback lines, diff hunks and
+changed lines) are unchanged.
+
+### Information-retention proxy
+
+`evals/replay_lab.py` now also reports, per policy, whether the strings a coding agent still
+needs survive in the folded context at every step: failing-test names (`FAILED/ERROR
+path::test`), traceback frames (`File "…", line N` / `AssertionError`), and task identifiers
+that appear in an observation. Retention is `retained / in_scope` summed over steps —
+`none` is 100% by construction, `obsfold` stubs folded observations away, `obsfold_v2` keeps
+the content-aware lines. No recorded trajectory has a pytest `FAILED/ERROR path::test`, so
+the test-name column is empty; the traceback-frame and identifier columns carry the signal.
+
+### Dev vs held-out
+
+Tuned on the **dev** set (smoke + void), held out three other **voided B8 v2 day-1** trajectories
+(arm A only; the B8 v3 pilot had not started when this was run, and its trajectories were not used):
+
+* **dev (n=6):** `astropy` smoke A/B/C + `django-11532/12262/13279` void.
+* **held-out (n=3):** `django-14915/15851` + `matplotlib-26208` (voided v2 day-1, arm A), evaluated
+  once with the tuned code.
+
+| set | policy | total tokens | peak tokens | overflow@16k | traceback retention | identifier retention |
+| :-- | :-- | --: | --: | --: | --: | --: |
+| dev | none | 1,021,029 | 15,918 | 0 | 100% | 100% |
+| dev | obsfold | 862,753 | 12,580 | 0 | 40% | 52% |
+| dev | obsfold_v2 | 933,123 | 13,097 | 0 | 100% | 95% |
+| held-out | none | 1,074,991 | 19,000 | 2 | 100% | 100% |
+| held-out | obsfold | 889,598 | 13,401 | 0 | 59% | 40% |
+| held-out | obsfold_v2 | 945,637 | 14,809 | 0 | 79% | 96% |
+
+**Read:** on held-out, `none` overflows the 16,384 cap twice and both folding policies
+prevent it. `obsfold` cuts ~17% of total tokens but retains only ~40% of task identifiers
+(~59% of traceback frames); the tuned `obsfold_v2` cuts ~12% and retains ~96% / ~79%. That
+is the content-aware tradeoff `obsfold_v2` exists for — its peak (14,809) sits ~10% above
+`obsfold` (13,401) but ~22% under `none` (19,000).
+
+### Data note
+
+The dev trajectories are the day-2 re-runs: the v3 smoke records 6-step trajectories (so
+folding barely triggers there), and the void `django` re-runs are the real tuning signal.
+The day-1 30/10/35-step smoke and 35/35/15 void trajectories documented above were
+overwritten by day-2 runs; the dev/held-out split above is by *instance*, not step count.

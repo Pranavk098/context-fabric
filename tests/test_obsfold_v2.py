@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from kernel.store import SqliteStore
+from protocol.canonical import canonicalize
 from sidecar import obsfold
 from sidecar.obsfold_v2 import fold_content, fold_messages
 
@@ -113,6 +114,44 @@ def test_file_keeps_head_tail_and_identifier_lines() -> None:
     assert "def compute_cached():" in kept  # identifier line (middle)
     assert "line 29" not in kept  # middle non-identifier folded away
     assert "line 29" in removed
+
+
+def test_file_without_identifier_folds_whole_like_obsfold() -> None:
+    # low-value read: no task symbol -> fold the whole content, as aggressive as obsfold
+    content = "\n".join(f"line {i}" for i in range(60))
+    kept, removed = fold_content(content, task_identifiers=("no_such_symbol",))
+    assert kept == ""
+    assert removed != ""
+
+
+def test_fold_messages_stable_prefix_k3() -> None:
+    # the k=3 batching keeps the leading bytes append-only between fold events
+    def messages(count: int) -> list[dict[str, Any]]:
+        msgs: list[dict[str, Any]] = [
+            {"role": "system", "content": "sys"},
+            {"role": "user", "content": "fix compute_cached in mod.py"},
+        ]
+        for i in range(count):
+            msgs.append({"role": "assistant", "content": f"call {i}"})
+            msgs.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": f"call_{i}",
+                    "name": "bash",
+                    "content": f"plain output {i}",
+                }
+            )
+        return msgs
+
+    render = lambda msgs: b"\n".join(canonicalize(m) for m in msgs)  # noqa: E731
+    r6 = render(fold_messages(messages(6)).messages)
+    r7 = render(fold_messages(messages(7)).messages)
+    r8 = render(fold_messages(messages(8)).messages)
+    assert r7.startswith(r6) and r8.startswith(r7)
+    assert fold_messages(messages(6)).folded == 3
+    assert fold_messages(messages(7)).folded == 3
+    assert fold_messages(messages(8)).folded == 3
+    assert fold_messages(messages(9)).folded == 6  # boundary advances every k=3
 
 
 # ------------------------------------------------------- "other" -> reversible stub
