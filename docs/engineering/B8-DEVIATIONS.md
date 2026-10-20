@@ -23,3 +23,15 @@ arms, settings or criteria in `B8-PREREGISTRATION.md`.
   model-written guidance. This does not apply to v2 runs.
 - **Follow-up:** the URL join is fixed and the silent fallback removed before the first v2 run
   (parent failures are recorded as `parent_status: llm_failed` and the task is excluded).
+
+## D2 — Parent call sent without an API key (found v2 day 1, 2026-10-20 UTC, before any arm ran)
+
+- **What:** after the D1 fix, the parent localization call reached `cfx serve` but carried no
+  `Authorization` header; the sidecar forwards client headers unchanged, so OpenAI returned 401.
+  Because D1's fix removed the silent fallback, all 10 parents were correctly recorded as
+  `parent_status: llm_failed` and **no arm ran**. `--grade` then crashed on the missing
+  predictions file.
+- **Decision (coordinator):** fix both before any v2 arm runs — the parent call sends the key from
+  the environment (never logged), and `--grade` exits cleanly with nothing to grade; delete the 10
+  failed parent caches and re-run the day's batch. No v2 result existed, so nothing is voided and
+  the pre-registration is unchanged.
