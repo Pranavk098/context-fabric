@@ -23,11 +23,13 @@ import argparse
 import json
 import os
 import random
+import signal
 import subprocess
 import sys
 import time
 from collections.abc import Sequence
 from datetime import UTC, datetime
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -54,16 +56,39 @@ MAX_TOKENS = 1_024
 TEMPERATURE = 0.0
 ARMS = ("A", "B", "C")
 
+# Reserve before starting a task x arm so a run is never cut off mid-flight (audit F3).
+# A finished run costs 153k-503k; 550k is the observed max plus ~10% headroom.
+RUN_RESERVE = 550_000
+
 # ``SWE-bench/SWE-bench_Verified`` (not the ``princeton-nlp`` mirror) is the snapshot that
 # still carries the ``eval_script``/``log_parser``/``eval_type``/``image`` columns
 # ``swebench.harness.run_evaluation`` (5.0.2) needs to build a TestSpec.
 DATASET = "SWE-bench/SWE-bench_Verified"
+# The cached snapshot revision (audit F15): pinning it stops a silent upstream change from
+# shifting the seeded sample.
+DATASET_REVISION = "78f471bf655a3137b2e8a75af1501690ec009ec3"
 DEFAULT_SEED = 20261019
 DEFAULT_N = 30
+
+# The frozen n=10 sample (seed 20261019). Asserted at startup so a dataset drift cannot
+# silently change which tasks run (audit F15).
+FROZEN_INSTANCE_IDS = [
+    "django__django-11532",
+    "django__django-12262",
+    "django__django-13279",
+    "django__django-14915",
+    "django__django-15851",
+    "matplotlib__matplotlib-26208",
+    "scikit-learn__scikit-learn-14496",
+    "sphinx-doc__sphinx-8035",
+    "sympy__sympy-12481",
+    "sympy__sympy-19346",
+]
 
 REPORTS = Path(__file__).parent / "reports"
 LEDGER_DIR = REPORTS / "b8_ledger"
 PARENT_CACHE = Path(__file__).parent / "parent_handoff_raw"
+RUNS_JSONL = REPORTS / "b8_runs.jsonl"
 
 SCOPE = Scope(tenant_id="default", project_id="b8-live", workflow_id="swebench", task_id="t1")
 RECIPIENT = Recipient(agent_id="subagent-solver", role="writer", stage="solve")
@@ -250,6 +275,29 @@ def build_handoff(
     raise ValueError(f"unknown arm {arm!r}")
 
 
+# ------------------------------------------------------------------ shared task header
+
+
+def build_task_header(problem_statement: str, subagent_query: str, parent_notes: str) -> str:
+    """The identical task preamble every arm receives before its hand-off (audit F1).
+
+    ``problem_statement``, then ``subagent_query``, then ``parent_notes``, each clearly
+    delimited. This header is the same bytes for arms A, B and C and is NOT counted inside
+    the 8,192-token hand-off slot.
+    """
+    parts = [f"===== TASK =====\n{problem_statement.strip()}"]
+    if subagent_query.strip():
+        parts.append(f"===== SUB-AGENT QUERY =====\n{subagent_query.strip()}")
+    if parent_notes.strip():
+        parts.append(f"===== PARENT NOTES =====\n{parent_notes.strip()}")
+    return "\n\n".join(parts)
+
+
+def build_subagent_task(header: str, handoff: str) -> str:
+    """The full sub-agent ``task``: the shared header, then this arm's hand-off."""
+    return f"{header}\n\n{handoff}"
+
+
 # ------------------------------------------------------------------------- resume / skip
 
 
@@ -291,10 +339,32 @@ def pending_pairs(
 
 
 def load_instances(split: str = "test") -> list[dict[str, Any]]:
-    """Load the SWE-bench Verified ``split`` (needs the ``datasets`` extra)."""
+    """Load the SWE-bench Verified ``split`` (needs the ``datasets`` extra), pinned to the
+    cached revision (audit F15)."""
     from datasets import load_dataset  # local: WSL-only dependency
 
-    return list(load_dataset(DATASET, split=split))
+    return list(load_dataset(DATASET, split=split, revision=DATASET_REVISION))
+
+
+@lru_cache(maxsize=1)
+def harness_sha() -> str:
+    """The git SHA of the harness checkout that produced the current parent/receipt rows."""
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True
+        )
+        return out.stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+
+def assert_frozen_sample(sampled: Sequence[dict[str, Any]], seed: int, n: int) -> None:
+    """Refuse to run when the seeded n=10 draw drifts from the frozen list (audit F15)."""
+    if seed != DEFAULT_SEED or n != 10:
+        return
+    ids = [instance["instance_id"] for instance in sampled]
+    if ids != FROZEN_INSTANCE_IDS:
+        raise SystemExit(f"sample drifted from the frozen list (seed {DEFAULT_SEED}, n=10): {ids}")
 
 
 def list_python_files(repo_root: Path) -> list[str]:
@@ -321,6 +391,45 @@ def _bm25_candidate_files(
         if len(seen) >= top_k:
             break
     return seen
+
+
+def _file_signature(repo_root: Path, rel: str) -> str:
+    """A one-line summary of a file's exported symbols (``(no exports)`` when none)."""
+    symbols = extract_source(rel, _read(repo_root, rel))
+    return "; ".join(s.signature for s in symbols.exported) or "(no exports)"
+
+
+def _bm25_file_ranking(repo_root: Path, files: Sequence[str], query: str) -> list[str]:
+    """BM25-rank every file against ``query`` (max chunk score per file, then path)."""
+    chunks = build_ast_chunks(repo_root, list(files))
+    scores = bm25_scores(query, chunks)
+    by_file: dict[str, float] = {}
+    for chunk in chunks:
+        if not chunk.ref_uri:
+            continue
+        score = scores.get(chunk.block_id, 0.0)
+        by_file[chunk.ref_uri] = max(by_file.get(chunk.ref_uri, 0.0), score)
+    return sorted(files, key=lambda rel: (-by_file.get(rel, 0.0), rel))
+
+
+def _bm25_file_listing(
+    repo_root: Path, files: Sequence[str], query: str, budget_tokens: int = 4000
+) -> list[str]:
+    """BM25-ranked ``path: signature`` lines for the parent prompt, within the budget.
+
+    The parent sees the top files ranked against the problem statement (not an alphabetical
+    prefix), each with a short exported-symbol signature (audit F2).
+    """
+    lines: list[str] = []
+    spent = 0
+    for rel in _bm25_file_ranking(repo_root, files, query):
+        line = f"{rel}: {_file_signature(repo_root, rel)}"
+        cost = count_tokens(line) + 1  # newline join
+        if spent + cost > budget_tokens:
+            break
+        lines.append(line)
+        spent += cost
+    return lines
 
 
 def _parse_parent_json(text: str) -> dict[str, Any] | None:
@@ -351,12 +460,19 @@ def chat_completions_url(base_url: str) -> str:
     return f"{base}/v1/chat/completions"
 
 
+class _ParentCapError(Exception):
+    """The parent localization was refused by the daily-cap gate (retry tomorrow, F14)."""
+
+
 def _parent_llm_reply(base_url: str, model: str, prompt: str) -> dict[str, Any]:
     """One parent LLM turn through the sidecar; raises on any unusable reply.
 
     The sidecar enforces the model allow-list and records the usage in the daily ledger,
     exactly like the sub-agent's requests. The upstream key is read from the environment
     and sent only as an ``Authorization`` header (never in the body, never logged).
+
+    A daily-cap 400 raises :class:`_ParentCapError` (not ``HTTPStatusError``) so the caller
+    can distinguish "out of budget, retry tomorrow" from a genuine failure (audit F14).
     """
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
@@ -372,6 +488,13 @@ def _parent_llm_reply(base_url: str, model: str, prompt: str) -> dict[str, Any]:
                 "max_tokens": 512,
             },
         )
+        if response.status_code == 400:
+            try:
+                code = response.json().get("error", {}).get("code")
+            except (ValueError, AttributeError):
+                code = None
+            if code == "daily_cap_reached":
+                raise _ParentCapError()
         response.raise_for_status()
         content = response.json()["choices"][0]["message"]["content"]
     if not isinstance(content, str):
@@ -395,21 +518,27 @@ def localize_parent(
     """One frozen Parent localization turn (LLM through the sidecar, retried once).
 
     Returns ``{"parent_status", "error", "subagent_query", "parent_notes",
-    "candidate_files"}``. ``parent_status`` is ``"llm_ok"`` when the mini model returned a
-    parseable reply with a non-empty ``subagent_query``, else ``"llm_failed"`` with
-    ``error`` set. BM25 only fills candidate gaps the model left; a failed parent is never
-    re-written as a BM25-only hand-off.
+    "candidate_files", "listing_shown", "prompt_tokens", "prompt_sha256"}``.
+    ``parent_status`` is ``"llm_ok"`` when the mini model returned a parseable reply with a
+    non-empty ``subagent_query``; ``"cap_stopped"`` when the daily-cap gate refused the call
+    (not cached — retried tomorrow, F14); else ``"llm_failed"`` with ``error`` set. BM25 only
+    fills candidate gaps the model left; a failed parent is never re-written as a BM25-only
+    hand-off. The parent chooses from BM25-ranked candidate files (F2), not an alphabetical
+    list.
     """
     problem = instance["problem_statement"]
     files = list_python_files(repo_root)
-    listing = "\n".join(files)
+    listing = _bm25_file_listing(repo_root, files, problem, budget_tokens=4000)
+    listing_shown = [line.split(": ", 1)[0] for line in listing]
     prompt = (
         "You are a senior engineer triaging a GitHub issue for a coding sub-agent. "
         "Return ONLY one JSON object with keys: candidate_files (a list of up to "
         f"{top_k} repository file paths, in rank order, most likely to need editing), "
         "subagent_query (one or two sentences directing the fix), parent_notes (a short "
         "summary of the suspected root cause and a reproduction command).\n\n"
-        f"Repository python files:\n{truncate_tokens(listing, 4000)}\n\n"
+        "Repository python files, ranked by BM25 relevance to the issue "
+        "(path: exported-symbol signature):\n"
+        f"{chr(10).join(listing)}\n\n"
         f"Issue:\n{problem}\n"
     )
     parsed: dict[str, Any] | None = None
@@ -418,6 +547,17 @@ def localize_parent(
         try:
             parsed = _parent_llm_reply(base_url, model, prompt)
             break
+        except _ParentCapError:
+            return {
+                "parent_status": "cap_stopped",
+                "error": "daily cap reached during parent localization",
+                "subagent_query": "",
+                "parent_notes": "",
+                "candidate_files": [],
+                "listing_shown": listing_shown,
+                "prompt_tokens": count_tokens(prompt),
+                "prompt_sha256": sha256_hex(prompt.encode("utf-8")),
+            }
         except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError) as exc:
             error = f"{type(exc).__name__}: {exc}"
     if parsed is None:
@@ -427,13 +567,17 @@ def localize_parent(
             "subagent_query": "",
             "parent_notes": "",
             "candidate_files": [],
+            "listing_shown": listing_shown,
+            "prompt_tokens": count_tokens(prompt),
+            "prompt_sha256": sha256_hex(prompt.encode("utf-8")),
         }
     candidate_files = [rel for rel in parsed.get("candidate_files", []) if isinstance(rel, str)]
     subagent_query = parsed["subagent_query"].strip()
     parent_notes = parsed["parent_notes"] if isinstance(parsed.get("parent_notes"), str) else ""
     # Only keep candidate paths that actually exist; BM25 fills the gap (never leaks gold).
+    # De-duplicate so a repeated path does not consume a candidate seat (audit F9).
     existing = {f for f in files}
-    candidate_files = [rel for rel in candidate_files if rel in existing]
+    candidate_files = list(dict.fromkeys(rel for rel in candidate_files if rel in existing))
     for rel in _bm25_candidate_files(repo_root, files, problem, top_k):
         if rel not in candidate_files:
             candidate_files.append(rel)
@@ -445,6 +589,9 @@ def localize_parent(
         "subagent_query": subagent_query,
         "parent_notes": parent_notes,
         "candidate_files": candidate_files[:top_k],
+        "listing_shown": listing_shown,
+        "prompt_tokens": count_tokens(prompt),
+        "prompt_sha256": sha256_hex(prompt.encode("utf-8")),
     }
 
 
@@ -457,13 +604,24 @@ def parent_handoff(
     cache_dir: Path,
     force: bool = False,
 ) -> dict[str, Any]:
-    """Produce the frozen Parent hand-off once and cache it to disk (JSON)."""
+    """Produce the frozen Parent hand-off once and cache it to disk (JSON).
+
+    The cache records provenance (model, prompt hash, harness git sha, timestamp, the
+    BM25-ranked listing shown) so a changed model or prompt cannot silently reuse old
+    parents (audit F2/F14). A ``cap_stopped`` parent is never cached, so it is re-attempted
+    next day instead of permanently excluding the task (audit F14).
+    """
     cache_dir.mkdir(parents=True, exist_ok=True)
     path = cache_dir / f"{instance['instance_id']}.json"
     if path.is_file() and not force:
         data = json.loads(path.read_text(encoding="utf-8"))
         return data if isinstance(data, dict) else {}
     result = localize_parent(instance, repo_root, model=model, base_url=base_url)
+    if result.get("parent_status") == "cap_stopped":
+        return result
+    result["model"] = model
+    result["created_at"] = datetime.now(tz=UTC).isoformat()
+    result["harness_sha"] = harness_sha()
     path.write_text(json.dumps(result, indent=2), encoding="utf-8")
     return result
 
@@ -487,9 +645,49 @@ def _is_cap_error(exc: BaseException) -> bool:
     return "daily_cap_reached" in message or "CF_B8_DAILY_CAP" in message
 
 
+def _classify_exception(exc: BaseException) -> tuple[str, str]:
+    """``(exit_status, sidecar_error)`` for an exception from ``agent.run``.
+
+    A daily-cap 400 → ``cap_stopped``; a context-window overflow →
+    ``ContextWindowExceededError``; anything else (a transient network/API/Docker fault)
+    → ``tooling_failure``, which is not written to predictions and is eligible for the
+    single allowed re-run (audit F12 / AU4-13).
+    """
+    if _is_cap_error(exc):
+        return "cap_stopped", ""
+    if type(exc).__name__ == "ContextWindowExceededError":
+        return "ContextWindowExceededError", ""
+    return "tooling_failure", f"{type(exc).__name__}: {exc}"
+
+
+def _salvage_git_diff(environment: Any) -> str:
+    """Best-effort working-tree ``git diff`` from the sub-agent container, else ``""``."""
+    try:
+        out = environment.execute({"command": "git diff"})
+        return out["output"] if out.get("returncode") == 0 else ""
+    except Exception:
+        return ""
+
+
+def recover_patch(exit_status: str, submission: str, salvaged: str) -> tuple[str, str]:
+    """The uniform patch-recovery rule for every non-cap exit status (audit F5).
+
+    Returns ``(patch, source)``: ``cap_stopped`` never recovers (it re-runs from scratch);
+    otherwise an agent submission wins, then the salvaged working-tree ``git diff``, else
+    ``("", "")``. ``source`` records how the patch was obtained.
+    """
+    if exit_status == "cap_stopped":
+        return "", ""
+    if submission:
+        return submission, "agent_submission"
+    if salvaged:
+        return salvaged, "working_tree_git_diff"
+    return "", ""
+
+
 def run_subagent(
     instance: dict[str, Any],
-    handoff_text: str,
+    task_text: str,
     *,
     model: str,
     base_url: str,
@@ -498,9 +696,16 @@ def run_subagent(
 ) -> dict[str, Any]:
     """Run one mini-swe-agent sub-agent in Docker through ``cfx serve``; return the receipt.
 
-    Returns ``{exit_status, steps, submission}``. A context-window overflow surfaces as
-    ``exit_status == "ContextWindowExceededError"`` with a best-effort partial ``git diff``;
-    a daily-cap stop surfaces as ``exit_status == "cap_stopped"`` with an empty submission.
+    ``task_text`` is the shared task header plus this arm's hand-off (audit F1). Returns
+    ``{exit_status, steps, submission, patch_source, sidecar_error, wall_time_s}``. A context
+    overflow surfaces as ``exit_status == "ContextWindowExceededError"``; a daily-cap stop as
+    ``"cap_stopped"`` (empty submission, no patch recovery — it re-runs from scratch); any
+    other infrastructure exception as ``"tooling_failure"`` (not written to predictions, so
+    ``--resume`` re-runs it — audit F12).
+
+    Patch recovery is uniform across every non-cap exit status (audit F5): a run that did
+    not submit a patch takes the working-tree ``git diff``, and ``patch_source`` records how
+    the patch was obtained (``agent_submission`` | ``working_tree_git_diff`` | ``""``).
     """
     import litellm  # local: WSL-only dependency
     from minisweagent.agents.default import DefaultAgent  # local: WSL-only dependency
@@ -519,45 +724,49 @@ def run_subagent(
     model_cfg = dict(cfg["model"])
     env_cfg.pop("environment_class", None)
 
-    environment = DockerEnvironment(image=get_swebench_docker_image_name(instance), **env_cfg)
-    model_obj = _B8LitellmModel(
-        model_name=model,
-        model_kwargs=_sidecar_model_kwargs(base_url),
-        cost_tracking="ignore_errors",
-        observation_template=model_cfg.get("observation_template"),
-        format_error_template=model_cfg.get("format_error_template"),
-    )
-    agent = DefaultAgent(
-        model_obj,
-        environment,
-        system_template=agent_cfg["system_template"],
-        instance_template=agent_cfg["instance_template"],
-        step_limit=step_limit,
-        cost_limit=0.0,
-        output_path=output_path,
-    )
+    environment = None
+    agent = None
+    exit_status = ""
+    submission = ""
+    patch_source = ""
+    sidecar_error = ""
     started = time.perf_counter()
     try:
-        info = agent.run(task=handoff_text)
+        environment = DockerEnvironment(image=get_swebench_docker_image_name(instance), **env_cfg)
+        model_obj = _B8LitellmModel(
+            model_name=model,
+            model_kwargs=_sidecar_model_kwargs(base_url),
+            cost_tracking="ignore_errors",
+            observation_template=model_cfg.get("observation_template"),
+            format_error_template=model_cfg.get("format_error_template"),
+        )
+        agent = DefaultAgent(
+            model_obj,
+            environment,
+            system_template=agent_cfg["system_template"],
+            instance_template=agent_cfg["instance_template"],
+            step_limit=step_limit,
+            cost_limit=0.0,
+            output_path=output_path,
+        )
+        info = agent.run(task=task_text)
         exit_status = str(info.get("exit_status", ""))
         submission = str(info.get("submission", ""))
     except Exception as exc:  # ContextWindowExceededError and other aborts propagate here
-        if _is_cap_error(exc):
-            exit_status = "cap_stopped"
-            submission = ""
-        else:
-            exit_status = type(exc).__name__
-            try:
-                out = environment.execute({"command": "git diff"})
-                submission = out["output"] if out.get("returncode") == 0 else ""
-            except Exception:
-                submission = ""
+        exit_status, sidecar_error = _classify_exception(exc)
     finally:
-        environment.cleanup()
+        salvaged = ""
+        if environment is not None and exit_status != "cap_stopped" and not submission:
+            salvaged = _salvage_git_diff(environment)
+        submission, patch_source = recover_patch(exit_status, submission, salvaged)
+        if environment is not None:
+            environment.cleanup()
     return {
         "exit_status": exit_status,
-        "steps": agent.n_calls,
+        "steps": agent.n_calls if agent is not None else 0,
         "submission": submission,
+        "patch_source": patch_source,
+        "sidecar_error": sidecar_error,
         "wall_time_s": round(time.perf_counter() - started, 3),
     }
 
@@ -627,6 +836,45 @@ def _token_delta(before: dict[str, int], after: dict[str, int]) -> dict[str, int
     return {key: after[key] - before[key] for key in before}
 
 
+def _iter_jsonl(path: Path) -> list[dict[str, Any]]:
+    """Read a JSONL file, skipping blank and malformed lines."""
+    if not path.is_file():
+        return []
+    rows: list[dict[str, Any]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(row, dict):
+            rows.append(row)
+    return rows
+
+
+def append_run(path: Path, row: dict[str, Any]) -> None:
+    """Append one finished/cap_stopped task x arm row to the persistent run receipt.
+
+    Written as each run finishes so a mid-invocation crash cannot lose earlier rows
+    (audit F12); the aggregator reads the latest row per pair.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(row, sort_keys=True) + "\n")
+
+
+def tooling_failures(path: Path) -> set[tuple[str, str]]:
+    """The ``(instance_id, arm)`` pairs whose latest run row is ``tooling_failure``."""
+    latest: dict[tuple[str, str], dict[str, Any]] = {}
+    for row in _iter_jsonl(path):
+        instance_id = row.get("instance_id")
+        arm = row.get("arm")
+        if isinstance(instance_id, str) and isinstance(arm, str):
+            latest[(instance_id, arm)] = row
+    return {pair for pair, row in latest.items() if row.get("exit_status") == "tooling_failure"}
+
+
 def write_prediction(
     predictions_path: Path, instance_id: str, arm: str, model: str, patch: str
 ) -> None:
@@ -668,7 +916,12 @@ def _arm_predictions_path(predictions_path: Path, arm: str) -> Path | None:
 
 
 def project_tokens(triplet_tokens: int, n: int, daily_cap: int) -> dict[str, Any]:
-    """Project the full-run token load and the day count at ``daily_cap``."""
+    """Project the full-run token load and the day count at ``daily_cap``.
+
+    shortcut: only honest for a single triplet (``--limit 1``); a resumed/partial day
+    multiplies the whole day's ledger by ``n`` and overstates the projection (audit L7).
+    The live receipt no longer emits it; the aggregator computes real per-arm totals.
+    """
     total = triplet_tokens * n
     return {
         "smoke_triplet_tokens": triplet_tokens,
@@ -705,26 +958,50 @@ def _sidecar_command(args: argparse.Namespace, arm: str) -> list[str]:
     return command
 
 
+def _sidecar_log_path(args: argparse.Namespace, arm: str) -> Path:
+    return REPORTS / f"b8_sidecar_{arm}.log"
+
+
 def _start_sidecar(args: argparse.Namespace, arm: str) -> subprocess.Popen[bytes]:
-    proc = subprocess.Popen(
-        _sidecar_command(args, arm),
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
+    # Fail fast if a stale sidecar already holds the port (audit F7): a health answer before
+    # this process spawns means a killed invocation's sidecar is still bound.
+    try:
+        httpx.get(f"http://127.0.0.1:{args.port}/fabric/health", timeout=1.0)
+        raise RuntimeError(
+            f"port {args.port} already answers /fabric/health; a stale sidecar may hold it"
+        )
+    except httpx.HTTPError:
+        pass
+    log_path = _sidecar_log_path(args, arm)
+    log = open(log_path, "ab")  # surface sidecar errors instead of /dev/null (audit F7)
+    proc = subprocess.Popen(_sidecar_command(args, arm), stdout=log, stderr=subprocess.STDOUT)
     for _ in range(200):
         if proc.poll() is not None:
-            raise RuntimeError("cfx serve exited during startup")
+            raise RuntimeError(f"cfx serve exited during startup (see {log_path})")
         try:
             httpx.get(f"http://127.0.0.1:{args.port}/fabric/health", timeout=1.0)
             return proc
         except httpx.HTTPError:
             time.sleep(0.1)
     proc.kill()
-    raise RuntimeError("cfx serve did not become healthy")
+    raise RuntimeError(f"cfx serve did not become healthy (see {log_path})")
+
+
+def _sidecar_stats(port: int) -> dict[str, int]:
+    """Snapshot of the spawned sidecar's ``/fabric/stats`` counters (audit F7)."""
+    response = httpx.get(f"http://127.0.0.1:{port}/fabric/stats", timeout=5.0)
+    response.raise_for_status()
+    payload: dict[str, Any] = response.json()
+    return {key: value for key, value in payload.items() if isinstance(value, int)}
 
 
 def _stop_sidecar(proc: subprocess.Popen[bytes]) -> None:
-    proc.terminate()
+    # Graceful stop first (SIGINT → serve() catches KeyboardInterrupt and checkpoints the
+    # obs store); fall back to terminate/kill if it does not exit (audit AU5).
+    try:
+        proc.send_signal(signal.SIGINT)
+    except (AttributeError, OSError, ValueError):
+        proc.terminate()
     try:
         proc.wait(timeout=5)
     except subprocess.TimeoutExpired:
@@ -768,8 +1045,21 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--step-limit", type=int, default=STEP_LIMIT)
     parser.add_argument("--handoff-budget", type=int, default=HANDOFF_BUDGET)
     parser.add_argument("--daily-cap", type=int, default=b8.DEFAULT_DAILY_CAP)
+    parser.add_argument(
+        "--pair-reserve",
+        type=int,
+        default=RUN_RESERVE,
+        help="refuse to start a task x arm unless today's remaining budget is at least this "
+        "many tokens (audit F3)",
+    )
     parser.add_argument("--out", default="")
     parser.add_argument("--resume", action="store_true", help="skip finished task x arm pairs")
+    parser.add_argument(
+        "--rerun-tooling-failures",
+        action="store_true",
+        help="re-run a task x arm previously recorded as tooling_failure (the single allowed "
+        "tooling re-run, audit F12)",
+    )
     parser.add_argument("--grade", action="store_true", help="grade predictions after running")
     parser.add_argument("--max-workers", type=int, default=2, help="grading worker count (Docker)")
     return parser.parse_args(argv)
@@ -782,6 +1072,11 @@ def _require_model(model: str) -> None:
         )
 
 
+def pair_fits(used: int, pair_reserve: int, daily_cap: int) -> bool:
+    """True when there is room for one more task x arm under the daily cap (audit F3)."""
+    return used + pair_reserve <= daily_cap
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     _require_model(args.model)
@@ -789,34 +1084,42 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("--repo-dir (or CF_B8_REPO_DIR) is required: the extracted repo checkout")
 
     ledger = b8.Ledger(args.ledger_dir)
-    day = b8.utc_day()
     instances = sample_instances(load_instances(), args.seed, args.n)
+    assert_frozen_sample(instances, args.seed, args.n)
     selected = instances[: args.limit] if args.limit else instances
     print(f"b8_live: seed={args.seed} n={args.n} selected={len(selected)} model={args.model}")
 
     predictions_path = REPORTS / "b8_predictions.jsonl"
     done = finished_pairs(predictions_path) if args.resume else set()
+    if args.resume and not args.rerun_tooling_failures:
+        # The single allowed tooling re-run is opt-in (audit F12): without the flag a
+        # previously tooling_failure pair is skipped, not silently re-run.
+        done |= tooling_failures(RUNS_JSONL)
 
     base_url = args.base_url if args.no_sidecar else f"http://127.0.0.1:{args.port}/v1"
     parent_tokens: dict[str, int] = {}
     if not args.no_sidecar:
         # Phase 1: produce each task's frozen Parent hand-off once (one mini-tier turn).
         parent_proc = _start_sidecar(args, "A")
+        day = b8.utc_day()
         before = ledger.summary(day)
         for instance in selected:
             repo_root = Path(args.repo_dir) / instance["instance_id"]
             if repo_root.is_dir():
-                parent_handoff(
+                result = parent_handoff(
                     instance,
                     repo_root,
                     model=args.model,
                     base_url=base_url,
                     cache_dir=Path(args.parent_cache),
                 )
+                if result.get("parent_status") == "cap_stopped":
+                    print("b8_live: parent phase hit the daily cap; stopping for the day.")
+                    break
         parent_tokens = _token_delta(before, ledger.summary(day))
         _stop_sidecar(parent_proc)
 
-    cap_stopped = False
+    day_stopped = False
     arm_receipts: dict[str, dict[str, Any]] = {arm: {} for arm in ARMS}
     for arm in ARMS:
         work = pending_pairs(selected, (arm,), done)
@@ -835,21 +1138,15 @@ def main(argv: list[str] | None = None) -> int:
                         file=sys.stderr,
                     )
                     continue
-                # Pre-check the ledger: never start a pair the daily cap would cut off.
-                before = ledger.summary(day)
-                if before["total_tokens"] + args.window_cap + MAX_TOKENS > args.daily_cap:
-                    arm_receipts[arm][instance_id] = {
-                        "exit_status": "cap_stopped",
-                        "overflow": False,
-                        "steps": 0,
-                        "wall_time_s": 0.0,
-                        "tokens": _token_delta(before, before),
-                    }
+                day = b8.utc_day()  # audit F10: per pair, so midnight crossings read the right day
+                # audit F3: reserve a realistic per-run maximum before starting a pair, so a
+                # run is never cut off mid-flight (stop cleanly for the day instead).
+                if not pair_fits(ledger.day_total(day), args.pair_reserve, args.daily_cap):
                     print(
-                        f"b8_live: daily cap reached ({before['total_tokens']} used); "
-                        f"stopping before {instance_id} arm {arm}. Resume tomorrow."
+                        f"b8_live: remaining budget < --pair-reserve ({args.pair_reserve}); "
+                        f"stopping cleanly for the day."
                     )
-                    cap_stopped = True
+                    day_stopped = True
                     break
                 parent = parent_handoff(
                     instance,
@@ -858,8 +1155,13 @@ def main(argv: list[str] | None = None) -> int:
                     base_url=base_url,
                     cache_dir=Path(args.parent_cache),
                 )
+                if parent.get("parent_status") == "cap_stopped":
+                    print(f"b8_live: {instance_id} parent hit the daily cap; stopping for the day.")
+                    day_stopped = True
+                    break
+                before = ledger.summary(day)
                 if parent.get("parent_status") != "llm_ok":
-                    arm_receipts[arm][instance_id] = {
+                    row = {
                         "exit_status": "parent_failed",
                         "overflow": False,
                         "steps": 0,
@@ -867,11 +1169,21 @@ def main(argv: list[str] | None = None) -> int:
                         "tokens": _token_delta(before, before),
                         "parent_error": parent.get("error", ""),
                     }
+                    arm_receipts[arm][instance_id] = row
+                    append_run(RUNS_JSONL, _run_row(instance_id, arm, row, args.model, day, 0))
                     print(
                         f"b8_live: {instance_id} parent llm_failed"
                         f" ({parent.get('error', '')}); skipping arm {arm}"
                     )
                     continue
+                # audit F1: every arm gets the identical task header (problem + query + notes)
+                # before its own hand-off; the header is not counted in the 8,192-token slot.
+                header = build_task_header(
+                    instance["problem_statement"],
+                    parent["subagent_query"],
+                    parent["parent_notes"],
+                )
+                header_tokens = count_tokens(header)
                 objective = " ".join(
                     part
                     for part in (instance["problem_statement"], parent.get("subagent_query", ""))
@@ -885,48 +1197,68 @@ def main(argv: list[str] | None = None) -> int:
                     project_id=instance["repo"].split("/")[-1],
                     budget=args.handoff_budget,
                 )
+                task_text = build_subagent_task(header, handoff)
                 output_path = Path(args.repo_dir) / instance_id / f"{instance_id}.{arm}.traj.json"
+                fold_before = _sidecar_stats(args.port) if arm == "C" and proc is not None else {}
                 receipt = run_subagent(
                     instance,
-                    handoff,
+                    task_text,
                     model=args.model,
                     base_url=base_url,
                     output_path=output_path,
                     step_limit=args.step_limit,
                 )
                 tokens = _token_delta(before, ledger.summary(day))
-                if receipt["exit_status"] == "cap_stopped":
-                    arm_receipts[arm][instance_id] = {
-                        "exit_status": "cap_stopped",
-                        "overflow": False,
-                        "steps": receipt["steps"],
-                        "wall_time_s": receipt["wall_time_s"],
-                        "tokens": tokens,
-                    }
-                    print(
-                        f"b8_live: {instance_id} arm {arm} -> cap_stopped (daily cap). "
-                        "Resume tomorrow."
+                fold_events = folded_bytes = 0
+                if arm == "C" and proc is not None:
+                    fold_after = _sidecar_stats(args.port)
+                    fold_events = fold_after.get("folded_events", 0) - fold_before.get(
+                        "folded_events", 0
                     )
-                    cap_stopped = True
-                    break
-                write_prediction(
-                    predictions_path, instance_id, arm, args.model, receipt["submission"]
-                )
-                arm_receipts[arm][instance_id] = {
+                    folded_bytes = fold_after.get("folded_bytes", 0) - fold_before.get(
+                        "folded_bytes", 0
+                    )
+                row = {
                     "exit_status": receipt["exit_status"],
                     "overflow": receipt["exit_status"] == "ContextWindowExceededError",
                     "steps": receipt["steps"],
                     "wall_time_s": receipt["wall_time_s"],
                     "tokens": tokens,
+                    "patch_source": receipt["patch_source"],
+                    "sidecar_error": receipt["sidecar_error"],
+                    "fold_events": fold_events,
+                    "folded_bytes": folded_bytes,
                 }
+                arm_receipts[arm][instance_id] = row
+                append_run(
+                    RUNS_JSONL, _run_row(instance_id, arm, row, args.model, day, header_tokens)
+                )
+                if receipt["exit_status"] == "cap_stopped":
+                    print(
+                        f"b8_live: {instance_id} arm {arm} -> cap_stopped (daily cap). "
+                        "Resume tomorrow."
+                    )
+                    day_stopped = True
+                    break
+                if receipt["exit_status"] == "tooling_failure":
+                    print(
+                        f"b8_live: {instance_id} arm {arm} -> tooling_failure"
+                        f" ({receipt['sidecar_error']}); not written to predictions "
+                        "(re-run with --rerun-tooling-failures)."
+                    )
+                    continue
+                write_prediction(
+                    predictions_path, instance_id, arm, args.model, receipt["submission"]
+                )
                 print(
                     f"b8_live: {instance_id} arm {arm} -> {receipt['exit_status']} "
-                    f"steps={receipt['steps']} tokens={tokens['total_tokens']}"
+                    f"steps={receipt['steps']} tokens={tokens['total_tokens']} "
+                    f"patch={receipt['patch_source'] or 'none'}"
                 )
         finally:
             if proc is not None:
                 _stop_sidecar(proc)
-        if cap_stopped:
+        if day_stopped:
             break
 
     resolved: dict[str, dict[str, int]] = {arm: {} for arm in ARMS}
@@ -945,7 +1277,6 @@ def main(argv: list[str] | None = None) -> int:
                 for instance_id, value in resolved[arm].items():
                     arm_receipts[arm].setdefault(instance_id, {})["resolved"] = value
 
-    ledger_summary = ledger.summary(day)
     receipt = {
         "scenario": "b8_live",
         "kind": "smoke" if args.limit else "live",
@@ -954,49 +1285,85 @@ def main(argv: list[str] | None = None) -> int:
         "model": args.model,
         "window_cap": args.window_cap,
         "handoff_budget": args.handoff_budget,
+        "pair_reserve": args.pair_reserve,
         "step_limit": args.step_limit,
         "started_at": datetime.now(tz=UTC).isoformat(),
-        "day": day,
+        "harness_sha": harness_sha(),
+        "day": b8.utc_day(),
         "instance_ids": [i["instance_id"] for i in selected],
         "arms": arm_receipts,
         "resolved": resolved,
         "parent_tokens": parent_tokens,
-        "ledger": ledger_summary,
-        "projection": project_tokens(ledger_summary["total_tokens"], args.n, args.daily_cap),
+        "ledger": ledger.summary(b8.utc_day()),
     }
-    ts = time.strftime("%Y%m%d_%H%M%S")
-    out = Path(args.out) if args.out else REPORTS / f"b8_smoke_{ts}.json"
+    ts = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
+    out = Path(args.out) if args.out else REPORTS / f"b8_live_{ts}.json"
     out.write_text(json.dumps(receipt, indent=2), encoding="utf-8")
     _print_report(receipt, out)
     return 0
 
 
+def _run_row(
+    instance_id: str,
+    arm: str,
+    row: dict[str, Any],
+    model: str,
+    day: str,
+    header_tokens: int,
+) -> dict[str, Any]:
+    """The persistent JSONL run row: one per finished/cap_stopped/failed task x arm."""
+    return {
+        "instance_id": instance_id,
+        "arm": arm,
+        "exit_status": row["exit_status"],
+        "overflow": row["overflow"],
+        "steps": row["steps"],
+        "wall_time_s": row["wall_time_s"],
+        "tokens": row["tokens"],
+        "header_tokens": header_tokens,
+        "patch_source": row.get("patch_source", ""),
+        "sidecar_error": row.get("sidecar_error", ""),
+        "fold_events": row.get("fold_events", 0),
+        "folded_bytes": row.get("folded_bytes", 0),
+        "model": model,
+        "day": day,
+        "harness_sha": harness_sha(),
+        "ts": datetime.now(tz=UTC).isoformat(),
+    }
+
+
 def _print_report(receipt: dict[str, Any], out: Path) -> None:
     print(f"\nb8_live report ({out}):")
     for arm in ARMS:
-        summary = receipt["arms"].get(arm, {})
-        rows = list(summary.values())
-        total = sum(r["tokens"]["total_tokens"] for r in rows)
-        cached = sum(r["tokens"]["cached_tokens"] for r in rows)
-        uncached = sum(r["tokens"]["uncached_tokens"] for r in rows)
-        overflows = sum(1 for r in rows if r["overflow"])
-        resolved = sum(1 for r in rows if r.get("resolved") == 1)
-        steps = [r["steps"] for r in rows]
-        wall = [r["wall_time_s"] for r in rows]
+        rows = list(receipt["arms"].get(arm, {}).values())
+        # Rows without tokens (earlier-day resolved-only entries) and non-results are excluded
+        # from the token totals (audit F4/F6).
+        finished = [
+            r
+            for r in rows
+            if "tokens" in r and r.get("exit_status") not in ("cap_stopped", "parent_failed")
+        ]
+        excluded = sum(
+            1
+            for r in rows
+            if r.get("exit_status") in ("cap_stopped", "parent_failed", "tooling_failure")
+        )
+        total = sum(r["tokens"]["total_tokens"] for r in finished)
+        cached = sum(r["tokens"]["cached_tokens"] for r in finished)
+        uncached = sum(r["tokens"]["uncached_tokens"] for r in finished)
+        overflows = sum(1 for r in finished if r["overflow"])
+        resolved = sum(1 for r in finished if r.get("resolved") == 1)
+        steps = [r["steps"] for r in finished]
+        wall = [r["wall_time_s"] for r in finished]
         print(
-            f"  arm {arm}: tasks={len(rows)} resolved={resolved} overflows={overflows} "
+            f"  arm {arm}: tasks={len(finished)} resolved={resolved} overflows={overflows} "
             f"billed={total} cached={cached} uncached={uncached} "
-            f"steps={steps} wall_s={wall}"
+            f"steps={steps} wall_s={wall} excluded={excluded}"
         )
     ledger = receipt["ledger"]
-    proj = receipt["projection"]
     print(
         f"  ledger total (day {receipt['day']}): {ledger['total_tokens']} "
         f"(prompt {ledger['prompt_tokens']}, completion {ledger['completion_tokens']})"
-    )
-    print(
-        f"  projection: {proj['projected_total_tokens_30']} tokens for 30 tasks x 3 arms "
-        f"= {proj['days_at_cap']} days at {proj['daily_cap']}/day"
     )
 
 

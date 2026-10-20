@@ -54,9 +54,10 @@ the grader both use the `swebench/sweb.eval.x86_64.<instance_id>` images).
   `reasoning_tokens`, `cached_tokens`, `uncached_tokens`, `total_tokens`).
 * **Daily cap.** Before each request the sidecar sums today's ledger; if that total plus the
   request's maximum possible tokens (rendered input estimate + `max_completion_tokens`)
-  would exceed `CF_B8_DAILY_CAP` (default 2,200,000), it stops cleanly with HTTP 429
-  `daily_token_cap_exceeded` and a **"Resume tomorrow"** message — nothing is forwarded, so
-  no token is spent over the cap. For the smoke run set `CF_B8_DAILY_CAP=600000`.
+  would exceed `CF_B8_DAILY_CAP` (default 2,200,000), it stops cleanly with HTTP 400
+  `daily_cap_reached` and a **"Resume tomorrow"** message — nothing is forwarded, so
+  no token is spent over the cap. The check-and-reserve is serialized under a lock (audit
+  F11). For the smoke run set `CF_B8_DAILY_CAP=600000`.
 * **Choke point.** All agent traffic (Parent localization + every sub-agent turn) goes
   through `cfx serve`, upstream `https://api.openai.com`. `OPENAI_API_KEY` is read from the
   environment (passed into WSL via `WSLENV` or set at call time); it is never printed or
@@ -79,36 +80,46 @@ Then the smoke (1 task × 3 arms, graded):
 cd /mnt/c/dev/Context-Fabric
 CF_B8_DAILY_CAP=600000 OPENAI_API_KEY="$OPENAI_API_KEY" \
   ~/.venvs/swe/bin/python -m evals.b8_live \
-    --seed 20261019 --n 30 --limit 1 \
+    --seed 20261019 --n 10 --limit 1 \
     --model gpt-4.1-mini \
     --repo-dir <repo-dir> \
     --daily-cap 600000 --grade
 ```
 
-The full pre-registered run is the same command with `--limit` removed (all 30 tasks) and
+The full pre-registered run is the same command with `--limit` removed (all 10 tasks) and
 `--daily-cap 2200000`, run across successive UTC days (`--resume` skips finished
-task × arm pairs; the ledger and predictions persist across invocations).
+task × arm pairs; the ledger and predictions persist across invocations). Before starting a
+task × arm the runner requires today's remaining budget to be at least `--pair-reserve`
+(default 550,000), otherwise it stops cleanly for the day.
 
 The runner, per invocation:
 
-1. loads SWE-bench Verified and draws the seeded repo-stratified sample;
-2. produces each task's Parent hand-off once, cached to `evals/parent_handoff_raw/`;
+1. loads SWE-bench Verified (pinned revision) and draws the seeded repo-stratified sample;
+2. produces each task's Parent hand-off once, cached to `evals/parent_handoff_raw/` with
+   provenance (model, prompt hash, harness git sha, the BM25-ranked listing shown);
 3. spawns `cfx serve` (passthrough + window cap + ledger; `--obs-fold` only for Arm C) and
    runs each arm's sub-agent (`mini-swe-agent` DefaultAgent, `temperature=0.0`,
-   `step_limit=35`, `max_tokens=1024`, 10,000-char per-command output cap);
+   `step_limit=35`, `max_tokens=1024`, 10,000-char per-command output cap). Every arm gets
+   the same task header (problem statement + sub-agent query + parent notes) before its
+   own hand-off;
 4. writes predictions in SWE-bench format (`evals/reports/b8_predictions.jsonl`) and, with
    `--grade`, grades them via `swebench.harness.run_evaluation` (`--max_workers 2`);
-5. writes a receipt `evals/reports/b8_smoke_<ts>.json` with per-arm
-   tokens (billed/cached/uncached), overflow flag, steps, resolved flag, wall time, the
-   ledger total, and the projected tokens for 30 tasks × 3 arms at 2.2M tokens/day.
+5. appends one JSONL row per finished/cap-stopped/failed task × arm to
+   `evals/reports/b8_runs.jsonl` (crash-safe) and writes a receipt
+   `evals/reports/b8_live_<UTC ts>.json`. `evals/b8_aggregate.py` computes per-arm R/O/U
+   and McNemar from that JSONL plus the official harness summaries.
 
 ## Notes and known limits
 
 * Arms run arm-major (all Arm A, then B, then C) so `cfx serve` can toggle `--obs-fold` per
   arm with one restart. For the 1-task smoke this equals the design's triplet-interleaved
-  order; the full 30-task run's triplet interleaving is a future refinement.
-* Streaming responses are not ledgered (mini-swe-agent's `litellm.completion` is
-  non-streaming by default); only the non-streaming path records usage.
+  order; the full 10-task run's triplet interleaving is a future refinement.
+* Streaming requests are refused with HTTP 400 `stream_not_ledgered` when the ledger is on
+  (a streamed response cannot be charged to the daily cap); the sub-agent's
+  `litellm.completion` is non-streaming, so it is unaffected.
 * Window-cap input count is a tiktoken `o200k_base` estimate (message content + tool-call
-  arguments + 4 framing tokens/message); it ignores the constant `tools` schema overhead,
-  which is equal across arms and does not bias the comparison.
+  arguments + the serialized `tools` schema + per-message framing), so it is an upper bound
+  on the real prompt rather than an undercount.
+* Arm B's compiled packet mounts the shared repo cartridge (`_repo_cartridge`, the Tier-0
+  project hologram) exactly as Arm C's repo map does; both B and C open with the hologram,
+  and only the code representation below it differs.

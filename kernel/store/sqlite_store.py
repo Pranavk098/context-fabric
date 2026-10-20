@@ -407,6 +407,19 @@ class SqliteStore:
         self._conn.commit()
         return len(rows)
 
+    def close(self) -> None:
+        """Checkpoint the WAL into the main file and close the connection.
+
+        A graceful shutdown must checkpoint so committed rows are not left only in the
+        ``-wal`` file — the pilot no longer tracks ``*.db-wal`` (audit AU5).
+        """
+        try:
+            self._conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        except sqlite3.Error:
+            pass
+        finally:
+            self._conn.close()
+
     def load_fold_log(self, session_id: str | None = None) -> list[dict[str, Any]]:
         """Fold-event receipt rows in append order (``fold_seq``), optionally per session."""
         if session_id is None:

@@ -76,7 +76,7 @@ class Stats:
 
     def add(self, key: str, amount: int = 1) -> None:
         with self._lock:
-            self._counters[key] += amount
+            self._counters[key] = self._counters.get(key, 0) + amount
 
     def snapshot(self) -> dict[str, int]:
         with self._lock:
@@ -206,6 +206,11 @@ def _make_handler(
     # One shared sqlite3 connection: event_seq allocation plus append/dedupe must be
     # atomic across handler threads, so all writes take this lock.
     write_lock = threading.Lock()
+    # The B8 cap check-and-reserve is atomic: when the ledger is on, the daily-cap check
+    # and the response's usage append are serialized so two concurrent requests cannot both
+    # pass the check before either is recorded (audit F11). Only chat/completions take it;
+    # health/stats/blocks are unaffected.
+    gate_lock = threading.Lock()
 
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
@@ -324,9 +329,15 @@ def _make_handler(
                 if folded is None:
                     return
                 body = folded
-            if not self._b8_gate(body):
-                return
-            self._proxy("POST", f"{upstream}/v1/chat/completions", body, extra)
+            if b8_ledger is not None:
+                with gate_lock:
+                    if not self._b8_gate(body):
+                        return
+                    self._proxy("POST", f"{upstream}/v1/chat/completions", body, extra)
+            else:
+                if not self._b8_gate(body):
+                    return
+                self._proxy("POST", f"{upstream}/v1/chat/completions", body, extra)
 
         def _route_get(self) -> None:
             path = self.path.split("?", 1)[0]
@@ -473,6 +484,9 @@ def _make_handler(
                         session_id=session_id,
                         created_at=created_at,
                     )
+            if result.folded:
+                stats.add("folded_events", result.folded)
+                stats.add("folded_bytes", sum(event.content_bytes for event in result.events))
             if not result.folded:
                 return body
             payload["messages"] = result.messages
@@ -499,6 +513,23 @@ def _make_handler(
                 return True
             model = payload.get("model")
             if b8_ledger is not None:
+                if payload.get("stream"):
+                    self._send_json(
+                        400,
+                        {
+                            "error": {
+                                "message": (
+                                    "streaming requests are not supported with the B8 ledger: "
+                                    "streamed responses cannot be charged to the daily cap. "
+                                    "Send a non-streaming request."
+                                ),
+                                "type": "invalid_request_error",
+                                "param": "stream",
+                                "code": "stream_not_ledgered",
+                            }
+                        },
+                    )
+                    return False
                 if not isinstance(model, str) or not b8.is_allowed_model(model):
                     self._send_json(
                         400,
@@ -515,7 +546,7 @@ def _make_handler(
                         },
                     )
                     return False
-            input_tokens = b8.estimate_messages_tokens(messages)
+            input_tokens = b8.estimate_messages_tokens(messages, payload.get("tools"))
             max_tokens = b8.max_completion_tokens(payload)
             if window_cap is not None and input_tokens + max_tokens > window_cap:
                 self._send_json(400, b8.context_window_error(input_tokens, max_tokens, window_cap))
@@ -647,11 +678,13 @@ def _make_handler(
             self._start_relay(resp.status_code, content_type, extra)
             self.send_header("Content-Length", str(len(payload)))
             self.end_headers()
-            self.wfile.write(payload)
+            # Record usage BEFORE writing the body so the runner's cross-process token delta
+            # cannot miss the last request of a run (audit AU3-M1).
+            self._record_usage(payload)
             tokens = _prompt_tokens(payload)
             if tokens is not None:
                 stats.add("upstream_prompt_tokens", tokens)
-            self._record_usage(payload)
+            self.wfile.write(payload)
 
         def _start_relay(self, status: int, content_type: str, extra: dict[str, str]) -> None:
             self._response_started = True
@@ -792,3 +825,8 @@ def serve(
         pass
     finally:
         httpd.server_close()
+        # Checkpoint and close the fabric/obs stores so committed rows are not left only in
+        # their -wal files (audit AU5).
+        for sqlite_store in (store, obs_store):
+            if sqlite_store is not None:
+                sqlite_store.close()
