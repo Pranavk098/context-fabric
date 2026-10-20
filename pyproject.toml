@@ -17,6 +17,10 @@ cfx = "sidecar.cli:main"
 observability = ["opentelemetry-api>=1.25", "opentelemetry-sdk>=1.25"]
 embeddings = ["fastembed>=0.4"]
 langgraph = ["langgraph>=1.2.16"]
+
+# dev tools live in a dependency group (not an extra) so a bare `uv run`/`uv sync` keeps
+# them installed — `uv run cfx repro` and `uv run pytest` must work without `--extra dev`.
+[dependency-groups]
 dev = ["pytest>=8", "mypy>=1.11", "ruff>=0.6"]
 
 [tool.uv]

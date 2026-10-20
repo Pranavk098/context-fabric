@@ -8,7 +8,7 @@ One shared memory. One small, cache-aligned packet per agent.
 Every hand-off hashed, signable, and replayable.
 
 [![CI](https://github.com/Pranavk098/context-fabric/actions/workflows/ci.yml/badge.svg)](https://github.com/Pranavk098/context-fabric/actions/workflows/ci.yml)
-![tests](https://img.shields.io/badge/tests-476%20total-brightgreen)
+![tests](https://img.shields.io/badge/tests-486%20total-brightgreen)
 ![python](https://img.shields.io/badge/python-3.12%2B-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
 ![status](https://img.shields.io/badge/status-v0.1%20local--first-orange)
@@ -81,6 +81,24 @@ memory, not prefill.
 | Packing | **−13.4% redundancy** vs greedy | coverage trade-off 5/6 vs 6/6 — stated, not hidden | [`PACKING-QUALITY.md`](docs/engineering/PACKING-QUALITY.md) |
 | Negative knowledge | 3B metrics trap **4/4 → 0/4 bad** | 1.5B: null. Directional only — n tiny, prompt-perturbation confound | [`DEMO.md`](docs/engineering/DEMO.md) |
 
+## Where we are
+
+Short, honest status. Proven numbers are registered in the [`NUMBERS.md`](docs/engineering/NUMBERS.md)
+registry; failures are stated as plainly as wins.
+
+| Status | Result | Evidence |
+| :--- | :--- | :--- |
+| ✅ Proven | Real-repo pilot: **13.62× fewer billed tokens** at 5/6 parity | [`PILOT-MECH-RESULT.md`](docs/engineering/PILOT-MECH-RESULT.md) |
+| ✅ Proven | Demo fleet: **3.17× fewer prompt tokens** at 6/6 parity | [`DEMO.md`](docs/engineering/DEMO.md) |
+| ✅ Proven | Cold boot: **348 vs 3,146 tokens**, 100% vs 25% | [`RERUN-REVIEW.md`](docs/engineering/RERUN-REVIEW.md) |
+| ✅ Proven | A4 concurrency: **1.9× lower peak KV** at N=32, **10.9× fewer tokens**/request | [`A4-CONCURRENCY-RESULT.md`](docs/engineering/A4-CONCURRENCY-RESULT.md) |
+| ❌ Failed | **B4 KILL** — divergent-role compile lost to one prefix-cached raw prompt (**21/36 vs 29/36**) | [`B4-RESULT.md`](docs/engineering/B4-RESULT.md) |
+| ❌ Failed | **B4 v3 MIXED** (KILL under corrected scoring) — cheapest, but lower accuracy (**5.66×** billed) | [`B4-V3-RESULT.md`](docs/engineering/B4-V3-RESULT.md) |
+| ❌ Failed | **A1 / skim-model FAIL** — neither model-skimmer track beats BM25 chunks | [`SKIM-MODEL.md`](docs/engineering/SKIM-MODEL.md) |
+| ❌ Failed | **Skim (AST signature-only) fails** — body-strip recalls fewer facts than BM25 chunks | [`SKIM.md`](docs/engineering/SKIM.md) |
+| 🔄 In progress | **B8 SWE-bench pilot** — restarting as v3 after the audit wave fixed the harness | [`B8-PREREGISTRATION-v2.md`](docs/engineering/B8-PREREGISTRATION-v2.md) |
+| ⏭ Next | Wire Tier-0 cartridges, store relations, and H2 full-body chunks into `cfx serve` | [`IMPLEMENTATION-STATUS.md`](docs/engineering/IMPLEMENTATION-STATUS.md) |
+
 ## What it does — five verbs
 
 - **Compile** — a deterministic 9-stage compiler (policy → BM25/hybrid recall → λ-MMR packing →
@@ -89,8 +107,9 @@ memory, not prefill.
 - **Plug** — `cfx serve` in front of any OpenAI-compatible endpoint. Zero code changes: point
   your tool's base URL at it. `passthrough` mode exists so you can run honest A/B yourself.
   Cloud APIs get provider-shaped requests with correct cache hints (`adapters/`).
-- **Share** — agents share Tier 0/1 memory through prefix sharing; sub-agents mount the same
-  prefix at the head of every packet. New writes land **quarantined** until trusted.
+- **Share** — sub-agents mount a shared Tier-0 cartridge + Tier-1 prefix at the head of every
+  packet via the Python API (`compile_packet(cartridge=...)`). New writes land **quarantined**
+  until trusted.
 - **Seal** — every packet is hashed and can be signed; epochs chain with Merkle inclusion proofs.
   `cfx verify` tells you if one character changed.
 - **Replay** — `cfx replay` recompiles a past hand-off from its recorded manifest and proves
@@ -99,9 +118,9 @@ memory, not prefill.
 ## Quickstart
 
 ```bash
-uv sync --extra dev
+uv sync
 uv run python -m evals.spike_deterministic   # zero-GPU deterministic-core check
-uv run pytest -q                             # 338 tests (3 skip without the embeddings extra)
+uv run pytest -q                             # 486 tests collected (481 pass, 6 skip without optional extras)
 uv run cfx repro                             # recompute every offline claim from its artifact
 
 # The plug, in front of your local model server
@@ -125,6 +144,11 @@ Honesty is the product, so the gaps are on the label:
 - **Not a hosted service.** Local-first by design; SQLite store, no cloud dependency.
 - **No LLM in the compile path.** Summaries would be nondeterministic; we refuse them in v0.
 - **Engine cache hints are computed but not yet sent** — vLLM RFC #52113 is still open.
+- **`cfx serve` does not wire Tier-0 cartridges or store relations.** `compile_packet` mounts
+  a shared cartridge prefix and relation closure only when called from Python (the pilot/harness
+  and unit tests pass them); the HTTP server's compile path passes neither, so a served packet's
+  Tier-0 prefix is empty (`shared_prefix == ""`). The 13.62× and 3.17× figures come from direct
+  Python calls, not `cfx serve`.
 - **Per-role compiling does not beat prefix caching when the context fits.** Pre-registered B4
   (httpx, 1.5B model, 4 roles): compiled packets lost on quality (21/36 vs 29/36) *and* on
   uncached prefill tokens to one shared, prefix-cached raw prompt
@@ -144,7 +168,7 @@ protocol/   CPP v1.0 frozen schemas · RFC 8785 canonicalization · Ed25519 · e
 kernel/     9-stage context compiler · .cfx cartridge · BM25/hybrid recall · λ-MMR packer · CoW epochs · SQLite store
 sidecar/    cfx CLI + OpenAI-compatible proxy · writable quarantined memory · MCP server · replay/seal · demo
 evals/      telemetry harness + every Stage-B experiment that produced a number in this README
-tests/      338 tests (deterministic core, verifiers, replay, MCP, perf budget)
+tests/      486 tests (deterministic core, verifiers, replay, MCP, perf budget)
 scripts/    WSL/GPU bring-up and runners
 docs/       the full record — see the index below
 ```

@@ -12,18 +12,14 @@ characters. Underscores are separators (``snake_case`` -> ``snake``, ``case``).
 
 from __future__ import annotations
 
-import math
 import os
 import re
-from collections import Counter
 from collections.abc import Sequence
 
+from kernel.router._bm25 import bm25_core
 from protocol.models import ContextBlock
 
 _TOKEN = re.compile(r"[^\W_]+", re.UNICODE)
-
-BM25_K1 = 1.2
-BM25_B = 0.75
 
 CF_RECALL_ENV = "CF_RECALL"
 RECALL_MODES = ("bm25", "hybrid", "embeddings")
@@ -57,11 +53,6 @@ def lexical_relevance(objective: str, block: ContextBlock) -> float:
     return len(overlap) / len(obj)
 
 
-def _idf(n: int, df: int) -> float:
-    """Positive Robertson-Spark-Jones IDF as used by Okapi BM25 (always > 0)."""
-    return math.log(1.0 + (n - df + 0.5) / (df + 0.5))
-
-
 def bm25_scores(query: str, blocks: Sequence[ContextBlock]) -> dict[str, float]:
     """Okapi BM25 (k1=1.2, b=0.75) with corpus statistics over ``blocks``.
 
@@ -72,31 +63,9 @@ def bm25_scores(query: str, blocks: Sequence[ContextBlock]) -> dict[str, float]:
     """
     result: dict[str, float] = {b.block_id: 0.0 for b in blocks}
     result["idf"] = 0.0
-    terms = sorted(set(tokenize(query)))
-    docs = [_block_tokens(b) for b in blocks]
-    n = len(docs)
-    if not terms or n == 0:
-        return result
-    lens = [len(d) for d in docs]
-    total = sum(lens)
-    if total == 0:
-        return result
-    avgdl = total / n
-    df = Counter(t for d in docs for t in set(d))
-    present = [t for t in terms if df[t] > 0]
-    if not present:
-        return result
-    result["idf"] = sum(_idf(n, df[t]) for t in present) / len(present)
-    for b, d, dl in zip(blocks, docs, lens, strict=True):
-        tf = Counter(d)
-        score = 0.0
-        for t in present:  # sorted -> deterministic accumulation order
-            if t in tf:
-                score += (
-                    _idf(n, df[t])
-                    * (tf[t] * (BM25_K1 + 1.0))
-                    / (tf[t] + BM25_K1 * (1.0 - BM25_B + BM25_B * dl / avgdl))
-                )
+    scores, mean_idf = bm25_core(sorted(set(tokenize(query))), [_block_tokens(b) for b in blocks])
+    result["idf"] = mean_idf
+    for b, score in zip(blocks, scores, strict=True):
         result[b.block_id] = score
     return result
 

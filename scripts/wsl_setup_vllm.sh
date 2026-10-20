@@ -10,6 +10,10 @@ echo "[$(date +%T)] setup start"
 export PATH="$HOME/.local/bin:$PATH"
 if ! command -v uv >/dev/null 2>&1; then
   echo "[$(date +%T)] installing uv"
+  # Supply-chain caveat: this pipes an unauthenticated remote script to sh. A compromised
+  # astral.sh (or MITM) would run arbitrary code in this user's context. If that risk
+  # matters, download the installer, verify its sha256 against the published checksum,
+  # then run it. (Standard practice; accepted for a disposable WSL dev box.)
   curl -LsSf https://astral.sh/uv/install.sh | sh
   export PATH="$HOME/.local/bin:$PATH"
 fi

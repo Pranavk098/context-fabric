@@ -5,9 +5,8 @@ from __future__ import annotations
 import pytest
 
 from kernel.router import embeddings
+from kernel.router._bm25 import BM25_B, BM25_K1
 from kernel.router.recall import (
-    BM25_B,
-    BM25_K1,
     CF_RECALL_ENV,
     _block_text,
     bm25_scores,

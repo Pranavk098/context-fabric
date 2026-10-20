@@ -1,6 +1,6 @@
 # Dogfood Run A7 — Context Fabric under a real agent tool (mini-swe-agent → vLLM → cfx serve)
 
-Date: 2026-10-19 · Worker: wave-a7-dogfood · Hardware: RTX 5070 Laptop (8 GB VRAM), WSL2 Ubuntu 22.04
+Date: 2026-10-19 · Worker: wave-a7-dogfood · Hardware: RTX 5070 Laptop (8 GB VRAM), WSL2 Ubuntu 26.04 LTS
 
 **Goal:** exercise `cfx serve` (compile mode + `--obs-fold`) under real OpenAI-compatible
 agent-tool traffic and record every break. Task success was explicitly out of scope (a

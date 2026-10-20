@@ -38,6 +38,11 @@ def _load_checker() -> ModuleType:
     return module
 
 
+def _safe(text: str) -> str:
+    """ASCII-escape messages so any Windows console encoding (e.g. cp1252) can print them."""
+    return text.encode("ascii", "backslashreplace").decode("ascii")
+
+
 def run_repro(*, verbose: bool = False, out: Callable[[str], None] = print) -> int:
     if not _CHECKER.is_file():
         out("cfx repro: run this from a Context Fabric checkout")
@@ -47,7 +52,7 @@ def run_repro(*, verbose: bool = False, out: Callable[[str], None] = print) -> i
     for ok, message in report:
         if ok and not verbose:
             continue
-        out(f"{'ok  ' if ok else 'FAIL'} {message}")
+        out(_safe(f"{'ok  ' if ok else 'FAIL'} {message}"))
     out("")
     for line in _LIVE_TIER:
         out(line)

@@ -42,7 +42,7 @@ Legend
 | `packing_redundancy` | `-13.4%` | strict | `README.md`, `CHANGELOG.md` | `evals/reports/packing_bench_20261017_231759.json` | (0.205616 − 0.177986) = 0.0276 jaccard delta; /0.205616 = 13.4% |
 | `quality_parity_ratio` | `~5.6x` | strict | `README.md`, `CHANGELOG.md` | `evals/reports/audit_b6_20261016_173804.json` | 408 / 73 = 5.589 → 5.6 (1.5B, lossless arm; N7 caveats) |
 | `httpx_compression` | `~17x` | display-only | `README.md`, `CHANGELOG.md` | — (N5: no stored report) | 64,066 → 3,806 tokens; drifts with the installed `httpx` version |
-| `test_count` | `476` | display-only | `README.md` | — | `uv run python -m pytest --collect-only -q` on the current tree (3 embedding/symlink tests skip without the extra/on Windows); recount and update README + this row together |
+| `test_count` | `486` | display-only | `README.md` | — | `uv run python -m pytest --collect-only -q` on the current tree (`481 passed, 6 skipped`: 2 fastembed + 2 litellm/swebench + 1 symlink + 1 langgraph module-level, without the optional extras); recount and update README + this row together |
 
 Stale patterns (must never appear as current numbers in their scoped docs; historical
 docs that explicitly quote superseded runs are exempt via `historical_ok`):
@@ -480,9 +480,41 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
     {
       "id": "test_count",
       "claim": "test-suite size badge (current tree; recount with pytest when tests change)",
-      "display": "476",
+      "display": "486",
       "kind": "display-only",
       "must_appear_in": ["README.md"]
+    },
+    {
+      "id": "b4_kill_quality",
+      "claim": "B4 (divergent-role compile vs prefix-cache): compile vs baseline quality",
+      "display": "21/36 vs 29/36",
+      "kind": "display-only",
+      "artifact": "evals/reports/b4_divergent_20261018_145937.json",
+      "must_appear_in": ["README.md"]
+    },
+    {
+      "id": "b4_v3_billed_ratio",
+      "claim": "B4 v3 (repo does not fit): compile billed-token reduction vs truncation",
+      "display": "5.66x",
+      "kind": "display-only",
+      "artifact": "evals/reports/b4_v3_20261018_202752.json",
+      "must_appear_in": ["docs/engineering/B4-V3-RESULT.md"]
+    },
+    {
+      "id": "a4_kv_peak_n32",
+      "claim": "A4 concurrency: compile peak-KV reduction vs raw at N=32",
+      "display": "1.9x",
+      "kind": "display-only",
+      "artifact": "evals/reports/a4_compile_20261019_160730.json",
+      "must_appear_in": ["docs/engineering/A4-CONCURRENCY-RESULT.md"]
+    },
+    {
+      "id": "a4_token_ratio",
+      "claim": "A4 concurrency: compile prompt-token reduction per request",
+      "display": "10.9x",
+      "kind": "display-only",
+      "artifact": "evals/reports/a4_compile_20261019_160730.json",
+      "must_appear_in": ["docs/engineering/A4-CONCURRENCY-RESULT.md"]
     }
   ],
   "stale_patterns": [
@@ -500,6 +532,16 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "pattern": "5.2 req/s",
       "docs": ["README.md", "docs/engineering/DEMO.md", "CHANGELOG.md"],
       "why": "same superseded run (baseline 5.2 req/s)"
+    },
+    {
+      "pattern": "338 tests",
+      "docs": ["README.md"],
+      "why": "pre-2026-10-19 test count; superseded by the current collected count (see test_count)"
+    },
+    {
+      "pattern": "tests-476",
+      "docs": ["README.md"],
+      "why": "old test badge count (476); superseded by the current collected count (see test_count)"
     }
   ],
   "historical_ok": [

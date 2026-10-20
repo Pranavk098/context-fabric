@@ -23,20 +23,16 @@ accumulation order. Pure stdlib plus ``kernel.cartridge.serializer.count_tokens`
 from __future__ import annotations
 
 import ast
-import math
 import re
-from collections import Counter
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
 from kernel.cartridge.serializer import count_tokens
+from kernel.router._bm25 import bm25_core
 from kernel.router.recall import tokenize
 
 TokenCounter = Callable[[str], int]
-
-BM25_K1 = 1.2
-BM25_B = 0.75
 
 _IDENT = re.compile(r"[A-Za-z_]\w*")
 
@@ -88,45 +84,15 @@ class _FileInfo:
     imports: tuple[_Import, ...]
 
 
-def _idf(n: int, df: int) -> float:
-    """Positive Robertson-Spark-Jones IDF, matching ``kernel.router.recall``."""
-    return math.log(1.0 + (n - df + 0.5) / (df + 0.5))
-
-
 def bm25_scores(query: str, docs: Sequence[str]) -> list[float]:
     """Okapi BM25 (k1=1.2, b=0.75) over raw strings, shared tokenizer contract.
 
-    Mirrors ``kernel.router.recall.bm25_scores`` but over plain strings (the skim chunks are
-    not ``ContextBlock`` records). Deterministic: query terms summed in sorted order.
+    Shares ``kernel.router._bm25.bm25_core`` with ``kernel.router.recall.bm25_scores`` but
+    over plain strings (the skim chunks are not ``ContextBlock`` records). Deterministic:
+    query terms summed in sorted order.
     """
-    terms = sorted(set(tokenize(query)))
-    tokenized = [tokenize(d) for d in docs]
-    n = len(tokenized)
-    if not terms or n == 0:
-        return [0.0] * n
-    lens = [len(d) for d in tokenized]
-    total = sum(lens)
-    if total == 0:
-        return [0.0] * n
-    avgdl = total / n
-    df = Counter(t for d in tokenized for t in set(d))
-    present = [t for t in terms if df[t] > 0]
-    if not present:
-        return [0.0] * n
-    out: list[float] = []
-    for d in tokenized:
-        tf = Counter(d)
-        dl = len(d)
-        score = 0.0
-        for t in present:  # sorted -> deterministic accumulation order
-            if t in tf:
-                score += (
-                    _idf(n, df[t])
-                    * (tf[t] * (BM25_K1 + 1.0))
-                    / (tf[t] + BM25_K1 * (1.0 - BM25_B + BM25_B * dl / avgdl))
-                )
-        out.append(score)
-    return out
+    scores, _ = bm25_core(sorted(set(tokenize(query))), [tokenize(d) for d in docs])
+    return scores
 
 
 def _module_docstring(tree: ast.Module, source: str) -> tuple[int, tuple[str, ...]]:

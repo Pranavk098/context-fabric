@@ -297,3 +297,73 @@ def test_malformed_utf8_line_recovers(tmp_path: Path) -> None:
         assert broken["error"]["code"] == -32700
         pong = _rpc(proc, "ping", request_id=10)
         assert pong["result"] == {}
+
+
+def _signed_epochs_json(signer: Signer = SIGNER) -> str:
+    packet = compile_packet(
+        scope=Scope(tenant_id="t1", project_id="p1", workflow_id="w1", task_id="task1"),
+        recipient=Recipient(agent_id="a1", role="implementer", stage="implement"),
+        objective="alpha",
+        stage="implement",
+        blocks=[],
+        as_of=AS_OF,
+        signer=signer,
+    ).packet
+    epoch = create_epoch(
+        tenant_id="t1",
+        watermark_event_seq=1,
+        packet_hashes=(packet.hashes.content_hash,),
+        created_at=AS_OF,
+        signer=signer,
+    )
+    return json.dumps([epoch.model_dump(mode="json")])
+
+
+def test_receipt_verify_missing_and_invalid_pubkey(tmp_path: Path) -> None:
+    good = _signed_epochs_json()
+    with _server(tmp_path / "fabric.db") as proc:
+        _handshake(proc)
+        missing = _text(_call(proc, "receipt_verify", {"epochs_json": good}))
+        assert missing["ok"] is False
+        assert "not set" in missing["reason"]
+    with _server(tmp_path / "fabric.db", env={"CF_RECEIPT_PUBKEY": "zz"}) as proc:
+        _handshake(proc)
+        bad = _text(_call(proc, "receipt_verify", {"epochs_json": good}))
+        assert bad["ok"] is False
+        assert "hex" in bad["reason"]
+
+
+def test_receipt_verify_key_id_mismatch(tmp_path: Path) -> None:
+    other = Signer.from_seed_hex("11" * 32)
+    good = _signed_epochs_json()
+    with _server(tmp_path / "fabric.db", env={"CF_RECEIPT_PUBKEY": other.public_hex}) as proc:
+        _handshake(proc)
+        bad = _text(_call(proc, "receipt_verify", {"epochs_json": good}))
+        assert bad["ok"] is False
+        assert "key_id" in bad["reason"]
+
+
+def test_memory_search_truncates_excerpt_and_respects_limit(tmp_path: Path) -> None:
+    db = tmp_path / "fabric.db"
+    store = SqliteStore(db)
+    store.append(
+        build_block({"block_kind": "fact", "content": "alpha " * 300}, trusted=True, event_seq=1)
+    )
+    store.append(
+        build_block({"block_kind": "fact", "content": "alpha beta"}, trusted=True, event_seq=2)
+    )
+    with _server(db) as proc:
+        _handshake(proc)
+        result = _text(_call(proc, "memory_search", {"query": "alpha", "limit": 1}))
+        assert len(result["results"]) == 1
+        assert len(result["results"][0]["content_excerpt"]) == 300
+        assert result["results"][0]["content_excerpt"].endswith("...")
+
+
+def test_initialize_requires_string_protocol_version(tmp_path: Path) -> None:
+    with _server(tmp_path / "fabric.db") as proc:
+        bad = _rpc(proc, "initialize", {})
+        assert bad["error"]["code"] == -32602
+        assert "protocolVersion" in bad["error"]["message"]
+        pong = _rpc(proc, "ping", request_id=3)
+        assert pong["result"] == {}

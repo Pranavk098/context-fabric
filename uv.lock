@@ -349,11 +349,6 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-dev = [
-    { name = "mypy" },
-    { name = "pytest" },
-    { name = "ruff" },
-]
 embeddings = [
     { name = "fastembed" },
 ]
@@ -365,21 +360,32 @@ observability = [
     { name = "opentelemetry-sdk" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "mypy" },
+    { name = "pytest" },
+    { name = "ruff" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "cryptography", specifier = ">=43" },
     { name = "fastembed", marker = "extra == 'embeddings'", specifier = ">=0.4" },
     { name = "httpx", specifier = ">=0.27" },
     { name = "langgraph", marker = "extra == 'langgraph'", specifier = ">=1.2.16" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.11" },
     { name = "opentelemetry-api", marker = "extra == 'observability'", specifier = ">=1.25" },
     { name = "opentelemetry-sdk", marker = "extra == 'observability'", specifier = ">=1.25" },
     { name = "pydantic", specifier = ">=2.9" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6" },
     { name = "tiktoken", specifier = ">=0.7" },
 ]
-provides-extras = ["observability", "embeddings", "langgraph", "dev"]
+provides-extras = ["observability", "embeddings", "langgraph"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "mypy", specifier = ">=1.11" },
+    { name = "pytest", specifier = ">=8" },
+    { name = "ruff", specifier = ">=0.6" },
+]
 
 [[package]]
 name = "cryptography"

@@ -14,6 +14,8 @@ If any assert fails, the architecture is unsound and the spike should stop.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from protocol.canonical import content_hash, packet_content_hash
 from protocol.models import (
     BlockKind,
@@ -36,6 +38,9 @@ from protocol.models import (
 )
 
 SCOPE = Scope(tenant_id="t1", project_id="p1", workflow_id="w1", task_id="task1")
+# Pin block timestamps so the printed content_hash is stable across invocations
+# (observed_at/valid_from are part of the canonical block payload).
+FIXED_TS = datetime(2026, 1, 1, tzinfo=UTC)
 
 
 def block(bid: str, kind: BlockKind, content: str, seq: int, tier: MemoryTier) -> ContextBlock:
@@ -50,6 +55,8 @@ def block(bid: str, kind: BlockKind, content: str, seq: int, tier: MemoryTier) -
         creator=Creator(type=CreatorType.deterministic_probe, id="test"),
         fidelity=Fidelity.extract,
         trust_domain="t1",
+        observed_at=FIXED_TS,
+        valid_from=FIXED_TS,
     )
 
 

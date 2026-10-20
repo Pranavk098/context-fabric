@@ -23,6 +23,9 @@ Everything that matters is here. "Main" documents are marked ⭐.
 - `PATH-VIABILITY.md` — brutal market/post-mortem check + falsification tests per step.
 - `REFERENCES.md` — sourced-claims ledger (verified vs `[HYPOTHESIS]`).
 - `B7-FOLD-IN.md` — original three-report promise ledger, contradicted claims, unfolded research, and external RFC/LMCache status.
+- `RESEARCH-ROUND-C-EXTERNAL.md` — round-C external research.
+- `SKIMMER-RESEARCH.md` — skimmer literature + approach.
+- `SUBAGENT-HANDOFF-LANDSCAPE.md` — sub-agent hand-off prior art.
 
 ## engineering/
 - ⭐ `IMPLEMENTATION-STATUS.md` — spec-vs-code map: what is built, partial, pending.
@@ -67,6 +70,16 @@ Everything that matters is here. "Main" documents are marked ⭐.
 - `KERNEL-REVIEW.md` — Stage C kernel code review.
 - `REPO-CLEANUP.md` — repo-hygiene audit (dead files, packaging, gitignore/CI).
 - `DOCS-AUDIT.md` — docs-consistency audit (2026-10-18): every discrepancy found and fixed.
+- `A4-CONCURRENCY-PREREGISTRATION.md` + `A4-CONCURRENCY-RESULT.md` — GPU concurrency & KV-pressure experiment (preregistration + result).
+- `B4-PREREGISTRATION.md` (v1) + `B4-PREREGISTRATION-v2.md` — divergent-role preregistrations (v2 is the frozen run).
+- `B4-V3-PREREGISTRATION.md` + `B4-V3-RESULT.md` — the "repo does not fit" experiment (MIXED / KILL under corrected scoring).
+- `B4-EXPLORE.md` + `B4-V3-OBJECTIVES.md` — B4 exploratory diagnostics and the frozen objective set.
+- `B8-PREREGISTRATION.md` (v1) + `B8-PREREGISTRATION-v2.md` + `B8-DEVIATIONS.md` + `B8-HARNESS.md` + `B8-TEST-DESIGN.md` — the SWE-bench pilot preregistration, harness, and recorded deviations.
+- `DOGFOOD.md` — dogfood run against the agent's own repo.
+- `OBS-FOLD.md` — reversible observation folding (`cfx serve --obs-fold`).
+- `REPLAY-LAB.md` — replay/receipt lab.
+- `RESEARCH-ROUND-C-INTERNAL.md` — round-C internal research.
+- `SKIM.md` + `SKIM-MODEL.md` — question-guided hand-off skimmers (deterministic + model-based; both exploratory).
 
 ## decisions/
 - `ADR-0001` packet size & tier budgets

@@ -4,7 +4,8 @@ Drives the *same* logical workflow (planner -> worker -> reviewer over one fabri
 ways — (a) ``compile_packet`` directly, (b) through the LangGraph graph in
 ``adapters/langgraph/example.py`` — and asserts byte-identical packet hashes and identical
 policy traces for every node. Skips cleanly when the optional ``langgraph`` extra is not
-installed (CI installs ``--extra dev`` only, so this test self-skips there).
+installed (local dev with the default ``uv sync`` skips it; CI installs ``--extra langgraph``
+and runs it).
 """
 
 from __future__ import annotations
