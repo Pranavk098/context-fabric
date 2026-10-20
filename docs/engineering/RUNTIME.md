@@ -9,7 +9,7 @@ can measure the real KV-reuse delta.
 | :--- | :--- |
 | GPU | NVIDIA RTX 5070 Laptop, **8 GB VRAM** |
 | Driver | 617.14 (Windows) |
-| WSL2 | Ubuntu 22.04 (installed, stopped) |
+| WSL2 | Ubuntu 26.04 LTS (installed, stopped) |
 | Docker | installed, daemon currently stopped |
 
 8 GB is **below** the design target (16–24 GB) and the GPU is Blackwell (sm_120), which

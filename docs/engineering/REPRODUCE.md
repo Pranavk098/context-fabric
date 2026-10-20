@@ -15,7 +15,7 @@ perform yourself). Nothing in the second tier is ever reported as "reproduced" b
 - For the live tier only: a GPU box with vLLM **or** a local Ollama
 
 ```bash
-uv sync --extra dev
+uv sync
 ```
 
 ## 1. Offline tier — one command
@@ -47,8 +47,10 @@ Expected numbers below are the load-bearing ones; the full per-arm detail is in 
 uv run cfx demo --repo . --mock
 ```
 
-Expected: fixture `5 files / 8,503 raw_tokens`, six objectives, cartridge `cfx_repo_f36b222b`.
-Mock accuracy is meaningless and labeled so; only the token accounting is real.
+Expected: fixture `7 files / 9,325 raw_tokens`, six objectives, cartridge `cfx_repo_af83f34b`.
+Mock accuracy is meaningless and labeled so; only the token accounting is real. (The fixture
+walks `*.py` in sorted order to a token target, so the exact file count and cartridge id can
+shift if the repo gains files; re-run the command to confirm.)
 
 **Fleet, one engine (GPU):**
 
@@ -75,11 +77,18 @@ cache warmth). See [`ENGINE-MATRIX.md`](ENGINE-MATRIX.md) for the vLLM↔Ollama 
 
 ```bash
 git clone --depth 1 https://github.com/encode/httpx && git -C httpx checkout b5addb64f0161ff6bfe94c124ef76f6a1fba5254
-uv run python -m evals.pilot --fixture <path-to-httpx-clone>
+# mechanical memory — the headline (13.62× billed):
+uv run python -m evals.pilot --fabric mech --fixture <path-to-httpx-clone>
+# hand-written blocks — superseded (35.87×):
+uv run python -m evals.pilot --fabric hand --fixture <path-to-httpx-clone>
 ```
 
-Expected: raw prompt tokens `193,366`, compile `5,391`, ratio `35.87×`, accuracy `5/6` vs
-`5/6`. Design and caveats: [`PILOT.md`](PILOT.md), frozen criteria in
+Expected: raw prompt tokens `193,366`; compile `14,193` billed (`13.62×`, mechanical) vs
+`5,391` (`35.87×`, hand-written blocks — superseded). Accuracy `5/6` vs `5/6` on both. On a
+warm prefix cache the raw prompt costs only `182` uncached tokens vs `11,857` for compile, so
+the mechanical win is context size and KV memory, not prefill. Design and caveats:
+[`PILOT-MECH-RESULT.md`](PILOT-MECH-RESULT.md), [`PILOT.md`](PILOT.md); frozen criteria in
+[`PILOT-MECH-PREREGISTRATION.md`](PILOT-MECH-PREREGISTRATION.md) and
 [`PILOT-PREREGISTRATION.md`](PILOT-PREREGISTRATION.md).
 
 ## 3. Audit trail — seal and replay

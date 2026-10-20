@@ -122,6 +122,9 @@ sidecar's own overhead.
     prompt tokens, compile 14,170 prompt tokens, 6 requests.
   - **httpx pilot**: `evals/reports/pilot_20261018_013151.json` — raw 193,366 prompt
     tokens, compile 5,391 prompt tokens, 6 requests.
+  - **httpx pilot (mechanical memory, the headline)**: `evals/reports/pilot_20261018_151640.json`
+    — raw 193,366 prompt tokens, compile 14,193 prompt tokens (2,336 cached + 11,857 uncached),
+    6 requests.
 - Shared prefix length: broadcast/raw baseline uses the full shared system message
   (demo 6,687 tokens; pilot 32,259 tokens). Sidecar+cache uses a Tier 0 cartridge
   (demo 600 tokens; pilot 542 tokens from the pilot cartridge receipt).
@@ -145,7 +148,10 @@ sidecar's own overhead.
 | httpx pilot | anthropic:sonnet | warm | $0.1794 | $0.0187 | sidecar |
 
 `gpt-4o-mini` and `anthropic:haiku` fall between the two extremes shown; the arithmetic
-is the same and all modeled scenarios also favor the sidecar.
+is the same and all modeled scenarios also favor the sidecar. The `httpx pilot` rows above use
+the hand-written 5,391-token compile; under mechanical ingestion (14,193 tokens, the headline
+run) the sidecar still wins on both providers, but by less (e.g. Sonnet 4.5 compile ≈ `11,857 ×
+$3/M + 2,336 × $0.30/M ≈ $0.036` vs `$0.050` native, ~1.4× cheaper rather than 4.4×).
 
 ### Break-even condition
 
@@ -162,7 +168,8 @@ the sidecar's own overhead plus the cache-write premium that must be amortized:
 If the sidecar's shared prefix is **below the provider minimum** (e.g., the 600-token
 Tier 0 cartridge is under OpenAI's 1,024-token threshold), the cached-read discount does
 not apply to that prefix, so the right-hand side is larger. The committed receipts reduce
-prompt tokens by 3.17× (demo) and 35.87× (pilot), which is far above the break-even for
+prompt tokens by 3.17× (demo) and 13.62× (mechanical pilot) — the hand-written pilot's 35.87×
+is superseded — which is far above the break-even for
 the providers and overheads modeled here. The loss condition is therefore a much smaller
 token reduction, a much larger sidecar overhead, or a single-call workload where the
 write premium cannot be amortized.

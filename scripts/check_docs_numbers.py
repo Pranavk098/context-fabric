@@ -52,7 +52,7 @@ CAPABILITY_REGISTRY: list[dict[str, Any]] = [
     {
         "phrase": "prefix sharing",
         "symbol": "adapters.raw_llm:shared_prefix",
-        "test": "tests.test_adapters",
+        "test": "tests.test_adapters:test_shared_prefix_is_the_renders_leading_bytes",
     },
     {
         "phrase": "signable",
@@ -62,7 +62,7 @@ CAPABILITY_REGISTRY: list[dict[str, Any]] = [
     {
         "phrase": "Copy-on-Write",
         "symbol": "kernel.mmu.cow_forker:fork_packet",
-        "test": "tests.test_mmu",
+        "test": "tests.test_mmu:test_fork_shares_tier012_objects_by_identity",
     },
 ]
 

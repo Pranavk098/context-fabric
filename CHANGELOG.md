@@ -8,7 +8,9 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ### Added
 - **Packet-level fold/fork** — `kernel/mmu/`: k-step `EPOCH_FOLD` (raw tool outputs → Tier 1
   facts + `ctx://` handles, append-only, deterministic) and `COW_FORK` (children share Tier
-  0/1/2, fresh Tier 3, lineage via `parent_packet_id`); not yet wired into the sidecar
+  0/1/2, fresh Tier 3, lineage via `parent_packet_id`); wired into the CLI as `cfx fold` /
+  `cfx fork` (`sidecar/foldfork.py`) — the live HTTP request-path observation folding uses
+  `cfx serve --obs-fold` (`sidecar/obsfold.py`), a separate implementation
   (`docs/engineering/MMU-FOLD-FORK.md`).
 - **Cache-alignment fix** — the renderer now puts the shared Tier 0 cartridge first (per-agent
   instruction second), so cross-agent KV prefix sharing is possible; byte-identity tests +

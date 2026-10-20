@@ -4,9 +4,14 @@ Implements the subset of JCS needed by CPP v1.0: object-key ordering by UTF-16 c
 units, no insignificant whitespace, JSON string escaping, and ECMAScript-style number
 serialization for the value types used in packets.
 
-ponytail: number formatting covers integers and finite short decimals (repr-based); it
-does not implement full ECMAScript exponent formatting (e.g. 1e21 -> "1e+21"). Packet
-values never reach that range. Upgrade to the `rfc8785` package if that ever changes.
+ponytail: floats are serialized from Python's shortest-round-trip ``repr`` through
+``Decimal``, then formatted with ECMAScript-style decimal/exponent rules. This is
+deterministic within Python but is *not* full ECMAScript ``Number::toString`` (Ryū): the
+two shortest-round-trip algorithms can emit different digit strings for the same double,
+so cross-implementation byte-identity is not guaranteed for floats. Today the only float
+that reaches a packet content hash is ``ContextBlock.confidence`` (default ``1.0`` ->
+``"1"``), so hashes are stable. If a non-default float ever enters a hashed model, switch
+to the ``rfc8785`` package (or pin ``confidence`` to a bounded int).
 """
 
 from __future__ import annotations
@@ -46,7 +51,10 @@ def _dumps_int(n: int) -> str:
 
 
 def _dumps_float(x: float) -> str:
-    """ECMAScript Number::toString, as required by RFC 8785 (audit P-01)."""
+    """ECMAScript-style number formatting over Python's shortest-round-trip repr.
+
+    Deterministic within Python, but not full ``Number::toString`` (see module docstring).
+    """
     if math.isnan(x) or math.isinf(x):
         raise ValueError("JCS forbids NaN/Infinity")
     if x == 0:
@@ -143,9 +151,9 @@ if __name__ == "__main__":
     assert canonicalize(1e-7) == b"1e-7"
     assert canonicalize(-2.5) == b"-2.5"
     assert canonicalize({"s": 'he said "hi"\n'}) == b'{"s":"he said \\"hi\\"\\n"}'
-    assert canonicalize("\u20ac") == '"\u20ac"'.encode("utf-8")  # non-ASCII emitted literally
+    assert canonicalize("\u20ac") == '"\u20ac"'.encode()  # non-ASCII emitted literally
     # key order: UTF-16 code units ("\u20ac" is 0x20AC > 'z' 0x7A)
-    assert canonicalize({"\u20ac": 1, "z": 2}) == '{"z":2,"\u20ac":1}'.encode("utf-8")
+    assert canonicalize({"\u20ac": 1, "z": 2}) == '{"z":2,"\u20ac":1}'.encode()
     # h(1.0) style determinism
     assert content_hash({"x": 1}) == content_hash({"x": 1})
     print("canonical.py self-check: OK")

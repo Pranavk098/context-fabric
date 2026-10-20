@@ -5,7 +5,7 @@
 Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/).
 
 ```bash
-uv sync --extra dev          # create the environment
+uv sync                      # create the environment (dev tools are in the default `dev` group)
 uv run python -m evals.spike_deterministic   # zero-GPU deterministic-core check
 uv run pytest -q             # tests
 ```

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import time
 from dataclasses import asdict, dataclass, field
 from typing import Any
@@ -20,6 +21,7 @@ import httpx
 import tiktoken
 
 _ENCODER = tiktoken.get_encoding("o200k_base")
+_LOGGER = logging.getLogger(__name__)
 
 
 def count_tokens(text: str) -> int:
@@ -51,14 +53,19 @@ class MetricsScraper:
 
     def __init__(self, metrics_url: str) -> None:
         self.metrics_url = metrics_url
+        self.scrape_failed = False
 
     def cache(self) -> tuple[float, float]:
         try:
             r = httpx.get(self.metrics_url, timeout=5.0)
             if r.status_code == 200:
                 return _parse_vllm_cache(r.text)
-        except Exception:
-            pass
+            _LOGGER.warning(
+                "metrics scrape failed: HTTP %s from %s", r.status_code, self.metrics_url
+            )
+        except Exception as exc:  # best-effort telemetry; never crash the measurement run
+            _LOGGER.warning("metrics scrape failed from %s: %r", self.metrics_url, exc)
+        self.scrape_failed = True
         return (0.0, 0.0)
 
 

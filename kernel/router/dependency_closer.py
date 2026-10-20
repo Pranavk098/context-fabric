@@ -12,6 +12,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 
+from kernel.router.recall import tokenize
 from protocol.models import BlockKind, ConflictAlert, ContextBlock
 
 Relation = tuple[str, str, str]  # (source_block_id, target_block_id, type)
@@ -56,7 +57,7 @@ def close(
                 chosen[missing] = by_id[missing]
 
     # negative knowledge intersecting the selection's symbols or the objective
-    obj_tokens = set(objective.lower().split())
+    obj_tokens = set(tokenize(objective))
     symbols: set[str] = set()
     for b in chosen.values():
         symbols |= set(b.symbols_exported) | set(b.symbols_imported)
@@ -64,8 +65,10 @@ def close(
         if b.block_kind is not BlockKind.negative_knowledge:
             continue
         nk_syms = set(b.symbols_exported) | set(b.symbols_imported)
-        mentions = nk_syms & obj_tokens or (b.content and any(s in b.content for s in symbols))
-        if nk_syms & symbols or mentions:
+        symbol_intersects = bool(nk_syms & symbols)
+        objective_intersects = bool(nk_syms & obj_tokens)
+        content_mentions = bool(b.content and any(s in b.content for s in symbols))
+        if symbol_intersects or objective_intersects or content_mentions:
             chosen[b.block_id] = b
 
     # now emit alerts for included contradictions
