@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # A4 concurrency runner: raw arm, restart vLLM, compile arm, stop vLLM — one WSL session.
-#   wsl -d Ubuntu -- bash /mnt/c/Users/<user>/orca/workspaces/Context-Fabric/wave-a4-concurrency/scripts/wsl_run_a4.sh
+#   CF_A4_FIXTURE=/mnt/c/<path to httpx clone> wsl -d Ubuntu -- bash /mnt/c/dev/Context-Fabric/scripts/wsl_run_a4.sh
 set -uo pipefail
 export PATH="$HOME/.local/bin:$PATH"
 export XDG_RUNTIME_DIR="/run/user/$(id -u)"
 VENV="$HOME/.venvs/vllm"
-REPO="${CF_REPO:-/mnt/c/Users/<user>/orca/workspaces/Context-Fabric/wave-a4-concurrency}"
-FIXTURE="${CF_A4_FIXTURE:-/mnt/c/Users/<user>/AppData/Local/Temp/opencode/httpx_pilot}"
+REPO="${CF_REPO:-/mnt/c/dev/Context-Fabric}"
+FIXTURE="${CF_A4_FIXTURE:?set CF_A4_FIXTURE to the httpx clone (WSL path)}"
 MODEL="${VLLM_MODEL:-Qwen/Qwen2.5-1.5B-Instruct}"
 MAX_LEN="${VLLM_MAX_LEN:-32768}"
 LOG=/tmp/cf_a4_vllm.log

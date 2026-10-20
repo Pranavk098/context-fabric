@@ -15,7 +15,7 @@ tokens with **symmetric accuracy** (5/6 each arm; each arm missed a different ob
 
 - `https://github.com/encode/httpx` @ `b5addb64f0161ff6bfe94c124ef76f6a1fba5254`
   (2026-02-23), cloned `--depth 1`; clone path
-  `C:\Users\prana\AppData\Local\Temp\opencode\httpx_pilot`.
+  `C:\Users\<user>\AppData\Local\Temp\opencode\httpx_pilot`.
 - Bundle: first 10 files of `httpx/**/*.py` in sorted relative-path order
   (`__init__.py`, `__version__.py`, `_api.py`, `_auth.py`, `_client.py`, `_config.py`,
   `_content.py`, `_decoders.py`, `_exceptions.py`, `_main.py`), raw bytes, `FILE:` headers,

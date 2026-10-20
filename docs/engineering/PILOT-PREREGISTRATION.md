@@ -22,8 +22,8 @@ model, one GPU, one run each of each arm (plus a smoke pass).
 - Exact commit: `b5addb64f0161ff6bfe94c124ef76f6a1fba5254` (2026-02-23, "Adapt
   test_response_decode_text_using_autodetect for chardet 6.0 (#3773)").
 - Clone path used for the run:
-  `C:\Users\prana\AppData\Local\Temp\opencode\httpx_pilot` (WSL:
-  `/mnt/c/Users/prana/AppData/Local/Temp/opencode/httpx_pilot`).
+  `C:\Users\<user>\AppData\Local\Temp\opencode\httpx_pilot` (WSL:
+  `/mnt/c/Users/<user>/AppData/Local/Temp/opencode/httpx_pilot`).
 - Bundle rule: take the `httpx/` package `.py` files in sorted relative-path order and take
   the **first 10** — this is the smallest sorted prefix whose tiktoken count is ≥ 30,000
   (measured: 31,913 tiktoken o200k; Qwen2.5 tokenizer 31,867, measured pre-run with

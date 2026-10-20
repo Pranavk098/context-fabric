@@ -7,10 +7,15 @@ fixture meets the file-coverage / cross-file constraints.
 from __future__ import annotations
 
 import json
+import os
 import sys
+import tempfile
 from pathlib import Path
 
-HTPX_ROOT = Path(r"C:\Users\<user>\AppData\Local\Temp\opencode\httpx_pilot\httpx")
+HTPX_ROOT = (
+    Path(os.environ.get("CF_B4_FIXTURE", Path(tempfile.gettempdir()) / "opencode" / "httpx_pilot"))
+    / "httpx"
+)
 JSON_PATH = Path(__file__).with_name("b4v3_objectives.json")
 
 

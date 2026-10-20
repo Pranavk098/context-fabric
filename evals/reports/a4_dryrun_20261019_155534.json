@@ -3,7 +3,7 @@
   "kind": "dry_run",
   "preregistration": "docs/engineering/A4-CONCURRENCY-PREREGISTRATION.md",
   "fixture": {
-    "path": "C:\\Users\\prana\\AppData\\Local\\Temp\\opencode\\httpx_pilot",
+    "path": "C:\\Users\\<user>\\AppData\\Local\\Temp\\opencode\\httpx_pilot",
     "files": 10,
     "bundle_tokens_tiktoken": 32259
   },

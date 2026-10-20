@@ -8,7 +8,7 @@
   "ts": "20261018_151640",
   "fixture": {
     "repo": "https://github.com/encode/httpx",
-    "clone_path": "/mnt/c/Users/prana/AppData/Local/Temp/opencode/httpx_pilot",
+    "clone_path": "/mnt/c/Users/<user>/AppData/Local/Temp/opencode/httpx_pilot",
     "commit": "b5addb64f0161ff6bfe94c124ef76f6a1fba5254",
     "commit_source": "git rev-parse HEAD",
     "rendering": "files in listed order, raw bytes, joined by a blank line, each prefixed by '===== FILE: <path> ====='",

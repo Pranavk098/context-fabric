@@ -34,6 +34,7 @@ import json
 import math
 import os
 import sys
+import tempfile
 import time
 from collections.abc import Sequence
 from datetime import UTC, datetime
@@ -57,7 +58,7 @@ DEFAULT_REPEATS = 3
 DEFAULT_MAX_TOKENS = 64
 MAX_MODEL_LEN = 32768
 DEFAULT_MODEL = "Qwen/Qwen2.5-1.5B-Instruct"
-DEFAULT_FIXTURE = r"C:\Users\<user>\AppData\Local\Temp\opencode\httpx_pilot"
+DEFAULT_FIXTURE = str(Path(tempfile.gettempdir()) / "opencode" / "httpx_pilot")
 
 _ARM_RAW = "raw"
 _ARM_COMPILE = "compile"

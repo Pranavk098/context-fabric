@@ -11,7 +11,7 @@ provably broken in a way that would require re-running a model.
 Repo state during the audit: the whole wave is uncommitted; `evals/reports/` is **gitignored**
 (tracked artifacts were force-added historically), so the new receipts are on disk but not yet
 in git — see "Handoff" at the bottom. The httpx pilot clone still exists at
-`C:\Users\prana\AppData\Local\Temp\opencode\httpx_pilot` with `HEAD ==
+`C:\Users\<user>\AppData\Local\Temp\opencode\httpx_pilot` with `HEAD ==
 b5addb64f0161ff6bfe94c124ef76f6a1fba5254`, so the pilot fixture was re-audited against the
 real bytes.
 

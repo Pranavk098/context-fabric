@@ -17,3 +17,12 @@ logs/
 evals/reports/b8_ledger/*.db
 evals/reports/b8_ledger/*.db-shm
 evals/reports/b8_ledger/*.db-wal
+
+# operational files kept local, never published
+evals/reports/b8_ledger/
+evals/reports/**/*.db
+evals/reports/**/*.db-shm
+evals/reports/**/*.db-wal
+evals/reports/**/b8_*run*.log
+evals/reports/**/b8_sidecar_*.log
+evals/reports/**/run_instance.log

@@ -201,7 +201,7 @@ This section fixes only the *mechanism*, which is the experiment agent's remit.
 ## Reproduction
 
 ```
-MSYS_NO_PATHCONV=1 wsl -d Ubuntu -- bash -c "VLLM_MAX_LEN=16384 CF_REPO=/mnt/c/dev/cf-b4-explore CF_B4_FIXTURE=/mnt/c/Users/prana/AppData/Local/Temp/opencode/httpx_pilot bash /mnt/c/dev/cf-b4-explore/scripts/wsl_run_eval.sh evals.b4_explore"
+MSYS_NO_PATHCONV=1 wsl -d Ubuntu -- bash -c "VLLM_MAX_LEN=16384 CF_REPO=/mnt/c/dev/cf-b4-explore CF_B4_FIXTURE=/mnt/c/Users/<user>/AppData/Local/Temp/opencode/httpx_pilot bash /mnt/c/dev/cf-b4-explore/scripts/wsl_run_eval.sh evals.b4_explore"
 ```
 
 Levers are implemented behind flags in `evals/b4_explore.py` (default behaviour of
