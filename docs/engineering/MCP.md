@@ -57,8 +57,9 @@ args:    run cfx mcp --store fabric.db          # run from the repo root, or use
 ```
 
 Equivalently without the console script: `python -m sidecar.mcp --store fabric.db`.
-Add `--readonly` to refuse writes. If `--store` is omitted, `CF_FABRIC` is read from the
-environment.
+Add `--readonly` to refuse writes. Add `--trusted` to make `memory_add` write `routable`
+blocks instead of quarantined drafts (a server-side setting — the tool arguments cannot
+mark a block trusted). If `--store` is omitted, `CF_FABRIC` is read from the environment.
 
 ## Tools
 
@@ -66,7 +67,7 @@ environment.
 | --- | --- | --- |
 | `memory_search` | `query: str` (required), `limit: int = 5` (capped at 50), `include_quarantined: bool = false` | JSON text: `{query, results: [{block_id, block_kind, content_excerpt (≤300 chars), lifecycle_status, score}]}` |
 | `receipt_verify` | `epochs_json: str` (required; JSON array of epoch objects) | JSON text: `{ok: bool, epochs_verified?/key_id?}` or `{ok: false, reason}` |
-| `memory_add` | `block_kind: str`, `content: str` (both required), `trusted: bool = false` | JSON text: `{block_id, content_hash, lifecycle_status, source_event_seq, deduplicated}` |
+| `memory_add` | `block_kind: str`, `content: str` (both required) | JSON text: `{block_id, content_hash, lifecycle_status, source_event_seq, deduplicated}` |
 
 ### memory_search
 
@@ -96,10 +97,12 @@ Missing or malformed key, key_id mismatch, tamper, reorder, or bad signature all
 ### memory_add and quarantine
 
 Writes go through the same `build_block` + `SqliteStore.append` path as `cfx add` and
-`POST /fabric/blocks`. Without `trusted: true` the block is stored as **`draft`**
-(quarantined): the kernel policy gate denies it (reason `lifecycle:draft`) and
-`memory_search` hides it from clients unless they pass `include_quarantined: true`.
-Identical content deduplicates to the existing block and reports `deduplicated: true`.
+`POST /fabric/blocks`. Blocks are stored as **`draft`** (quarantined) unless the server was
+started with `--trusted`: the kernel policy gate denies drafts (reason `lifecycle:draft`)
+and `memory_search` hides them unless the caller passes `include_quarantined: true`.
+`memory_add` takes **no `trusted` argument** — trust is server-side only, so a client cannot
+mark its own block routable (audit AU2-H2). Identical content deduplicates to the existing
+block and reports `deduplicated: true`.
 
 ## Readonly mode
 

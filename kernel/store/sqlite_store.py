@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import threading
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
@@ -79,6 +80,15 @@ CREATE TABLE IF NOT EXISTS fold_log (
     created_at      TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_fold_log_session ON fold_log (session_id);
+CREATE TABLE IF NOT EXISTS fold_requests (
+    request_seq     INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id      TEXT NOT NULL,
+    seen_hash       TEXT NOT NULL,
+    request_json    TEXT NOT NULL,
+    events_json     TEXT NOT NULL,
+    created_at      TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_fold_requests_session ON fold_requests (session_id);
 """
 
 _MANIFEST_COLUMNS = (
@@ -188,6 +198,9 @@ class SqliteStore:
     """
 
     def __init__(self, path: str | Path, *, check_same_thread: bool = True) -> None:
+        # Serializes multi-statement writes (INSERT+commit+SELECT) so correctness no longer
+        # depends on every caller remembering an external lock (audit AU3-M4).
+        self._lock = threading.Lock()
         self._conn = sqlite3.connect(path, check_same_thread=check_same_thread)
         self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.executescript(_SCHEMA)
@@ -203,24 +216,25 @@ class SqliteStore:
         Raises ``StoreConflict`` when the same ``block_id`` is already stored with a
         different ``content_hash``.
         """
-        payload = canonicalize(block.model_dump(mode="json")).decode("utf-8")
-        cursor = self._conn.execute(
-            "INSERT OR IGNORE INTO blocks (block_id, content_hash, source_event_seq, payload)"
-            " VALUES (?, ?, ?, ?)",
-            (block.block_id, block.content_hash, block.source_event_seq, payload),
-        )
-        self._conn.commit()
-        if cursor.rowcount > 0:
-            return True
-        existing = self._conn.execute(
-            "SELECT content_hash FROM blocks WHERE block_id = ?", (block.block_id,)
-        ).fetchone()
-        if existing is not None and existing[0] != block.content_hash:
-            raise StoreConflict(
-                f"block {block.block_id!r} already stored with content_hash {existing[0]!r}, "
-                f"refusing {block.content_hash!r}"
+        with self._lock:
+            payload = canonicalize(block.model_dump(mode="json")).decode("utf-8")
+            cursor = self._conn.execute(
+                "INSERT OR IGNORE INTO blocks (block_id, content_hash, source_event_seq, payload)"
+                " VALUES (?, ?, ?, ?)",
+                (block.block_id, block.content_hash, block.source_event_seq, payload),
             )
-        return False
+            self._conn.commit()
+            if cursor.rowcount > 0:
+                return True
+            existing = self._conn.execute(
+                "SELECT content_hash FROM blocks WHERE block_id = ?", (block.block_id,)
+            ).fetchone()
+            if existing is not None and existing[0] != block.content_hash:
+                raise StoreConflict(
+                    f"block {block.block_id!r} already stored with content_hash "
+                    f"{existing[0]!r}, refusing {block.content_hash!r}"
+                )
+            return False
 
     def append_many(self, blocks: Iterable[ContextBlock]) -> tuple[int, int]:
         """Append many blocks; returns ``(inserted, deduplicated)``."""
@@ -267,26 +281,27 @@ class SqliteStore:
         Raises ``StoreConflict`` when the same ``(parent_id, child_id, relation_type)``
         triple is already stored with a different payload.
         """
-        payload = _relation_payload(relation)
-        cursor = self._conn.execute(
-            "INSERT OR IGNORE INTO relations (parent_id, child_id, relation_type, payload)"
-            " VALUES (?, ?, ?, ?)",
-            (*relation, payload),
-        )
-        self._conn.commit()
-        if cursor.rowcount > 0:
-            return True
-        existing = self._conn.execute(
-            "SELECT payload FROM relations"
-            " WHERE parent_id = ? AND child_id = ? AND relation_type = ?",
-            relation,
-        ).fetchone()
-        if existing is not None and existing[0] != payload:
-            raise StoreConflict(
-                f"relation {relation!r} already stored with payload {existing[0]!r},"
-                f" refusing {payload!r}"
+        with self._lock:
+            payload = _relation_payload(relation)
+            cursor = self._conn.execute(
+                "INSERT OR IGNORE INTO relations (parent_id, child_id, relation_type, payload)"
+                " VALUES (?, ?, ?, ?)",
+                (*relation, payload),
             )
-        return False
+            self._conn.commit()
+            if cursor.rowcount > 0:
+                return True
+            existing = self._conn.execute(
+                "SELECT payload FROM relations"
+                " WHERE parent_id = ? AND child_id = ? AND relation_type = ?",
+                relation,
+            ).fetchone()
+            if existing is not None and existing[0] != payload:
+                raise StoreConflict(
+                    f"relation {relation!r} already stored with payload {existing[0]!r},"
+                    f" refusing {payload!r}"
+                )
+            return False
 
     def append_relations_many(self, relations: Iterable[Relation]) -> tuple[int, int]:
         """Append many relations; returns ``(inserted, deduplicated)``."""
@@ -328,30 +343,32 @@ class SqliteStore:
         """
         if len(manifest.block_ids) != len(manifest.block_hashes):
             raise ValueError("block_ids and block_hashes must have the same length")
-        self._conn.execute(
-            "INSERT OR IGNORE INTO compile_log"
-            " (packet_id, content_hash, scope_json, recipient_json, objective, stage, as_of,"
-            " watermark_event_seq, budget_base, block_ids, block_hashes, model, engine, purpose,"
-            " created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (
-                manifest.packet_id,
-                manifest.content_hash,
-                canonicalize(manifest.scope.model_dump(mode="json")).decode("utf-8"),
-                canonicalize(manifest.recipient.model_dump(mode="json")).decode("utf-8"),
-                manifest.objective,
-                manifest.stage,
-                manifest.as_of.isoformat(),
-                manifest.watermark_event_seq,
-                manifest.budget_base,
-                json.dumps(list(manifest.block_ids)),
-                json.dumps(list(manifest.block_hashes)),
-                manifest.model,
-                manifest.engine,
-                manifest.purpose,
-                manifest.created_at.isoformat(),
-            ),
-        )
-        self._conn.commit()
+        with self._lock:
+            self._conn.execute(
+                "INSERT OR IGNORE INTO compile_log"
+                " (packet_id, content_hash, scope_json, recipient_json, objective, stage,"
+                " as_of, watermark_event_seq, budget_base, block_ids, block_hashes, model,"
+                " engine, purpose, created_at)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    manifest.packet_id,
+                    manifest.content_hash,
+                    canonicalize(manifest.scope.model_dump(mode="json")).decode("utf-8"),
+                    canonicalize(manifest.recipient.model_dump(mode="json")).decode("utf-8"),
+                    manifest.objective,
+                    manifest.stage,
+                    manifest.as_of.isoformat(),
+                    manifest.watermark_event_seq,
+                    manifest.budget_base,
+                    json.dumps(list(manifest.block_ids)),
+                    json.dumps(list(manifest.block_hashes)),
+                    manifest.model,
+                    manifest.engine,
+                    manifest.purpose,
+                    manifest.created_at.isoformat(),
+                ),
+            )
+            self._conn.commit()
 
     def get_compile(self, packet_id: str) -> CompileManifest | None:
         """The logged manifest for ``packet_id``, or ``None``."""
@@ -398,13 +415,14 @@ class SqliteStore:
         ]
         if not rows:
             return 0
-        self._conn.executemany(
-            "INSERT INTO fold_log"
-            " (session_id, message_index, stub_id, content_hash, tool_name, content_bytes,"
-            " seen_hash, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            rows,
-        )
-        self._conn.commit()
+        with self._lock:
+            self._conn.executemany(
+                "INSERT INTO fold_log"
+                " (session_id, message_index, stub_id, content_hash, tool_name, content_bytes,"
+                " seen_hash, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                rows,
+            )
+            self._conn.commit()
         return len(rows)
 
     def close(self) -> None:
@@ -413,12 +431,13 @@ class SqliteStore:
         A graceful shutdown must checkpoint so committed rows are not left only in the
         ``-wal`` file — the pilot no longer tracks ``*.db-wal`` (audit AU5).
         """
-        try:
-            self._conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-        except sqlite3.Error:
-            pass
-        finally:
-            self._conn.close()
+        with self._lock:
+            try:
+                self._conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            except sqlite3.Error:
+                pass
+            finally:
+                self._conn.close()
 
     def load_fold_log(self, session_id: str | None = None) -> list[dict[str, Any]]:
         """Fold-event receipt rows in append order (``fold_seq``), optionally per session."""
@@ -445,6 +464,63 @@ class SqliteStore:
                 "content_bytes": int(row[6]),
                 "seen_hash": row[7],
                 "created_at": row[8],
+            }
+            for row in rows
+        ]
+
+    def log_fold_request(
+        self,
+        session_id: str,
+        request: dict[str, Any],
+        events: Iterable[dict[str, Any]],
+        seen_hash: str,
+        created_at: datetime,
+    ) -> None:
+        """Record one fold pass's original (unfolded) request + its fold events for replay.
+
+        ``request`` is the full parsed request body *before* folding (the bytes the client
+        sent, re-serializable with ``json.dumps`` so replay reproduces the forwarded body
+        byte-for-byte); ``events`` are the fold events written to ``fold_log`` by the same
+        pass (``message_index``, ``stub_id``, ``content_hash``, ``tool_name``,
+        ``content_bytes``). ``seen_hash`` is the sha256 of the folded message list the model
+        saw, denormalized here so replay can verify reconstruction without a fold_log join.
+        """
+        with self._lock:
+            self._conn.execute(
+                "INSERT INTO fold_requests"
+                " (session_id, seen_hash, request_json, events_json, created_at)"
+                " VALUES (?, ?, ?, ?, ?)",
+                (
+                    session_id,
+                    seen_hash,
+                    json.dumps(request),
+                    json.dumps([dict(event) for event in events]),
+                    created_at.isoformat(),
+                ),
+            )
+            self._conn.commit()
+
+    def load_fold_requests(self, session_id: str | None = None) -> list[dict[str, Any]]:
+        """Fold-request replay records in append order (``request_seq``), optionally per session."""
+        if session_id is None:
+            rows = self._conn.execute(
+                "SELECT request_seq, session_id, seen_hash, request_json, events_json, created_at"
+                " FROM fold_requests ORDER BY request_seq"
+            ).fetchall()
+        else:
+            rows = self._conn.execute(
+                "SELECT request_seq, session_id, seen_hash, request_json, events_json, created_at"
+                " FROM fold_requests WHERE session_id = ? ORDER BY request_seq",
+                (session_id,),
+            ).fetchall()
+        return [
+            {
+                "request_seq": int(row[0]),
+                "session_id": row[1],
+                "seen_hash": row[2],
+                "request": json.loads(row[3]),
+                "events": json.loads(row[4]),
+                "created_at": row[5],
             }
             for row in rows
         ]

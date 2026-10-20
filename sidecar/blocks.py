@@ -1,9 +1,9 @@
 """Build ContextBlocks from JSON payloads — writable memory for the sidecar.
 
-Quarantine by default: a block written without ``trusted=true`` is stored as
-``draft``, which the kernel policy gate denies (reason ``lifecycle:draft``).
-Promotion happens at write time only (``cfx add --trusted`` / ``"trusted": true``);
-in-place promotion is future work.
+Quarantine by default: a block written without the server-side ``trusted`` setting is
+stored as ``draft``, which the kernel policy gate denies (reason ``lifecycle:draft``).
+Promotion happens at write time only, decided by the operator (``cfx add --trusted`` /
+``cfx serve --trusted``), never by the request body; in-place promotion is future work.
 """
 
 from __future__ import annotations

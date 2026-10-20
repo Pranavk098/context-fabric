@@ -15,7 +15,7 @@ from kernel.store import SqliteStore, StoreConflict
 from protocol import epoch
 from sidecar import b8, demo, foldfork, mcp, obsfold
 from sidecar.blocks import build_block, stored_block
-from sidecar.replay import replay, seal
+from sidecar.replay import replay, replay_fold, seal
 from sidecar.repro import run_repro
 from sidecar.server import open_store, serve
 
@@ -28,6 +28,13 @@ def _int_env(name: str, default: int | None = None) -> int | None:
         return int(value)
     except ValueError:
         return default
+
+
+def _cors_origins(value: str | None) -> list[str]:
+    """Split a comma-separated ``CF_CORS_ORIGINS`` value into a stripped origin list."""
+    if not value:
+        return []
+    return [origin.strip() for origin in value.split(",") if origin.strip()]
 
 
 def _add_serve_arguments(parser: argparse.ArgumentParser) -> None:
@@ -115,6 +122,26 @@ def _add_serve_arguments(parser: argparse.ArgumentParser) -> None:
             "mode; off by default, passthrough stays byte-identical (env: CF_KV_HINTS)"
         ),
     )
+    parser.add_argument(
+        "--cors-origin",
+        action="append",
+        default=None,
+        help=(
+            "allow this browser Origin (repeatable; enables CORS for that origin only). "
+            "Default: no CORS — a request with an Origin header not in this list is "
+            "rejected 403 (env: CF_CORS_ORIGINS, comma-separated)"
+        ),
+    )
+    parser.add_argument(
+        "--trusted",
+        action="store_true",
+        default=os.environ.get("CF_TRUST_BLOCKS", "") in ("1", "true", "yes", "on"),
+        help=(
+            "write POST /fabric/blocks as routable instead of quarantined draft. Trust is "
+            "a server-side setting; the request body cannot mark a block trusted "
+            "(env: CF_TRUST_BLOCKS)"
+        ),
+    )
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -142,6 +169,9 @@ def _build_parser() -> argparse.ArgumentParser:
         b8_ledger: b8.Ledger | None = None
         if args.b8_ledger_dir:
             b8_ledger = b8.Ledger(args.b8_ledger_dir)
+        cors_origins = list(args.cors_origin) if args.cors_origin else []
+        if not cors_origins:
+            cors_origins = _cors_origins(os.environ.get("CF_CORS_ORIGINS"))
         try:
             serve(
                 upstream=args.upstream,
@@ -157,6 +187,8 @@ def _build_parser() -> argparse.ArgumentParser:
                 b8_ledger=b8_ledger,
                 b8_daily_cap=args.b8_daily_cap,
                 kv_hints=args.kv_hints,
+                allowed_origins=tuple(cors_origins),
+                trust_blocks=args.trusted,
             )
         except FileNotFoundError as exc:
             print(f"cfx serve: {exc}", file=sys.stderr)
@@ -188,6 +220,23 @@ def _build_parser() -> argparse.ArgumentParser:
         "--packet-id", required=True, help="packet id (the X-Fabric-Packet-Id header value)"
     )
     replay_parser.set_defaults(func=_cmd_replay)
+
+    replay_fold_parser = subparsers.add_parser(
+        "replay-fold",
+        help="reconstruct every folded request a session forwarded and verify its receipts",
+    )
+    replay_fold_parser.add_argument("--store", required=True, help="obs store path (.db/.sqlite)")
+    replay_fold_parser.add_argument(
+        "--session",
+        default=None,
+        help="only replay this session id (default: every recorded session)",
+    )
+    replay_fold_parser.add_argument(
+        "--expand",
+        action="store_true",
+        help="emit the original unfolded requests (verified against the ctx:// store)",
+    )
+    replay_fold_parser.set_defaults(func=_cmd_replay_fold)
 
     fold_parser = subparsers.add_parser(
         "fold", help="fold raw tool-output events into Tier-1 facts (append-only, idempotent)"
@@ -228,7 +277,14 @@ def _build_parser() -> argparse.ArgumentParser:
         "seal", help="commit the compile log as a signed epoch receipt chain"
     )
     seal_parser.add_argument("--store", required=True, help="SQLite store path (.db/.sqlite)")
-    seal_parser.add_argument("--private-key", required=True, help="Ed25519 32-byte seed hex")
+    seal_parser.add_argument(
+        "--key-file",
+        default=os.environ.get("CF_SEAL_KEY_FILE") or None,
+        help=(
+            "file containing the Ed25519 32-byte seed hex (env: CF_SEAL_KEY_FILE); "
+            "or set CF_SEAL_KEY to the hex directly"
+        ),
+    )
     seal_parser.add_argument(
         "--out", required=True, help="epochs JSON file (appended if it already exists)"
     )
@@ -250,6 +306,12 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     mcp_parser.add_argument(
         "--readonly", action="store_true", help="reject writes: memory_add returns an error"
+    )
+    mcp_parser.add_argument(
+        "--trusted",
+        action="store_true",
+        help="memory_add writes routable instead of quarantined draft (server-side trust; "
+        "the tool arguments cannot mark a block trusted)",
     )
     mcp_parser.set_defaults(func=_cmd_mcp)
 
@@ -321,6 +383,10 @@ def _cmd_replay(args: argparse.Namespace) -> int:
     return replay(args.store, args.packet_id)
 
 
+def _cmd_replay_fold(args: argparse.Namespace) -> int:
+    return replay_fold(args.store, args.session, expand=args.expand)
+
+
 def _cmd_fold(args: argparse.Namespace) -> int:
     return foldfork.fold(args.store, k=args.k)
 
@@ -355,7 +421,7 @@ def _cmd_expand(args: argparse.Namespace) -> int:
 
 
 def _cmd_seal(args: argparse.Namespace) -> int:
-    return seal(args.store, args.private_key, args.out, model=args.model, engine=args.engine)
+    return seal(args.store, args.out, key_file=args.key_file, model=args.model, engine=args.engine)
 
 
 def _cmd_repro(args: argparse.Namespace) -> int:
@@ -366,6 +432,8 @@ def _cmd_mcp(args: argparse.Namespace) -> int:
     argv = ["--store", args.store] if args.store else []
     if args.readonly:
         argv.append("--readonly")
+    if args.trusted:
+        argv.append("--trusted")
     return mcp.main(argv)
 
 

@@ -123,6 +123,8 @@ def test_tools_list_schemas(tmp_path: Path) -> None:
             assert tool["inputSchema"]["type"] == "object"
         assert tools["memory_search"]["inputSchema"]["required"] == ["query"]
         assert tools["memory_add"]["inputSchema"]["required"] == ["block_kind", "content"]
+        # Trust is server-side: memory_add exposes no "trusted" argument (audit AU2-H2).
+        assert "trusted" not in tools["memory_add"]["inputSchema"]["properties"]
 
 
 def test_memory_search_excludes_quarantined_by_default(tmp_path: Path) -> None:
@@ -225,7 +227,8 @@ def test_memory_add_draft_and_readonly_rejects(tmp_path: Path) -> None:
         )
         assert added["block_id"].startswith("blk_")
         assert added["lifecycle_status"] == "draft"
-        trusted = _text(
+        # A tool argument cannot mark a block trusted (server-side trust only).
+        still_draft = _text(
             _call(
                 proc,
                 "memory_add",
@@ -233,7 +236,7 @@ def test_memory_add_draft_and_readonly_rejects(tmp_path: Path) -> None:
                 request_id=3,
             )
         )
-        assert trusted["lifecycle_status"] == "routable"
+        assert still_draft["lifecycle_status"] == "draft"
     assert SqliteStore(db).count() == 2
     with _server(db, "--readonly") as proc:
         _handshake(proc)
@@ -241,6 +244,17 @@ def test_memory_add_draft_and_readonly_rejects(tmp_path: Path) -> None:
         assert refused["error"]["code"] == -32001
         assert "readonly" in refused["error"]["message"]
     assert SqliteStore(db).count() == 2
+
+
+def test_memory_add_trusted_via_server_flag(tmp_path: Path) -> None:
+    db = tmp_path / "fabric.db"
+    with _server(db, "--trusted") as proc:
+        _handshake(proc)
+        added = _text(
+            _call(proc, "memory_add", {"block_kind": "decision", "content": "Adopt receipts"})
+        )
+        assert added["lifecycle_status"] == "routable"
+    assert SqliteStore(db).load_blocks()[0].lifecycle_status.value == "routable"
 
 
 def test_unknown_tool_and_bad_params(tmp_path: Path) -> None:

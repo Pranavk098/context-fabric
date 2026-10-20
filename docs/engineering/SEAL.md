@@ -98,9 +98,13 @@ stderr but **never breaks proxying**.
 ```powershell
 uv run cfx serve --fabric fabric.db                                    # compile mode; requests get X-Fabric-Packet-Id
 uv run cfx replay --store fabric.db --packet-id cpk_...                # recompile + compare (exit 0/1/2)
-uv run cfx seal --store fabric.db --private-key <hex> --out epochs.json --model M --engine E
+uv run cfx seal --store fabric.db --key-file seal.key --out epochs.json --model M --engine E
 uv run cfx verify epochs.json --pubkey <hex>                           # existing chain check (exit 0/1)
 ```
+
+`cfx seal` reads the Ed25519 seed from `--key-file` (a file containing the 32-byte hex) or
+the `CF_SEAL_KEY` environment variable — never from argv, so the seed is not exposed in
+shell history or process listings (audit AU2-M2).
 
 **`cfx replay` semantics.** Load the manifest; filter the current store to the recorded
 block ids; verify each recorded block's `content_hash`; recompile with the exact recorded
