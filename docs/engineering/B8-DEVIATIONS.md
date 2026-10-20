@@ -35,3 +35,19 @@ arms, settings or criteria in `B8-PREREGISTRATION.md`.
   the environment (never logged), and `--grade` exits cleanly with nothing to grade; delete the 10
   failed parent caches and re-run the day's batch. No v2 result existed, so nothing is voided and
   the pre-registration is unchanged.
+
+## D3 — Sub-agent never received the issue; parent saw an alphabetical file list (found by audit AU1, 2026-10-20 UTC, after 5 of 30 v2 runs)
+
+- **What (AU1 F1, CRITICAL):** the sub-agent's task was the hand-off text alone
+  (`agent.run(task=handoff_text)`). Arms A and C therefore received only code and never the
+  problem statement; arm B saw it only through its packet's objective line; no arm received the
+  parent's notes. That is a confound in favour of arm B, and arms A and C were not testing the
+  pre-registered question.
+- **What (AU1 F2, HIGH):** v2 §3 says the parent chooses from BM25-ranked candidate files; the
+  code showed it an alphabetical file list truncated at 4,000 tokens, and the gold file was not in
+  that view for 7 of 10 tasks.
+- **Decision (coordinator):** void the 5 v2 runs (all arm A, 0 resolved; archived under
+  `evals/reports/b8_void_20261020/`), fix the harness (F1–F15 plus code-audit H1/M1), have a
+  separate agent re-audit it, and restart under `B8-PREREGISTRATION-v3.md`. No A/B/C comparison
+  had been observed. The daily trigger now refuses to run until v3 and the fixes are committed.
+- **Cost:** about 2.2M tokens of the free daily allowance (one day).
