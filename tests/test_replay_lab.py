@@ -81,3 +81,51 @@ def test_overflow_detection_at_window_caps() -> None:
     assert none["overflow_step_16384"] is not None
     assert none["overflow_step_24576"] is not None
     assert none["overflow_step_16384"] <= none["overflow_step_24576"]  # 16k overflows first
+
+
+def test_info_retention_proxy_reports_per_policy() -> None:
+    # A traceback + failing-test line in the first observation: none keeps everything,
+    # obsfold stubs it away, obsfold_v2 keeps the content-aware lines (and so more survives).
+    traceback = (
+        "Traceback (most recent call last):\n"
+        '  File "mod.py", line 42, in compute_cached\n'
+        "    return self.cache[x]\n"
+        "AssertionError: cache miss\n"
+        "FAILED tests/test_mod.py::test_cached - AssertionError: cache miss\n"
+    )
+    messages: list[dict[str, Any]] = [
+        {"role": "system", "content": "you are a coding sub-agent"},
+        {"role": "user", "content": "fix compute_cached in mod.py"},
+    ]
+    for i in range(8):
+        messages.append(
+            {
+                "role": "assistant",
+                "content": None,
+                "tool_calls": [
+                    {
+                        "id": f"call_{i}",
+                        "type": "function",
+                        "function": {"name": "bash", "arguments": '{"command":"pytest"}'},
+                    }
+                ],
+            }
+        )
+        content = traceback if i == 0 else f"output {i} mentions compute_cached"
+        messages.append(
+            {"role": "tool", "tool_call_id": f"call_{i}", "name": "bash", "content": content}
+        )
+
+    report = replay_messages(messages, task_identifiers=("mod.py", "compute_cached"), name="synth")
+    none = report["policies"]["none"]["info_retention"]
+    obsfold = report["policies"]["obsfold"]["info_retention"]
+    v2 = report["policies"]["obsfold_v2"]["info_retention"]
+
+    assert none["test_names"]["ratio"] == 1.0
+    assert none["traceback_frames"]["ratio"] == 1.0
+    assert none["identifiers"]["ratio"] == 1.0
+    assert v2["test_names"]["ratio"] == 1.0  # content-aware fold keeps the failure line
+    assert v2["traceback_frames"]["ratio"] == 1.0  # test fold keeps the traceback tail
+    assert obsfold["test_names"]["ratio"] < 1.0  # stub loses the failure name
+    assert obsfold["traceback_frames"]["ratio"] < 1.0  # stub loses the traceback frames
+    assert v2["identifiers"]["ratio"] >= obsfold["identifiers"]["ratio"]

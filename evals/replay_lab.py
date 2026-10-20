@@ -15,6 +15,9 @@ For every recorded trajectory (a mini-swe-agent ``*.traj.json`` message list), t
 * reports, per step and policy: input tokens (tiktoken ``o200k_base``), what was folded,
   would-overflow at the 24,576 and 16,384 window caps, and the byte-identical leading
   prefix length vs the previous step (a cache-hit proxy);
+* reports an information-retention proxy: whether the failing test names, traceback frames
+  and task identifiers seen in tool outputs still survive (verbatim) in the folded context
+  at every step;
 * reports the share of tokens that are tool outputs in the raw recording, cross-checked
   against the recorded ``prompt_tokens``/``cached_tokens`` when the trajectory records them.
 
@@ -26,8 +29,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import time
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -42,6 +47,11 @@ NOTE = (
     "exploratory context-shape diagnostic; replay shows token/overflow/prefix shape, "
     "not task success"
 )
+
+# Information-retention proxy: the strings that must survive folding for the agent to
+# still know what broke and what to change.
+_TEST_NAME_RE = re.compile(r"(?:FAILED|ERROR)\s+(\S+::\S+)")
+_TRACEBACK_LINE_RE = re.compile(r'(File ".+", line \d+|\.py:\d+:|AssertionError)')
 
 
 def load_trajectory(path: Path) -> tuple[str, list[dict[str, Any]]]:
@@ -62,11 +72,6 @@ def _action_indices(messages: list[dict[str, Any]]) -> list[int]:
         and isinstance(message.get("tool_calls"), list)
         and message["tool_calls"]
     ]
-
-
-def _step_prefixes(messages: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
-    """Per-step inputs: everything before each assistant tool call."""
-    return [messages[:index] for index in _action_indices(messages)]
 
 
 def _recorded_usage(messages: list[dict[str, Any]]) -> list[dict[str, int | None]] | None:
@@ -164,12 +169,90 @@ def tool_output_share(messages: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _tool_contents(messages: Sequence[dict[str, Any]]) -> list[str]:
+    """String contents of tool messages (the only messages folding touches)."""
+    return [
+        message["content"]
+        for message in messages
+        if message.get("role") == "tool" and isinstance(message.get("content"), str)
+    ]
+
+
+def _extract_signals(
+    messages: list[dict[str, Any]], task_identifiers: tuple[str, ...]
+) -> dict[str, list[str]]:
+    """Important strings from the recorded tool outputs, deduped, in first-seen order.
+
+    ``test_names`` are the ``path::test`` names of failing tests, ``traceback_frames`` the
+    location/assertion lines, ``identifiers`` the task identifiers that actually appear in
+    an observation. These are the "would the agent still know what broke / what to change"
+    needles for the retention proxy.
+    """
+    test_names: list[str] = []
+    tracebacks: list[str] = []
+    identifiers: list[str] = []
+    for content in _tool_contents(messages):
+        for name in _TEST_NAME_RE.findall(content):
+            test_names.append(name)
+        for line in content.splitlines():
+            stripped = line.strip()
+            if _TRACEBACK_LINE_RE.search(stripped):
+                tracebacks.append(stripped)
+        for identifier in task_identifiers:
+            if identifier and identifier in content:
+                identifiers.append(identifier)
+    return {
+        "test_names": list(dict.fromkeys(test_names)),
+        "traceback_frames": list(dict.fromkeys(tracebacks)),
+        "identifiers": list(dict.fromkeys(identifiers)),
+    }
+
+
+def _signal_birth_steps(
+    messages: list[dict[str, Any]],
+    action_indices: list[int],
+    signals: dict[str, list[str]],
+) -> dict[str, dict[str, int]]:
+    """First step (index into ``action_indices``) at which each signal enters context."""
+    birth: dict[str, dict[str, int]] = {cat: {} for cat in signals}
+    for cat, needles in signals.items():
+        for needle in needles:
+            for step, idx in enumerate(action_indices):
+                lo = action_indices[step - 1] if step > 0 else 0
+                if any(
+                    needle in message["content"]
+                    for message in messages[lo:idx]
+                    if message.get("role") == "tool" and isinstance(message.get("content"), str)
+                ):
+                    birth[cat][needle] = step
+                    break
+    return birth
+
+
+def _retention_metrics(
+    folded: list[dict[str, Any]],
+    birth: dict[str, dict[str, int]],
+    step: int,
+) -> dict[str, dict[str, int]]:
+    """In-scope vs retained signal counts for one folded step of one policy."""
+    folded_tool_text = "\n".join(_tool_contents(folded))
+    metrics: dict[str, dict[str, int]] = {}
+    for cat, needles in birth.items():
+        in_scope = [n for n, first in needles.items() if first <= step]
+        retained = sum(1 for n in in_scope if n in folded_tool_text)
+        metrics[cat] = {"in_scope": len(in_scope), "retained": retained}
+    return metrics
+
+
 def replay_messages(
     messages: list[dict[str, Any]], *, task_identifiers: tuple[str, ...] = (), name: str = ""
 ) -> dict[str, Any]:
     """Replay one message list through every policy; return the per-policy report."""
-    prefixes = _step_prefixes(messages)
+    action_indices = _action_indices(messages)
+    prefixes = [messages[:index] for index in action_indices]
     recorded = _recorded_usage(messages)
+    signals = _extract_signals(messages, task_identifiers)
+    birth = _signal_birth_steps(messages, action_indices, signals)
     policies: dict[str, Any] = {}
     for policy in POLICIES:
         steps: list[dict[str, Any]] = []
@@ -179,6 +262,9 @@ def replay_messages(
         overflow_24576: int | None = None
         overflow_16384: int | None = None
         prefix_lengths: list[int] = []
+        retention_totals: dict[str, dict[str, int]] = {
+            cat: {"in_scope": 0, "retained": 0} for cat in signals
+        }
         for step, prefix in enumerate(prefixes):
             folded, folded_info = apply_policy(policy, prefix, task_identifiers=task_identifiers)
             tokens = obsfold.estimate_tokens(folded)
@@ -196,6 +282,10 @@ def replay_messages(
                 overflow_24576 = step
             if overflow_16384 is None and tokens > 16384:
                 overflow_16384 = step
+            retention = _retention_metrics(folded, birth, step)
+            for cat in signals:
+                retention_totals[cat]["in_scope"] += retention[cat]["in_scope"]
+                retention_totals[cat]["retained"] += retention[cat]["retained"]
             steps.append(
                 {
                     "step": step,
@@ -205,6 +295,7 @@ def replay_messages(
                     "overflow_24576": tokens > 24576,
                     "overflow_16384": tokens > 16384,
                     "prefix_bytes": prefix_bytes,
+                    "info_retention": retention,
                 }
             )
         policies[policy] = {
@@ -220,6 +311,17 @@ def replay_messages(
                 if prefix_lengths
                 else None,
             },
+            "info_retention": {
+                cat: {
+                    **retention_totals[cat],
+                    "ratio": round(
+                        retention_totals[cat]["retained"] / retention_totals[cat]["in_scope"], 4
+                    )
+                    if retention_totals[cat]["in_scope"]
+                    else None,
+                }
+                for cat in signals
+            },
         }
     report: dict[str, Any] = {
         "scenario": "replay_lab",
@@ -228,6 +330,7 @@ def replay_messages(
         "trajectory": name,
         "n_steps": len(prefixes),
         "recorded_usage": recorded,
+        "signals": signals,
         "tool_output_share": tool_output_share(messages),
         "policies": policies,
     }
@@ -242,12 +345,19 @@ def _print_summary(report: dict[str, Any]) -> None:
     )
     print(
         f"{'policy':<12}{'total_tokens':>14}{'peak_tokens':>13}{'overflow@24k':>14}{'overflow@16k':>14}"
+        f"{'retain(test/tb/id)':>21}"
     )
     for policy in POLICIES:
         body = report["policies"][policy]
+        info = body["info_retention"]
+        retain = "/".join(
+            ("-" if info[cat]["ratio"] is None else f"{info[cat]['ratio']:.0%}")
+            for cat in ("test_names", "traceback_frames", "identifiers")
+        )
         print(
             f"{policy:<12}{body['total_tokens']:>14}{body['peak_tokens']:>13}"
             f"{str(body['overflow_step_24576']):>14}{str(body['overflow_step_16384']):>14}"
+            f"{retain:>21}"
         )
 
 
