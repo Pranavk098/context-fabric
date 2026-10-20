@@ -18,7 +18,7 @@ import pytest
 from kernel.store import SqliteStore
 from protocol.models import BlockKind, ContextBlock, Creator, CreatorType, Fidelity, MemoryTier
 from sidecar.__main__ import main
-from sidecar.server import load_blocks, load_fabric, make_server, open_store
+from sidecar.server import _objective, load_blocks, load_fabric, make_server, open_store
 
 _SEEN_HEADERS: list[dict[str, str]] = []
 
@@ -187,6 +187,17 @@ def test_passthrough_forwards_body_and_status_unchanged() -> None:
         _stop(sidecar, upstream)
 
 
+def test_bare_models_path_is_proxied() -> None:
+    upstream, upstream_url = _start_upstream()
+    sidecar, sidecar_url = _start_sidecar(upstream_url, "passthrough")
+    try:
+        response = httpx.get(f"{sidecar_url}/models", timeout=10.0)
+        assert response.status_code == 200
+        assert response.json()["data"][0]["id"] == "test-model"
+    finally:
+        _stop(sidecar, upstream)
+
+
 def test_compile_injects_packet_and_headers(tmp_path: Path) -> None:
     upstream, upstream_url = _start_upstream()
     sidecar, sidecar_url = _start_sidecar(upstream_url, "compile", _fabric_blocks(tmp_path))
@@ -214,6 +225,78 @@ def test_compile_mode_loads_sqlite_fabric(tmp_path: Path) -> None:
         assert response.headers["x-fabric-compiled"] == "1"
         content = response.json()["choices"][0]["message"]["content"]
         assert "Use Postgres for canonical storage" in content
+    finally:
+        _stop(sidecar, upstream)
+
+
+def test_objective_skips_agent_tool_reminders() -> None:
+    task = "Fix the failing test in tests/test_foo.py"
+    format_reminder = (
+        "Tool call error:\n\n<error>\nNo tool calls found in the response. Every "
+        "response MUST include at least one tool call.\n</error>\n\nHere is general guidance..."
+    )
+    truncation_reminder = (
+        "Your previous response reached the output token limit (finish_reason=length) "
+        "before you produced a tool call, so it was cut off."
+    )
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": task},
+        {"role": "assistant", "content": None, "tool_calls": []},
+        {"role": "tool", "tool_call_id": "call_1", "content": "<returncode>1</returncode>"},
+        {"role": "user", "content": format_reminder},
+    ]
+    assert _objective(messages) == task
+    assert (
+        _objective(
+            [{"role": "user", "content": task}, {"role": "user", "content": truncation_reminder}]
+        )
+        == task
+    )
+    # A reminder-only list has no substantive objective.
+    assert _objective([{"role": "user", "content": format_reminder}]) == ""
+
+
+def test_objective_unchanged_without_reminders() -> None:
+    # Regression: for reminder-free lists the heuristic is byte-identical to the
+    # pre-change rule — the exact content of the last user message, verbatim.
+    assert _objective([{"role": "user", "content": "hello fabric"}]) == "hello fabric"
+    assert (
+        _objective([{"role": "user", "content": "first"}, {"role": "user", "content": "last"}])
+        == "last"
+    )
+    assert _objective([{"role": "user", "content": [{"text": "a"}, {"text": "b"}]}]) == "a b"
+    assert _objective([{"role": "user", "content": ""}]) == ""
+    assert _objective([{"role": "user", "content": None}]) == ""
+
+
+def test_compile_reminder_and_clean_are_byte_identical(tmp_path: Path) -> None:
+    upstream, upstream_url = _start_upstream()
+    sidecar, sidecar_url = _start_sidecar(upstream_url, "compile", _fabric_blocks(tmp_path))
+    try:
+        task = "Fix the failing test in tests/test_foo.py"
+        reminder = (
+            "Tool call error:\n\n<error>\nNo tool calls found in the response.\n</error>\n\n"
+            "Here is general guidance..."
+        )
+
+        def compiled(messages: list[dict[str, Any]]) -> tuple[str, str]:
+            response = httpx.post(
+                f"{sidecar_url}/v1/chat/completions",
+                json={"model": "test", "messages": messages},
+                timeout=10.0,
+            )
+            return response.headers["x-fabric-packet-id"], response.json()["choices"][0]["message"][
+                "content"
+            ]
+
+        pid_clean, content_clean = compiled([{"role": "user", "content": task}])
+        pid_reminder, content_reminder = compiled(
+            [{"role": "user", "content": task}, {"role": "user", "content": reminder}]
+        )
+        assert pid_clean == pid_reminder
+        assert content_clean == content_reminder
+        assert f"OBJECTIVE: {task}" in content_clean
     finally:
         _stop(sidecar, upstream)
 

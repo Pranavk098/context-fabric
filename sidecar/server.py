@@ -144,6 +144,16 @@ def load_fabric(path: Path) -> tuple[ContextBlock, ...]:
     return _open_fabric(path)[0]
 
 
+# User messages an agent tool injects to nudge the model after a failed turn
+# (mini-swe-agent FormatError / truncation reminders). They are not the task
+# objective, so the compile heuristic skips them and falls back to the last
+# substantive user message.
+_OBJECTIVE_REMINDER_PREFIXES = (
+    "Tool call error",
+    "Your previous response reached the output token limit",
+)
+
+
 def _objective(messages: Any) -> str:
     if not isinstance(messages, list):
         return ""
@@ -151,10 +161,14 @@ def _objective(messages: Any) -> str:
         if isinstance(message, dict) and message.get("role") == "user":
             content = message.get("content")
             if isinstance(content, str):
-                return content
-            if isinstance(content, list):
-                return " ".join(part.get("text", "") for part in content if isinstance(part, dict))
-            return ""
+                text = content
+            elif isinstance(content, list):
+                text = " ".join(part.get("text", "") for part in content if isinstance(part, dict))
+            else:
+                return ""
+            if text.startswith(_OBJECTIVE_REMINDER_PREFIXES):
+                continue
+            return text
     return ""
 
 
@@ -334,8 +348,8 @@ def _make_handler(
                 self._send_json(200, {"status": "ok"})
             elif path == "/fabric/stats":
                 self._send_json(200, _stats_payload(stats))
-            elif path == "/v1/models":
-                self._proxy("GET", f"{upstream}/v1/models", None, {})
+            elif path in ("/v1/models", "/models"):
+                self._proxy("GET", f"{upstream}{path}", None, {})
             else:
                 self._send_json(404, {"error": {"message": "not found"}})
 
