@@ -1226,6 +1226,8 @@ def main(argv: list[str] | None = None) -> int:
     args.parent_cache = (
         Path(args.parent_cache) if args.parent_cache else artifact_root / "parent_handoff_raw"
     )
+    args.reports_dir.mkdir(parents=True, exist_ok=True)
+    Path(args.parent_cache).mkdir(parents=True, exist_ok=True)
     args.obs_store = args.reports_dir / "obs.db"
     predictions_path = args.reports_dir / "b8_predictions.jsonl"
     runs_jsonl = args.reports_dir / "b8_runs.jsonl"
