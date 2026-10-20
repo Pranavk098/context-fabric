@@ -355,11 +355,16 @@ def _parent_llm_reply(base_url: str, model: str, prompt: str) -> dict[str, Any]:
     """One parent LLM turn through the sidecar; raises on any unusable reply.
 
     The sidecar enforces the model allow-list and records the usage in the daily ledger,
-    exactly like the sub-agent's requests.
+    exactly like the sub-agent's requests. The upstream key is read from the environment
+    and sent only as an ``Authorization`` header (never in the body, never logged).
     """
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY is not set; cannot authenticate the parent call")
     with httpx.Client(timeout=120.0, trust_env=False) as client:
         response = client.post(
             chat_completions_url(base_url),
+            headers={"Authorization": f"Bearer {api_key}"},
             json={
                 "model": model,
                 "messages": [{"role": "user", "content": prompt}],
@@ -640,6 +645,28 @@ def write_prediction(
         )
 
 
+def _arm_predictions_path(predictions_path: Path, arm: str) -> Path | None:
+    """Write the per-arm predictions JSONL; ``None`` when there is nothing to grade for ``arm``.
+
+    A missing predictions file (no task × arm finished yet, e.g. a fresh day stopped at the
+    cap) is "nothing to grade", not an error.
+    """
+    if not predictions_path.is_file():
+        return None
+    per_arm = predictions_path.with_suffix(f".{arm}.jsonl")
+    with (
+        predictions_path.open(encoding="utf-8") as src,
+        per_arm.open("w", encoding="utf-8") as dst,
+    ):
+        for line in src:
+            row = json.loads(line)
+            if row.get("arm") == arm:
+                dst.write(line)
+    if per_arm.stat().st_size == 0:
+        return None
+    return per_arm
+
+
 def project_tokens(triplet_tokens: int, n: int, daily_cap: int) -> dict[str, Any]:
     """Project the full-run token load and the day count at ``daily_cap``."""
     total = triplet_tokens * n
@@ -904,21 +931,19 @@ def main(argv: list[str] | None = None) -> int:
 
     resolved: dict[str, dict[str, int]] = {arm: {} for arm in ARMS}
     if args.grade:
-        for arm in ARMS:
-            if not arm_receipts[arm]:
-                continue
-            per_arm_preds = predictions_path.with_suffix(f".{arm}.jsonl")
-            with (
-                predictions_path.open(encoding="utf-8") as src,
-                per_arm_preds.open("w", encoding="utf-8") as dst,
-            ):
-                for line in src:
-                    row = json.loads(line)
-                    if row.get("arm") == arm:
-                        dst.write(line)
-            resolved[arm] = grade(per_arm_preds, run_id=f"b8_{arm}")
-            for instance_id, value in resolved[arm].items():
-                arm_receipts[arm].setdefault(instance_id, {})["resolved"] = value
+        if not predictions_path.is_file():
+            print("b8_live: nothing to grade (no predictions written).")
+        else:
+            for arm in ARMS:
+                if not arm_receipts[arm]:
+                    continue
+                per_arm_preds = _arm_predictions_path(predictions_path, arm)
+                if per_arm_preds is None:
+                    print(f"b8_live: nothing to grade for arm {arm}.")
+                    continue
+                resolved[arm] = grade(per_arm_preds, run_id=f"b8_{arm}")
+                for instance_id, value in resolved[arm].items():
+                    arm_receipts[arm].setdefault(instance_id, {})["resolved"] = value
 
     ledger_summary = ledger.summary(day)
     receipt = {

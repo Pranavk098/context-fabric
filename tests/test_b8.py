@@ -13,10 +13,12 @@ import httpx
 import pytest
 
 from evals.b8_live import (
+    _arm_predictions_path,
     _is_cap_error,
     chat_completions_url,
     finished_pairs,
     localize_parent,
+    parent_handoff,
     pending_pairs,
     sample_instances,
 )
@@ -24,6 +26,13 @@ from sidecar import b8
 from sidecar.server import make_server
 
 _DAY = "2026-10-19"
+
+
+@pytest.fixture(autouse=True)
+def _dummy_api_key(monkeypatch) -> None:
+    # The parent localization now sends OPENAI_API_KEY as an Authorization header; give
+    # tests a dummy so they reach the mock upstream instead of failing on a missing key.
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-dummy")
 
 
 # --------------------------------------------------------------------- fake upstream
@@ -476,3 +485,89 @@ def test_parent_rejects_disallowed_model(tmp_path: Path) -> None:
         assert "HTTPStatusError" in result["error"]
     finally:
         _stop(sidecar, upstream)
+
+
+# ------------------------------------------------------- parent auth header (deviation D2)
+
+
+def test_parent_reply_sends_authorization_header(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-secret-12345")
+    captured: list[str | None] = []
+
+    class _Capturing(_ParentUpstream):
+        def do_POST(self) -> None:
+            captured.append(self.headers.get("Authorization"))
+            super().do_POST()
+
+    upstream, upstream_url = _start_upstream_with(_Capturing)
+    sidecar, sidecar_url = _start_parent_sidecar(upstream_url, tmp_path)
+    try:
+        result = localize_parent(
+            _INSTANCE, _write_repo(tmp_path), model="gpt-4.1-mini", base_url=f"{sidecar_url}/v1"
+        )
+        assert result["parent_status"] == "llm_ok"
+        assert captured == ["Bearer sk-test-secret-12345"]
+    finally:
+        _stop(sidecar, upstream)
+
+
+def test_parent_missing_key_is_llm_failed_with_clear_error(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    upstream, upstream_url = _start_upstream_with(_ParentUpstream)
+    sidecar, sidecar_url = _start_parent_sidecar(upstream_url, tmp_path)
+    try:
+        result = localize_parent(
+            _INSTANCE, _write_repo(tmp_path), model="gpt-4.1-mini", base_url=f"{sidecar_url}/v1"
+        )
+        assert result["parent_status"] == "llm_failed"
+        assert "OPENAI_API_KEY" in result["error"]
+        assert result["candidate_files"] == []
+    finally:
+        _stop(sidecar, upstream)
+
+
+def test_parent_key_never_written_to_cache(tmp_path: Path, monkeypatch) -> None:
+    key = "sk-test-secret-12345"
+    monkeypatch.setenv("OPENAI_API_KEY", key)
+    upstream, upstream_url = _start_upstream_with(_ParentUpstream)
+    sidecar, sidecar_url = _start_parent_sidecar(upstream_url, tmp_path)
+    cache_dir = tmp_path / "cache"
+    instance = {**_INSTANCE, "instance_id": "test__0"}
+    try:
+        result = parent_handoff(
+            instance,
+            _write_repo(tmp_path),
+            model="gpt-4.1-mini",
+            base_url=f"{sidecar_url}/v1",
+            cache_dir=cache_dir,
+        )
+        assert result["parent_status"] == "llm_ok"
+        cache_text = (cache_dir / "test__0.json").read_text(encoding="utf-8")
+        assert key not in cache_text
+    finally:
+        _stop(sidecar, upstream)
+
+
+# ------------------------------------------------------- grading no-crash (deviation D2)
+
+
+def test_arm_predictions_path_missing_file_is_none(tmp_path: Path) -> None:
+    assert _arm_predictions_path(tmp_path / "nope.jsonl", "A") is None
+
+
+def test_arm_predictions_path_filters_by_arm(tmp_path: Path) -> None:
+    predictions = tmp_path / "b8_predictions.jsonl"
+    predictions.write_text(
+        json.dumps({"instance_id": "x", "model_patch": "p", "arm": "A"})
+        + "\n"
+        + json.dumps({"instance_id": "y", "model_patch": "q", "arm": "B"})
+        + "\n",
+        encoding="utf-8",
+    )
+    per_arm = _arm_predictions_path(predictions, "A")
+    assert per_arm is not None
+    lines = per_arm.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 1
+    assert json.loads(lines[0])["instance_id"] == "x"
+    # an arm with no rows is "nothing to grade", not an error
+    assert _arm_predictions_path(predictions, "C") is None

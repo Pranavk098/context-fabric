@@ -1,0 +1,13 @@
+{
+  "parent_status": "llm_ok",
+  "error": "",
+  "subagent_query": "Enhance the autodoc extension to allow the :private-members: option to accept specific member names as arguments, similar to :members:. Update parsing and documentation generation accordingly.",
+  "parent_notes": "The root cause is that the autodoc directive currently treats :private-members: as a boolean flag documenting all private members, lacking support for selective private member listing. Reproduce by creating an autodoc directive with :private-members: specifying particular private members and observing that all private members are documented instead of the specified subset.",
+  "candidate_files": [
+    "sphinx/ext/autodoc/directive.py",
+    "sphinx/ext/autodoc/__init__.py",
+    "sphinx/ext/autodoc/importer.py",
+    "sphinx/ext/autodoc/typehints.py",
+    "sphinx/ext/autodoc/type_comment.py"
+  ]
+}

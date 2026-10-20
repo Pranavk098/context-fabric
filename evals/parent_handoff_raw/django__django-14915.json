@@ -1,0 +1,13 @@
+{
+  "parent_status": "llm_ok",
+  "error": "",
+  "subagent_query": "Investigate the create_option method in the Select widget or related widgets to ensure that ModelChoiceIteratorValue instances are properly converted to hashable types (e.g., their underlying value) before being used as dictionary keys or in membership tests.",
+  "parent_notes": "The root cause is that ModelChoiceIteratorValue objects are not hashable in Django 3.1, unlike in 3.0, causing TypeError when used as keys or in 'in' checks. Reproduce by creating a Select widget with options using ModelChoiceIteratorValue and checking membership or dict key access with those values.",
+  "candidate_files": [
+    "django/forms/widgets.py",
+    "django/contrib/admin/widgets.py",
+    "django/contrib/admin/options.py",
+    "django/contrib/admin/views/main.py",
+    "tests/forms_tests/tests/test_forms.py"
+  ]
+}

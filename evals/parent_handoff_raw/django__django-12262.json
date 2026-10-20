@@ -1,0 +1,13 @@
+{
+  "parent_status": "llm_ok",
+  "error": "",
+  "subagent_query": "Fix the handling of keyword-only arguments with default values in custom template tags to correctly accept and parse these arguments without raising unexpected keyword argument errors. Also, improve error messages to correctly report multiple values for the same keyword argument.",
+  "parent_notes": "The root cause is improper parsing and dispatching of keyword-only arguments with defaults in simple_tag and inclusion_tag decorators, leading to incorrect TemplateSyntaxError exceptions. Reproduce with a template tag defined with keyword-only args with defaults and call it with those keywords, e.g., define `@register.simple_tag def hello(*, greeting='hello')` and call `{% hello greeting='hi' %}`.",
+  "candidate_files": [
+    "django/contrib/admin/templatetags/admin_list.py",
+    "django/contrib/admin/templatetags/admin_modify.py",
+    "django/contrib/admin/templatetags/admin_urls.py",
+    "django/contrib/admin/templatetags/base.py",
+    "django/contrib/admin/utils.py"
+  ]
+}

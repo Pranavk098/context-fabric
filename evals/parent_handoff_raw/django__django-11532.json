@@ -1,0 +1,13 @@
+{
+  "parent_status": "llm_ok",
+  "error": "",
+  "subagent_query": "Modify the generation of the Message-ID header in django.core.mail.message to convert the domain name to punycode before encoding the header. Ensure that any domain used in email headers is ASCII-safe by applying IDNA encoding.",
+  "parent_notes": "The root cause is that the Message-ID header uses the system hostname directly, which may contain non-ASCII characters. When the email encoding is non-unicode (e.g., iso-8859-1), encoding the header fails due to these characters. Reproduce by setting the hostname to a non-ASCII value like '\u6b63\u5b97' and running the mail tests, especially the test at tests/mail/tests.py line 368.",
+  "candidate_files": [
+    "django/core/mail/message.py",
+    "django/core/mail/utils.py",
+    "django/core/mail/__init__.py",
+    "django/core/mail/message.py",
+    "tests/mail/tests.py"
+  ]
+}

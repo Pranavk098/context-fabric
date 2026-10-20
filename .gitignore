@@ -14,3 +14,5 @@ demo_receipt.json
 epochs.json
 *.db
 logs/
+evals/reports/b8_ledger/*.db-shm
+evals/reports/b8_ledger/*.db-wal

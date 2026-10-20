@@ -1,0 +1,13 @@
+{
+  "parent_status": "llm_ok",
+  "error": "",
+  "subagent_query": "Adjust the argument construction for the PostgreSQL dbshell command so that all additional parameters are placed before the database name in the psql command invocation.",
+  "parent_notes": "The root cause is that psql expects options before the database name, but currently the dbshell command appends extra parameters after the database name, causing psql to ignore them. Reproduce with: ./manage.py dbshell -- -c \"select * from some_table;\" and observe the warning about ignored arguments.",
+  "candidate_files": [
+    "django/core/management/commands/dbshell.py",
+    "django/db/backends/postgresql/base.py",
+    "django/db/utils.py",
+    "django/core/management/__init__.py",
+    "django/core/management/commands/__init__.py"
+  ]
+}

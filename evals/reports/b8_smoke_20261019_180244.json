@@ -1,0 +1,152 @@
+{
+  "scenario": "b8_live",
+  "kind": "live",
+  "seed": 20261019,
+  "n": 10,
+  "model": "gpt-4.1-mini",
+  "window_cap": 24576,
+  "handoff_budget": 8192,
+  "step_limit": 35,
+  "started_at": "2026-10-20T01:02:44.452379+00:00",
+  "day": "2026-10-20",
+  "instance_ids": [
+    "django__django-11532",
+    "django__django-12262",
+    "django__django-13279",
+    "django__django-14915",
+    "django__django-15851",
+    "matplotlib__matplotlib-26208",
+    "scikit-learn__scikit-learn-14496",
+    "sphinx-doc__sphinx-8035",
+    "sympy__sympy-12481",
+    "sympy__sympy-19346"
+  ],
+  "arms": {
+    "A": {
+      "django__django-11532": {
+        "exit_status": "Submitted",
+        "overflow": false,
+        "steps": 23,
+        "wall_time_s": 33.24,
+        "tokens": {
+          "prompt_tokens": 293416,
+          "completion_tokens": 1808,
+          "reasoning_tokens": 0,
+          "cached_tokens": 277504,
+          "uncached_tokens": 15912,
+          "total_tokens": 295224
+        },
+        "resolved": 0
+      },
+      "django__django-12262": {
+        "exit_status": "LimitsExceeded",
+        "overflow": false,
+        "steps": 35,
+        "wall_time_s": 43.454,
+        "tokens": {
+          "prompt_tokens": 501420,
+          "completion_tokens": 1887,
+          "reasoning_tokens": 0,
+          "cached_tokens": 467328,
+          "uncached_tokens": 34092,
+          "total_tokens": 503307
+        },
+        "resolved": 0
+      },
+      "django__django-13279": {
+        "exit_status": "Submitted",
+        "overflow": false,
+        "steps": 15,
+        "wall_time_s": 29.584,
+        "tokens": {
+          "prompt_tokens": 150727,
+          "completion_tokens": 2632,
+          "reasoning_tokens": 0,
+          "cached_tokens": 131456,
+          "uncached_tokens": 19271,
+          "total_tokens": 153359
+        },
+        "resolved": 0
+      },
+      "django__django-14915": {
+        "exit_status": "LimitsExceeded",
+        "overflow": false,
+        "steps": 35,
+        "wall_time_s": 50.052,
+        "tokens": {
+          "prompt_tokens": 462418,
+          "completion_tokens": 2400,
+          "reasoning_tokens": 0,
+          "cached_tokens": 428544,
+          "uncached_tokens": 33874,
+          "total_tokens": 464818
+        },
+        "resolved": 0
+      },
+      "django__django-15851": {
+        "exit_status": "Submitted",
+        "overflow": false,
+        "steps": 26,
+        "wall_time_s": 38.226,
+        "tokens": {
+          "prompt_tokens": 349487,
+          "completion_tokens": 1696,
+          "reasoning_tokens": 0,
+          "cached_tokens": 304640,
+          "uncached_tokens": 44847,
+          "total_tokens": 351183
+        },
+        "resolved": 0
+      },
+      "matplotlib__matplotlib-26208": {
+        "exit_status": "cap_stopped",
+        "overflow": false,
+        "steps": 26,
+        "wall_time_s": 32.42,
+        "tokens": {
+          "prompt_tokens": 365959,
+          "completion_tokens": 1305,
+          "reasoning_tokens": 0,
+          "cached_tokens": 327936,
+          "uncached_tokens": 38023,
+          "total_tokens": 367264
+        }
+      }
+    },
+    "B": {},
+    "C": {}
+  },
+  "resolved": {
+    "A": {
+      "django__django-11532": 0,
+      "django__django-12262": 0,
+      "django__django-13279": 0,
+      "django__django-14915": 0,
+      "django__django-15851": 0
+    },
+    "B": {},
+    "C": {}
+  },
+  "parent_tokens": {
+    "prompt_tokens": 43907,
+    "completion_tokens": 1980,
+    "reasoning_tokens": 0,
+    "cached_tokens": 0,
+    "uncached_tokens": 43907,
+    "total_tokens": 45887
+  },
+  "ledger": {
+    "prompt_tokens": 2167334,
+    "completion_tokens": 13708,
+    "reasoning_tokens": 0,
+    "cached_tokens": 1937408,
+    "uncached_tokens": 229926,
+    "total_tokens": 2181042
+  },
+  "projection": {
+    "smoke_triplet_tokens": 2181042,
+    "projected_total_tokens_30": 21810420,
+    "days_at_cap": 10,
+    "daily_cap": 2200000
+  }
+}

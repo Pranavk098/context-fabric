@@ -1,0 +1,13 @@
+{
+  "parent_status": "llm_ok",
+  "error": "",
+  "subagent_query": "Investigate why ax1.dataLim is being set to infinite bounds when ax2 (a twinx axis) plots a stackplot. Ensure that updating data limits on ax2 does not inadvertently overwrite or corrupt ax1's data limits.",
+  "parent_notes": "The root cause appears to be that when plotting a stackplot on a twinx axis (ax2), the data limits of the original axis (ax1) are incorrectly replaced with infinite values. This likely stems from shared state or improper dataLim updates between twin axes. Reproduce with the provided minimal example that creates a stackplot on ax1, then twinx ax2, then plots on ax2, observing ax1.dataLim becoming [inf, -inf].",
+  "candidate_files": [
+    "lib/matplotlib/axes/_base.py",
+    "lib/matplotlib/axes/_axes.py",
+    "lib/matplotlib/axes/_secondary_axes.py",
+    "lib/matplotlib/pyplot.py",
+    "galleries/users_explain/text/pgf.py"
+  ]
+}
