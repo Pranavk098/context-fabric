@@ -43,9 +43,23 @@ If the RTX 5070 (sm_120) is unsupported by the current image, either pull a newe
 # inside WSL2 Ubuntu, with NVIDIA GPU passthrough working (nvidia-smi should list the GPU)
 python3 -m venv ~/.venvs/vllm && source ~/.venvs/vllm/bin/activate
 pip install --upgrade vllm
+# vLLM 0.31 (torch 2.13 + cu130) with no CUDA toolkit installed needs these, or the first
+# non-greedy sample crashes with: RuntimeError: Could not find nvcc and default
+# cuda_home='/usr/local/cuda' doesn't exist (the torch.compile + flashinfer-sampler paths
+# both try to JIT with nvcc). See docs/engineering/DOGFOOD.md §5 S1.
+export VLLM_TORCH_COMPILE_LEVEL=0
+export VLLM_USE_FLASHINFER_SAMPLER=0
 vllm serve Qwen/Qwen2.5-1.5B-Instruct \
-  --enable-prefix-caching --max-model-len 4096 --gpu-memory-utilization 0.85 --port 8000
+  --enable-prefix-caching --max-model-len 4096 --gpu-memory-utilization 0.85 --port 8000 \
+  --enforce-eager
 ```
+
+The three required knobs on this box: `--enforce-eager` (no CUDA graphs / compiled graphs),
+`VLLM_USE_FLASHINFER_SAMPLER=0` (skip the flashinfer sampler JIT), and
+`VLLM_TORCH_COMPILE_LEVEL=0` (turn torch.compile off). Without them, greedy (`temperature=0`)
+sampling works but the *first* top-k/top-p sample fails looking for `nvcc`. This is a local
+environment issue, not a Context Fabric bug, but it will bite anyone following the plain
+`vllm serve …` recipe above.
 
 ## 3. Run the spike
 

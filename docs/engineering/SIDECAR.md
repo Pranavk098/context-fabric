@@ -29,6 +29,8 @@ uv sync
 
 # 2. start an OpenAI-compatible upstream — see docs/engineering/RUNTIME.md.
 #    Example (WSL2 native): vllm serve Qwen/Qwen2.5-1.5B-Instruct --enable-prefix-caching --port 8000
+#    (on this box add --enforce-eager + VLLM_USE_FLASHINFER_SAMPLER=0 + VLLM_TORCH_COMPILE_LEVEL=0,
+#    see RUNTIME.md §2 / DOGFOOD.md §5 S1)
 
 # 3. (optional) fabric blocks: one ContextBlock JSON per line.
 #    Minimal line: {"block_id":"d1","block_kind":"decision","memory_tier":1,
