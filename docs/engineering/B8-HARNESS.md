@@ -74,23 +74,28 @@ task's base commit):
 docker run --rm <image> tar -c -C /testbed . | tar -x -C <repo-dir>/<instance_id>
 ```
 
-Then the smoke (1 task × 3 arms, graded):
+Then the smoke (1 task × 3 arms, graded). The smoke runs the first task of the **n=30**
+draw (`astropy__astropy-7606`), which is **not** in the frozen n=10 sample, and writes every
+artifact under a dated `--artifact-root` so it cannot contaminate the v3 paths (only the
+shared ledger is touched — it is the money cap):
 
 ```bash
 cd /mnt/c/dev/Context-Fabric
 CF_B8_DAILY_CAP=600000 OPENAI_API_KEY="$OPENAI_API_KEY" \
   ~/.venvs/swe/bin/python -m evals.b8_live \
-    --seed 20261019 --n 10 --limit 1 \
+    --seed 20261019 --n 30 --limit 1 \
     --model gpt-4.1-mini \
     --repo-dir <repo-dir> \
+    --artifact-root evals/reports/b8_smoke_v3_<date> \
     --daily-cap 600000 --grade
 ```
 
-The full pre-registered run is the same command with `--limit` removed (all 10 tasks) and
-`--daily-cap 2200000`, run across successive UTC days (`--resume` skips finished
-task × arm pairs; the ledger and predictions persist across invocations). Before starting a
-task × arm the runner requires today's remaining budget to be at least `--pair-reserve`
-(default 550,000), otherwise it stops cleanly for the day.
+The full pre-registered run is the same command with `--n 10` (the default), `--limit`
+removed (all 10 frozen tasks), no `--artifact-root`, and `--daily-cap 2200000`, run across
+successive UTC days (`--resume` skips finished task × arm pairs; the ledger and predictions
+persist across invocations). Before starting a task × arm the runner requires today's
+remaining budget to be at least `--pair-reserve` (default 550,000), otherwise it stops
+cleanly for the day.
 
 The runner, per invocation:
 

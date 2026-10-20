@@ -4,6 +4,7 @@ sampler determinism, and resume skip. No network, no GPU, no Docker."""
 from __future__ import annotations
 
 import json
+import os
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -12,22 +13,28 @@ from typing import Any
 import httpx
 import pytest
 
-from evals.b8_aggregate import aggregate, mcnemar_p
+from evals.b8_aggregate import aggregate, mcnemar_p, verdicts
 from evals.b8_live import (
+    DEFAULT_N,
     FROZEN_INSTANCE_IDS,
     _arm_predictions_path,
     _bm25_file_listing,
     _classify_exception,
     _is_cap_error,
+    _is_transient_http_error,
+    _pin_dataset_offline,
     _print_report,
     _salvage_git_diff,
+    _sidecar_env,
     append_run,
     assert_frozen_sample,
+    assert_single_tooling_rerun,
     build_handoff,
     build_subagent_task,
     build_task_header,
     chat_completions_url,
     finished_pairs,
+    grader_run_id,
     list_python_files,
     localize_parent,
     pair_fits,
@@ -35,6 +42,8 @@ from evals.b8_live import (
     pending_pairs,
     recover_patch,
     sample_instances,
+    stale_grader_report_paths,
+    tooling_failure_reruns,
     tooling_failures,
 )
 from sidecar import b8
@@ -417,6 +426,19 @@ class _EmptyQueryParentUpstream(_ParentUpstream):
     content = json.dumps({"candidate_files": ["mod.py"], "subagent_query": "  "})
 
 
+class _ServerErrorUpstream(_ParentUpstream):
+    """A parent-model upstream that fails every turn with a 500 (transient transport fault)."""
+
+    def do_POST(self) -> None:
+        self.rfile.read(int(self.headers.get("Content-Length", "0")))
+        payload = json.dumps({"error": {"message": "boom", "code": "server_error"}}).encode()
+        self.send_response(500)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
+
 def _start_upstream_with(handler: type[BaseHTTPRequestHandler]) -> tuple[ThreadingHTTPServer, str]:
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
     return server, _serve(server)
@@ -751,13 +773,14 @@ def test_salvage_git_diff_reads_working_tree() -> None:
 
 def test_aggregate_excludes_non_results(tmp_path: Path) -> None:
     """F6: R/O/U exclude cap_stopped and parent_failed; latest row wins."""
+    i1, i2 = FROZEN_INSTANCE_IDS[0], FROZEN_INSTANCE_IDS[1]
     runs = tmp_path / "runs.jsonl"
     reports = tmp_path / "reports"
     reports.mkdir()
     append_run(
         runs,
         {
-            "instance_id": "a1",
+            "instance_id": i1,
             "arm": "A",
             "exit_status": "Submitted",
             "overflow": False,
@@ -767,7 +790,7 @@ def test_aggregate_excludes_non_results(tmp_path: Path) -> None:
     append_run(
         runs,
         {
-            "instance_id": "a2",
+            "instance_id": i2,
             "arm": "A",
             "exit_status": "ContextWindowExceededError",
             "overflow": True,
@@ -777,7 +800,7 @@ def test_aggregate_excludes_non_results(tmp_path: Path) -> None:
     append_run(
         runs,
         {
-            "instance_id": "a3",
+            "instance_id": FROZEN_INSTANCE_IDS[2],
             "arm": "A",
             "exit_status": "cap_stopped",
             "overflow": False,
@@ -787,21 +810,21 @@ def test_aggregate_excludes_non_results(tmp_path: Path) -> None:
     append_run(
         runs,
         {
-            "instance_id": "a4",
+            "instance_id": FROZEN_INSTANCE_IDS[3],
             "arm": "A",
             "exit_status": "parent_failed",
             "overflow": False,
             "tokens": {"uncached_tokens": 999},
         },
     )
-    (reports / "gpt-4.1-mini.b8_A.json").write_text(
-        json.dumps({"resolved_ids": ["a1"]}), encoding="utf-8"
+    (reports / "gpt-4.1-mini.b8v3_A.json").write_text(
+        json.dumps({"resolved_ids": [i1], "completed_ids": [i1, i2]}), encoding="utf-8"
     )
     result = aggregate(runs, "gpt-4.1-mini", reports)
-    assert result["A"]["R"] == 1
-    assert result["A"]["O"] == 1
-    assert result["A"]["U"] == 300  # 100 + 200; the non-results are excluded
-    assert result["A"]["tasks"] == 2
+    assert result["arms"]["A"]["R"] == 1
+    assert result["arms"]["A"]["O"] == 1
+    assert result["arms"]["A"]["U"] == 300  # 100 + 200; the non-results are excluded
+    assert result["arms"]["A"]["tasks"] == 2
 
 
 def test_tooling_failures_latest_row_wins(tmp_path: Path) -> None:
@@ -963,3 +986,213 @@ def test_sqlite_store_close_checkpoints_wal(tmp_path: Path) -> None:
     reopened = SqliteStore(db)
     assert reopened.count() == 1
     reopened.close()
+
+
+# ------------------------------------------------------------------- audit B8 round-3
+
+
+def test_grader_run_id_is_v3_specific() -> None:
+    """B1: grading uses a v3-specific run_id that cannot collide with the voided v2 ``b8_*``."""
+    assert grader_run_id("A") == "b8v3_A"
+    assert grader_run_id("B") == "b8v3_B"
+    assert grader_run_id("C") == "b8v3_C"
+
+
+def test_stale_grader_report_refused(tmp_path: Path) -> None:
+    """B1: grade() refuses when an official report.json already exists for an instance."""
+    logs_dir = tmp_path / "logs" / "run_evaluation"
+    report = logs_dir / "b8v3_A" / "gpt-4.1-mini" / "x" / "report.json"
+    report.parent.mkdir(parents=True)
+    report.write_text("{}", encoding="utf-8")
+    assert stale_grader_report_paths("b8v3_A", "gpt-4.1-mini", ["x", "y"], logs_dir=logs_dir) == [
+        report
+    ]
+    assert stale_grader_report_paths("b8v3_A", "gpt-4.1-mini", ["y"], logs_dir=logs_dir) == []
+
+
+def test_aggregate_keeps_only_frozen_sample_ids(tmp_path: Path) -> None:
+    """B2: aggregate() drops non-frozen ids, so a smoke row cannot land in R/O/U."""
+    frozen = FROZEN_INSTANCE_IDS[0]
+    runs = tmp_path / "runs.jsonl"
+    reports = tmp_path / "reports"
+    reports.mkdir()
+    for iid in (frozen, "astropy__astropy-7606"):
+        append_run(
+            runs,
+            {
+                "instance_id": iid,
+                "arm": "A",
+                "exit_status": "Submitted",
+                "overflow": False,
+                "tokens": {"uncached_tokens": 50},
+            },
+        )
+    (reports / "gpt-4.1-mini.b8v3_A.json").write_text(
+        json.dumps({"resolved_ids": [frozen], "completed_ids": [frozen, "astropy__astropy-7606"]}),
+        encoding="utf-8",
+    )
+    result = aggregate(runs, "gpt-4.1-mini", reports)
+    assert result["arms"]["A"]["tasks"] == 1
+    assert result["arms"]["A"]["R"] == 1
+
+
+def test_aggregate_missing_grade_is_tooling_failure(tmp_path: Path) -> None:
+    """N1: a finished row with no official grade becomes a tooling failure, not a 0."""
+    frozen = FROZEN_INSTANCE_IDS[0]
+    runs = tmp_path / "runs.jsonl"
+    reports = tmp_path / "reports"
+    reports.mkdir()
+    append_run(
+        runs,
+        {
+            "instance_id": frozen,
+            "arm": "A",
+            "exit_status": "Submitted",
+            "overflow": False,
+            "tokens": {"uncached_tokens": 50},
+        },
+    )
+    (reports / "gpt-4.1-mini.b8v3_A.json").write_text(
+        json.dumps({"resolved_ids": [], "completed_ids": []}), encoding="utf-8"
+    )
+    result = aggregate(runs, "gpt-4.1-mini", reports)
+    assert result["arms"]["A"]["tasks"] == 0
+    assert result["tooling"]["A"] == {frozen}
+
+
+def test_verdict_rules() -> None:
+    """N1: the §5 verdicts (including ceil(O(A)/2)) are computed in code."""
+    from evals.b8_aggregate import _verdict
+
+    a = {"R": 2, "O": 4, "U": 1000, "tasks": 10}
+    assert _verdict({"R": 5, "O": 4, "U": 2000, "tasks": 10}, a) == "STRONG SIGNAL"
+    # SIGNAL: R >= A and O <= ceil(4/2)=2 and U <= 0.75*1000
+    assert _verdict({"R": 2, "O": 2, "U": 750, "tasks": 10}, a) == "SIGNAL"
+    assert _verdict({"R": 0, "O": 4, "U": 1000, "tasks": 10}, a) == "NEGATIVE"
+    assert _verdict({"R": 2, "O": 3, "U": 800, "tasks": 10}, a) == "INCONCLUSIVE"
+
+
+def test_verdicts_paired_intersection() -> None:
+    """N1: verdicts use the paired intersection; unpaired tasks are reported as drops."""
+    outcomes = {
+        "A": {
+            "t1": {"resolved": True, "overflow": False, "uncached": 100},
+            "t2": {"resolved": False, "overflow": True, "uncached": 200},
+        },
+        "B": {
+            "t1": {"resolved": True, "overflow": False, "uncached": 100},
+            "t2": {"resolved": True, "overflow": False, "uncached": 100},
+            "t3": {"resolved": True, "overflow": False, "uncached": 1},
+        },
+        "C": {},
+    }
+    b = verdicts(outcomes)[("B", "A")]
+    assert b["n"] == 2  # only t1 and t2 are paired; t3 is a drop from B
+    assert b["dropped_x"] == ["t3"]
+    assert b["dropped_a"] == []
+    assert b["verdict"] in ("STRONG SIGNAL", "SIGNAL", "NEGATIVE", "INCONCLUSIVE")
+
+
+def test_tooling_failure_rerun_refused_after_one(tmp_path: Path) -> None:
+    """N2: two tooling_failure rows mean the single allowed re-run is already spent."""
+    runs = tmp_path / "runs.jsonl"
+    append_run(runs, {"instance_id": "x", "arm": "A", "exit_status": "tooling_failure"})
+    assert tooling_failure_reruns(runs) == {("x", "A"): 1}
+    append_run(runs, {"instance_id": "x", "arm": "A", "exit_status": "tooling_failure"})
+    assert tooling_failure_reruns(runs) == {("x", "A"): 2}
+    with pytest.raises(SystemExit):
+        assert_single_tooling_rerun(runs)
+
+
+def test_parent_transient_5xx_is_llm_retry_not_cached(tmp_path: Path) -> None:
+    """N3: a transient 5xx parent failure is retried later, not cached as llm_failed."""
+    upstream, upstream_url = _start_upstream_with(_ServerErrorUpstream)
+    sidecar, sidecar_url = _start_parent_sidecar(upstream_url, tmp_path)
+    cache_dir = tmp_path / "cache"
+    instance = {**_INSTANCE, "instance_id": "transient__0"}
+    try:
+        result = parent_handoff(
+            instance,
+            _write_repo(tmp_path),
+            model="gpt-4.1-mini",
+            base_url=f"{sidecar_url}/v1",
+            cache_dir=cache_dir,
+        )
+        assert result["parent_status"] == "llm_retry"
+        assert result["error"]
+        assert not (cache_dir / "transient__0.json").exists()
+    finally:
+        _stop(sidecar, upstream)
+
+
+def test_is_transient_http_error() -> None:
+    """N3: the transient classifier separates transport faults from bad replies."""
+    assert _is_transient_http_error(httpx.TimeoutException("timeout"))
+    assert _is_transient_http_error(httpx.ConnectError("connect"))
+    assert not _is_transient_http_error(ValueError("bad reply"))
+    request = httpx.Request("POST", "http://localhost/v1")
+    server_error = httpx.HTTPStatusError(
+        "server error", request=request, response=httpx.Response(500, request=request)
+    )
+    assert _is_transient_http_error(server_error)
+    client_error = httpx.HTTPStatusError(
+        "auth", request=request, response=httpx.Response(401, request=request)
+    )
+    assert not _is_transient_http_error(client_error)
+
+
+def test_grader_pins_offline_dataset(monkeypatch: pytest.MonkeyPatch) -> None:
+    """N7: the grader forces the HF loader offline so it reads the pinned cached snapshot."""
+    monkeypatch.delenv("HF_DATASETS_OFFLINE", raising=False)
+    monkeypatch.delenv("HF_HUB_OFFLINE", raising=False)
+    _pin_dataset_offline()
+    assert os.environ["HF_DATASETS_OFFLINE"] == "1"
+    assert os.environ["HF_HUB_OFFLINE"] == "1"
+
+
+def test_default_n_is_pilot_10() -> None:
+    """N8: the default run is the n=10 pilot, so the frozen-sample assert fires by default."""
+    assert DEFAULT_N == 10
+
+
+def test_sidecar_env_scrubs_cf_vars(monkeypatch: pytest.MonkeyPatch) -> None:
+    """N9: the spawned sidecar inherits no CF_* defaults the runner did not set explicitly."""
+    monkeypatch.setenv("CF_OBS_FOLD", "1")
+    monkeypatch.setenv("CF_FABRIC", "/tmp/f")
+    monkeypatch.setenv("KEEP_ME", "yes")
+    env = _sidecar_env()
+    assert "CF_OBS_FOLD" not in env
+    assert "CF_FABRIC" not in env
+    assert env["KEEP_ME"] == "yes"
+
+
+def test_print_report_excludes_tooling_failure(capsys: pytest.CaptureFixture[str]) -> None:
+    """N10: a tooling_failure row with tokens is excluded from the arm totals."""
+    receipt = {
+        "arms": {
+            "A": {
+                "ok": {
+                    "exit_status": "Submitted",
+                    "overflow": False,
+                    "steps": 1,
+                    "wall_time_s": 1.0,
+                    "tokens": {"total_tokens": 10, "cached_tokens": 2, "uncached_tokens": 8},
+                },
+                "boom": {
+                    "exit_status": "tooling_failure",
+                    "overflow": False,
+                    "steps": 0,
+                    "wall_time_s": 0.0,
+                    "tokens": {"total_tokens": 999, "cached_tokens": 0, "uncached_tokens": 999},
+                },
+            },
+            "B": {},
+            "C": {},
+        },
+        "ledger": {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0},
+        "day": "2026-10-20",
+    }
+    _print_report(receipt, Path("out.json"))
+    out = capsys.readouterr().out
+    assert "billed=10" in out
+    assert "excluded=1" in out
