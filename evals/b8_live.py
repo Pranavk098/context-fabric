@@ -68,7 +68,9 @@ DATASET = "SWE-bench/SWE-bench_Verified"
 # shifting the seeded sample.
 DATASET_REVISION = "78f471bf655a3137b2e8a75af1501690ec009ec3"
 DEFAULT_SEED = 20261019
-DEFAULT_N = 30
+# The pilot is the frozen n=10 sample; the default run is the pilot, so the frozen-sample
+# assert fires by default (audit N8). A smoke passes an explicit ``--n 30``.
+DEFAULT_N = 10
 
 # The frozen n=10 sample (seed 20261019). Asserted at startup so a dataset drift cannot
 # silently change which tasks run (audit F15).
@@ -85,15 +87,22 @@ FROZEN_INSTANCE_IDS = [
     "sympy__sympy-19346",
 ]
 
+# The v3-specific grader run_id. v2 used ``b8_<arm>`` and its stale ``report.json`` files
+# are reused by swebench's cache, so v3 must grade under a name v2 never wrote (audit B1).
+RUN_ID_PREFIX = "b8v3"
+
 REPORTS = Path(__file__).parent / "reports"
 LEDGER_DIR = REPORTS / "b8_ledger"
-PARENT_CACHE = Path(__file__).parent / "parent_handoff_raw"
-RUNS_JSONL = REPORTS / "b8_runs.jsonl"
 
 SCOPE = Scope(tenant_id="default", project_id="b8-live", workflow_id="swebench", task_id="t1")
 RECIPIENT = Recipient(agent_id="subagent-solver", role="writer", stage="solve")
 
 _REPO_CARTRIDGE_BUDGET = 600
+
+
+def grader_run_id(arm: str) -> str:
+    """The v3-specific swebench ``run_id`` for an arm (audit B1)."""
+    return f"{RUN_ID_PREFIX}_{arm}"
 
 
 def truncate_tokens(text: str, budget: int) -> str:
@@ -507,6 +516,28 @@ def _parent_llm_reply(base_url: str, model: str, prompt: str) -> dict[str, Any]:
     return parsed
 
 
+def _is_transient_http_error(exc: BaseException) -> bool:
+    """True for a parent transport fault worth retrying later: timeouts, connect errors, 5xx.
+
+    A 5xx, timeout or connect failure does not mean the parent gave a bad reply; it means the
+    call never completed, so it must not be cached as ``llm_failed`` (audit N3). A 4xx (other
+    than the daily-cap gate handled earlier) and any parse/content ``ValueError`` are
+    non-transient and stay excluded.
+    """
+    if isinstance(exc, httpx.HTTPStatusError):
+        return exc.response.status_code >= 500
+    return isinstance(
+        exc,
+        (
+            httpx.TimeoutException,
+            httpx.ConnectError,
+            httpx.ReadError,
+            httpx.WriteError,
+            httpx.RemoteProtocolError,
+        ),
+    )
+
+
 def localize_parent(
     instance: dict[str, Any],
     repo_root: Path,
@@ -521,8 +552,10 @@ def localize_parent(
     "candidate_files", "listing_shown", "prompt_tokens", "prompt_sha256"}``.
     ``parent_status`` is ``"llm_ok"`` when the mini model returned a parseable reply with a
     non-empty ``subagent_query``; ``"cap_stopped"`` when the daily-cap gate refused the call
-    (not cached — retried tomorrow, F14); else ``"llm_failed"`` with ``error`` set. BM25 only
-    fills candidate gaps the model left; a failed parent is never re-written as a BM25-only
+    (not cached — retried tomorrow, F14); ``"llm_retry"`` on a transient transport fault
+    (timeout / connect error / 5xx — not cached, retried on a later invocation, N3); else
+    ``"llm_failed"`` with ``error`` set (a bad reply, cached and excluded). BM25 only fills
+    candidate gaps the model left; a failed parent is never re-written as a BM25-only
     hand-off. The parent chooses from BM25-ranked candidate files (F2), not an alphabetical
     list.
     """
@@ -543,6 +576,7 @@ def localize_parent(
     )
     parsed: dict[str, Any] | None = None
     error = ""
+    transient = False
     for _ in range(2):  # one retry on any failure
         try:
             parsed = _parent_llm_reply(base_url, model, prompt)
@@ -558,11 +592,15 @@ def localize_parent(
                 "prompt_tokens": count_tokens(prompt),
                 "prompt_sha256": sha256_hex(prompt.encode("utf-8")),
             }
-        except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError) as exc:
+        except (KeyError, IndexError, TypeError, ValueError) as exc:
             error = f"{type(exc).__name__}: {exc}"
+            transient = False
+        except httpx.HTTPError as exc:
+            error = f"{type(exc).__name__}: {exc}"
+            transient = _is_transient_http_error(exc)
     if parsed is None:
         return {
-            "parent_status": "llm_failed",
+            "parent_status": "llm_retry" if transient else "llm_failed",
             "error": error,
             "subagent_query": "",
             "parent_notes": "",
@@ -608,8 +646,9 @@ def parent_handoff(
 
     The cache records provenance (model, prompt hash, harness git sha, timestamp, the
     BM25-ranked listing shown) so a changed model or prompt cannot silently reuse old
-    parents (audit F2/F14). A ``cap_stopped`` parent is never cached, so it is re-attempted
-    next day instead of permanently excluding the task (audit F14).
+    parents (audit F2/F14). A ``cap_stopped`` or ``llm_retry`` parent is never cached, so it
+    is re-attempted next day / next invocation instead of permanently excluding the task
+    (audit F14/N3).
     """
     cache_dir.mkdir(parents=True, exist_ok=True)
     path = cache_dir / f"{instance['instance_id']}.json"
@@ -617,7 +656,7 @@ def parent_handoff(
         data = json.loads(path.read_text(encoding="utf-8"))
         return data if isinstance(data, dict) else {}
     result = localize_parent(instance, repo_root, model=model, base_url=base_url)
-    if result.get("parent_status") == "cap_stopped":
+    if result.get("parent_status") in ("cap_stopped", "llm_retry"):
         return result
     result["model"] = model
     result["created_at"] = datetime.now(tz=UTC).isoformat()
@@ -774,11 +813,43 @@ def run_subagent(
 # ----------------------------------------------------------------------------- grading
 
 
+def _pin_dataset_offline() -> None:
+    """Force the HF loader to the cached (pinned) snapshot (audit N7).
+
+    ``swebench``'s ``load_swebench_dataset`` takes no revision, so running the loader offline
+    makes the grader read the same cached ``DATASET_REVISION`` snapshot that ``load_instances``
+    pins, instead of silently pulling a newer upstream revision.
+    """
+    os.environ.setdefault("HF_DATASETS_OFFLINE", "1")
+    os.environ.setdefault("HF_HUB_OFFLINE", "1")
+
+
+def stale_grader_report_paths(
+    run_id: str,
+    model: str,
+    instance_ids: Sequence[str],
+    logs_dir: Path | None = None,
+) -> list[Path]:
+    """Existing official ``report.json`` paths swebench would reuse without re-grading.
+
+    swebench's ``run_instance`` returns a cached ``report.json`` when it exists, so grading a
+    new prediction under a ``run_id`` that already has one would silently keep the stale
+    result (audit B1). The grader refuses instead.
+    """
+    logs_dir = logs_dir or Path("logs") / "run_evaluation"
+    return [
+        logs_dir / run_id / model / instance_id / "report.json"
+        for instance_id in instance_ids
+        if (logs_dir / run_id / model / instance_id / "report.json").is_file()
+    ]
+
+
 def grade(
     predictions_path: Path,
     *,
     run_id: str,
     max_workers: int = 2,
+    reports_dir: Path = REPORTS,
 ) -> dict[str, int]:
     """Grade a per-arm SWE-bench predictions JSONL via the harness Python API (Docker).
 
@@ -789,6 +860,7 @@ def grade(
     Empty-patch predictions (a sub-agent that overflowed before editing) are not graded and
     resolve to 0.
     """
+    _pin_dataset_offline()
     from swebench.harness.reporting import make_run_report  # local: WSL-only dependency
     from swebench.harness.run_evaluation import (
         _docker_client,
@@ -812,6 +884,17 @@ def grade(
         if predictions[instance["instance_id"]].get("model_patch")
     ]
     if graded:
+        model = predictions[graded[0]["instance_id"]].get("model_name_or_path", "")
+        stale = stale_grader_report_paths(
+            run_id, model, [instance["instance_id"] for instance in graded]
+        )
+        if stale:
+            raise RuntimeError(
+                f"refusing to grade: official report.json already exists for "
+                f"{[path.parts[-2] for path in stale]} under run_id {run_id!r}; a v3 run must "
+                f"not reuse a stale report. Move logs/run_evaluation/{run_id} aside and re-run "
+                f"(audit B1)."
+            )
         run_instances(
             predictions,
             graded,
@@ -821,7 +904,9 @@ def grade(
             rewrite_reports=False,
             task_repo=None,
         )
-    report_path = make_run_report(predictions, instances, run_id, _docker_client(), str(REPORTS))
+    report_path = make_run_report(
+        predictions, instances, run_id, _docker_client(), str(reports_dir)
+    )
     report = json.loads(Path(report_path).read_text(encoding="utf-8"))
     resolved: dict[str, int] = {instance_id: 0 for instance_id in instance_ids}
     for instance_id in report.get("resolved_ids", []):
@@ -873,6 +958,34 @@ def tooling_failures(path: Path) -> set[tuple[str, str]]:
         if isinstance(instance_id, str) and isinstance(arm, str):
             latest[(instance_id, arm)] = row
     return {pair for pair, row in latest.items() if row.get("exit_status") == "tooling_failure"}
+
+
+def tooling_failure_reruns(path: Path) -> dict[tuple[str, str], int]:
+    """Count of ``tooling_failure`` rows per ``(instance_id, arm)`` (audit N2).
+
+    The single allowed re-run means a pair may carry at most one re-run attempt: the original
+    failure plus the re-run is two ``tooling_failure`` rows, at which point a further
+    ``--rerun-tooling-failures`` must be refused.
+    """
+    counts: dict[tuple[str, str], int] = {}
+    for row in _iter_jsonl(path):
+        if row.get("exit_status") != "tooling_failure":
+            continue
+        instance_id = row.get("instance_id")
+        arm = row.get("arm")
+        if isinstance(instance_id, str) and isinstance(arm, str):
+            counts[(instance_id, arm)] = counts.get((instance_id, arm), 0) + 1
+    return counts
+
+
+def assert_single_tooling_rerun(path: Path) -> None:
+    """Refuse a second ``--rerun-tooling-failures`` for a pair that already used its re-run."""
+    over = sorted(pair for pair, count in tooling_failure_reruns(path).items() if count >= 2)
+    if over:
+        raise SystemExit(
+            f"refusing a second tooling re-run for {over}: each pair already had its single "
+            f"allowed re-run (audit N2)"
+        )
 
 
 def write_prediction(
@@ -954,12 +1067,22 @@ def _sidecar_command(args: argparse.Namespace, arm: str) -> list[str]:
         str(args.daily_cap),
     ]
     if arm == "C":
-        command += ["--obs-fold", "--obs-store", str(Path(args.ledger_dir) / "obs.db")]
+        command += ["--obs-fold", "--obs-store", str(args.obs_store)]
     return command
 
 
 def _sidecar_log_path(args: argparse.Namespace, arm: str) -> Path:
-    return REPORTS / f"b8_sidecar_{arm}.log"
+    return Path(args.reports_dir) / f"b8_sidecar_{arm}.log"
+
+
+def _sidecar_env() -> dict[str, str]:
+    """The sidecar's environment: the runner's env minus inherited ``CF_*`` defaults (audit N9).
+
+    The runner sets every ``CF_*`` knob it wants explicitly on the command line; inheriting
+    the rest would let a stray ``CF_OBS_FOLD`` / ``CF_FABRIC`` / ``CF_MODE`` silently change
+    what arms A/B see.
+    """
+    return {key: value for key, value in os.environ.items() if not key.startswith("CF_")}
 
 
 def _start_sidecar(args: argparse.Namespace, arm: str) -> subprocess.Popen[bytes]:
@@ -974,7 +1097,9 @@ def _start_sidecar(args: argparse.Namespace, arm: str) -> subprocess.Popen[bytes
         pass
     log_path = _sidecar_log_path(args, arm)
     log = open(log_path, "ab")  # surface sidecar errors instead of /dev/null (audit F7)
-    proc = subprocess.Popen(_sidecar_command(args, arm), stdout=log, stderr=subprocess.STDOUT)
+    proc = subprocess.Popen(
+        _sidecar_command(args, arm), stdout=log, stderr=subprocess.STDOUT, env=_sidecar_env()
+    )
     for _ in range(200):
         if proc.poll() is not None:
             raise RuntimeError(f"cfx serve exited during startup (see {log_path})")
@@ -1039,7 +1164,18 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
         help="cfx serve base URL (used only with --no-sidecar)",
     )
     parser.add_argument("--repo-dir", default=os.environ.get("CF_B8_REPO_DIR", ""))
-    parser.add_argument("--parent-cache", default=str(PARENT_CACHE))
+    parser.add_argument(
+        "--artifact-root",
+        default=str(Path(__file__).parent),
+        help="directory under which ALL run artifacts (predictions, b8_runs.jsonl, parent "
+        "cache, fold store, grader reports, sidecar logs, receipts) are written; the ledger "
+        "stays shared (audit B2)",
+    )
+    parser.add_argument(
+        "--parent-cache",
+        default="",
+        help="override the parent cache dir (default: <artifact-root>/parent_handoff_raw)",
+    )
     parser.add_argument("--ledger-dir", default=str(LEDGER_DIR))
     parser.add_argument("--window-cap", type=int, default=WINDOW_CAP)
     parser.add_argument("--step-limit", type=int, default=STEP_LIMIT)
@@ -1083,18 +1219,33 @@ def main(argv: list[str] | None = None) -> int:
     if not args.repo_dir:
         raise SystemExit("--repo-dir (or CF_B8_REPO_DIR) is required: the extracted repo checkout")
 
+    # audit B2: an --artifact-root isolates every run artifact from the v3 paths; the ledger
+    # stays shared (it is the money cap). The defaults reproduce the historical paths.
+    artifact_root = Path(args.artifact_root)
+    args.reports_dir = artifact_root / "reports"
+    args.parent_cache = (
+        Path(args.parent_cache) if args.parent_cache else artifact_root / "parent_handoff_raw"
+    )
+    args.obs_store = args.reports_dir / "obs.db"
+    predictions_path = args.reports_dir / "b8_predictions.jsonl"
+    runs_jsonl = args.reports_dir / "b8_runs.jsonl"
+
     ledger = b8.Ledger(args.ledger_dir)
     instances = sample_instances(load_instances(), args.seed, args.n)
     assert_frozen_sample(instances, args.seed, args.n)
     selected = instances[: args.limit] if args.limit else instances
     print(f"b8_live: seed={args.seed} n={args.n} selected={len(selected)} model={args.model}")
 
-    predictions_path = REPORTS / "b8_predictions.jsonl"
     done = finished_pairs(predictions_path) if args.resume else set()
-    if args.resume and not args.rerun_tooling_failures:
-        # The single allowed tooling re-run is opt-in (audit F12): without the flag a
-        # previously tooling_failure pair is skipped, not silently re-run.
-        done |= tooling_failures(RUNS_JSONL)
+    if args.resume:
+        if args.rerun_tooling_failures:
+            # audit N2: a pair with two tooling_failure rows has already used its single
+            # allowed re-run; refuse a second instead of silently re-running it again.
+            assert_single_tooling_rerun(runs_jsonl)
+        else:
+            # The single allowed tooling re-run is opt-in (audit F12): without the flag a
+            # previously tooling_failure pair is skipped, not silently re-run.
+            done |= tooling_failures(runs_jsonl)
 
     base_url = args.base_url if args.no_sidecar else f"http://127.0.0.1:{args.port}/v1"
     parent_tokens: dict[str, int] = {}
@@ -1111,7 +1262,7 @@ def main(argv: list[str] | None = None) -> int:
                     repo_root,
                     model=args.model,
                     base_url=base_url,
-                    cache_dir=Path(args.parent_cache),
+                    cache_dir=args.parent_cache,
                 )
                 if result.get("parent_status") == "cap_stopped":
                     print("b8_live: parent phase hit the daily cap; stopping for the day.")
@@ -1148,58 +1299,98 @@ def main(argv: list[str] | None = None) -> int:
                     )
                     day_stopped = True
                     break
-                parent = parent_handoff(
-                    instance,
-                    repo_root,
-                    model=args.model,
-                    base_url=base_url,
-                    cache_dir=Path(args.parent_cache),
-                )
-                if parent.get("parent_status") == "cap_stopped":
-                    print(f"b8_live: {instance_id} parent hit the daily cap; stopping for the day.")
-                    day_stopped = True
-                    break
-                before = ledger.summary(day)
-                if parent.get("parent_status") != "llm_ok":
+                try:
+                    parent = parent_handoff(
+                        instance,
+                        repo_root,
+                        model=args.model,
+                        base_url=base_url,
+                        cache_dir=args.parent_cache,
+                    )
+                    if parent.get("parent_status") == "cap_stopped":
+                        print(
+                            f"b8_live: {instance_id} parent hit the daily cap; "
+                            "stopping for the day."
+                        )
+                        day_stopped = True
+                        break
+                    before = ledger.summary(day)
+                    if parent.get("parent_status") == "llm_retry":
+                        # audit N3: a transient parent transport fault is not cached and not a
+                        # result; the task retries on a later invocation.
+                        print(
+                            f"b8_live: {instance_id} parent transient failure"
+                            f" ({parent.get('error', '')}); retrying on a later invocation."
+                        )
+                        continue
+                    if parent.get("parent_status") != "llm_ok":
+                        row = {
+                            "exit_status": "parent_failed",
+                            "overflow": False,
+                            "steps": 0,
+                            "wall_time_s": 0.0,
+                            "tokens": _token_delta(before, before),
+                            "parent_error": parent.get("error", ""),
+                        }
+                        arm_receipts[arm][instance_id] = row
+                        append_run(runs_jsonl, _run_row(instance_id, arm, row, args.model, day, 0))
+                        print(
+                            f"b8_live: {instance_id} parent llm_failed"
+                            f" ({parent.get('error', '')}); skipping arm {arm}"
+                        )
+                        continue
+                    # audit F1: every arm gets the identical task header (problem + query + notes)
+                    # before its own hand-off; the header is not counted in the 8,192-token slot.
+                    header = build_task_header(
+                        instance["problem_statement"],
+                        parent["subagent_query"],
+                        parent["parent_notes"],
+                    )
+                    header_tokens = count_tokens(header)
+                    objective = " ".join(
+                        part
+                        for part in (
+                            instance["problem_statement"],
+                            parent.get("subagent_query", ""),
+                        )
+                        if part
+                    )
+                    handoff = build_handoff(
+                        arm,
+                        repo_root,
+                        parent["candidate_files"],
+                        objective,
+                        project_id=instance["repo"].split("/")[-1],
+                        budget=args.handoff_budget,
+                    )
+                    task_text = build_subagent_task(header, handoff)
+                    output_path = (
+                        Path(args.repo_dir) / instance_id / f"{instance_id}.{arm}.traj.json"
+                    )
+                    fold_before = (
+                        _sidecar_stats(args.port) if arm == "C" and proc is not None else {}
+                    )
+                except Exception as exc:
+                    # audit N2: a fault building the hand-off / reading sidecar stats is a
+                    # tooling failure, recorded like a run, not a crash of the whole invocation.
                     row = {
-                        "exit_status": "parent_failed",
+                        "exit_status": "tooling_failure",
                         "overflow": False,
                         "steps": 0,
                         "wall_time_s": 0.0,
-                        "tokens": _token_delta(before, before),
-                        "parent_error": parent.get("error", ""),
+                        "tokens": _token_delta(ledger.summary(day), ledger.summary(day)),
+                        "patch_source": "",
+                        "sidecar_error": f"{type(exc).__name__}: {exc}",
+                        "fold_events": 0,
+                        "folded_bytes": 0,
                     }
                     arm_receipts[arm][instance_id] = row
-                    append_run(RUNS_JSONL, _run_row(instance_id, arm, row, args.model, day, 0))
+                    append_run(runs_jsonl, _run_row(instance_id, arm, row, args.model, day, 0))
                     print(
-                        f"b8_live: {instance_id} parent llm_failed"
-                        f" ({parent.get('error', '')}); skipping arm {arm}"
+                        f"b8_live: {instance_id} arm {arm} -> tooling_failure building hand-off "
+                        f"({row['sidecar_error']})."
                     )
                     continue
-                # audit F1: every arm gets the identical task header (problem + query + notes)
-                # before its own hand-off; the header is not counted in the 8,192-token slot.
-                header = build_task_header(
-                    instance["problem_statement"],
-                    parent["subagent_query"],
-                    parent["parent_notes"],
-                )
-                header_tokens = count_tokens(header)
-                objective = " ".join(
-                    part
-                    for part in (instance["problem_statement"], parent.get("subagent_query", ""))
-                    if part
-                )
-                handoff = build_handoff(
-                    arm,
-                    repo_root,
-                    parent["candidate_files"],
-                    objective,
-                    project_id=instance["repo"].split("/")[-1],
-                    budget=args.handoff_budget,
-                )
-                task_text = build_subagent_task(header, handoff)
-                output_path = Path(args.repo_dir) / instance_id / f"{instance_id}.{arm}.traj.json"
-                fold_before = _sidecar_stats(args.port) if arm == "C" and proc is not None else {}
                 receipt = run_subagent(
                     instance,
                     task_text,
@@ -1231,7 +1422,7 @@ def main(argv: list[str] | None = None) -> int:
                 }
                 arm_receipts[arm][instance_id] = row
                 append_run(
-                    RUNS_JSONL, _run_row(instance_id, arm, row, args.model, day, header_tokens)
+                    runs_jsonl, _run_row(instance_id, arm, row, args.model, day, header_tokens)
                 )
                 if receipt["exit_status"] == "cap_stopped":
                     print(
@@ -1273,7 +1464,9 @@ def main(argv: list[str] | None = None) -> int:
                 if per_arm_preds is None:
                     print(f"b8_live: nothing to grade for arm {arm}.")
                     continue
-                resolved[arm] = grade(per_arm_preds, run_id=f"b8_{arm}")
+                resolved[arm] = grade(
+                    per_arm_preds, run_id=grader_run_id(arm), reports_dir=args.reports_dir
+                )
                 for instance_id, value in resolved[arm].items():
                     arm_receipts[arm].setdefault(instance_id, {})["resolved"] = value
 
@@ -1297,7 +1490,7 @@ def main(argv: list[str] | None = None) -> int:
         "ledger": ledger.summary(b8.utc_day()),
     }
     ts = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
-    out = Path(args.out) if args.out else REPORTS / f"b8_live_{ts}.json"
+    out = Path(args.out) if args.out else args.reports_dir / f"b8_live_{ts}.json"
     out.write_text(json.dumps(receipt, indent=2), encoding="utf-8")
     _print_report(receipt, out)
     return 0
@@ -1337,17 +1530,12 @@ def _print_report(receipt: dict[str, Any], out: Path) -> None:
     for arm in ARMS:
         rows = list(receipt["arms"].get(arm, {}).values())
         # Rows without tokens (earlier-day resolved-only entries) and non-results are excluded
-        # from the token totals (audit F4/F6).
+        # from the token totals (audit F4/F6/N10): a tooling_failure is not a result.
+        excluded_statuses = ("cap_stopped", "parent_failed", "tooling_failure")
         finished = [
-            r
-            for r in rows
-            if "tokens" in r and r.get("exit_status") not in ("cap_stopped", "parent_failed")
+            r for r in rows if "tokens" in r and r.get("exit_status") not in excluded_statuses
         ]
-        excluded = sum(
-            1
-            for r in rows
-            if r.get("exit_status") in ("cap_stopped", "parent_failed", "tooling_failure")
-        )
+        excluded = sum(1 for r in rows if r.get("exit_status") in excluded_statuses)
         total = sum(r["tokens"]["total_tokens"] for r in finished)
         cached = sum(r["tokens"]["cached_tokens"] for r in finished)
         uncached = sum(r["tokens"]["uncached_tokens"] for r in finished)
