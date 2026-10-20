@@ -1,8 +1,13 @@
 # B8 Pre-Registration v3 — does a sub-agent on a small window do better with Context Fabric? (pilot, n = 10)
 
-**Status: DRAFT — not frozen.** It is frozen (this line replaced by a UTC timestamp) only after
-a separate agent re-audits the harness against it and a live smoke on a non-sample task passes.
-This supersedes v2. v2 was voided after 5 of 30 runs (all arm A, 0 resolved) because audit AU1
+**Status: PRE-REGISTERED. Frozen 2026-10-20 05:24 UTC, before any v3 run of a sample task.** Frozen after
+(1) an independent re-audit of the harness against this text (`docs/audits/REAUDIT-B8-V3.md`,
+blockers B1–B3 fixed) and (2) a live smoke on the non-sample task `astropy__astropy-7606`
+(step limit 6, isolated under `evals/reports/b8_smoke_v3_20261020/`): the parent returned
+`llm_ok`, all three arms received the identical 410-token task header, arm C recorded 3 fold
+events, and all three predictions were graded under the v3 run ids. The smoke found and fixed two
+harness bugs before this freeze (artifact folders not created; a zero-task verdict that read as
+SIGNAL). This supersedes v2. v2 was voided after 5 of 30 runs (all arm A, 0 resolved) because audit AU1
 found that the sub-agent never received the issue and that the parent saw an alphabetical file
 list (deviation D3 in `B8-DEVIATIONS.md`). No A/B/C comparison had been observed. Void artifacts:
 `evals/reports/b8_void_20261020/`. Sample, arms, settings and criteria are unchanged from v2;
@@ -77,6 +82,8 @@ Let R, O and U be an arm's resolved count, overflow count and total uncached tok
 - **SIGNAL:** R(X) ≥ R(A) **and** O(X) ≤ ⌈O(A) / 2⌉ **and** U(X) ≤ 0.75 · U(A).
 - **NEGATIVE:** R(X) < R(A) − 1.
 - **INCONCLUSIVE:** anything else.
+
+If the paired intersection is empty, every verdict is INCONCLUSIVE.
 
 Also reported, not as a criterion: an exact McNemar test on paired resolved outcomes for each
 comparison, and B vs C.

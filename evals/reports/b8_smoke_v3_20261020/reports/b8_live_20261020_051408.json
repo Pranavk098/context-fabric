@@ -1,0 +1,100 @@
+{
+  "scenario": "b8_live",
+  "kind": "smoke",
+  "seed": 20261019,
+  "n": 30,
+  "model": "gpt-4.1-mini",
+  "window_cap": 24576,
+  "handoff_budget": 8192,
+  "pair_reserve": 80000,
+  "step_limit": 6,
+  "started_at": "2026-10-20T05:14:08.975096+00:00",
+  "harness_sha": "e018d95655b71804899769d598c9afdc6cde4f4e",
+  "day": "2026-10-20",
+  "instance_ids": [
+    "astropy__astropy-7606"
+  ],
+  "arms": {
+    "A": {
+      "astropy__astropy-7606": {
+        "exit_status": "tooling_failure",
+        "overflow": false,
+        "steps": 0,
+        "wall_time_s": 0.092,
+        "tokens": {
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "reasoning_tokens": 0,
+          "cached_tokens": 0,
+          "uncached_tokens": 0,
+          "total_tokens": 0
+        },
+        "patch_source": "",
+        "sidecar_error": "CalledProcessError: Command '['docker', 'run', '-d', '--name', 'minisweagent-7e4a5e74', '-w', '/testbed', '--rm', 'docker.io/swebench/sweb.eval.x86_64.astropy_1776_astropy-7606:latest', 'sleep', '2h']' returned non-zero exit status 1.",
+        "fold_events": 0,
+        "folded_bytes": 0
+      }
+    },
+    "B": {
+      "astropy__astropy-7606": {
+        "exit_status": "tooling_failure",
+        "overflow": false,
+        "steps": 0,
+        "wall_time_s": 0.084,
+        "tokens": {
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "reasoning_tokens": 0,
+          "cached_tokens": 0,
+          "uncached_tokens": 0,
+          "total_tokens": 0
+        },
+        "patch_source": "",
+        "sidecar_error": "CalledProcessError: Command '['docker', 'run', '-d', '--name', 'minisweagent-6789d0ae', '-w', '/testbed', '--rm', 'docker.io/swebench/sweb.eval.x86_64.astropy_1776_astropy-7606:latest', 'sleep', '2h']' returned non-zero exit status 1.",
+        "fold_events": 0,
+        "folded_bytes": 0
+      }
+    },
+    "C": {
+      "astropy__astropy-7606": {
+        "exit_status": "tooling_failure",
+        "overflow": false,
+        "steps": 0,
+        "wall_time_s": 0.074,
+        "tokens": {
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "reasoning_tokens": 0,
+          "cached_tokens": 0,
+          "uncached_tokens": 0,
+          "total_tokens": 0
+        },
+        "patch_source": "",
+        "sidecar_error": "CalledProcessError: Command '['docker', 'run', '-d', '--name', 'minisweagent-426b046e', '-w', '/testbed', '--rm', 'docker.io/swebench/sweb.eval.x86_64.astropy_1776_astropy-7606:latest', 'sleep', '2h']' returned non-zero exit status 1.",
+        "fold_events": 0,
+        "folded_bytes": 0
+      }
+    }
+  },
+  "resolved": {
+    "A": {},
+    "B": {},
+    "C": {}
+  },
+  "parent_tokens": {
+    "prompt_tokens": 4229,
+    "completion_tokens": 190,
+    "reasoning_tokens": 0,
+    "cached_tokens": 0,
+    "uncached_tokens": 4229,
+    "total_tokens": 4419
+  },
+  "ledger": {
+    "prompt_tokens": 2171563,
+    "completion_tokens": 13898,
+    "reasoning_tokens": 0,
+    "cached_tokens": 1937408,
+    "uncached_tokens": 234155,
+    "total_tokens": 2185461
+  }
+}

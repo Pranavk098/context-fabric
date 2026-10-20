@@ -1,0 +1,3 @@
+{"instance_id": "astropy__astropy-7606", "model_name_or_path": "gpt-4.1-mini", "model_patch": "", "arm": "A"}
+{"instance_id": "astropy__astropy-7606", "model_name_or_path": "gpt-4.1-mini", "model_patch": "", "arm": "B"}
+{"instance_id": "astropy__astropy-7606", "model_name_or_path": "gpt-4.1-mini", "model_patch": "", "arm": "C"}
