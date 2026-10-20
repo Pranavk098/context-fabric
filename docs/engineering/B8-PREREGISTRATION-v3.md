@@ -46,9 +46,18 @@ establish a small effect, and no statistical-significance claim is made from it.
   its token count is recorded per run.
 - Arms:
   - **A, naive:** raw hand-off (parent's candidate files, truncated to the slot), no folding.
-  - **B, Context Fabric packet:** the current compiled packet as the hand-off, no folding.
-  - **C, Context Fabric hand-off + folding:** BM25 full-body chunks + shared repo map as the
-    hand-off, plus observation folding (`--obs-fold`, last 3 tool outputs verbatim, k = 3).
+  - **B, Context Fabric packet:** the current compiled packet as the hand-off, no folding. The
+    packet opens with the shared repo map (hologram over the candidate files) and carries an
+    `OBJECTIVE:` line containing the problem statement + parent query, so B reads the issue
+    twice (header + objective) while A and C read it once. The packet is compressed by design:
+    it fills about 1.5k–4.9k of its 8,180-token slot (A and C fill about 8.2k), so B starts each
+    task with roughly 2.8k–7.6k more window headroom. Both are part of the treatment being
+    tested (a compact compiled hand-off), not corrected for.
+  - **C, Context Fabric hand-off + folding:** BM25 full-body chunks + the same shared repo map as
+    the hand-off, plus observation folding (`--obs-fold`, last 3 tool outputs verbatim, k = 3).
+- Parent candidate post-processing (same for all arms): the parent's returned file list is
+  filtered to existing files, de-duplicated, and gap-filled from the BM25 ranking to 5 files;
+  the gap fill can add test files. This is the only processing applied to a model output.
 - Patch: if the agent does not submit a patch, the working-tree `git diff` is taken, by the same
   rule for every exit status and every arm; how the patch was obtained is recorded.
 - Grading: official `swebench.harness.run_evaluation` in Docker; `resolved` comes from its
@@ -88,7 +97,7 @@ comparison, and B vs C.
   `parent_failed` and tooling-failure rows.
 - Arm C's fold store starts fresh for v3 and is checkpointed on shutdown; fold counts are recorded
   per run.
-- Model outputs are never edited. Criteria, sample, arms and settings do not change after this
+- Model outputs are never edited (the parent's file list is post-processed only as stated in §3). Criteria, sample, arms and settings do not change after this
   freeze; a different configuration needs a new, separately dated pre-registration.
 
 ## 7. Known limits, stated up front
@@ -100,3 +109,5 @@ comparison, and B vs C.
   for C, not something this design corrects.
 - The parent's BM25-ranked view contains the gold file for only 6 of 10 tasks (offline check before freeze);
   for the other 4 the sub-agent must find it by exploration. This applies equally to all arms.
+- Arm B's advantages in headroom and repeated issue text are part of its treatment; a B win
+  cannot be attributed to compression alone without a follow-up that equalizes them.
