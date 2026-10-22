@@ -24,7 +24,7 @@ Every cell cites file path + line (or a doc URL). `unverified` = no evidence fou
 | Replace tool output | **yes** — PostToolUse `updatedToolOutput` | **yes** — `tool.execute.after` mutates `result` on `status:"completed"` [O1] `:29-45` | **no** — `updatedMCPToolOutput` is parsed but rejected, fails open [C4] `output_parser.rs:431-439`; test [C5] `events/post_tool_use.rs:412-452` |
 | Add context to main agent | **yes** — PreToolUse `additionalContext` | **yes** — `session` `context` hook mutates `event.system`/`event.messages` [O3] `packages/plugin/src/effect/session.ts:33-36`; example [O4] `migrate-v1.mdx:203-207` | **yes** — `additionalContext` on PreToolUse / PostToolUse / SessionStart [C3] `:15`; [C5] `post_tool_use.rs:377-410` |
 | Inject into sub-agent at spawn | **yes** — SubagentStart `additionalContext` | **partial** — no SubagentStart hook; rewrite the `subagent` tool's `input.prompt` via `execute.before` [O5] `packages/core/src/tool/plugin/subagent.ts:29-48` | **yes** — SubagentStart `additionalContext` [C6] `subagent-start.command.output.schema.json:8` |
-| Rewrite sub-agent prompt | **partial** — via PreToolUse `updatedInput` on `Agent` tool | **yes** — `execute.before` on `subagent` tool mutates `input.prompt` (prefixed "You are a subagent spawned by another session.") [O5] `:205-213` | **no** — SubagentStart input has `agent_id/agent_type/model/…`, no prompt field [C6] `subagent-start.command.input.schema.json` |
+| Rewrite sub-agent prompt | **yes** — PreToolUse `updatedInput` on `Agent` tool (verified live, `docs/engineering/HOOK-SPIKE-2026-10-21.md`) | **yes** — `execute.before` on `subagent` tool mutates `input.prompt` (prefixed "You are a subagent spawned by another session.") [O5] `:205-213` | **no** — SubagentStart input has `agent_id/agent_type/model/…`, no prompt field [C6] `subagent-start.command.input.schema.json` |
 | Pre-compaction hook | **yes** — PreCompact (manual\|auto) can block | **yes** — `session` `compaction` hook (mutable `system`/`messages`, set `result.summary` to skip model) [O3] `session.ts:38-49,142`; V1 `experimental.session.compacting` [O2] `plugins.mdx:334-385` | **yes** — PreCompact `continue:false` blocks; matcher `manual\|auto` [C8] `pre-compact.command.output.schema.json`; `events/common.rs:312-318` |
 | Post-compaction / session-start re-injection | **yes** — SessionStart `source:compact` adds context | **partial** — compaction hook sets `result.summary`/`result.native.messages` (replay) [O3] `:38-49`; `context` hook re-runs on next request; event `session.compaction.ended` [O6] `packages/schema/src/session-event.ts:596-647` | **yes** — PostCompact [C8] `post-compact.command.output.schema.json` + SessionStart `source:compact` [C7] `session-start.command.input.schema.json:36-45` |
 | HTTP hook transport | **yes** — `type:"http"` | **no** — plugins are in-process JS/TS; plugin must `fetch()` itself | **no** — handler kinds are `command`/`mcp_tool` only [C2] `codex-rs/config/src/hook_config.rs:180-218` |
@@ -56,7 +56,13 @@ Notes:
 Target: `POST http://127.0.0.1:<PORT>/hooks/<Event>` with the event JSON as body; a hook that
 cannot reach the daemon must **not** block/break the agent.
 
-### Claude Code (command hook, `|| true` = fail open)
+### Claude Code (native `http` hook; connection failure is non-blocking by default)
+
+```jsonc
+{ "hooks": { "PreToolUse": [{ "matcher": "*", "hooks": [{ "type": "http", "url": "http://127.0.0.1:8765/hooks/PreToolUse", "timeout": 2 }] }] } }
+```
+
+Command-hook alternative (needed for `SessionStart`):
 
 ```jsonc
 // .claude/settings.json
@@ -135,7 +141,7 @@ handler instead of `command` if the daemon is exposed as an MCP server [C2] `hoo
 
 Cross-cutting: only Codex has a **native MCP hook transport** (handlers can be MCP tools), which
 fits the plugin's "MCP server" ambition; OpenCode needs an in-process JS/TS shim, Claude/Codex
-need a `command` shim. No client supports a plain `http://` hook transport out of the box.
+need a `command` shim. Claude Code is the only one with a native `http` hook transport (verified live for PreToolUse/PostToolUse/SubagentStart/SubagentStop; SessionStart ignores `http`, so it needs the command shim).
 
 ---
 
