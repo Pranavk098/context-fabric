@@ -271,3 +271,34 @@ def test_1mb_bash_folds_under_150ms(tmp_path: Path) -> None:
     elapsed = time.perf_counter() - start
     assert result
     assert elapsed < 0.15
+
+
+def test_refold_refreshes_saved_file_age(tmp_path: Path) -> None:
+    # A file the model was just pointed at must not be pruned as 8 days old.
+    state_dir = tmp_path / "cfx"
+    content = "\n".join(f"row {i}" for i in range(5000))
+    handle_post_tool_use(_bash_payload(content), state_dir)
+    (saved,) = (state_dir / "obs").iterdir()
+    old_mtime = time.time() - 8 * 24 * 3600
+    os.utime(saved, (old_mtime, old_mtime))
+    handle_post_tool_use(_bash_payload(content), state_dir)
+    install(state_dir)
+    clear()
+    assert saved.exists()
+
+
+def test_code_file_without_definitions_falls_back_to_head_and_tail(tmp_path: Path) -> None:
+    content = "\n".join(f"VALUE_{i} = {i}" for i in range(3000))
+    result = handle_post_tool_use(_read_payload(content, file_path="data.py"), tmp_path / "cfx")
+    text = _folded_content(result)
+    assert "the first 40 and last 40 lines" in text
+    assert "VALUE_0 = 0" in text
+    assert "VALUE_2999 = 2999" in text
+
+
+def test_partial_read_header_says_which_lines(tmp_path: Path) -> None:
+    # Claude Code can return only part of a file; the header must not claim it's the whole file.
+    content = "\n".join(f"def f{i}(): return {i}" for i in range(3000))
+    payload = _read_payload(content, numLines=3000, startLine=1, totalLines=5000)
+    text = _folded_content(handle_post_tool_use(payload, tmp_path / "cfx"))
+    assert "lines 1-3,000 of 5,000" in text

@@ -114,7 +114,13 @@ def handle_post_tool_use(payload: dict[str, Any], state_dir: Path) -> dict[str, 
         if _path_in_obs(tool_input.get("file_path"), state_dir):
             return {}
         replacement = _fold(
-            content, tool_name, "file.content", session_id, state_dir, _code_ext(tool_input)
+            content,
+            tool_name,
+            "file.content",
+            session_id,
+            state_dir,
+            _code_ext(tool_input),
+            _read_range_note(file),
         )
         if replacement is None:
             return {}
@@ -173,6 +179,7 @@ def _fold(
     session_id: str | None,
     state_dir: Path,
     code_ext: str | None,
+    note: str = "",
 ) -> str | None:
     """Fold one string field; return the replacement text, or ``None`` to skip folding."""
     content_bytes = content.encode("utf-8")
@@ -182,10 +189,10 @@ def _fold(
     obs_id = hashlib.sha256(content_bytes).hexdigest()[:16]
     obs_path = state_dir / OBS_DIR / f"{obs_id}.txt"
 
-    kind = "code" if code_ext else _classify(content)
-    replacement = _replacement(tool_name, content_bytes, lines, kind, obs_path)
+    kind = "code" if code_ext and _code_outline(lines) else _classify(content)
+    replacement = _replacement(tool_name, content_bytes, lines, kind, obs_path, note)
     if replacement is None:
-        replacement = _replacement(tool_name, content_bytes, lines, "other", obs_path)
+        replacement = _replacement(tool_name, content_bytes, lines, "other", obs_path, note)
         if replacement is None:
             return None
         kind = "other"
@@ -205,12 +212,17 @@ def _fold(
 
 
 def _replacement(
-    tool_name: str, content_bytes: bytes, lines: list[str], kind: str, obs_path: Path
+    tool_name: str,
+    content_bytes: bytes,
+    lines: list[str],
+    kind: str,
+    obs_path: Path,
+    note: str = "",
 ) -> str | None:
     excerpt = _cap_excerpt(_excerpt(kind, lines))
     header = (
         f"[Context Fabric folded this {tool_name} output to save context: "
-        f"{len(content_bytes):,} bytes, {len(lines):,} lines. Shown below: {_WHAT[kind]}.\n"
+        f"{len(content_bytes):,} bytes, {len(lines):,} lines{note}. Shown below: {_WHAT[kind]}.\n"
         f"Full original, unchanged: {obs_path.resolve().as_posix()}\n"
         "To see more, use Read on that path (offset/limit for a range) or Grep it. "
         "Nothing was deleted.]"
@@ -320,6 +332,17 @@ def _cap_excerpt(excerpt: str) -> str:
     return kept + "\n" + marker if kept else marker
 
 
+def _read_range_note(file: dict[str, Any]) -> str:
+    """Say which lines a partial Read covered, so the header isn't taken for the whole file."""
+    start, count, total = file.get("startLine"), file.get("numLines"), file.get("totalLines")
+    if not all(isinstance(v, int) and not isinstance(v, bool) for v in (start, count, total)):
+        return ""
+    assert isinstance(start, int) and isinstance(count, int) and isinstance(total, int)
+    if count <= 0 or count >= total:
+        return ""
+    return f" (this Read returned lines {start:,}-{start + count - 1:,} of {total:,} in the file)"
+
+
 def _code_ext(tool_input: dict[str, Any]) -> str | None:
     file_path = tool_input.get("file_path")
     if not isinstance(file_path, str):
@@ -350,6 +373,8 @@ def _path_in_obs(path_value: Any, state_dir: Path) -> bool:
 def _save(path: Path, content: str) -> None:
     """Atomically write ``content`` byte-exact (content-addressed, so idempotent)."""
     if path.exists():
+        # Refresh its age so pruning doesn't delete a file a new fold points to.
+        os.utime(path)
         return
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=".obs.", suffix=".tmp")
