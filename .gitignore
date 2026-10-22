@@ -26,3 +26,9 @@ evals/reports/**/*.db-wal
 evals/reports/**/b8_*run*.log
 evals/reports/**/b8_sidecar_*.log
 evals/reports/**/run_instance.log
+
+# Private: strategy, plans and discussion docs stay on this machine (founder decision 2026-10-22).
+# Prod-Intro.md (the original brief) was already public and stays tracked.
+docs/product/*
+!docs/product/Prod-Intro.md
+docs/main/
