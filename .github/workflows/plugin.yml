@@ -1,0 +1,27 @@
+name: plugin
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  plugin:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+      - name: cfxd tests
+        shell: bash
+        run: uv run --python 3.12 pytest -q tests/test_cfxd_*.py
+      - name: Ensure daemon
+        run: uv run --no-project --quiet --python ">=3.12" cfxd/launch.py ensure
+      - name: Doctor
+        run: uv run --no-project --quiet --python ">=3.12" python -m cfxd doctor
+      - name: Stop
+        run: uv run --no-project --quiet --python ">=3.12" python -m cfxd stop
