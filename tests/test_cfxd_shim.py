@@ -41,10 +41,9 @@ def test_shim_dead_daemon_prints_empty(tmp_path: Path) -> None:
     d = Daemon(state_dir, 0)
     d.start()
     port = d.port
-    token = d.token
     d.stop()
     # Re-write a stale state file pointing at the now-dead port.
-    write_state(state_dir, port, os.getpid(), token)
+    write_state(state_dir, port, os.getpid())
     rc, out, elapsed = _run_shim(state_dir, b"{}")
     assert rc == 0
     assert out.strip() == "{}"

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 import os
-import secrets
+import socket
 import sys
 import tempfile
 import threading
@@ -31,6 +31,7 @@ STATE_FILE = "state.json"
 EVENTS_FILE = "events.jsonl"
 HANDLER_TIMEOUT_MS = 150.0
 HEALTH_TIMEOUT_S = 0.5
+DEFAULT_PORT = 47831
 DEFAULT_STATE_DIR = Path.home() / ".cfx" / "daemon"
 
 # Handlers run here so a slow one is abandoned at the deadline instead of holding the hook.
@@ -71,14 +72,13 @@ def _atomic_write_json(path: Path, obj: dict[str, Any]) -> None:
             os.unlink(tmp)
 
 
-def write_state(state_dir: Path, port: int, pid: int, token: str) -> None:
+def write_state(state_dir: Path, port: int, pid: int) -> None:
     state_dir.mkdir(parents=True, exist_ok=True)
     _atomic_write_json(
         state_dir / STATE_FILE,
         {
             "port": port,
             "pid": pid,
-            "token": token,
             "started_at": datetime.now(UTC).isoformat(),
             "version": __version__,
         },
@@ -101,13 +101,11 @@ def get_health(port: int, timeout: float = HEALTH_TIMEOUT_S) -> tuple[int, bytes
         return exc.code, exc.read()
 
 
-def post_hook(
-    port: int, token: str, event: str, payload: bytes, timeout: float = 1.0
-) -> tuple[int, bytes]:
+def post_hook(port: int, event: str, payload: bytes, timeout: float = 1.0) -> tuple[int, bytes]:
     req = Request(
         f"http://127.0.0.1:{port}/hooks/{event}",
         data=payload,
-        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        headers={"Content-Type": "application/json"},
         method="POST",
     )
     try:
@@ -117,10 +115,7 @@ def post_hook(
         return exc.code, exc.read()
 
 
-def daemon_alive(state: dict[str, Any]) -> bool:
-    port = state.get("port")
-    if not isinstance(port, int):
-        return False
+def _health_ok(port: int) -> bool:
     try:
         status, body = get_health(port)
     except OSError:
@@ -132,6 +127,13 @@ def daemon_alive(state: dict[str, Any]) -> bool:
     except ValueError:
         return False
     return isinstance(health, dict) and health.get("ok") is True
+
+
+def daemon_alive(state: dict[str, Any]) -> bool:
+    port = state.get("port")
+    if not isinstance(port, int):
+        return False
+    return _health_ok(port)
 
 
 def _field(payload: dict[str, Any], key: str) -> str | None:
@@ -156,7 +158,6 @@ def _parse_payload(body: bytes) -> tuple[dict[str, Any] | None, str | None, str 
 class Daemon:
     def __init__(self, state_dir: Path, port: int) -> None:
         self.state_dir = state_dir
-        self.token = secrets.token_urlsafe(24)
         self.events_path = state_dir / EVENTS_FILE
         self._port = port
         self.port = 0
@@ -170,7 +171,7 @@ class Daemon:
         httpd.daemon = self
         self._httpd = httpd
         self.port = httpd.server_address[1]
-        write_state(self.state_dir, self.port, os.getpid(), self.token)
+        write_state(self.state_dir, self.port, os.getpid())
         self._thread = threading.Thread(target=httpd.serve_forever, daemon=True)
         self._thread.start()
 
@@ -193,6 +194,17 @@ class Daemon:
 
 class _CfxdServer(ThreadingHTTPServer):
     daemon: Daemon
+
+    if os.name == "nt":
+        # On Windows SO_REUSEADDR lets a second server bind the same port, so two
+        # sessions starting together could run two daemons. Bind exclusively instead.
+        allow_reuse_address = False
+
+        def server_bind(self) -> None:
+            exclusive = getattr(socket, "SO_EXCLUSIVEADDRUSE", None)
+            if exclusive is not None:
+                self.socket.setsockopt(socket.SOL_SOCKET, exclusive, 1)
+            super().server_bind()
 
 
 class _Handler(BaseHTTPRequestHandler):
@@ -217,9 +229,43 @@ class _Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
-    def _authorized(self) -> bool:
-        auth = self.headers.get("Authorization")
-        return auth is not None and secrets.compare_digest(auth, f"Bearer {self._daemon.token}")
+    def _host_ok(self) -> bool:
+        host = self.headers.get("Host")
+        port = self._daemon.port
+        return host in (f"127.0.0.1:{port}", f"localhost:{port}")
+
+    def _json_content_type(self) -> bool:
+        value = self.headers.get("Content-Type")
+        if value is None:
+            return False
+        return value.split(";", 1)[0].strip().lower() == "application/json"
+
+    def _reject_reason(self) -> str | None:
+        # Browsers are the realistic remote attacker against a loopback service;
+        # these three checks stop them (DNS-rebinding, CSRF, and form posts).
+        if self.headers.get("Origin") is not None:
+            return "origin"
+        if not self._host_ok():
+            return "host"
+        if not self._json_content_type():
+            return "content-type"
+        return None
+
+    def _reject(self, event: str, reason: str, start: float, bytes_in: int) -> None:
+        self._daemon.log_event(
+            {
+                "ts": datetime.now(UTC).isoformat(),
+                "event": event,
+                "tool_name": None,
+                "session_id": None,
+                "latency_ms": round((time.perf_counter() - start) * 1000.0, 3),
+                "outcome": "rejected",
+                "reason": reason,
+                "bytes_in": bytes_in,
+                "bytes_out": 0,
+            }
+        )
+        self._send_json(403, {"error": "forbidden"})
 
     def _read_body(self) -> bytes:
         raw = self.headers.get("Content-Length")
@@ -234,6 +280,9 @@ class _Handler(BaseHTTPRequestHandler):
         return self.rfile.read(length)
 
     def do_GET(self) -> None:
+        if not self._host_ok():
+            self._send_json(403, {"error": "forbidden"})
+            return
         if self.path == "/health":
             self._send_json(200, {"ok": True, "pid": os.getpid(), "version": __version__})
         else:
@@ -244,11 +293,12 @@ class _Handler(BaseHTTPRequestHandler):
         if not self.path.startswith("/hooks/"):
             self._send_json(404, {"error": "not found"})
             return
-        if not self._authorized():
-            self._send_json(401, {"error": "unauthorized"})
-            return
         event = unquote(self.path[len("/hooks/") :])
         start = time.perf_counter()
+        reason = self._reject_reason()
+        if reason is not None:
+            self._reject(event, reason, start, len(body))
+            return
         payload, tool_name, session_id = _parse_payload(body)
         if payload is None:
             self._finish(event, None, None, {}, "error", start, len(body))
@@ -302,8 +352,15 @@ def run_serve(state_dir: Path, port: int) -> int:
     if existing is not None and daemon_alive(existing):
         print("already running")
         return 0
+    if port != 0 and _health_ok(port):
+        print("already running")
+        return 0
     daemon = Daemon(state_dir, port)
-    daemon.start()
+    try:
+        daemon.start()
+    except OSError:
+        print(f"cfxd: port {port} is already in use by another process", file=sys.stderr)
+        return 2
     print(f"cfxd: listening on http://127.0.0.1:{daemon.port} (pid {os.getpid()})", flush=True)
     try:
         daemon.wait()

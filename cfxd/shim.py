@@ -37,14 +37,10 @@ def main() -> int:
         with open(os.path.join(_state_dir(), "state.json"), encoding="utf-8") as fh:
             state = json.load(fh)
         port = state["port"]
-        token = state["token"]
         request = urllib.request.Request(
             f"http://127.0.0.1:{port}/hooks/{event}",
             data=sys.stdin.read().encode("utf-8"),
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json",
-            },
+            headers={"Content-Type": "application/json"},
             method="POST",
         )
         with urllib.request.urlopen(request, timeout=_TIMEOUT) as response:

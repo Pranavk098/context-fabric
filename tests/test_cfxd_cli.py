@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import socket
 import subprocess
 import sys
 import time
@@ -31,7 +32,7 @@ def test_stop_removes_state_file(tmp_path: Path) -> None:
     state_dir = tmp_path / "cfx"
     state_file = state_dir / "state.json"
     proc = subprocess.Popen(
-        [sys.executable, "-m", "cfxd", "serve", "--state-dir", str(state_dir)],
+        [sys.executable, "-m", "cfxd", "serve", "--state-dir", str(state_dir), "--port", "0"],
         cwd=ROOT,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -58,3 +59,13 @@ def test_doctor_no_state_exits_1(tmp_path: Path) -> None:
     result = _run_cli("doctor", "--state-dir", str(tmp_path / "cfx"))
     assert result.returncode == 1
     assert "no state file" in result.stdout
+
+
+def test_serve_port_in_use_exits_2(tmp_path: Path) -> None:
+    with socket.socket() as blocker:
+        blocker.bind(("127.0.0.1", 0))
+        blocker.listen(1)
+        port = blocker.getsockname()[1]
+        result = _run_cli("serve", "--state-dir", str(tmp_path / "cfx"), "--port", str(port))
+    assert result.returncode == 2, result.stdout + result.stderr
+    assert "in use" in result.stderr

@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from cfxd.daemon import (
+    DEFAULT_PORT,
     STATE_FILE,
     daemon_alive,
     get_health,
@@ -39,7 +40,12 @@ def _build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     serve = subparsers.add_parser("serve", help="run the hook daemon")
-    serve.add_argument("--port", type=int, default=0, help="listen port (0 = pick free)")
+    serve.add_argument(
+        "--port",
+        type=int,
+        default=None,
+        help=f"listen port (default: CFX_PORT or {DEFAULT_PORT})",
+    )
     _add_state_dir(serve)
     serve.set_defaults(func=_cmd_serve)
 
@@ -59,7 +65,11 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _cmd_serve(args: argparse.Namespace) -> int:
-    return run_serve(resolve_state_dir(args.state_dir), args.port)
+    port = args.port
+    if port is None:
+        env = os.environ.get("CFX_PORT")
+        port = int(env) if env else DEFAULT_PORT
+    return run_serve(resolve_state_dir(args.state_dir), port)
 
 
 def _cmd_stop(args: argparse.Namespace) -> int:
@@ -129,8 +139,7 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
         print(f"cfxd doctor: no state file at {state_file}; is the daemon running?")
         return 1
     port = state.get("port")
-    token = state.get("token")
-    if not isinstance(port, int) or not isinstance(token, str):
+    if not isinstance(port, int):
         print("cfxd doctor: state file is malformed")
         return 1
 
@@ -145,18 +154,12 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
         health = {}
     healthy = health_status == 200 and isinstance(health, dict) and health.get("ok") is True
 
-    try:
-        unauth_status, _ = post_hook(port, "", "PreToolUse", b"{}")
-    except OSError:
-        unauth_status = -1
-    auth_ok = unauth_status == 401
-
     samples: list[float] = []
     ok_trips = 0
     for _ in range(200):
         start = time.perf_counter()
         try:
-            status, _ = post_hook(port, token, "PreToolUse", b"{}")
+            status, _ = post_hook(port, "PreToolUse", b"{}")
         except OSError:
             status = -1
         samples.append((time.perf_counter() - start) * 1000.0)
@@ -174,7 +177,6 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
         f"version {state.get('version', '?')})"
     )
     print(f"health:      {'ok' if healthy else 'FAIL'}")
-    print(f"auth:        {'ok' if auth_ok else 'FAIL'}")
     print(
         f"round trips: n={len(samples)} p50={p50:.2f} ms p95={p95:.2f} ms "
         f"({ok_trips}/{len(samples)} ok)"
@@ -184,7 +186,7 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
         f"p95={shim_p95:.2f} ms ({shim_failures} failed)"
     )
 
-    if not healthy or not auth_ok or ok_trips != len(samples) or p95 > 50.0:
+    if not healthy or ok_trips != len(samples) or p95 > 50.0:
         print("cfxd doctor: unhealthy")
         return 1
     print("cfxd doctor: healthy")
