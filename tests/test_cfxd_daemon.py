@@ -107,13 +107,17 @@ def test_raising_handler_returns_empty_and_logs_error(daemon: Daemon) -> None:
 
 def test_slow_handler_returns_empty(daemon: Daemon) -> None:
     def slow(payload: dict[str, Any]) -> dict[str, Any]:
-        time.sleep(0.3)
+        time.sleep(2.0)
         return {"slow": True}
 
     register("SlowEvent", slow)
+    t0 = time.perf_counter()
     status, body = _post(daemon.port, daemon.token, "SlowEvent", b'{"x": 1}')
+    elapsed = time.perf_counter() - t0
     assert status == 200
     assert body == {}
+    # The deadline must cut the hook off, not wait for the handler to finish.
+    assert elapsed < 0.5
 
 
 def test_events_log_has_no_payload_content(daemon: Daemon) -> None:

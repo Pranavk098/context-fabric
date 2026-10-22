@@ -14,6 +14,8 @@ import sys
 import tempfile
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FutureTimeout
 from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -30,6 +32,9 @@ EVENTS_FILE = "events.jsonl"
 HANDLER_TIMEOUT_MS = 150.0
 HEALTH_TIMEOUT_S = 0.5
 DEFAULT_STATE_DIR = Path.home() / ".cfx" / "daemon"
+
+# Handlers run here so a slow one is abandoned at the deadline instead of holding the hook.
+_POOL = ThreadPoolExecutor(max_workers=16, thread_name_prefix="cfxd-handler")
 
 
 def resolve_state_dir(explicit: str | None = None) -> Path:
@@ -250,16 +255,15 @@ class _Handler(BaseHTTPRequestHandler):
             print(f"cfxd: malformed hook payload for {event}", file=sys.stderr)
             return
         try:
-            result = dispatch(event, payload)
-            elapsed_ms = (time.perf_counter() - start) * 1000.0
-            if elapsed_ms > HANDLER_TIMEOUT_MS:
-                self._finish(event, tool_name, session_id, {}, "error", start, len(body))
-                print(
-                    f"cfxd: handler {event} took {elapsed_ms:.1f} ms "
-                    f"(budget {HANDLER_TIMEOUT_MS:.0f} ms)",
-                    file=sys.stderr,
-                )
-                return
+            future = _POOL.submit(dispatch, event, payload)
+            result = future.result(timeout=HANDLER_TIMEOUT_MS / 1000.0)
+        except FutureTimeout:
+            self._finish(event, tool_name, session_id, {}, "error", start, len(body))
+            print(
+                f"cfxd: handler {event} exceeded {HANDLER_TIMEOUT_MS:.0f} ms; passed through",
+                file=sys.stderr,
+            )
+            return
         except Exception as exc:
             self._finish(event, tool_name, session_id, {}, "error", start, len(body))
             print(f"cfxd: handler {event} failed: {exc!r}", file=sys.stderr)
