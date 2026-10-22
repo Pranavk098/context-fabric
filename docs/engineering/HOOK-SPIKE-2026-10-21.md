@@ -26,7 +26,14 @@ Docs read: https://code.claude.com/docs/en/hooks. Evidence level: *exploratory* 
 - **`SubagentStop`** carries `last_assistant_message` and `agent_transcript_path`: enough for a hand-back receipt.
 - **`Read` output shape** for `updatedToolOutput`: `{"type": ..., "file": {"filePath", "content", "numLines",
   "startLine", "totalLines"}}`. Per the docs, a value that doesn't match a built-in tool's schema is **silently
-  ignored**, so every folded tool needs a shape test (Bash, Grep, Glob, WebFetch still to capture).
+  ignored**, so every folded tool needs a shape test. Other `tool_response` shapes captured (keys only):
+
+  | Tool | Keys | Field to fold |
+  |---|---|---|
+  | Bash | `stdout`, `stderr`, `interrupted`, `isImage`, `noOutputExpected` | `stdout` (and long `stderr`) |
+  | Grep | `mode`, `numFiles`, `filenames`, `content`, `numLines`, `totalLines` | `content` / `filenames` |
+  | Glob | `filenames`, `durationMs`, `numFiles`, `truncated`, `totalMatches`, `countIsComplete` | `filenames` |
+  | WebFetch | `bytes`, `code`, `codeText`, `result`, `durationMs`, `url` | `result` |
 - `PostToolUse` runs **concurrently** for parallel tool calls: the daemon must be multi-threaded.
 - Docs: telemetry (OTel tool spans) records the original output before the hook runs, so folds don't hide
   data from the user's own observability.
@@ -51,7 +58,8 @@ Docs read: https://code.claude.com/docs/en/hooks. Evidence level: *exploratory* 
 
 - Interactive (TUI) sessions: everything above ran under `claude -p`.
 - Auto-compaction (`trigger: auto`); only manual `/compact` was exercised.
-- `updatedToolOutput` shapes for Bash, Grep, Glob, WebFetch.
+- That `updatedToolOutput` is accepted for Bash, Grep, Glob, WebFetch (shapes captured above, replacement only
+  tested on Read).
 - Two hooks returning `updatedInput` for the same call (e.g. alongside another plugin): precedence is
   undocumented. Matters for coexistence with context-mode.
 - Why `SessionStart` ignores `http` hooks (by design or a bug); the docs page was not conclusive.
