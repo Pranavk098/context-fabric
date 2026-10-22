@@ -216,3 +216,23 @@ def test_second_daemon_cannot_bind_same_port(daemon: Daemon, tmp_path: Path) -> 
     second = Daemon(tmp_path / "other", daemon.port)
     with pytest.raises(OSError):
         second.start()
+
+
+def test_start_does_not_wait_on_reverse_dns(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # HTTPServer.server_bind calls socket.getfqdn, which can stall for seconds on macOS.
+    import socket
+
+    def slow_getfqdn(name: str = "") -> str:
+        time.sleep(5.0)
+        return name
+
+    monkeypatch.setattr(socket, "getfqdn", slow_getfqdn)
+    d = Daemon(tmp_path / "cfx", 0)
+    t0 = time.perf_counter()
+    d.start()
+    try:
+        assert time.perf_counter() - t0 < 1.0
+    finally:
+        d.stop()

@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import os
 import socket
+import socketserver
 import sys
 import tempfile
 import threading
@@ -200,11 +201,17 @@ class _CfxdServer(ThreadingHTTPServer):
         # sessions starting together could run two daemons. Bind exclusively instead.
         allow_reuse_address = False
 
-        def server_bind(self) -> None:
+    def server_bind(self) -> None:
+        if os.name == "nt":
             exclusive = getattr(socket, "SO_EXCLUSIVEADDRUSE", None)
             if exclusive is not None:
                 self.socket.setsockopt(socket.SOL_SOCKET, exclusive, 1)
-            super().server_bind()
+        # Skip HTTPServer.server_bind: its socket.getfqdn reverse-DNS lookup can
+        # stall for seconds on macOS, longer than the launcher waits for health.
+        socketserver.TCPServer.server_bind(self)
+        host, port = self.server_address[:2]
+        self.server_name = str(host)
+        self.server_port = port
 
 
 class _Handler(BaseHTTPRequestHandler):
