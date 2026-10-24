@@ -1,0 +1,269 @@
+{
+ "title": "Plugin alpha exploratory results (2026-10-24)",
+ "evidence_level": "exploratory (small n, one developer machine, one model); not a headline",
+ "method": "claude -p, --model sonnet, plugin on vs off, alternating order, fresh session per run; tokens = input + cache_creation + cache_read from result usage (unweighted)",
+ "read_fold_forced_read": {
+  "runs": [
+   {
+    "task": "T1r",
+    "arm": "OFF",
+    "rep": 1,
+    "tokens_in_cc_cr": 140076,
+    "output_tokens": 1514,
+    "cost_usd": 0.311,
+    "turns": 3,
+    "correct": true
+   },
+   {
+    "task": "T1r",
+    "arm": "ON",
+    "rep": 1,
+    "tokens_in_cc_cr": 199173,
+    "output_tokens": 1319,
+    "cost_usd": 0.209,
+    "turns": 5,
+    "correct": true
+   },
+   {
+    "task": "T1r",
+    "arm": "OFF",
+    "rep": 2,
+    "tokens_in_cc_cr": 140079,
+    "output_tokens": 1669,
+    "cost_usd": 0.188,
+    "turns": 3,
+    "correct": true
+   },
+   {
+    "task": "T1r",
+    "arm": "ON",
+    "rep": 2,
+    "tokens_in_cc_cr": 199143,
+    "output_tokens": 1112,
+    "cost_usd": 0.189,
+    "turns": 5,
+    "correct": true
+   },
+   {
+    "task": "T2r",
+    "arm": "OFF",
+    "rep": 1,
+    "tokens_in_cc_cr": 454032,
+    "output_tokens": 1588,
+    "cost_usd": 0.383,
+    "turns": 12,
+    "correct": true
+   },
+   {
+    "task": "T2r",
+    "arm": "ON",
+    "rep": 1,
+    "tokens_in_cc_cr": 1131460,
+    "output_tokens": 3222,
+    "cost_usd": 0.571,
+    "turns": 29,
+    "correct": true
+   },
+   {
+    "task": "T2r",
+    "arm": "OFF",
+    "rep": 2,
+    "tokens_in_cc_cr": 396250,
+    "output_tokens": 1543,
+    "cost_usd": 0.398,
+    "turns": 12,
+    "correct": true
+   },
+   {
+    "task": "T2r",
+    "arm": "ON",
+    "rep": 2,
+    "tokens_in_cc_cr": 604509,
+    "output_tokens": 1632,
+    "cost_usd": 0.284,
+    "turns": 13,
+    "correct": true
+   },
+   {
+    "task": "T3r",
+    "arm": "OFF",
+    "rep": 1,
+    "tokens_in_cc_cr": 67075,
+    "output_tokens": 137,
+    "cost_usd": 0.413,
+    "turns": 1,
+    "correct": true
+   },
+   {
+    "task": "T3r",
+    "arm": "ON",
+    "rep": 1,
+    "tokens_in_cc_cr": 154647,
+    "output_tokens": 1365,
+    "cost_usd": 0.17,
+    "turns": 4,
+    "correct": false
+   },
+   {
+    "task": "T3r",
+    "arm": "OFF",
+    "rep": 2,
+    "tokens_in_cc_cr": 67072,
+    "output_tokens": 135,
+    "cost_usd": 0.291,
+    "turns": 1,
+    "correct": true
+   },
+   {
+    "task": "T3r",
+    "arm": "ON",
+    "rep": 2,
+    "tokens_in_cc_cr": 254678,
+    "output_tokens": 2091,
+    "cost_usd": 0.382,
+    "turns": 5,
+    "correct": true
+   }
+  ],
+  "off_mean_tokens": 210764,
+  "on_mean_tokens": 423935,
+  "note": "tasks that forbid Grep and require reading whole files; Read folding on vs plugin off"
+ },
+ "bash_fold_ab": {
+  "runs": [
+   {
+    "task": "B1",
+    "arm": "OFF",
+    "rep": 1,
+    "tokens_in_cc_cr": 321133,
+    "output_tokens": 1123,
+    "cost_usd": 0.2016,
+    "turns": 6,
+    "correct": true
+   },
+   {
+    "task": "B1",
+    "arm": "ON",
+    "rep": 1,
+    "tokens_in_cc_cr": 105982,
+    "output_tokens": 252,
+    "cost_usd": 0.038,
+    "turns": 2,
+    "correct": true
+   },
+   {
+    "task": "B1",
+    "arm": "OFF",
+    "rep": 2,
+    "tokens_in_cc_cr": 105986,
+    "output_tokens": 234,
+    "cost_usd": 0.0378,
+    "turns": 2,
+    "correct": true
+   },
+   {
+    "task": "B1",
+    "arm": "ON",
+    "rep": 2,
+    "tokens_in_cc_cr": 101556,
+    "output_tokens": 215,
+    "cost_usd": 0.1563,
+    "turns": 2,
+    "correct": true
+   },
+   {
+    "task": "B2",
+    "arm": "OFF",
+    "rep": 1,
+    "tokens_in_cc_cr": 255439,
+    "output_tokens": 1034,
+    "cost_usd": 0.1698,
+    "turns": 5,
+    "correct": true
+   },
+   {
+    "task": "B2",
+    "arm": "ON",
+    "rep": 1,
+    "tokens_in_cc_cr": 251609,
+    "output_tokens": 1357,
+    "cost_usd": 0.0429,
+    "turns": 5,
+    "correct": false
+   },
+   {
+    "task": "B2",
+    "arm": "OFF",
+    "rep": 2,
+    "tokens_in_cc_cr": 588174,
+    "output_tokens": 4399,
+    "cost_usd": 0.1394,
+    "turns": 16,
+    "correct": true
+   },
+   {
+    "task": "B2",
+    "arm": "ON",
+    "rep": 2,
+    "tokens_in_cc_cr": 482034,
+    "output_tokens": 4269,
+    "cost_usd": 0.2456,
+    "turns": 13,
+    "correct": true
+   },
+   {
+    "task": "B3",
+    "arm": "OFF",
+    "rep": 1,
+    "tokens_in_cc_cr": 100407,
+    "output_tokens": 443,
+    "cost_usd": 0.142,
+    "turns": 2,
+    "correct": true
+   },
+   {
+    "task": "B3",
+    "arm": "ON",
+    "rep": 1,
+    "tokens_in_cc_cr": 96537,
+    "output_tokens": 668,
+    "cost_usd": 0.1406,
+    "turns": 2,
+    "correct": true
+   },
+   {
+    "task": "B3",
+    "arm": "OFF",
+    "rep": 2,
+    "tokens_in_cc_cr": 100410,
+    "output_tokens": 452,
+    "cost_usd": 0.0176,
+    "turns": 2,
+    "correct": true
+   },
+   {
+    "task": "B3",
+    "arm": "ON",
+    "rep": 2,
+    "tokens_in_cc_cr": 100412,
+    "output_tokens": 522,
+    "cost_usd": 0.0183,
+    "turns": 2,
+    "correct": true
+   }
+  ],
+  "note": "long command output tasks; no measurable saving; only 2 folds happened"
+ },
+ "replay": {
+  "tool": "cfxd replay --since 30d",
+  "sessions": 852,
+  "baseline_weighted_cost": 3477007842.7,
+  "optimistic_best_simulated_cost": 3229756156.5,
+  "note": "k=3 batch=1 r=0 optimistic variant (no cache re-creation penalty); upper bound; the conservative variant is strongly negative"
+ },
+ "starting_prefix": {
+  "tool": "cfxd audit --since 30d",
+  "parent_sessions": 183,
+  "median_first_turn_context_tokens": 61903
+ }
+}
