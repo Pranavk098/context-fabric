@@ -5,16 +5,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv",
-            "args": [
-              "run",
-              "--no-project",
-              "--quiet",
-              "--python",
-              ">=3.12",
-              "${CLAUDE_PLUGIN_ROOT}/cfxd/launch.py",
-              "session-start"
-            ],
+            "shell": "bash",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/cfxd/launch.sh\" session-start",
             "timeout": 10
           }
         ]
@@ -25,17 +17,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv",
-            "args": [
-              "run",
-              "--no-project",
-              "--quiet",
-              "--python",
-              ">=3.12",
-              "${CLAUDE_PLUGIN_ROOT}/cfxd/launch.py",
-              "forward",
-              "PreCompact"
-            ],
+            "shell": "bash",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/cfxd/launch.sh\" forward PreCompact",
             "timeout": 5
           }
         ]

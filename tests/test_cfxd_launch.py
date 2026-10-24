@@ -148,17 +148,16 @@ def test_hooks_json_shape() -> None:
                 if hook["type"] == "http":
                     assert hook["url"] == f"http://127.0.0.1:47831/hooks/{event}"
                 elif hook["type"] == "command":
-                    assert hook["command"] == "uv"
-                    assert "${CLAUDE_PLUGIN_ROOT}/cfxd/launch.py" in hook["args"]
-                    assert hook["args"][:4] == ["run", "--no-project", "--quiet", "--python"]
+                    assert hook["shell"] == "bash"
+                    assert hook["command"].startswith('sh "${CLAUDE_PLUGIN_ROOT}/cfxd/launch.sh" ')
 
     session_start = events["SessionStart"][0]["hooks"][0]
     assert session_start["type"] == "command"
-    assert session_start["args"][-1] == "session-start"
+    assert session_start["command"].endswith(" session-start")
 
     pre_compact = events["PreCompact"][0]["hooks"][0]
     assert pre_compact["type"] == "command"
-    assert pre_compact["args"][-2:] == ["forward", "PreCompact"]
+    assert pre_compact["command"].endswith(" forward PreCompact")
 
     for event in ("PreToolUse", "PostToolUse", "SubagentStart", "SubagentStop"):
         group = events[event][0]
