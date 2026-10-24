@@ -23,6 +23,7 @@ from cfxd.daemon import (
     resolve_state_dir,
     run_serve,
 )
+from cfxd.stats import collect_stats, format_human
 
 _SHIM_PATH = Path(__file__).with_name("shim.py")
 
@@ -60,6 +61,18 @@ def _build_parser() -> argparse.ArgumentParser:
     doctor = subparsers.add_parser("doctor", help="health, auth, and latency checks")
     _add_state_dir(doctor)
     doctor.set_defaults(func=_cmd_doctor)
+
+    stats = subparsers.add_parser("stats", help="report fold and hook savings from the logs")
+    stats.add_argument("--session", default=None, help="filter both logs to a session id")
+    stats.add_argument(
+        "--since",
+        choices=("7d", "24h", "all"),
+        default="all",
+        help="time window (default: all)",
+    )
+    stats.add_argument("--json", action="store_true", help="emit a single JSON object")
+    _add_state_dir(stats)
+    stats.set_defaults(func=_cmd_stats)
 
     return parser
 
@@ -190,6 +203,15 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
         print("cfxd doctor: unhealthy")
         return 1
     print("cfxd doctor: healthy")
+    return 0
+
+
+def _cmd_stats(args: argparse.Namespace) -> int:
+    stats = collect_stats(resolve_state_dir(args.state_dir), args.since, args.session)
+    if args.json:
+        print(json.dumps(stats))
+    else:
+        print(format_human(stats))
     return 0
 
 
