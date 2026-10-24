@@ -1,9 +1,13 @@
 # Context Fabric alpha: install and try it
 
-Context Fabric is a Claude Code plugin that cuts the tokens a coding session spends. This alpha does three things:
+Context Fabric is a Claude Code plugin that tries to cut the tokens a coding session spends. **Whether it actually
+does is the question this alpha is for.** Our first small tests (a few tasks, a few runs each) showed no measurable
+saving yet, and one setting we first tried made some tasks cost more, so we turned it off. Please treat it as an
+experiment, not a money-saver. This alpha does three things:
 
-- **Fold.** When a tool returns a very large output (a big file, a long test log, a wide search), Claude sees a short
-  version plus the path to the full copy, and reads the rest only if it needs to. Nothing is deleted.
+- **Fold.** When a search or web fetch returns a very large output, Claude sees a short version plus the path to the
+  full copy, and reads the rest only if it needs to. Nothing is deleted. (File reads are not folded by default; in our
+  tests that made Claude re-read files and cost more. `cfxd set fold_read on` turns it on if you want to try.)
 - **Brief.** When Claude starts a sub-agent, a short note lists the files the main session already opened and where
   the full copies of large outputs are saved, so the sub-agent doesn't start from zero.
 - **Carry.** Before `/compact`, it notes which files and outputs the session was working with; afterwards it puts that
