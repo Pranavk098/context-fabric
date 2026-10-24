@@ -349,22 +349,58 @@ def _require_float(value: Any) -> float:
 
 
 _ASSIGN_SECRET_RE = re.compile(
-    r"(?i)\b([A-Za-z0-9_]*(?:token|secret|key|pass\w*|auth)[A-Za-z0-9_]*)\s*=\s*[^\s'\"]+"
+    r"(?i)\b([A-Za-z0-9_]*(?:token|secret|key|pass\w*|auth)[A-Za-z0-9_]*)"
+    r"\s*=\s*(?:\"[^\"]*\"|'[^']*'|[^\s'\"]+)"
+)
+_FLAG_SECRET_RE = re.compile(
+    r"(?i)(--(?:password|passwd|pass|token|secret|api-key))(\s*=\s*|\s+)"
+    r"(?:\"[^\"]*\"|'[^']*'|[^\s'\"]+)"
 )
 _BEARER_RE = re.compile(r"(?i)\bBearer\s+[^\s'\"]+")
-_PFLAG_RE = re.compile(r"(?<!\S)-p\S+")
+_HEADER_SECRET_RE = re.compile(
+    r"(?i)\b(authorization|proxy-authorization|x-api-key|cookie|set-cookie)"
+    r"\s*:\s*(?!\s)(?!Bearer\b)[^\"'\r\n]+"
+)
+_USER_FLAG_RE = re.compile(r"(?i)(-u|--user)(\s*=\s*|\s+)([^\s'\"]+):([^\s'\"]+)")
 _URL_USERPASS_RE = re.compile(r"([A-Za-z][A-Za-z0-9+.-]*://[^/\s@:]+):([^/\s@]+)@")
+_URL_USER_RE = re.compile(r"([A-Za-z][A-Za-z0-9+.-]*://)[^/\s@:]+@")
+_BARE_TOKEN_RE = re.compile(
+    r"(ghp_\w+|github_pat_\w+|sk-[\w-]{16,}|xox[abprs]-[\w-]+|"
+    r"AKIA[0-9A-Z]{16}|eyJ[\w-]+\.[\w-]+\.[\w-]+)"
+)
+_P_COMMANDS = frozenset({"mysql", "mysqldump", "sshpass"})
+_P_ATTACHED_RE = re.compile(r"(?<!\S)-p[^\s-][^\s]*")
+_P_SPACED_RE = re.compile(r"(?<!\S)-p\s+([^-\s][^\s]*)")
+
+
+def _command_name(cmd: str) -> str:
+    for token in cmd.split():
+        if "=" in token:
+            continue
+        return token.replace("\\", "/").rsplit("/", 1)[-1]
+    return ""
+
+
+def _redact_p(cmd: str) -> str:
+    if _command_name(cmd) not in _P_COMMANDS:
+        return cmd
+    cmd = _P_ATTACHED_RE.sub("-p***", cmd)
+    return _P_SPACED_RE.sub("-p ***", cmd)
 
 
 def redact_command(cmd: str) -> str:
-    """Redact secrets from a command: ``NAME=***``, ``Bearer ***``, ``-p***``, ``user:***@``."""
+    """Redact secrets from a command line; see ``test_cfxd_security`` for the matrix."""
     if not isinstance(cmd, str):
         return ""
     cmd = _ASSIGN_SECRET_RE.sub(r"\1=***", cmd)
+    cmd = _FLAG_SECRET_RE.sub(r"\1\2***", cmd)
     cmd = _BEARER_RE.sub("Bearer ***", cmd)
-    cmd = _PFLAG_RE.sub("-p***", cmd)
+    cmd = _HEADER_SECRET_RE.sub(r"\1: ***", cmd)
+    cmd = _USER_FLAG_RE.sub(r"\1\2\3:***", cmd)
     cmd = _URL_USERPASS_RE.sub(r"\1:***@", cmd)
-    return cmd
+    cmd = _URL_USER_RE.sub(r"\1***@", cmd)
+    cmd = _BARE_TOKEN_RE.sub("***", cmd)
+    return _redact_p(cmd)
 
 
 def reset() -> None:
