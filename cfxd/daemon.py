@@ -178,11 +178,20 @@ def verify_identity(state_dir: Path, port: int) -> bool:
     return isinstance(proof, str) and hmac.compare_digest(proof, expected)
 
 
-def post_hook(port: int, event: str, payload: bytes, timeout: float = 1.0) -> tuple[int, bytes]:
+def post_hook(
+    port: int,
+    event: str,
+    payload: bytes,
+    timeout: float = 1.0,
+    token: str | None = None,
+) -> tuple[int, bytes]:
+    headers = {"Content-Type": "application/json"}
+    if token is not None:
+        headers["X-Cfx-Token"] = token
     req = Request(
         f"http://127.0.0.1:{port}/hooks/{event}",
         data=payload,
-        headers={"Content-Type": "application/json"},
+        headers=headers,
         method="POST",
     )
     try:
@@ -373,7 +382,20 @@ class _Handler(BaseHTTPRequestHandler):
             return "content-type"
         return None
 
-    def _reject(self, event: str, reason: str, start: float, bytes_in: int) -> None:
+    def _token_ok(self) -> bool:
+        supplied = self.headers.get("X-Cfx-Token")
+        token = self._daemon.token
+        return isinstance(supplied, str) and bool(token) and hmac.compare_digest(supplied, token)
+
+    def _reject(
+        self,
+        event: str,
+        reason: str,
+        start: float,
+        bytes_in: int,
+        status: int = 403,
+        message: str = "forbidden",
+    ) -> None:
         self._daemon.log_event(
             {
                 "ts": datetime.now(UTC).isoformat(),
@@ -388,7 +410,7 @@ class _Handler(BaseHTTPRequestHandler):
             }
         )
         self.close_connection = True
-        self._send_json(403, {"error": "forbidden"})
+        self._send_json(status, {"error": message})
 
     def _send_close(self, status: int, obj: dict[str, Any]) -> None:
         self.close_connection = True
@@ -441,6 +463,9 @@ class _Handler(BaseHTTPRequestHandler):
             return
         if length > MAX_BODY_BYTES:
             self._send_close(413, {"error": "too large"})
+            return
+        if not self._token_ok():
+            self._reject(event, "token", start, 0, status=401, message="unauthorized")
             return
         body = self.rfile.read(length) if length else b""
         payload, tool_name, session_id = _parse_payload(body)

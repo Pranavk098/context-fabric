@@ -26,11 +26,12 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "*",
+        "matcher": "Agent",
         "hooks": [
           {
-            "type": "http",
-            "url": "http://127.0.0.1:47831/hooks/PreToolUse",
+            "type": "command",
+            "shell": "bash",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/cfxd/launch.sh\" forward PreToolUse",
             "timeout": 2
           }
         ]
@@ -41,31 +42,11 @@
         "matcher": "*",
         "hooks": [
           {
-            "type": "http",
-            "url": "http://127.0.0.1:47831/hooks/PostToolUse",
-            "timeout": 2
-          }
-        ]
-      }
-    ],
-    "SubagentStart": [
-      {
-        "hooks": [
-          {
-            "type": "http",
-            "url": "http://127.0.0.1:47831/hooks/SubagentStart",
-            "timeout": 2
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "hooks": [
-          {
-            "type": "http",
-            "url": "http://127.0.0.1:47831/hooks/SubagentStop",
-            "timeout": 2
+            "type": "command",
+            "shell": "bash",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/cfxd/launch.sh\" forward PostToolUse",
+            "timeout": 2,
+            "async": true
           }
         ]
       }

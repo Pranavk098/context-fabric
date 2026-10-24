@@ -29,6 +29,15 @@ def _state_dir() -> str:
     return os.path.join(profile, ".cfx", "daemon")
 
 
+def _token() -> str | None:
+    try:
+        with open(os.path.join(_state_dir(), "token"), encoding="utf-8") as fh:
+            token = fh.read().strip()
+    except OSError:
+        return None
+    return token or None
+
+
 def main() -> int:
     try:
         if len(sys.argv) < 2:
@@ -37,10 +46,16 @@ def main() -> int:
         with open(os.path.join(_state_dir(), "state.json"), encoding="utf-8") as fh:
             state = json.load(fh)
         port = state["port"]
+        headers = {"Content-Type": "application/json"}
+        # shortcut: no /health identity proof here — state.json and the token share one
+        # 0700 dir, so a squatter would have to be same-user (who can read the token anyway).
+        token = _token()
+        if token:
+            headers["X-Cfx-Token"] = token
         request = urllib.request.Request(
             f"http://127.0.0.1:{port}/hooks/{event}",
             data=sys.stdin.read().encode("utf-8"),
-            headers={"Content-Type": "application/json"},
+            headers=headers,
             method="POST",
         )
         with urllib.request.urlopen(request, timeout=_TIMEOUT) as response:

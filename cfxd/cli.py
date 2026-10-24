@@ -23,6 +23,7 @@ from cfxd.daemon import (
     percentile,
     post_hook,
     read_state,
+    read_token,
     resolve_state_dir,
     run_serve,
     verify_identity,
@@ -240,10 +241,11 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
 
     samples: list[float] = []
     ok_trips = 0
+    token = read_token(state_dir)
     for _ in range(200):
         start = time.perf_counter()
         try:
-            status, _ = post_hook(port, "PreToolUse", b"{}")
+            status, _ = post_hook(port, "PreToolUse", b"{}", token=token)
         except OSError:
             status = -1
         samples.append((time.perf_counter() - start) * 1000.0)
