@@ -25,9 +25,16 @@ _PLUGIN_ROOT = Path(__file__).resolve().parent.parent
 if str(_PLUGIN_ROOT) not in sys.path:
     sys.path.insert(0, str(_PLUGIN_ROOT))
 
-from cfxd.daemon import DEFAULT_PORT, _health_ok, post_hook, resolve_state_dir  # noqa: E402
+from cfxd.daemon import DEFAULT_PORT, _health_ok, post_hook, resolve_state_dir, verify_identity  # noqa: E402
+from cfxd.fsutil import ensure_dir, open_log  # noqa: E402
 
 HEALTH_POLL_SECONDS = 3.0
+
+_SQUATTER_WARNING = (
+    '{"systemMessage":"Context Fabric: something else is using port 47831, '
+    "or an old Context Fabric daemon is running. Hooks are not protected. "
+    'Restart your computer or run: python -m cfxd stop"}'
+)
 
 # Windows process creation flags: detached, own process group, no console window.
 _DETACHED = 0x00000008
@@ -41,7 +48,7 @@ def _port() -> int:
 
 
 def _spawn(state_dir: Path, port: int) -> None:
-    state_dir.mkdir(parents=True, exist_ok=True)
+    ensure_dir(state_dir)
     cmd = [
         sys.executable,
         "-m",
@@ -52,25 +59,29 @@ def _spawn(state_dir: Path, port: int) -> None:
         "--port",
         str(port),
     ]
-    with open(state_dir / "daemon.log", "ab") as log:
-        if os.name == "nt":
-            subprocess.Popen(
-                cmd,
-                cwd=str(_PLUGIN_ROOT),
-                stdin=subprocess.DEVNULL,
-                stdout=log,
-                stderr=log,
-                creationflags=_DETACHED | _NEW_PROCESS_GROUP | _NO_WINDOW,
-            )
-        else:
-            subprocess.Popen(
-                cmd,
-                cwd=str(_PLUGIN_ROOT),
-                stdin=subprocess.DEVNULL,
-                stdout=log,
-                stderr=log,
-                start_new_session=True,
-            )
+    old_umask = os.umask(0o077)
+    try:
+        with open_log(state_dir / "daemon.log") as log:
+            if os.name == "nt":
+                subprocess.Popen(
+                    cmd,
+                    cwd=str(_PLUGIN_ROOT),
+                    stdin=subprocess.DEVNULL,
+                    stdout=log,
+                    stderr=log,
+                    creationflags=_DETACHED | _NEW_PROCESS_GROUP | _NO_WINDOW,
+                )
+            else:
+                subprocess.Popen(
+                    cmd,
+                    cwd=str(_PLUGIN_ROOT),
+                    stdin=subprocess.DEVNULL,
+                    stdout=log,
+                    stderr=log,
+                    start_new_session=True,
+                )
+    finally:
+        os.umask(old_umask)
 
 
 def _wait_healthy(port: int, timeout: float = HEALTH_POLL_SECONDS) -> bool:
@@ -101,8 +112,15 @@ def _post(event: str, payload: bytes, timeout: float) -> None:
 def _session_start() -> int:
     payload = sys.stdin.buffer.read()
     port = _port()
+    state_dir = resolve_state_dir()
     if not _health_ok(port):
         _ensure_daemon(port)
+    if not verify_identity(state_dir, port):
+        if _health_ok(port):
+            # Something answers /health but cannot prove it is our daemon.
+            print(_SQUATTER_WARNING)
+            return 0
+        # Nothing answers: fall through to the normal fail-open forward.
     _post("SessionStart", payload, 1.0)
     return 0
 
@@ -114,10 +132,11 @@ def _forward(event: str) -> int:
 
 def _ensure() -> int:
     port = _port()
+    state_dir = resolve_state_dir()
     if _health_ok(port):
-        print("already running")
+        print("already running" if verify_identity(state_dir, port) else _SQUATTER_WARNING)
     elif _ensure_daemon(port):
-        print("started")
+        print("started" if verify_identity(state_dir, port) else _SQUATTER_WARNING)
     else:
         print("start failed")
     return 0
