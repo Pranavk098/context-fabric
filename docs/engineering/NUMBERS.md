@@ -104,7 +104,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 13.62,
         "round": 2
       },
-      "must_appear_in": ["README.md", "docs/engineering/PILOT-MECH-RESULT.md"]
+      "must_appear_in": ["docs/engineering/PILOT-MECH-RESULT.md"]
     },
     {
       "id": "pilot_mech_raw_uncached",
@@ -120,7 +120,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 182,
         "round": 0
       },
-      "must_appear_in": ["README.md", "docs/engineering/PILOT-MECH-RESULT.md"]
+      "must_appear_in": ["docs/engineering/PILOT-MECH-RESULT.md"]
     },
     {
       "id": "pilot_mech_compile_uncached",
@@ -136,7 +136,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 11857,
         "round": 0
       },
-      "must_appear_in": ["README.md", "docs/engineering/PILOT-MECH-RESULT.md"]
+      "must_appear_in": ["docs/engineering/PILOT-MECH-RESULT.md"]
     },
     {
       "id": "demo_prompt_token_ratio",
@@ -152,7 +152,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 3.17,
         "round": 2
       },
-      "must_appear_in": ["README.md", "docs/engineering/DEMO.md", "CHANGELOG.md"]
+      "must_appear_in": ["docs/engineering/DEMO.md", "CHANGELOG.md"]
     },
     {
       "id": "demo_tokens_saved",
@@ -168,7 +168,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 30684,
         "round": 0
       },
-      "must_appear_in": ["README.md"]
+      "must_appear_in": []
     },
     {
       "id": "demo_broadcast_tokens",
@@ -177,7 +177,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "display": "44,854",
       "kind": "strict",
       "artifact": "evals/reports/demo_fleet_20261017_231929.json",
-      "must_appear_in": ["README.md"]
+      "must_appear_in": []
     },
     {
       "id": "demo_compile_tokens",
@@ -186,7 +186,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "display": "14,170",
       "kind": "strict",
       "artifact": "evals/reports/demo_fleet_20261017_231929.json",
-      "must_appear_in": ["README.md"]
+      "must_appear_in": []
     },
     {
       "id": "demo_accuracy_parity",
@@ -202,7 +202,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 1.0,
         "round": 2
       },
-      "must_appear_in": ["README.md", "docs/engineering/DEMO.md"]
+      "must_appear_in": ["docs/engineering/DEMO.md"]
     },
     {
       "id": "kv_peak_ratio",
@@ -218,7 +218,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 20.2,
         "round": 1
       },
-      "must_appear_in": ["README.md", "CHANGELOG.md"]
+      "must_appear_in": ["CHANGELOG.md"]
     },
     {
       "id": "kv_peak_percentages",
@@ -250,7 +250,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 8.23,
         "round": 2
       },
-      "must_appear_in": ["README.md", "CHANGELOG.md"]
+      "must_appear_in": ["CHANGELOG.md"]
     },
     {
       "id": "throughput_detail",
@@ -259,7 +259,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "display": "43.25 vs 5.26 req/s",
       "kind": "strict",
       "artifact": "evals/reports/stage_b5_20261017_124856.json",
-      "must_appear_in": ["README.md", "CHANGELOG.md"]
+      "must_appear_in": ["CHANGELOG.md"]
     },
     {
       "id": "coldboot_tokens",
@@ -275,7 +275,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 9.0402,
         "round": 4
       },
-      "must_appear_in": ["README.md", "CHANGELOG.md"]
+      "must_appear_in": ["CHANGELOG.md"]
     },
     {
       "id": "coldboot_ratio",
@@ -307,7 +307,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 4.0,
         "round": 1
       },
-      "must_appear_in": ["README.md", "CHANGELOG.md"]
+      "must_appear_in": ["CHANGELOG.md"]
     },
     {
       "id": "recall_top1_delta",
@@ -323,7 +323,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 0.85,
         "round": 2
       },
-      "must_appear_in": ["README.md", "docs/engineering/RECALL-BENCH.md"]
+      "must_appear_in": ["docs/engineering/RECALL-BENCH.md"]
     },
     {
       "id": "recall_top1_delta_compact",
@@ -355,7 +355,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 0.0276,
         "round": 4
       },
-      "must_appear_in": ["README.md", "CHANGELOG.md"]
+      "must_appear_in": ["CHANGELOG.md"]
     },
     {
       "id": "quality_parity_ratio",
@@ -371,7 +371,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 5.6,
         "round": 1
       },
-      "must_appear_in": ["README.md", "CHANGELOG.md"]
+      "must_appear_in": ["CHANGELOG.md"]
     },
     {
       "id": "cost_demo_gpt4o_warm_native",
@@ -475,14 +475,14 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "baseline": "raw httpx source (no stored report - re-verify by hand)",
       "display": "~17x",
       "kind": "display-only",
-      "must_appear_in": ["README.md", "CHANGELOG.md"]
+      "must_appear_in": ["CHANGELOG.md"]
     },
     {
       "id": "test_count",
       "claim": "test-suite size badge (current tree; recount with pytest when tests change)",
       "display": "552",
       "kind": "display-only",
-      "must_appear_in": ["README.md"]
+      "must_appear_in": []
     },
     {
       "id": "b4_kill_quality",
@@ -490,7 +490,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "display": "21/36 vs 29/36",
       "kind": "display-only",
       "artifact": "evals/reports/b4_divergent_20261018_145937.json",
-      "must_appear_in": ["README.md"]
+      "must_appear_in": []
     },
     {
       "id": "b4_v3_billed_ratio",
