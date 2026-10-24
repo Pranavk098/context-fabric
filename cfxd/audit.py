@@ -70,6 +70,13 @@ def _tool_bucket(name: str) -> str:
     return name
 
 
+def _attachment_category(att_type: object) -> str:
+    """Name an attachment line's category from its ``attachment.type`` (open-ended)."""
+    if isinstance(att_type, str) and _TYPE_NAME_RE.fullmatch(att_type):
+        return "attachment:" + att_type
+    return "attachment:other"
+
+
 def _texts(content: Any) -> list[str]:
     """Flatten a tool-result ``content`` (str or list of blocks) to its text strings."""
     if isinstance(content, str):
@@ -204,11 +211,11 @@ def _scan(path: Path, known: set[int] | None = None) -> dict[str, Any]:
 
     def _add(cat: str, nbytes: int, count: int, prefix: bool) -> None:
         nonlocal total_bytes
-        cat_bytes[cat] += nbytes
-        cat_count[cat] += count
+        cat_bytes[cat] = cat_bytes.get(cat, 0) + nbytes
+        cat_count[cat] = cat_count.get(cat, 0) + count
         total_bytes += nbytes
         if prefix:
-            prefix_bytes[cat] += nbytes
+            prefix_bytes[cat] = prefix_bytes.get(cat, 0) + nbytes
 
     def _other(name: object, nbytes: int, count: int, prefix: bool) -> None:
         _add("other", nbytes, count, prefix)
@@ -234,7 +241,7 @@ def _scan(path: Path, known: set[int] | None = None) -> dict[str, Any]:
             if isinstance(att_type, str) and att_type.startswith("hook_"):
                 _add("hook_additional_context", _json_bytes(obj), 1, prefix)
             else:
-                _other("attachment", _json_bytes(obj), 1, prefix)
+                _add(_attachment_category(att_type), _json_bytes(obj), 1, prefix)
             continue
         if obj_type == "system":
             if "hookAdditionalContext" in obj or obj.get("subtype") == "stop_hook_summary":
@@ -392,9 +399,7 @@ def _scan(path: Path, known: set[int] | None = None) -> dict[str, Any]:
         "before_first_touch": before_first_touch,
         "touched": touched,
         "own_known": own_known,
-        "comp_categories": {
-            c: {"bytes": cat_bytes[c], "count": cat_count[c]} for c in _COMP_CATEGORIES
-        },
+        "comp_categories": {c: {"bytes": cat_bytes[c], "count": cat_count[c]} for c in cat_bytes},
         "comp_tool_input": tool_input,
         "comp_other_types": other_types,
         "comp_prefix": prefix_bytes,
@@ -448,19 +453,19 @@ def _group_summary(
     """Build one group's composition block from aggregated category bytes/counts."""
     total = sum(bytes_.values())
     categories: dict[str, Any] = {}
-    for cat in _COMP_CATEGORIES:
-        entry: dict[str, Any] = {"bytes": bytes_[cat], "count": counts[cat]}
+    for cat, nbytes in bytes_.items():
+        entry: dict[str, Any] = {"bytes": nbytes, "count": counts.get(cat, 0)}
         if cat == "tool_use_input":
             entry["by_tool"] = tool_input
         elif cat == "other":
             entry["types"] = other_types
         categories[cat] = entry
-    shares = {cat: round(bytes_[cat] / total, 4) if total else 0.0 for cat in _COMP_CATEGORIES}
+    shares = {cat: round(nbytes / total, 4) if total else 0.0 for cat, nbytes in bytes_.items()}
     return {
         "total_bytes": total,
         "categories": categories,
         "shares": shares,
-        "estimated_tokens": {cat: round(bytes_[cat] / 4.0, 1) for cat in _COMP_CATEGORIES},
+        "estimated_tokens": {cat: round(nbytes / 4.0, 1) for cat, nbytes in bytes_.items()},
     }
 
 
@@ -491,6 +496,7 @@ def audit(root: Path, since: str = "30d", now: datetime | None = None) -> dict[s
     comp_other_types: dict[str, int] = {}
     prefix_lists: dict[str, list[int]] = {c: [] for c in _COMP_CATEGORIES}
     whole_lists: dict[str, list[int]] = {c: [] for c in _COMP_CATEGORIES}
+    prefix_present: dict[str, list[int]] = {}
     first_turn_tokens_list: list[int] = []
     visible_before_list: list[int] = []
 
@@ -510,9 +516,9 @@ def audit(root: Path, since: str = "30d", now: datetime | None = None) -> dict[s
         if r["after_last"] is not None:
             after_last_counts.append(r["after_last"])
         parent_known[path.stem] = r["own_known"]
-        for cat in _COMP_CATEGORIES:
-            comp_bytes[cat] += r["comp_categories"][cat]["bytes"]
-            comp_count[cat] += r["comp_categories"][cat]["count"]
+        for cat, entry in r["comp_categories"].items():
+            comp_bytes[cat] = comp_bytes.get(cat, 0) + entry["bytes"]
+            comp_count[cat] = comp_count.get(cat, 0) + entry["count"]
         for tool, slot in r["comp_tool_input"].items():
             comp_tool_input[tool]["bytes"] += slot["bytes"]
             comp_tool_input[tool]["count"] += slot["count"]
@@ -522,6 +528,9 @@ def audit(root: Path, since: str = "30d", now: datetime | None = None) -> dict[s
             for cat in _COMP_CATEGORIES:
                 prefix_lists[cat].append(r["comp_prefix"][cat])
                 whole_lists[cat].append(r["comp_categories"][cat]["bytes"])
+            for cat, nbytes in r["comp_prefix"].items():
+                if nbytes > 0:
+                    prefix_present.setdefault(cat, []).append(nbytes)
             first_turn_tokens_list.append(r["first_turn_tokens"])
             visible_before_list.append(r["visible_before_first"])
 
@@ -546,9 +555,9 @@ def audit(root: Path, since: str = "30d", now: datetime | None = None) -> dict[s
             fractions.append((r["before_first_touch"] or 0.0) / r["weighted"])
         else:
             never_touched += 1
-        for cat in _COMP_CATEGORIES:
-            sub_comp_bytes[cat] += r["comp_categories"][cat]["bytes"]
-            sub_comp_count[cat] += r["comp_categories"][cat]["count"]
+        for cat, entry in r["comp_categories"].items():
+            sub_comp_bytes[cat] = sub_comp_bytes.get(cat, 0) + entry["bytes"]
+            sub_comp_count[cat] = sub_comp_count.get(cat, 0) + entry["count"]
         for tool, slot in r["comp_tool_input"].items():
             sub_comp_tool_input[tool]["bytes"] += slot["bytes"]
             sub_comp_tool_input[tool]["count"] += slot["count"]
@@ -594,6 +603,18 @@ def audit(root: Path, since: str = "30d", now: datetime | None = None) -> dict[s
         "visible_tokens_estimated_median": round(visible_bytes_median / 4.0, 1),
         "ratio_median": round(percentile(ratios, 50), 3),
     }
+    by_item: dict[str, dict[str, Any]] = {}
+    for cat, vals in prefix_present.items():
+        med = _pctl(vals, 50)
+        by_item[cat] = {
+            "median_bytes": round(med, 1),
+            "estimated_tokens": round(med / 4.0, 1),
+            "sessions_present": len(vals),
+        }
+    parents_group["starting_prefix_by_item"] = by_item
+    parents_group["starting_prefix_by_item_total_median_bytes"] = round(
+        sum(v["median_bytes"] for v in by_item.values()), 1
+    )
     subagents_group = _group_summary(
         sub_comp_bytes, sub_comp_count, sub_comp_tool_input, sub_comp_other_types
     )
@@ -644,16 +665,19 @@ def audit(root: Path, since: str = "30d", now: datetime | None = None) -> dict[s
 
 
 def _comp_group_lines(label: str, group: dict[str, Any]) -> list[str]:
-    """Human lines for one composition group (counts and sizes only)."""
+    """Human lines for one composition group: top 8 categories by bytes."""
     total = group["total_bytes"]
     lines = [
         f"Context composition ({label}):",
         f"  total {total:,} bytes (~{total / 4:,.0f} est. tokens)",
     ]
-    for cat in _COMP_CATEGORIES:
-        st = group["categories"][cat]
+    ranked = sorted(group["categories"].items(), key=lambda kv: (-kv[1]["bytes"], kv[0]))
+    for cat, st in ranked[:8]:
         share = group["shares"][cat]
-        line = f"  {cat}: {st['count']:,} blocks, {st['bytes']:,} bytes ({share * 100:.1f}%)"
+        line = (
+            f"  {cat}: {st['count']:,} blocks, {st['bytes']:,} bytes "
+            f"({share * 100:.1f}%, ~{st['bytes'] / 4:,.0f} est. tokens)"
+        )
         if cat == "tool_use_input":
             bt = st["by_tool"]
             line += " (" + ", ".join(f"{t} {bt[t]['bytes']:,}" for t in _TOOL_INPUT_BUCKETS) + ")"
@@ -665,6 +689,10 @@ def _comp_group_lines(label: str, group: dict[str, Any]) -> list[str]:
                 )
                 line += f" [types: {top}]"
         lines.append(line)
+    rest = ranked[8:]
+    if rest:
+        rest_share = sum(st["bytes"] for _, st in rest) / total if total else 0.0
+        lines.append(f"  other categories: {len(rest)}, {rest_share * 100:.1f}%")
     return lines
 
 
@@ -724,6 +752,18 @@ def format_human(report: dict[str, Any], dir_name: str = ".") -> str:
         f"First-turn context (parents): median usage {ft['usage_tokens_median']:,.0f} tokens vs "
         f"{ft['visible_tokens_estimated_median']:,.0f} est. visible tokens -> "
         f"ratio {ft['ratio_median']:.2f}"
+    )
+    by_item = pg["starting_prefix_by_item"]
+    lines.append("Starting prefix by item (first 3 assistant turns, parents):")
+    for cat, item in sorted(by_item.items(), key=lambda kv: -kv[1]["median_bytes"]):
+        lines.append(
+            f"  {cat}: {item['median_bytes']:,.0f} bytes (~{item['estimated_tokens']:,.0f} "
+            f"est. tokens) in {item['sessions_present']:,} sessions"
+        )
+    total_by_item = pg["starting_prefix_by_item_total_median_bytes"]
+    lines.append(
+        f"  typical starting prefix visible in the transcript: {total_by_item:,.0f} bytes "
+        f"(~{total_by_item / 4:,.0f} est. tokens)"
     )
     lines.extend(_comp_group_lines("sub-agents", report["composition"]["subagents"]))
     lines.append("This report contains counts and sizes only; no paths, commands or text.")
