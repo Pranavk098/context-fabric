@@ -43,7 +43,8 @@ def main() -> int:
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        with urllib.request.urlopen(request, timeout=_TIMEOUT) as response:
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))  # loopback: no proxy
+        with opener.open(request, timeout=_TIMEOUT) as response:
             body = response.read()
         sys.stdout.write(body.decode("utf-8"))
         return 0

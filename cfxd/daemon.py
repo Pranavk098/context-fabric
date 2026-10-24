@@ -26,7 +26,7 @@ from pathlib import Path
 from typing import Any, cast
 from urllib.error import HTTPError
 from urllib.parse import parse_qs, unquote, urlparse
-from urllib.request import Request, urlopen
+from urllib.request import ProxyHandler, Request, build_opener
 
 from cfxd import __version__, session_state
 from cfxd.brief import install as brief_install
@@ -48,6 +48,9 @@ EVENTS_ROTATE_BYTES = 20 * 1024 * 1024
 _BUSY_RESPONSE = (
     b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
 )
+
+# Our own calls are loopback-only: never route them through a proxy set in the environment.
+_OPENER = build_opener(ProxyHandler({}))
 
 # Handlers run here so a slow one is abandoned at the deadline instead of holding the hook.
 _POOL = ThreadPoolExecutor(max_workers=16, thread_name_prefix="cfxd-handler")
@@ -149,7 +152,7 @@ def get_health(
     if nonce is not None:
         url += f"?nonce={nonce}"
     try:
-        with urlopen(url, timeout=timeout) as resp:
+        with _OPENER.open(url, timeout=timeout) as resp:
             return resp.status, resp.read()
     except HTTPError as exc:
         return exc.code, exc.read()
@@ -186,7 +189,7 @@ def post_hook(port: int, event: str, payload: bytes, timeout: float = 1.0) -> tu
         method="POST",
     )
     try:
-        with urlopen(req, timeout=timeout) as resp:
+        with _OPENER.open(req, timeout=timeout) as resp:
             return resp.status, resp.read()
     except HTTPError as exc:
         return exc.code, exc.read()

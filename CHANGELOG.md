@@ -5,6 +5,17 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added (2026-10-24)
+- Claude Code plugin alpha (`cfxd`): resident local daemon with brief, carry and fold (fold off by default),
+  `stats`, `audit`, `replay`, `doctor`; Windows, macOS and Linux CI; `cfxd` ships in the wheel with a `cfxd` command.
+- `docs/INSTALL-ALPHA.md`, `SECURITY.md`, alpha-feedback issue template; README rewritten for the plugin era.
+
+### Fixed
+- cfxd's own loopback calls no longer go through an HTTP proxy set in the environment.
+- Tests are hermetic with respect to proxy environment variables.
+- CI workflows use read-only token permissions and commit-pinned actions; `docker-compose.yml` publishes the
+  inference port on 127.0.0.1 only.
+
 ### Security hardening (G2/G3, 2026-10-19)
 - **CORS opt-in allow-list** — `cfx serve` no longer emits permissive
   `Access-Control-Allow-Origin: *`; CORS is off by default and any request with a browser

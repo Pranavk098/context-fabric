@@ -31,7 +31,12 @@ laptop or desktop.
   - Windows (PowerShell): `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
 - **Windows only:** Git for Windows (Claude Code uses its Git Bash; the plugin's start-up script runs there).
 
-Then open a new terminal so `uv` is found.
+Then open a new terminal so `uv` is found, and run this once so the first Claude Code session does not have to
+download Python inside a hook (that can time out; the plugin then simply starts a session later):
+
+```
+uv python install 3.12
+```
 
 ## Install
 
@@ -79,6 +84,10 @@ uvx --from git+https://github.com/Pranavk098/context-fabric cfxd stats
 tokens go. Tell us too if anything broke or felt slower.
 
 ## What it keeps on your computer
+
+The helper receives each tool call's input and output in memory while Claude Code runs (it needs them to build the
+brief and carry notes), so treat it like any tool that sits next to your agent. It does not send anything over the
+network. It writes only the files below, and never the contents of your files or tool output unless you turn fold on.
 
 Everything stays on your machine. The helper only listens on your own computer (`127.0.0.1`) and the plugin makes no
 network calls.
