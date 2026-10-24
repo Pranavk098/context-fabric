@@ -23,12 +23,14 @@ from typing import Any
 
 from cfxd import session_state
 from cfxd.config import read_config
+from cfxd.fsutil import ensure_dir, open_log, rotate
 from cfxd.handlers import register
 
 FOLD_MIN_BYTES = 20_000
 EXCERPT_MAX_BYTES = 4_000
 OBS_DIR = "obs"
 FOLDS_LOG = "folds.jsonl"
+FOLDS_ROTATE_BYTES = 5 * 1024 * 1024
 _SAVE_TTL_SECONDS = 7 * 24 * 3600
 
 _FOLD_TOOLS = ("Read", "Bash", "Grep", "WebFetch")
@@ -416,7 +418,7 @@ def _save(path: Path, content: str) -> None:
         # Refresh its age so pruning doesn't delete a file a new fold points to.
         os.utime(path)
         return
-    path.parent.mkdir(parents=True, exist_ok=True)
+    ensure_dir(path.parent)
     fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=".obs.", suffix=".tmp")
     try:
         with os.fdopen(fd, "w", encoding="utf-8", newline="") as fh:
@@ -451,7 +453,8 @@ def _log_fold(
         "obs_id": obs_id,
     }
     with _fold_log_lock:
-        with (state_dir / FOLDS_LOG).open("a", encoding="utf-8") as fh:
+        rotate(state_dir / FOLDS_LOG, FOLDS_ROTATE_BYTES)
+        with open_log(state_dir / FOLDS_LOG) as fh:
             fh.write(json.dumps(entry) + "\n")
 
 

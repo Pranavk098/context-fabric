@@ -12,11 +12,13 @@ import copy
 import hashlib
 import json
 import threading
+import unicodedata
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from cfxd.config import read_config
+from cfxd.fsutil import ensure_dir, open_log
 from cfxd.handlers import register
 from cfxd.session_state import FileFact, FoldFact, SessionFacts, snapshot
 
@@ -170,9 +172,13 @@ def _rank_files(files: tuple[FileFact, ...], prompt: str) -> list[FileFact]:
 def _sanitize(text: str) -> str:
     out: list[str] = []
     for ch in text:
-        if ch in "\r\n":
-            out.append(" ")
-        elif ch in "<>`" or ord(ch) < 32 or ord(ch) == 127:
+        if ch == " ":
+            out.append(ch)
+        elif ch in "<>`":
+            continue
+        elif unicodedata.category(ch)[0] in ("Z", "C"):
+            # Drop separators (U+2028/2029, nbsp) and control/format (U+0085, bidi
+            # marks, surrogates) that could close the delimiter or spoof the model.
             continue
         else:
             out.append(ch)
@@ -234,7 +240,7 @@ def _receipt(
             hashlib.sha256(packet.encode("utf-8")).hexdigest()[:16] if packet is not None else None
         ),
     }
-    state_dir.mkdir(parents=True, exist_ok=True)
+    ensure_dir(state_dir)
     with _receipt_lock:
-        with (state_dir / BRIEFS_LOG).open("a", encoding="utf-8") as fh:
+        with open_log(state_dir / BRIEFS_LOG) as fh:
             fh.write(json.dumps(entry) + "\n")

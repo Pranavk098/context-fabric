@@ -7,8 +7,11 @@ never payload content, which may contain user code).
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import os
+import secrets
 import socket
 import socketserver
 import sys
@@ -22,21 +25,29 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, cast
 from urllib.error import HTTPError
-from urllib.parse import unquote
+from urllib.parse import parse_qs, unquote, urlparse
 from urllib.request import Request, urlopen
 
 from cfxd import __version__, session_state
 from cfxd.brief import install as brief_install
 from cfxd.carry import install as carry_install
 from cfxd.fold import install
+from cfxd.fsutil import ensure_dir, open_log, rotate
 from cfxd.handlers import add_observer, dispatch
 
 STATE_FILE = "state.json"
 EVENTS_FILE = "events.jsonl"
+TOKEN_FILE = "token"
 HANDLER_TIMEOUT_MS = 150.0
 HEALTH_TIMEOUT_S = 0.5
 DEFAULT_PORT = 47831
 DEFAULT_STATE_DIR = Path.home() / ".cfx" / "daemon"
+MAX_BODY_BYTES = 8 * 1024 * 1024
+MAX_CONNECTIONS = 64
+EVENTS_ROTATE_BYTES = 20 * 1024 * 1024
+_BUSY_RESPONSE = (
+    b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+)
 
 # Handlers run here so a slow one is abandoned at the deadline instead of holding the hook.
 _POOL = ThreadPoolExecutor(max_workers=16, thread_name_prefix="cfxd-handler")
@@ -77,7 +88,7 @@ def _atomic_write_json(path: Path, obj: dict[str, Any]) -> None:
 
 
 def write_state(state_dir: Path, port: int, pid: int) -> None:
-    state_dir.mkdir(parents=True, exist_ok=True)
+    ensure_dir(state_dir)
     _atomic_write_json(
         state_dir / STATE_FILE,
         {
@@ -97,12 +108,74 @@ def read_state(path: Path) -> dict[str, Any] | None:
     return state if isinstance(state, dict) else None
 
 
-def get_health(port: int, timeout: float = HEALTH_TIMEOUT_S) -> tuple[int, bytes]:
+def _ensure_token(state_dir: Path) -> str:
+    """Create ``<state_dir>/token`` (0600, atomic) once and reuse it. Never raises."""
+    path = state_dir / TOKEN_FILE
     try:
-        with urlopen(f"http://127.0.0.1:{port}/health", timeout=timeout) as resp:
+        existing = path.read_text(encoding="utf-8").strip()
+        if existing:
+            return existing
+    except OSError:
+        pass
+    token = secrets.token_hex(32)
+    fd, tmp = tempfile.mkstemp(dir=str(state_dir), prefix=".token.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(token)
+            fh.flush()
+        os.chmod(tmp, 0o600)
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        return token
+    return token
+
+
+def read_token(state_dir: Path) -> str | None:
+    try:
+        token = (state_dir / TOKEN_FILE).read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    return token or None
+
+
+def get_health(
+    port: int, timeout: float = HEALTH_TIMEOUT_S, nonce: str | None = None
+) -> tuple[int, bytes]:
+    url = f"http://127.0.0.1:{port}/health"
+    if nonce is not None:
+        url += f"?nonce={nonce}"
+    try:
+        with urlopen(url, timeout=timeout) as resp:
             return resp.status, resp.read()
     except HTTPError as exc:
         return exc.code, exc.read()
+
+
+def verify_identity(state_dir: Path, port: int) -> bool:
+    """Prove ``/health`` on ``port`` is answered by the daemon that owns ``state_dir``."""
+    token = read_token(state_dir)
+    if token is None:
+        return False
+    nonce = secrets.token_hex(16)
+    try:
+        status, body = get_health(port, nonce=nonce)
+    except OSError:
+        return False
+    if status != 200:
+        return False
+    try:
+        health = json.loads(body)
+    except ValueError:
+        return False
+    if not isinstance(health, dict):
+        return False
+    proof = health.get("proof")
+    expected = hmac.new(token.encode("utf-8"), nonce.encode("utf-8"), hashlib.sha256).hexdigest()
+    return isinstance(proof, str) and hmac.compare_digest(proof, expected)
 
 
 def post_hook(port: int, event: str, payload: bytes, timeout: float = 1.0) -> tuple[int, bytes]:
@@ -165,12 +238,14 @@ class Daemon:
         self.events_path = state_dir / EVENTS_FILE
         self._port = port
         self.port = 0
+        self.token = ""
         self._httpd: _CfxdServer | None = None
         self._thread: threading.Thread | None = None
         self._log_lock = threading.Lock()
 
     def start(self) -> None:
-        self.state_dir.mkdir(parents=True, exist_ok=True)
+        ensure_dir(self.state_dir)
+        self.token = _ensure_token(self.state_dir)
         install(self.state_dir)
         brief_install(self.state_dir)
         carry_install(self.state_dir)
@@ -196,7 +271,8 @@ class Daemon:
 
     def log_event(self, entry: dict[str, Any]) -> None:
         with self._log_lock:
-            with self.events_path.open("a", encoding="utf-8") as fh:
+            rotate(self.events_path, EVENTS_ROTATE_BYTES)
+            with open_log(self.events_path) as fh:
                 fh.write(json.dumps(entry) + "\n")
 
 
@@ -207,6 +283,37 @@ class _CfxdServer(ThreadingHTTPServer):
         # On Windows SO_REUSEADDR lets a second server bind the same port, so two
         # sessions starting together could run two daemons. Bind exclusively instead.
         allow_reuse_address = False
+
+    def __init__(self, address: Any, handler: Any) -> None:
+        super().__init__(address, handler)
+        self._conn_lock = threading.Lock()
+        self._in_flight = 0
+
+    def process_request_thread(self, request: Any, client_address: Any) -> None:
+        with self._conn_lock:
+            self._in_flight += 1
+            over = self._in_flight > MAX_CONNECTIONS
+        if over:
+            try:
+                request.sendall(_BUSY_RESPONSE)
+                # Drain the unread request so close() sends a clean FIN, not a
+                # Windows RST that would hide the 503 from the client.
+                request.settimeout(0.1)
+                try:
+                    while request.recv(4096):
+                        pass
+                except OSError:
+                    pass
+            finally:
+                self.shutdown_request(request)
+                with self._conn_lock:
+                    self._in_flight -= 1
+            return
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            with self._conn_lock:
+                self._in_flight -= 1
 
     def server_bind(self) -> None:
         if os.name == "nt":
@@ -224,6 +331,7 @@ class _CfxdServer(ThreadingHTTPServer):
 class _Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
     server_version = f"cfxd/{__version__}"
+    timeout = 5
 
     @property
     def _daemon(self) -> Daemon:
@@ -279,40 +387,62 @@ class _Handler(BaseHTTPRequestHandler):
                 "bytes_out": 0,
             }
         )
+        self.close_connection = True
         self._send_json(403, {"error": "forbidden"})
 
-    def _read_body(self) -> bytes:
+    def _send_close(self, status: int, obj: dict[str, Any]) -> None:
+        self.close_connection = True
+        self._send_json(status, obj)
+
+    def _content_length(self) -> int | None:
+        """Content-Length as an int, ``0`` when absent, ``None`` when malformed/negative."""
         raw = self.headers.get("Content-Length")
         if raw is None:
-            return b""
+            return 0
         try:
-            length = int(raw)
+            value = int(raw)
         except ValueError:
-            return b""
-        if length <= 0:
-            return b""
-        return self.rfile.read(length)
+            return None
+        if value < 0:
+            return None
+        return value
 
     def do_GET(self) -> None:
         if not self._host_ok():
             self._send_json(403, {"error": "forbidden"})
             return
-        if self.path == "/health":
-            self._send_json(200, {"ok": True, "pid": os.getpid(), "version": __version__})
+        parsed = urlparse(self.path)
+        if parsed.path == "/health":
+            health: dict[str, Any] = {"ok": True, "pid": os.getpid(), "version": __version__}
+            nonce = parse_qs(parsed.query).get("nonce", [None])[0]
+            token = self._daemon.token
+            if nonce and token and len(nonce) <= 64:
+                proof = hmac.new(
+                    token.encode("utf-8"), nonce.encode("utf-8"), hashlib.sha256
+                ).hexdigest()
+                health["proof"] = proof
+            self._send_json(200, health)
         else:
             self._send_json(404, {"error": "not found"})
 
     def do_POST(self) -> None:
-        body = self._read_body()
         if not self.path.startswith("/hooks/"):
-            self._send_json(404, {"error": "not found"})
+            self._send_close(404, {"error": "not found"})
             return
         event = unquote(self.path[len("/hooks/") :])
         start = time.perf_counter()
         reason = self._reject_reason()
         if reason is not None:
-            self._reject(event, reason, start, len(body))
+            self._reject(event, reason, start, 0)
             return
+        length = self._content_length()
+        if length is None:
+            self._send_close(400, {"error": "bad request"})
+            return
+        if length > MAX_BODY_BYTES:
+            self._send_close(413, {"error": "too large"})
+            return
+        body = self.rfile.read(length) if length else b""
         payload, tool_name, session_id = _parse_payload(body)
         if payload is None:
             self._finish(event, None, None, {}, "error", start, len(body))
@@ -330,7 +460,7 @@ class _Handler(BaseHTTPRequestHandler):
             return
         except Exception as exc:
             self._finish(event, tool_name, session_id, {}, "error", start, len(body))
-            print(f"cfxd: handler {event} failed: {exc!r}", file=sys.stderr)
+            print(f"cfxd: handler {event} failed: {type(exc).__name__}", file=sys.stderr)
             return
         self._finish(event, tool_name, session_id, result, "handled", start, len(body))
 
@@ -361,7 +491,8 @@ class _Handler(BaseHTTPRequestHandler):
 
 
 def run_serve(state_dir: Path, port: int) -> int:
-    state_dir.mkdir(parents=True, exist_ok=True)
+    os.umask(0o077)
+    ensure_dir(state_dir)
     existing = read_state(state_dir / STATE_FILE)
     if existing is not None and daemon_alive(existing):
         print("already running")

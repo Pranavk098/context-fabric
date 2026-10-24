@@ -23,12 +23,14 @@ from typing import Any
 
 from cfxd.brief import _cap, _command_line, _file_line, _fold_line, _sanitize
 from cfxd.config import read_config
+from cfxd.fsutil import ensure_dir, open_log
 from cfxd.handlers import register
 from cfxd.session_state import FileFact, FoldFact, SessionFacts, snapshot
 
 CARRY_DIR = "carry"
 CARRY_LOG = "carry.jsonl"
 SNAPSHOT_CAP_BYTES = 16 * 1024
+MAX_SNAPSHOT_FILE_BYTES = 64 * 1024
 RENDER_CAP_BYTES = 3_000
 MAX_FILES = 20
 MAX_FOLDS = 8
@@ -38,6 +40,7 @@ TODO_MAX_BYTES = 120
 _PRUNE_TTL_SECONDS = 7 * 24 * 3600
 
 _SID_RE = re.compile(r"[A-Za-z0-9_-]{1,64}")
+_FOLD_ID_RE = re.compile(r"[0-9a-f]{16}")
 _TRIGGERS = ("manual", "auto")
 
 _FILES_HEADER = "Working set (path | lines | status):"
@@ -224,7 +227,7 @@ def _counts_facts(facts: SessionFacts) -> dict[str, int]:
 
 def _write_snapshot(state_dir: Path, sid: str, data: bytes) -> None:
     carry_dir = state_dir / CARRY_DIR
-    carry_dir.mkdir(parents=True, exist_ok=True)
+    ensure_dir(carry_dir)
     path = carry_dir / f"{sid}.json"
     fd, tmp = tempfile.mkstemp(dir=str(carry_dir), prefix=".carry.", suffix=".tmp")
     try:
@@ -239,6 +242,8 @@ def _write_snapshot(state_dir: Path, sid: str, data: bytes) -> None:
 def _load_snapshot(state_dir: Path, sid: str) -> tuple[SessionFacts, str] | None:
     path = state_dir / CARRY_DIR / f"{sid}.json"
     try:
+        if path.stat().st_size > MAX_SNAPSHOT_FILE_BYTES:
+            return None
         obj = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
@@ -287,6 +292,8 @@ def _snapshot_to_facts(obj: dict[str, Any], state_dir: Path) -> SessionFacts | N
             or not isinstance(source, str)
             or not isinstance(kind, str)
         ):
+            return None
+        if _FOLD_ID_RE.fullmatch(obs_id) is None:
             return None
         if not isinstance(size, int) or isinstance(size, bool):
             return None
@@ -388,9 +395,9 @@ def _receipt(
             "counts": counts,
             "sha16": sha16,
         }
-        state_dir.mkdir(parents=True, exist_ok=True)
+        ensure_dir(state_dir)
         with _receipt_lock:
-            with (state_dir / CARRY_LOG).open("a", encoding="utf-8") as fh:
+            with open_log(state_dir / CARRY_LOG) as fh:
                 fh.write(json.dumps(entry) + "\n")
     except Exception:
         pass

@@ -13,6 +13,8 @@ import os
 import tempfile
 from pathlib import Path
 
+from cfxd.fsutil import ensure_dir
+
 CONFIG_FILE = "config.json"
 # fold_read is off: in the 2026-10-24 exploratory A/B, folding Read outputs made the model re-read
 # the saved file in full and roughly doubled tokens on read-everything tasks.
@@ -40,7 +42,7 @@ def set_flag(state_dir: Path, key: str, value: bool) -> None:
     config = read_config(state_dir)
     config[key] = value
     path = state_dir / CONFIG_FILE
-    path.parent.mkdir(parents=True, exist_ok=True)
+    ensure_dir(path.parent)
     fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=".config.", suffix=".tmp")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as fh:

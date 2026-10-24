@@ -23,6 +23,7 @@ from cfxd.daemon import (
     read_state,
     resolve_state_dir,
     run_serve,
+    verify_identity,
 )
 from cfxd.stats import collect_stats, format_human
 
@@ -99,14 +100,29 @@ def _cmd_stop(args: argparse.Namespace) -> int:
     if state is None:
         print("cfxd stop: not running")
         return 0
+    port = state.get("port")
     pid = state.get("pid")
-    if isinstance(pid, int) and pid != os.getpid():
+    if not isinstance(port, int) or not isinstance(pid, int):
+        path.unlink(missing_ok=True)
+        print("cfxd stop: stale state (removed)")
+        return 0
+    confirmed = False
+    try:
+        status, body = get_health(port)
+        health = json.loads(body)
+        confirmed = status == 200 and isinstance(health, dict) and health.get("pid") == pid
+    except (OSError, ValueError):
+        confirmed = False
+    if confirmed and pid != os.getpid():
         try:
             os.kill(pid, signal.SIGTERM)
         except OSError:
             pass
     path.unlink(missing_ok=True)
-    print("cfxd stop: stopped")
+    if confirmed:
+        print("cfxd stop: stopped")
+    else:
+        print("cfxd stop: stale state (removed; did not kill pid)")
     return 0
 
 
@@ -207,6 +223,7 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
     carry = "on" if cfg["carry"] else "off"
     print(f"flags:       brief={brief} carry={carry}")
     print(f"health:      {'ok' if healthy else 'FAIL'}")
+    print(f"identity:    {'verified' if verify_identity(state_dir, port) else 'NOT verified'}")
     print(
         f"round trips: n={len(samples)} p50={p50:.2f} ms p95={p95:.2f} ms "
         f"({ok_trips}/{len(samples)} ok)"

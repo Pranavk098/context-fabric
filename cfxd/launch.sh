@@ -27,8 +27,12 @@ for d in \
     "$(to_posix "$USERPROFILE")/scoop/shims" \
     /opt/homebrew/bin \
     /usr/local/bin; do
-    if [ -n "$d" ] && [ -d "$d" ]; then
-        PATH="$PATH:$d"
+    case "$d" in
+        /*) ;;
+        *) continue ;;  # skip empty or relative dirs (never the cwd)
+    esac
+    if [ -d "$d" ]; then
+        PATH="${PATH:+$PATH:}$d"
     fi
 done
 export PATH
@@ -42,5 +46,5 @@ if ! command -v uv >/dev/null 2>&1; then
     exit 0
 fi
 
-uv run --no-project --quiet --python '>=3.12' "$here/launch.py" "$@"
+uv run --no-config --no-project --quiet --python '>=3.12' "$here/launch.py" "$@"
 exit 0
