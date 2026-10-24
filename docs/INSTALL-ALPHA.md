@@ -3,11 +3,12 @@
 Context Fabric is a Claude Code plugin that tries to cut the tokens a coding session spends. **Whether it actually
 does is the question this alpha is for.** Our first small tests (a few tasks, a few runs each) showed no measurable
 saving yet, and one setting we first tried made some tasks cost more, so we turned it off. Please treat it as an
-experiment, not a money-saver. This alpha does three things:
+experiment, not a money-saver. This alpha has three parts:
 
-- **Fold.** When a search or web fetch returns a very large output, Claude sees a short version plus the path to the
-  full copy, and reads the rest only if it needs to. Nothing is deleted. (File reads are not folded by default; in our
-  tests that made Claude re-read files and cost more. `cfxd set fold_read on` turns it on if you want to try.)
+- **Fold (off by default).** When a search, command or web fetch returns a very large output, Claude can be shown a short
+  version plus the path to the full copy. In our first tests this saved nothing measurable (Claude Code already
+  shortens very large outputs itself) and folding file reads cost more, so it is switched off. `cfxd set fold on`
+  turns it on, `cfxd set fold_read on` adds file reads.
 - **Brief.** When Claude starts a sub-agent, a short note lists the files the main session already opened and where
   the full copies of large outputs are saved, so the sub-agent doesn't start from zero.
 - **Carry.** Before `/compact`, it notes which files and outputs the session was working with; afterwards it puts that
@@ -45,7 +46,7 @@ Restart Claude Code. That's it: the first session starts a small background help
 
 ## Check it is working
 
-Use Claude Code normally, for example ask it to read a large file. Then, in a terminal, from the plugin folder:
+Use Claude Code normally for a session or two. Then, in a terminal, from the plugin folder:
 
 - macOS / Linux: `cd ~/.claude/plugins/cache/context-fabric/context-fabric/*/`
 - Windows (PowerShell): `cd $env:USERPROFILE\.claude\plugins\cache\context-fabric\context-fabric\0.1.0-alpha.1`
@@ -55,8 +56,9 @@ uv run --no-project --quiet --python ">=3.12" python -m cfxd status
 uv run --no-project --quiet --python ">=3.12" python -m cfxd stats
 ```
 
-`status` should say `running`. `stats` shows how many outputs were folded and roughly how many bytes and tokens Claude
-did not have to read. Those are estimates of what was *not shown*, not a measurement of your bill.
+`status` should say `running`. `doctor` should end with `healthy` and `identity: verified`. `stats` says `No folds yet.`
+unless you turned fold on; it then shows how many outputs were folded and roughly how many bytes Claude did not have to
+read (an estimate of what was *not shown*, not a measurement of your bill).
 
 To switch a feature off or on: `... python -m cfxd set brief off` (or `carry`, `on`).
 
@@ -90,5 +92,5 @@ Then stop the helper and delete `~/.cfx` as above.
 
 ## What I'd like to know
 
-Did Claude ever seem confused by a folded output? Did anything feel slower? Did a session fail or behave differently
+Did Claude ever seem confused by a note it didn't expect (a brief block in a sub-agent, or the note after `/compact`)? Did anything feel slower? Did a session fail or behave differently
 from usual? Any of that, even vague, helps.

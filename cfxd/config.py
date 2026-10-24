@@ -16,14 +16,15 @@ from pathlib import Path
 from cfxd.fsutil import ensure_dir
 
 CONFIG_FILE = "config.json"
-# fold_read is off: in the 2026-10-24 exploratory A/B, folding Read outputs made the model re-read
-# the saved file in full and roughly doubled tokens on read-everything tasks.
-_DEFAULTS: dict[str, bool] = {"brief": True, "carry": True, "fold_read": False}
+# fold and fold_read are off (2026-10-24 exploratory A/Bs): folding Read outputs made the model
+# re-read the saved file and roughly doubled tokens on read-everything tasks, and folding Bash/Grep
+# output showed no measurable saving because Claude Code already stubs very large outputs itself.
+_DEFAULTS: dict[str, bool] = {"brief": True, "carry": True, "fold": False, "fold_read": False}
 _CACHE: dict[Path, tuple[int, dict[str, bool]]] = {}
 
 
 def read_config(state_dir: Path) -> dict[str, bool]:
-    """Return the boolean flags (brief, carry, fold_read); missing or bad file -> defaults."""
+    """Return the boolean flags (brief, carry, fold, fold_read); missing or bad file -> defaults."""
     path = state_dir / CONFIG_FILE
     try:
         mtime = path.stat().st_mtime_ns

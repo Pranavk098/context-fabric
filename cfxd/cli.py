@@ -76,8 +76,10 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_state_dir(stats)
     stats.set_defaults(func=_cmd_stats)
 
-    setp = subparsers.add_parser("set", help="toggle brief, carry or fold_read on/off")
-    setp.add_argument("flag", choices=["brief", "carry", "fold_read"], help="feature to toggle")
+    setp = subparsers.add_parser("set", help="toggle brief, carry, fold or fold_read on/off")
+    setp.add_argument(
+        "flag", choices=["brief", "carry", "fold", "fold_read"], help="feature to toggle"
+    )
     setp.add_argument("value", choices=["on", "off"], help="new state")
     _add_state_dir(setp)
     setp.set_defaults(func=_cmd_set)
@@ -221,7 +223,8 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
     cfg = read_config(state_dir)
     brief = "on" if cfg["brief"] else "off"
     carry = "on" if cfg["carry"] else "off"
-    print(f"flags:       brief={brief} carry={carry}")
+    fold = "on" if cfg["fold"] else "off"
+    print(f"flags:       brief={brief} carry={carry} fold={fold}")
     print(f"health:      {'ok' if healthy else 'FAIL'}")
     print(f"identity:    {'verified' if verify_identity(state_dir, port) else 'NOT verified'}")
     print(
