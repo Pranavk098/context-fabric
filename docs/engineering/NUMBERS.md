@@ -70,7 +70,10 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 35.87,
         "round": 2
       },
-      "must_appear_in": ["docs/engineering/PILOT.md", "docs/engineering/PILOT-MECH-RESULT.md"]
+      "must_appear_in": [
+        "docs/engineering/PILOT.md",
+        "docs/engineering/PILOT-MECH-RESULT.md"
+      ]
     },
     {
       "id": "pilot_raw_tokens",
@@ -79,7 +82,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "display": "193,366",
       "kind": "strict",
       "artifact": "evals/reports/pilot_20261018_013151.json",
-      "must_appear_in": ["docs/engineering/PILOT.md"]
+      "must_appear_in": [
+        "docs/engineering/PILOT.md"
+      ]
     },
     {
       "id": "pilot_compile_tokens",
@@ -88,7 +93,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "display": "5,391",
       "kind": "strict",
       "artifact": "evals/reports/pilot_20261018_013151.json",
-      "must_appear_in": ["docs/engineering/PILOT.md"]
+      "must_appear_in": [
+        "docs/engineering/PILOT.md"
+      ]
     },
     {
       "id": "pilot_mech_prompt_token_ratio",
@@ -104,7 +111,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 13.62,
         "round": 2
       },
-      "must_appear_in": ["docs/engineering/PILOT-MECH-RESULT.md"]
+      "must_appear_in": [
+        "docs/engineering/PILOT-MECH-RESULT.md"
+      ]
     },
     {
       "id": "pilot_mech_raw_uncached",
@@ -120,7 +129,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 182,
         "round": 0
       },
-      "must_appear_in": ["docs/engineering/PILOT-MECH-RESULT.md"]
+      "must_appear_in": [
+        "docs/engineering/PILOT-MECH-RESULT.md"
+      ]
     },
     {
       "id": "pilot_mech_compile_uncached",
@@ -136,7 +147,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 11857,
         "round": 0
       },
-      "must_appear_in": ["docs/engineering/PILOT-MECH-RESULT.md"]
+      "must_appear_in": [
+        "docs/engineering/PILOT-MECH-RESULT.md"
+      ]
     },
     {
       "id": "demo_prompt_token_ratio",
@@ -152,7 +165,10 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 3.17,
         "round": 2
       },
-      "must_appear_in": ["docs/engineering/DEMO.md", "CHANGELOG.md"]
+      "must_appear_in": [
+        "docs/engineering/DEMO.md",
+        "CHANGELOG.md"
+      ]
     },
     {
       "id": "demo_tokens_saved",
@@ -202,7 +218,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 1.0,
         "round": 2
       },
-      "must_appear_in": ["docs/engineering/DEMO.md"]
+      "must_appear_in": [
+        "docs/engineering/DEMO.md"
+      ]
     },
     {
       "id": "kv_peak_ratio",
@@ -218,7 +236,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 20.2,
         "round": 1
       },
-      "must_appear_in": ["CHANGELOG.md"]
+      "must_appear_in": [
+        "CHANGELOG.md"
+      ]
     },
     {
       "id": "kv_peak_percentages",
@@ -234,7 +254,10 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 20.22,
         "round": 2
       },
-      "must_appear_in": ["CHANGELOG.md", "docs/engineering/RERUN-REVIEW.md"]
+      "must_appear_in": [
+        "CHANGELOG.md",
+        "docs/engineering/RERUN-REVIEW.md"
+      ]
     },
     {
       "id": "throughput_ratio",
@@ -250,7 +273,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 8.23,
         "round": 2
       },
-      "must_appear_in": ["CHANGELOG.md"]
+      "must_appear_in": [
+        "CHANGELOG.md"
+      ]
     },
     {
       "id": "throughput_detail",
@@ -259,7 +284,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "display": "43.25 vs 5.26 req/s",
       "kind": "strict",
       "artifact": "evals/reports/stage_b5_20261017_124856.json",
-      "must_appear_in": ["CHANGELOG.md"]
+      "must_appear_in": [
+        "CHANGELOG.md"
+      ]
     },
     {
       "id": "coldboot_tokens",
@@ -275,7 +302,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 9.0402,
         "round": 4
       },
-      "must_appear_in": ["CHANGELOG.md"]
+      "must_appear_in": [
+        "CHANGELOG.md"
+      ]
     },
     {
       "id": "coldboot_ratio",
@@ -291,7 +320,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 9.0,
         "round": 1
       },
-      "must_appear_in": ["CHANGELOG.md"]
+      "must_appear_in": [
+        "CHANGELOG.md"
+      ]
     },
     {
       "id": "coldboot_accuracy",
@@ -307,7 +338,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 4.0,
         "round": 1
       },
-      "must_appear_in": ["CHANGELOG.md"]
+      "must_appear_in": [
+        "CHANGELOG.md"
+      ]
     },
     {
       "id": "recall_top1_delta",
@@ -323,7 +356,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 0.85,
         "round": 2
       },
-      "must_appear_in": ["docs/engineering/RECALL-BENCH.md"]
+      "must_appear_in": [
+        "docs/engineering/RECALL-BENCH.md"
+      ]
     },
     {
       "id": "recall_top1_delta_compact",
@@ -339,7 +374,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 0.85,
         "round": 2
       },
-      "must_appear_in": ["CHANGELOG.md"]
+      "must_appear_in": [
+        "CHANGELOG.md"
+      ]
     },
     {
       "id": "packing_redundancy",
@@ -355,7 +392,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 0.0276,
         "round": 4
       },
-      "must_appear_in": ["CHANGELOG.md"]
+      "must_appear_in": [
+        "CHANGELOG.md"
+      ]
     },
     {
       "id": "quality_parity_ratio",
@@ -371,7 +410,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
         "expect": 5.6,
         "round": 1
       },
-      "must_appear_in": ["CHANGELOG.md"]
+      "must_appear_in": [
+        "CHANGELOG.md"
+      ]
     },
     {
       "id": "cost_demo_gpt4o_warm_native",
@@ -379,7 +420,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "baseline": "sidecar+cache cost for the same workload ($0.0388)",
       "display": "$0.0639",
       "kind": "display-only",
-      "must_appear_in": ["docs/engineering/COSTS.md"]
+      "must_appear_in": [
+        "docs/engineering/COSTS.md"
+      ]
     },
     {
       "id": "cost_demo_gpt4o_warm_sidecar",
@@ -387,7 +430,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "baseline": "native-cache-only cost for the same workload ($0.0639)",
       "display": "$0.0388",
       "kind": "display-only",
-      "must_appear_in": ["docs/engineering/COSTS.md"]
+      "must_appear_in": [
+        "docs/engineering/COSTS.md"
+      ]
     },
     {
       "id": "cost_demo_gpt4o_miss_native",
@@ -395,7 +440,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "baseline": "sidecar+cache cost for the same workload ($0.0388)",
       "display": "$0.1140",
       "kind": "display-only",
-      "must_appear_in": ["docs/engineering/COSTS.md"]
+      "must_appear_in": [
+        "docs/engineering/COSTS.md"
+      ]
     },
     {
       "id": "cost_demo_gpt4o_miss_sidecar",
@@ -403,7 +450,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "baseline": "native-cache-only cost for the same workload ($0.1140)",
       "display": "$0.0388",
       "kind": "display-only",
-      "must_appear_in": ["docs/engineering/COSTS.md"]
+      "must_appear_in": [
+        "docs/engineering/COSTS.md"
+      ]
     },
     {
       "id": "cost_demo_sonnet_warm_native",
@@ -411,7 +460,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "baseline": "sidecar+cache cost for the same workload ($0.0468)",
       "display": "$0.0541",
       "kind": "display-only",
-      "must_appear_in": ["docs/engineering/COSTS.md"]
+      "must_appear_in": [
+        "docs/engineering/COSTS.md"
+      ]
     },
     {
       "id": "cost_demo_sonnet_warm_sidecar",
@@ -419,7 +470,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "baseline": "native-cache-only cost for the same workload ($0.0541)",
       "display": "$0.0468",
       "kind": "display-only",
-      "must_appear_in": ["docs/engineering/COSTS.md"]
+      "must_appear_in": [
+        "docs/engineering/COSTS.md"
+      ]
     },
     {
       "id": "cost_demo_sonnet_miss_native",
@@ -427,7 +480,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "baseline": "sidecar+cache cost for the same workload ($0.0468)",
       "display": "$0.2878",
       "kind": "display-only",
-      "must_appear_in": ["docs/engineering/COSTS.md"]
+      "must_appear_in": [
+        "docs/engineering/COSTS.md"
+      ]
     },
     {
       "id": "cost_demo_sonnet_miss_sidecar",
@@ -435,7 +490,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "baseline": "native-cache-only cost for the same workload ($0.2878)",
       "display": "$0.0468",
       "kind": "display-only",
-      "must_appear_in": ["docs/engineering/COSTS.md"]
+      "must_appear_in": [
+        "docs/engineering/COSTS.md"
+      ]
     },
     {
       "id": "cost_pilot_gpt4o_warm_native",
@@ -443,7 +500,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "baseline": "sidecar+cache cost for the same workload ($0.0157)",
       "display": "$0.2420",
       "kind": "display-only",
-      "must_appear_in": ["docs/engineering/COSTS.md"]
+      "must_appear_in": [
+        "docs/engineering/COSTS.md"
+      ]
     },
     {
       "id": "cost_pilot_gpt4o_warm_sidecar",
@@ -451,7 +510,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "baseline": "native-cache-only cost for the same workload ($0.2420)",
       "display": "$0.0157",
       "kind": "display-only",
-      "must_appear_in": ["docs/engineering/COSTS.md"]
+      "must_appear_in": [
+        "docs/engineering/COSTS.md"
+      ]
     },
     {
       "id": "cost_pilot_sonnet_warm_native",
@@ -459,7 +520,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "baseline": "sidecar+cache cost for the same workload ($0.0187)",
       "display": "$0.1794",
       "kind": "display-only",
-      "must_appear_in": ["docs/engineering/COSTS.md"]
+      "must_appear_in": [
+        "docs/engineering/COSTS.md"
+      ]
     },
     {
       "id": "cost_pilot_sonnet_warm_sidecar",
@@ -467,7 +530,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "baseline": "native-cache-only cost for the same workload ($0.1794)",
       "display": "$0.0187",
       "kind": "display-only",
-      "must_appear_in": ["docs/engineering/COSTS.md"]
+      "must_appear_in": [
+        "docs/engineering/COSTS.md"
+      ]
     },
     {
       "id": "httpx_compression",
@@ -475,12 +540,14 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "baseline": "raw httpx source (no stored report - re-verify by hand)",
       "display": "~17x",
       "kind": "display-only",
-      "must_appear_in": ["CHANGELOG.md"]
+      "must_appear_in": [
+        "CHANGELOG.md"
+      ]
     },
     {
       "id": "test_count",
-      "claim": "test-suite size badge (current tree; recount with pytest when tests change)",
-      "display": "552",
+      "claim": "test-suite size (current tree; not shown in README; recount with pytest --collect-only when tests change)",
+      "display": "749",
       "kind": "display-only",
       "must_appear_in": []
     },
@@ -498,7 +565,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "display": "5.66x",
       "kind": "display-only",
       "artifact": "evals/reports/b4_v3_20261018_202752.json",
-      "must_appear_in": ["docs/engineering/B4-V3-RESULT.md"]
+      "must_appear_in": [
+        "docs/engineering/B4-V3-RESULT.md"
+      ]
     },
     {
       "id": "a4_kv_peak_n32",
@@ -506,7 +575,9 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "display": "1.9x",
       "kind": "display-only",
       "artifact": "evals/reports/a4_compile_20261019_160730.json",
-      "must_appear_in": ["docs/engineering/A4-CONCURRENCY-RESULT.md"]
+      "must_appear_in": [
+        "docs/engineering/A4-CONCURRENCY-RESULT.md"
+      ]
     },
     {
       "id": "a4_token_ratio",
@@ -514,43 +585,111 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "display": "10.9x",
       "kind": "display-only",
       "artifact": "evals/reports/a4_compile_20261019_160730.json",
-      "must_appear_in": ["docs/engineering/A4-CONCURRENCY-RESULT.md"]
+      "must_appear_in": [
+        "docs/engineering/A4-CONCURRENCY-RESULT.md"
+      ]
+    },
+    {
+      "id": "plugin_read_fold_forced_read_tokens",
+      "claim": "Folding Read output with the plugin on vs off, tasks that must read whole files: mean input+cache tokens ratio (about +101%)",
+      "baseline": "same tasks with the plugin off, same model (sonnet), alternating order; exploratory, n=2 per cell, unweighted token sum",
+      "display": "+101%",
+      "kind": "strict",
+      "artifact": "evals/reports/plugin_alpha_20261024/exploratory_results.json",
+      "recompute": {
+        "expr": "a/b",
+        "a": "read_fold_forced_read.on_mean_tokens",
+        "b": "read_fold_forced_read.off_mean_tokens",
+        "expect": 2.01,
+        "round": 2
+      },
+      "must_appear_in": [
+        "README.md"
+      ]
+    },
+    {
+      "id": "plugin_replay_shrink_bound",
+      "claim": "Offline replay of 852 sessions: weighted-cost saving bound from shrinking old tool results (optimistic, k=3, batch=1)",
+      "baseline": "recorded weighted cost of the same sessions with no shrinking; optimistic variant with no cache re-creation penalty; upper bound, exploratory, one developer's transcripts",
+      "display": "7%",
+      "kind": "strict",
+      "artifact": "evals/reports/plugin_alpha_20261024/exploratory_results.json",
+      "recompute": {
+        "expr": "a/b",
+        "a": "replay.baseline_weighted_cost",
+        "b": "replay.optimistic_best_simulated_cost",
+        "expect": 1.08,
+        "round": 2
+      },
+      "must_appear_in": [
+        "README.md"
+      ]
+    },
+    {
+      "id": "plugin_starting_prefix_median",
+      "claim": "Median context tokens at the first assistant turn across 183 parent sessions (cfxd audit composition section)",
+      "display": "62K",
+      "kind": "display-only",
+      "artifact": "evals/reports/plugin_alpha_20261024/exploratory_results.json",
+      "must_appear_in": [
+        "README.md"
+      ]
     }
   ],
   "stale_patterns": [
     {
       "pattern": "8.6x",
-      "docs": ["README.md", "docs/engineering/DEMO.md", "CHANGELOG.md"],
+      "docs": [
+        "README.md",
+        "docs/engineering/DEMO.md",
+        "CHANGELOG.md"
+      ],
       "why": "original 2026-10-16 throughput run; superseded by 8.23x"
     },
     {
       "pattern": "44.8",
-      "docs": ["README.md", "docs/engineering/DEMO.md", "CHANGELOG.md"],
+      "docs": [
+        "README.md",
+        "docs/engineering/DEMO.md",
+        "CHANGELOG.md"
+      ],
       "why": "same superseded run (baseline 44.8 req/s)"
     },
     {
       "pattern": "5.2 req/s",
-      "docs": ["README.md", "docs/engineering/DEMO.md", "CHANGELOG.md"],
+      "docs": [
+        "README.md",
+        "docs/engineering/DEMO.md",
+        "CHANGELOG.md"
+      ],
       "why": "same superseded run (baseline 5.2 req/s)"
     },
     {
       "pattern": "338 tests",
-      "docs": ["README.md"],
+      "docs": [
+        "README.md"
+      ],
       "why": "pre-2026-10-19 test count; superseded by the current collected count (see test_count)"
     },
     {
       "pattern": "tests-476",
-      "docs": ["README.md"],
+      "docs": [
+        "README.md"
+      ],
       "why": "old test badge count (476); superseded by the current collected count (see test_count)"
     },
     {
       "pattern": "tests-486",
-      "docs": ["README.md"],
+      "docs": [
+        "README.md"
+      ],
       "why": "old test badge count (486); superseded by the current collected count (see test_count)"
     },
     {
       "pattern": "486 tests",
-      "docs": ["README.md"],
+      "docs": [
+        "README.md"
+      ],
       "why": "old test count (486); superseded by the current collected count (see test_count)"
     }
   ],

@@ -4,12 +4,12 @@
   "owner": {
     "name": "Context Fabric"
   },
-  "description": "Fewer tokens per task for coding agents: folds large tool output, briefs sub-agents, carries state across compaction.",
+  "description": "Experimental token and context accounting for Claude Code: audit where a session's tokens go, brief sub-agents, carry state across /compact. Savings are not yet proven.",
   "plugins": [
     {
       "name": "context-fabric",
       "source": "./",
-      "description": "Fewer tokens per task for coding agents: folds large tool output, briefs sub-agents, carries state across compaction."
+      "description": "Experimental token and context accounting for Claude Code: audit where a session's tokens go, brief sub-agents, carry state across /compact. Savings are not yet proven."
     }
   ]
 }

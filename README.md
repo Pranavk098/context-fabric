@@ -103,7 +103,9 @@ output of `cfxd audit` and `cfxd stats` (counts only) and whether anything broke
 ## Earlier work and docs
 
 The repo also holds the first-generation research: a deterministic context compiler and an OpenAI-compatible
-sidecar (`cfx serve`) with pre-registered results on local models, including several that failed. Start at
+sidecar (`cfx serve`) with pre-registered results on local models, including several that failed. **The plugin does not
+use the compiler.** That code stays as the research path for API and local-model users; whether to build on it again
+depends on the measurements above. Start at
 [`docs/README.md`](docs/README.md); results are indexed in
 [`docs/engineering/NUMBERS.md`](docs/engineering/NUMBERS.md). Architecture decisions:
 [`docs/decisions/`](docs/decisions/).

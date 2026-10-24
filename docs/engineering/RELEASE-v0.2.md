@@ -1,5 +1,9 @@
 # Release Candidate Notes — Context Fabric v0.2 (Track T4)
 
+> **Status update, 2026-10-24:** the live B8 v3 pilot this document waits on was ended by the project owner after
+> its first day (Arm A only, no result document; no claim depends on it). This release candidate is on hold and not
+> scheduled. The current shipping surface is the Claude Code plugin alpha described in the README.
+
 **Status:** Release-candidate preparation (`v0.2.0-rc`, docs and verification only).
 `pyproject.toml` remains at `version = "0.1.0"` and no git tag is cut until the live B8 v3
 pilot finishes (`pyproject.toml` and `uv.lock` are frozen during the pilot window).
