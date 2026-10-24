@@ -75,8 +75,8 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_state_dir(stats)
     stats.set_defaults(func=_cmd_stats)
 
-    setp = subparsers.add_parser("set", help="toggle brief or carry on/off")
-    setp.add_argument("flag", choices=["brief", "carry"], help="feature to toggle")
+    setp = subparsers.add_parser("set", help="toggle brief, carry or fold_read on/off")
+    setp.add_argument("flag", choices=["brief", "carry", "fold_read"], help="feature to toggle")
     setp.add_argument("value", choices=["on", "off"], help="new state")
     _add_state_dir(setp)
     setp.set_defaults(func=_cmd_set)

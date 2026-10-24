@@ -10,9 +10,34 @@ import time
 from pathlib import Path
 from typing import Any
 
+import pytest
+
+from cfxd import fold
 from cfxd.daemon import Daemon
 from cfxd.fold import handle_post_tool_use, install
 from cfxd.handlers import clear
+
+_REAL_FOLD_READ_ENABLED = fold._fold_read_enabled
+
+
+@pytest.fixture(autouse=True)
+def _fold_read_on(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Read folding is off by default; most tests here exercise it, so switch it on.
+    monkeypatch.setattr(fold, "_fold_read_enabled", lambda state_dir: True)
+
+
+def test_read_is_not_folded_by_default(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(fold, "_fold_read_enabled", _REAL_FOLD_READ_ENABLED)
+    state_dir = tmp_path / "cfx"
+    content = chr(10).join(f"def f{i}(): return {i}" for i in range(3000))
+    assert handle_post_tool_use(_read_payload(content), state_dir) == {}
+    from cfxd.config import set_flag
+
+    set_flag(state_dir, "fold_read", True)
+    assert handle_post_tool_use(_read_payload(content), state_dir) != {}
+    # Bash output still folds with the flag off.
+    set_flag(state_dir, "fold_read", False)
+    assert handle_post_tool_use(_bash_payload(content), state_dir) != {}
 
 
 def _read_payload(content: str, *, file_path: str = "mod.py", **file_extra: Any) -> dict[str, Any]:
