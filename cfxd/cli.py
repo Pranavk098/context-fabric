@@ -12,6 +12,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+from cfxd.audit import DEFAULT_ROOT, audit
+from cfxd.audit import format_human as format_audit
 from cfxd.config import read_config, set_flag
 from cfxd.daemon import (
     DEFAULT_PORT,
@@ -74,6 +76,17 @@ def _build_parser() -> argparse.ArgumentParser:
     stats.add_argument("--json", action="store_true", help="emit a single JSON object")
     _add_state_dir(stats)
     stats.set_defaults(func=_cmd_stats)
+
+    auditp = subparsers.add_parser("audit", help="counts-only analysis of Claude Code transcripts")
+    auditp.add_argument("--root", default=None, help=f"transcripts root (default: {DEFAULT_ROOT})")
+    auditp.add_argument(
+        "--since",
+        choices=("7d", "30d", "all"),
+        default="30d",
+        help="time window by file mtime (default: 30d)",
+    )
+    auditp.add_argument("--json", action="store_true", help="emit a single JSON object")
+    auditp.set_defaults(func=_cmd_audit)
 
     setp = subparsers.add_parser("set", help="toggle brief, carry or fold_read on/off")
     setp.add_argument("flag", choices=["brief", "carry", "fold_read"], help="feature to toggle")
@@ -229,6 +242,16 @@ def _cmd_stats(args: argparse.Namespace) -> int:
         print(json.dumps(stats))
     else:
         print(format_human(stats))
+    return 0
+
+
+def _cmd_audit(args: argparse.Namespace) -> int:
+    root = Path(args.root) if args.root else DEFAULT_ROOT
+    report = audit(root, args.since)
+    if args.json:
+        print(json.dumps(report))
+    else:
+        print(format_audit(report, root.name))
     return 0
 
 
