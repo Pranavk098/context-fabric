@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from cfxd import session_state
+from cfxd.config import read_config
 from cfxd.handlers import register
 
 FOLD_MIN_BYTES = 20_000
@@ -104,6 +105,8 @@ def handle_post_tool_use(payload: dict[str, Any], state_dir: Path) -> dict[str, 
     folded = False
 
     if tool_name == "Read":
+        if not _fold_read_enabled(state_dir):
+            return {}
         if response.get("type") != "text":
             return {}
         file = response.get("file")
@@ -168,6 +171,10 @@ def handle_post_tool_use(payload: dict[str, Any], state_dir: Path) -> dict[str, 
             "updatedToolOutput": updated,
         }
     }
+
+
+def _fold_read_enabled(state_dir: Path) -> bool:
+    return bool(read_config(state_dir).get("fold_read", False))
 
 
 def install(state_dir: Path) -> None:
@@ -257,8 +264,8 @@ def _replacement(
         f"[Context Fabric folded this {tool_name} output to save context: "
         f"{len(content_bytes):,} bytes, {len(lines):,} lines{note}. Shown below: {_WHAT[kind]}.\n"
         f"Full original, unchanged: {obs_path.resolve().as_posix()}\n"
-        "To see more, use Read on that path (offset/limit for a range) or Grep it. "
-        "Nothing was deleted.]"
+        "To see more, Grep that path for what you need, or Read it with offset/limit for a "
+        "range; reading all of it costs its full size. Nothing was deleted.]"
     )
     replacement = header + "\n\n" + excerpt
     if len(replacement.encode("utf-8")) * 2 <= len(content_bytes):
