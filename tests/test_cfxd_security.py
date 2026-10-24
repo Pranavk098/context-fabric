@@ -95,6 +95,10 @@ def test_state_dir_token_and_events_restrictive(daemon: Daemon) -> None:
 @pytest.mark.skipif(not POSIX, reason="POSIX permissions")
 def test_obs_and_folds_restrictive(tmp_path: Path) -> None:
     state_dir = tmp_path / "cfx"
+    from cfxd.config import set_flag
+
+    set_flag(state_dir, "fold", True)
+    set_flag(state_dir, "fold_read", True)
     content = "def a():\n" + ("# pad\n" * 20_000)
     result = handle_post_tool_use(
         {
