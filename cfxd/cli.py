@@ -27,6 +27,7 @@ from cfxd.daemon import (
     run_serve,
     verify_identity,
 )
+from cfxd.replay import format_replay, replay
 from cfxd.stats import collect_stats, format_human
 
 _SHIM_PATH = Path(__file__).with_name("shim.py")
@@ -88,6 +89,32 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     auditp.add_argument("--json", action="store_true", help="emit a single JSON object")
     auditp.set_defaults(func=_cmd_audit)
+
+    replayp = subparsers.add_parser(
+        "replay", help="offline replay: upper bound on shrinking old tool results"
+    )
+    replayp.add_argument("--root", default=None, help=f"transcripts root (default: {DEFAULT_ROOT})")
+    replayp.add_argument(
+        "--since",
+        choices=("7d", "30d", "all"),
+        default="30d",
+        help="time window by file mtime (default: 30d)",
+    )
+    replayp.add_argument("--k", default="3,5,10", help="comma-separated k values (default: 3,5,10)")
+    replayp.add_argument(
+        "--min-bytes",
+        type=int,
+        default=2048,
+        help="min tool-result bytes to shrink (default: 2048)",
+    )
+    replayp.add_argument(
+        "--stub-bytes", type=int, default=300, help="stub size in bytes (default: 300)"
+    )
+    replayp.add_argument(
+        "--batch", default="1,5", help="comma-separated batch values (default: 1,5)"
+    )
+    replayp.add_argument("--json", action="store_true", help="emit a single JSON object")
+    replayp.set_defaults(func=_cmd_replay)
 
     setp = subparsers.add_parser("set", help="toggle brief, carry, fold or fold_read on/off")
     setp.add_argument(
@@ -273,6 +300,23 @@ def _cmd_audit(args: argparse.Namespace) -> int:
     else:
         print(format_audit(report, root.name))
     return 0
+
+
+def _cmd_replay(args: argparse.Namespace) -> int:
+    root = Path(args.root) if args.root else DEFAULT_ROOT
+    ks = _parse_ints(args.k)
+    batches = _parse_ints(args.batch)
+    report = replay(root, args.since, ks, batches, args.min_bytes, args.stub_bytes)
+    if args.json:
+        print(json.dumps(report))
+    else:
+        print(format_replay(report, root.name))
+    return 0
+
+
+def _parse_ints(value: str) -> tuple[int, ...]:
+    parts = [p.strip() for p in value.split(",") if p.strip()]
+    return tuple(int(p) for p in parts)
 
 
 def main(argv: list[str] | None = None) -> int:
