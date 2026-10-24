@@ -39,6 +39,7 @@ def _free_port() -> int:
 
 class _FakeHandler(BaseHTTPRequestHandler):
     proof: str | None = None
+    post_count = 0
 
     def do_GET(self) -> None:
         health: dict[str, object] = {"ok": True}
@@ -50,6 +51,12 @@ class _FakeHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def do_POST(self) -> None:
+        type(self).post_count += 1
+        self.send_response(200)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
 
     def log_message(self, format: str, *args: object) -> None:
         pass
@@ -110,6 +117,20 @@ def test_fake_server_with_wrong_proof_warns(
     finally:
         _FakeHandler.proof = None
     assert out.strip() == _WARNING
+
+
+def test_squatter_receives_no_hook_payload(
+    tmp_path: Path, fake_server: ThreadingHTTPServer
+) -> None:
+    # A server that answers /health but cannot prove identity must receive no
+    # hook payload: launch.py forward verifies before sending anything.
+    state_dir = tmp_path / "cfx"
+    state_dir.mkdir(parents=True)
+    (state_dir / "token").write_text("a" * 64, encoding="utf-8")
+    _FakeHandler.post_count = 0
+    out = _run_launch(["forward", "PostToolUse"], state_dir, fake_server.server_address[1])
+    assert out.strip() == "{}"
+    assert _FakeHandler.post_count == 0
 
 
 @pytest.mark.skipif(os.name == "nt", reason="POSIX permissions")

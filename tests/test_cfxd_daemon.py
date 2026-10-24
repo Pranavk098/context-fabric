@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from conftest import hook_headers
 
 from cfxd.daemon import Daemon, percentile, run_serve
 from cfxd.handlers import clear, echo, register
@@ -39,10 +40,13 @@ def _post(
     *,
     headers: dict[str, str] | None = None,
     host: str | None = None,
+    token: str | None = None,
 ) -> tuple[int, dict[str, Any]]:
     conn = http.client.HTTPConnection("127.0.0.1", port, timeout=2)
     try:
         h = {"Content-Type": "application/json"}
+        if token is not None:
+            h["X-Cfx-Token"] = token
         if headers:
             h.update(headers)
         if host is not None:
@@ -98,9 +102,22 @@ def test_health_bad_host_rejected(daemon: Daemon) -> None:
 
 
 def test_normal_hook_post_works(daemon: Daemon) -> None:
-    status, body = _post(daemon.port, "PreToolUse", b"{}")
+    status, body = _post(daemon.port, "PreToolUse", b"{}", token=daemon.token)
     assert status == 200
     assert body == {}
+
+
+def test_unauthenticated_post_rejected_401(daemon: Daemon) -> None:
+    status, body = _post(daemon.port, "PreToolUse", b"{}")
+    assert status == 401
+    assert body == {"error": "unauthorized"}
+
+
+def test_wrong_token_rejected_401(daemon: Daemon) -> None:
+    status, body = _post(daemon.port, "PreToolUse", b"{}", token="not-the-token")
+    assert status == 401
+    assert body == {"error": "unauthorized"}
+    assert any(e["outcome"] == "rejected" and e["reason"] == "token" for e in _read_events(daemon))
 
 
 def test_origin_header_rejected(daemon: Daemon) -> None:
@@ -128,6 +145,7 @@ def test_json_content_type_with_charset_accepted(daemon: Daemon) -> None:
         "PreToolUse",
         b"{}",
         headers={"Content-Type": "application/json; charset=utf-8"},
+        token=daemon.token,
     )
     assert status == 200
 
@@ -139,14 +157,14 @@ def test_rejection_logs_outcome_rejected(daemon: Daemon) -> None:
 
 
 def test_unknown_event_returns_empty(daemon: Daemon) -> None:
-    status, body = _post(daemon.port, "NoSuchEvent", b"{}")
+    status, body = _post(daemon.port, "NoSuchEvent", b"{}", token=daemon.token)
     assert status == 200
     assert body == {}
 
 
 def test_registered_echo_handler_returns_output(daemon: Daemon) -> None:
     register("EchoEvent", echo)
-    status, body = _post(daemon.port, "EchoEvent", b'{"hello": "world"}')
+    status, body = _post(daemon.port, "EchoEvent", b'{"hello": "world"}', token=daemon.token)
     assert status == 200
     assert body == {"hello": "world"}
 
@@ -156,7 +174,7 @@ def test_raising_handler_returns_empty_and_logs_error(daemon: Daemon) -> None:
         raise RuntimeError("boom")
 
     register("BoomEvent", boom)
-    status, body = _post(daemon.port, "BoomEvent", b'{"x": 1}')
+    status, body = _post(daemon.port, "BoomEvent", b'{"x": 1}', token=daemon.token)
     assert status == 200
     assert body == {}
     assert any(e["event"] == "BoomEvent" and e["outcome"] == "error" for e in _read_events(daemon))
@@ -169,7 +187,7 @@ def test_slow_handler_returns_empty(daemon: Daemon) -> None:
 
     register("SlowEvent", slow)
     t0 = time.perf_counter()
-    status, body = _post(daemon.port, "SlowEvent", b'{"x": 1}')
+    status, body = _post(daemon.port, "SlowEvent", b'{"x": 1}', token=daemon.token)
     elapsed = time.perf_counter() - t0
     assert status == 200
     assert body == {}
@@ -180,7 +198,7 @@ def test_slow_handler_returns_empty(daemon: Daemon) -> None:
 def test_events_log_has_no_payload_content(daemon: Daemon) -> None:
     secret = "sekrit-MARKER-9f8e7d6c5b4a3210"
     payload = json.dumps({"tool_name": "Bash", "session_id": "sess-1", "content": secret}).encode()
-    _post(daemon.port, "PreToolUse", payload)
+    _post(daemon.port, "PreToolUse", payload, token=daemon.token)
     text = daemon.events_path.read_text(encoding="utf-8")
     assert secret not in text
     assert "9f8e7d6c5b4a3210" not in text
@@ -196,7 +214,7 @@ def test_p95_round_trip_under_50ms(daemon: Daemon) -> None:
                 "POST",
                 "/hooks/PreToolUse",
                 body=b"{}",
-                headers={"Content-Type": "application/json"},
+                headers=hook_headers(daemon),
             )
             resp = conn.getresponse()
             resp.read()

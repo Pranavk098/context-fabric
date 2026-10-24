@@ -258,7 +258,7 @@ def test_end_to_end_daemon(tmp_path: Path) -> None:
             "POST",
             "/hooks/PostToolUse",
             body=payload,
-            headers={"Content-Type": "application/json"},
+            headers={"Content-Type": "application/json", "X-Cfx-Token": d.token},
         )
         resp = conn.getresponse()
         body = json.loads(resp.read())
