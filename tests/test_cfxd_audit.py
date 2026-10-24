@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from cfxd.audit import audit, format_human
+from cfxd.audit import _comp_group_lines, audit, format_human
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -509,10 +509,145 @@ def test_composition_other_types(tmp_path: Path) -> None:
         _user({"type": "document", "source": {"type": "base64", "data": "abcd"}}),
     ]
     _session(tmp_path, "proj", "s1", lines)
-    other = audit(tmp_path, "all")["composition"]["parents"]["categories"]["other"]
+    cats = audit(tmp_path, "all")["composition"]["parents"]["categories"]
 
-    assert other["count"] == 3
-    assert other["types"] == {"queue-operation": 1, "attachment": 1, "document": 1}
+    assert cats["other"]["count"] == 2
+    assert cats["other"]["types"] == {"queue-operation": 1, "document": 1}
+    assert cats["attachment:total_tokens_reminder"]["bytes"] == _json_len(lines[1])
+    assert cats["attachment:total_tokens_reminder"]["count"] == 1
+
+
+def test_composition_attachment_categories(tmp_path: Path) -> None:
+    lines = [
+        {"type": "attachment", "attachment": {"type": "skill_listing", "content": "a"}},
+        {"type": "attachment", "attachment": {"type": "prompt_snapshot", "content": "b"}},
+        {"type": "attachment", "attachment": {"type": "instructions", "content": "c"}},
+        {"type": "attachment", "attachment": {"type": "skill_listing", "content": "d"}},
+        {"type": "attachment", "attachment": {"type": "hook_success", "content": "e"}},
+    ]
+    _session(tmp_path, "proj", "s1", lines)
+    cats = audit(tmp_path, "all")["composition"]["parents"]["categories"]
+
+    assert cats["attachment:skill_listing"]["bytes"] == _json_len(lines[0]) + _json_len(lines[3])
+    assert cats["attachment:skill_listing"]["count"] == 2
+    assert cats["attachment:prompt_snapshot"]["bytes"] == _json_len(lines[1])
+    assert cats["attachment:instructions"]["bytes"] == _json_len(lines[2])
+    # hook attachments keep their existing hook_additional_context meaning
+    assert "attachment:hook_success" not in cats
+    assert cats["hook_additional_context"]["bytes"] == _json_len(lines[4])
+
+    total = audit(tmp_path, "all")["composition"]["parents"]["total_bytes"]
+    assert total == sum(c["bytes"] for c in cats.values())
+
+
+def test_composition_attachment_hostile_names(tmp_path: Path) -> None:
+    hostile = [
+        "C:\\Users\\someone\\secret.txt",  # path-like: backslashes and dots
+        "a" * 41,  # over 40 chars
+        "héllo-wörld",  # non-ASCII
+    ]
+    lines = [{"type": "attachment", "attachment": {"type": t, "content": "z"}} for t in hostile]
+    _session(tmp_path, "proj", "s1", lines)
+    cats = audit(tmp_path, "all")["composition"]["parents"]["categories"]
+
+    expected = sum(len(json.dumps(ln, ensure_ascii=False).encode("utf-8")) for ln in lines)
+    assert cats["attachment:other"]["bytes"] == expected
+    assert cats["attachment:other"]["count"] == len(lines)
+    for t in hostile:
+        assert f"attachment:{t}" not in cats
+
+
+def test_composition_human_top8_cut(tmp_path: Path) -> None:
+    canary = "CANARYATTACH-9999"
+    lines = [
+        {
+            "type": "attachment",
+            "attachment": {"type": f"att_{i:02d}", "content": "x" * (i + 1) + canary},
+        }
+        for i in range(12)
+    ]
+    _session(tmp_path, "proj", "s1", lines)
+    group = audit(tmp_path, "all")["composition"]["parents"]
+    out = "\n".join(_comp_group_lines("parents", group))
+
+    assert canary not in out
+    assert "est. tokens" in out
+    # top 8 by bytes are att_11..att_04; smaller and zero-byte base categories are cut
+    for i in range(4, 12):
+        assert f"attachment:att_{i:02d}:" in out
+    for i in range(4):
+        assert f"attachment:att_{i:02d}:" not in out
+    assert f"other categories: {len(group['categories']) - 8}," in out
+
+
+def test_composition_json_keeps_attachment_categories(tmp_path: Path) -> None:
+    _session(
+        tmp_path,
+        "proj",
+        "s1",
+        [
+            {
+                "type": "attachment",
+                "attachment": {"type": "mcp_instructions_delta", "content": "x"},
+            },
+            {"type": "attachment", "attachment": {"type": "deferred_tools_delta", "content": "y"}},
+        ],
+    )
+    names = ("attachment:mcp_instructions_delta", "attachment:deferred_tools_delta")
+    cats = audit(tmp_path, "all")["composition"]["parents"]["categories"]
+    for name in names:
+        assert name in cats
+        assert set(cats[name]) == {"bytes", "count"}
+
+    data = json.loads(json.dumps(audit(tmp_path, "all")))
+    for name in names:
+        assert name in data["composition"]["parents"]["categories"]
+
+
+def test_composition_starting_prefix_by_item(tmp_path: Path) -> None:
+    s1 = [
+        _assistant(usage=_usage(1, 0)),
+        {"type": "attachment", "attachment": {"type": "skill_listing", "content": "a"}},
+    ]
+    s2 = [
+        _assistant(usage=_usage(1, 0)),
+        {"type": "attachment", "attachment": {"type": "skill_listing", "content": "bb"}},
+        {"type": "attachment", "attachment": {"type": "prompt_snapshot", "content": "c"}},
+    ]
+    _session(tmp_path, "proj", "s1", s1)
+    _session(tmp_path, "proj", "s2", s2)
+    pg = audit(tmp_path, "all")["composition"]["parents"]
+    by_item = pg["starting_prefix_by_item"]
+
+    assert by_item["attachment:skill_listing"]["sessions_present"] == 2
+    assert by_item["attachment:prompt_snapshot"]["sessions_present"] == 1
+    assert by_item["attachment:skill_listing"]["median_bytes"] == pytest.approx(
+        (_json_len(s1[1]) + _json_len(s2[1])) / 2
+    )
+    assert pg["starting_prefix_by_item_total_median_bytes"] == pytest.approx(
+        sum(v["median_bytes"] for v in by_item.values())
+    )
+
+
+def test_composition_attachment_canary_never_leaks(tmp_path: Path) -> None:
+    canary = "CANARYATTACH-7777"
+    _session(
+        tmp_path,
+        "proj",
+        "s1",
+        [{"type": "attachment", "attachment": {"type": "skill_listing", "content": canary}}],
+    )
+    for extra in ([], ["--json"]):
+        result = subprocess.run(
+            [sys.executable, "-m", "cfxd", "audit", "--root", str(tmp_path), *extra],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        assert result.returncode == 0, result.stderr
+        assert canary not in result.stdout
+        assert canary not in result.stderr
 
 
 def test_composition_prefix_and_first_turn(tmp_path: Path) -> None:
