@@ -53,6 +53,7 @@ Use Claude Code normally for a session or two. Then, in a terminal, from the plu
 
 ```
 uv run --no-project --quiet --python ">=3.12" python -m cfxd status
+uv run --no-project --quiet --python ">=3.12" python -m cfxd doctor
 uv run --no-project --quiet --python ">=3.12" python -m cfxd stats
 ```
 
