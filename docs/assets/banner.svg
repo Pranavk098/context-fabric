@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 320" width="1200" height="320" role="img" aria-labelledby="t d">
+  <title id="t">Context Fabric</title>
+  <desc id="d">A context window drawn as a stacked bar: starting prefix, conversation, tool results and headroom.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1020"/>
+      <stop offset="1" stop-color="#1a2342"/>
+    </linearGradient>
+    <linearGradient id="ac" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5eead4"/>
+      <stop offset="1" stop-color="#60a5fa"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="320" rx="18" fill="url(#bg)"/>
+  <g font-family="'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif">
+    <text x="64" y="122" font-size="62" font-weight="700" fill="#f8fafc" letter-spacing="-1">Context Fabric</text>
+    <rect x="64" y="146" width="96" height="5" rx="2.5" fill="url(#ac)"/>
+    <text x="64" y="196" font-size="25" fill="#cbd5e1">Know where your coding agent's tokens go.</text>
+    <text x="64" y="232" font-size="25" fill="#cbd5e1">Then prove what actually saves them.</text>
+    <text x="64" y="282" font-size="15" fill="#64748b" letter-spacing="1.5">OPEN SOURCE  ·  CLAUDE CODE PLUGIN  ·  ALPHA</text>
+  </g>
+  <g font-family="'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="13" fill="#0b1020" font-weight="600">
+    <text x="640" y="92" fill="#94a3b8" font-weight="500" font-size="14" letter-spacing="1.2">ONE TURN OF A TYPICAL SESSION</text>
+    <rect x="640" y="108" width="496" height="64" rx="10" fill="#0f172a" stroke="#334155"/>
+    <rect x="644" y="112" width="196" height="56" rx="7" fill="#60a5fa"/>
+    <rect x="844" y="112" width="124" height="56" rx="7" fill="#5eead4"/>
+    <rect x="972" y="112" width="84" height="56" rx="7" fill="#fbbf24"/>
+    <rect x="1060" y="112" width="72" height="56" rx="7" fill="#1e293b"/>
+    <text x="742" y="146" text-anchor="middle">starting prefix</text>
+    <text x="906" y="146" text-anchor="middle">conversation</text>
+    <text x="1014" y="146" text-anchor="middle">tool output</text>
+    <text x="1096" y="146" text-anchor="middle" fill="#64748b" font-weight="500">free</text>
+  </g>
+  <g font-family="'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" fill="#cbd5e1">
+    <text x="640" y="214" font-size="17">Everything in the window is re-read on every turn.</text>
+    <text x="640" y="242" font-size="17" fill="#94a3b8">Often 60K+ tokens before your first prompt.</text>
+    <text x="640" y="282" font-size="15" fill="#64748b">Illustrative proportions; measure yours with <tspan fill="#5eead4" font-family="Consolas, 'SF Mono', Menlo, monospace">cfxd audit</tspan></text>
+  </g>
+</svg>
