@@ -4,6 +4,7 @@
 - **Date:** 2026-10-22
 - **Evidence:** `docs/engineering/HOOK-SPIKE-2026-10-21.md`, `docs/research/HOOKS-OPENCODE-CODEX.md`,
   Claude Code docs (hooks, plugins reference) read 2026-10-22.
+- **Superseded in part:** decision 4 (no per-start token) and the hot-path part of decision 5 — see ADR-0009.
 
 ## Context
 

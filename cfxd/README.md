@@ -1,9 +1,10 @@
 # cfxd — Context Fabric daemon
 
-A resident, fail-open hook endpoint. Claude Code points its `"type": "http"`
-hooks at the daemon (no per-call process spawn); `SessionStart`/`PreCompact`
-command hooks start it via `cfxd/launch.py`. Any handler error, slow handler,
-or daemon outage is invisible to the agent — every failure degrades to `{}`.
+A resident, fail-open hook endpoint. Claude Code points command hooks at the
+daemon through `cfxd/launch.sh forward <Event>`; `SessionStart`/`PreCompact`
+use the same launcher. The launcher reads the daemon's token file and sends it
+as `X-Cfx-Token`. Any handler error, slow handler, or daemon outage is
+invisible to the agent — every failure degrades to `{}`.
 
 ## Run
 
@@ -24,7 +25,9 @@ State lives in `%USERPROFILE%/.cfx/daemon` by default; override with
 
 The daemon binds `127.0.0.1` only. A `/hooks/*` POST is rejected (403) with an
 `Origin` header, a non-loopback `Host` (DNS-rebinding defence), or a non-JSON
-`Content-Type`. No bearer token: a local process already runs as you.
+`Content-Type`, and rejected (401) without an `X-Cfx-Token` header equal to the
+value in `<state_dir>/token` (0600). `/health` stays open but proves identity
+only to a caller that holds the token (HMAC nonce challenge).
 
 ## Install the plugin
 
