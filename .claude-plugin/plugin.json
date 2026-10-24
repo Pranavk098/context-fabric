@@ -2,7 +2,7 @@
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "context-fabric",
   "version": "0.1.0-alpha.1",
-  "description": "Fewer tokens per task for coding agents: folds large tool output, briefs sub-agents, carries state across compaction.",
+  "description": "Experimental token and context accounting for Claude Code: audit where a session's tokens go, brief sub-agents, carry state across /compact. Savings are not yet proven.",
   "author": {
     "name": "Context Fabric"
   },
