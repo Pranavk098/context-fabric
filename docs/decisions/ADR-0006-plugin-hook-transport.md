@@ -44,8 +44,9 @@ Windows, macOS and Linux (first testers: mostly Windows, some macOS, a few Ubunt
 ## Consequences
 
 - Install for a tester: install `uv`, then `/plugin marketplace add <repo>` and `/plugin install`.
-- Until the B8 freeze lifts, `cfxd` is not in the wheel (`pyproject.toml` is frozen); the plugin path doesn't
-  need it.
+- `cfxd` is in the wheel with a `cfxd` command (added 2026-10-24, after the B8 freeze ended), so
+  `uvx --from git+https://github.com/Pranavk098/context-fabric cfxd audit` works without a clone. The plugin hooks
+  still use `uv run --no-project` and need nothing installed.
 - OpenCode gets an in-process TS plugin that calls the same daemon with `fetch()`; Codex uses the command
   shim (≈110 ms per call), so it gets brief and carry first, not per-call fold.
 - Revisit the fixed port if testers report clashes; revisit tokens if Claude Code adds substitution in `http`
