@@ -1,11 +1,22 @@
 # Context Fabric alpha: install and try it
 
-Context Fabric is a Claude Code plugin that cuts the tokens a coding session spends. This alpha does one thing so far:
-**fold**. When a tool returns a very large output (a big file, a long test log, a wide search), it shows Claude a short
-version plus the path to the full copy, so Claude reads the rest only if it needs to. Nothing is deleted.
+Context Fabric is a Claude Code plugin that cuts the tokens a coding session spends. This alpha does three things:
+
+- **Fold.** When a tool returns a very large output (a big file, a long test log, a wide search), Claude sees a short
+  version plus the path to the full copy, and reads the rest only if it needs to. Nothing is deleted.
+- **Brief.** When Claude starts a sub-agent, a short note lists the files the main session already opened and where
+  the full copies of large outputs are saved, so the sub-agent doesn't start from zero.
+- **Carry.** Before `/compact`, it notes which files and outputs the session was working with; afterwards it puts that
+  note back so Claude doesn't lose its place.
+
+Brief and carry use only paths, sizes and names it saw; never the contents of files or tool output.
 
 It is an early alpha. It works on Windows, macOS and Linux, and it is built to get out of the way: if anything goes
 wrong, Claude Code carries on exactly as it would without the plugin.
+
+**Please use it on your own computer only.** The helper listens on a fixed local port with no password (Claude Code
+can't send one yet), so on a shared machine another user could read what passes through it. It is fine on a personal
+laptop or desktop.
 
 ## What you need
 
@@ -43,12 +54,15 @@ uv run --no-project --quiet --python ">=3.12" python -m cfxd stats
 `status` should say `running`. `stats` shows how many outputs were folded and roughly how many bytes and tokens Claude
 did not have to read. Those are estimates of what was *not shown*, not a measurement of your bill.
 
+To switch a feature off or on: `... python -m cfxd set brief off` (or `carry`, `on`).
+
 ## What it keeps on your computer
 
 Everything stays on your machine. The helper only listens on your own computer (`127.0.0.1`) and the plugin makes no
 network calls.
 
-- `~/.cfx/daemon/events.jsonl` and `folds.jsonl`: event names, sizes and timings. No file contents.
+- `~/.cfx/daemon/events.jsonl`, `folds.jsonl`, `briefs.jsonl`, `carry.jsonl`: event names, sizes, counts and timings. No file contents.
+- `~/.cfx/daemon/carry/`: one small note per session (file paths, line counts, recent commands with obvious secrets masked, todo text).
 - `~/.cfx/daemon/obs/`: the **full copy of each folded output**, so Claude can read the rest. This can include code,
   command output or web pages from your session. Files are deleted after 7 days.
 
