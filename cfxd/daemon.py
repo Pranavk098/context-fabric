@@ -26,6 +26,7 @@ from urllib.parse import unquote
 from urllib.request import Request, urlopen
 
 from cfxd import __version__
+from cfxd.fold import install
 from cfxd.handlers import dispatch
 
 STATE_FILE = "state.json"
@@ -168,6 +169,7 @@ class Daemon:
 
     def start(self) -> None:
         self.state_dir.mkdir(parents=True, exist_ok=True)
+        install(self.state_dir)
         httpd = _CfxdServer(("127.0.0.1", self._port), _Handler)
         httpd.daemon = self
         self._httpd = httpd
