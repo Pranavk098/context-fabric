@@ -131,7 +131,7 @@ def upstream() -> Iterator[str]:
 
 @pytest.fixture()
 def client() -> Iterator[httpx.Client]:
-    with httpx.Client(timeout=10.0) as demo_client:
+    with httpx.Client(timeout=10.0, trust_env=False) as demo_client:
         yield demo_client
 
 

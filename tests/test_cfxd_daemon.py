@@ -236,3 +236,20 @@ def test_start_does_not_wait_on_reverse_dns(
         assert time.perf_counter() - t0 < 1.0
     finally:
         d.stop()
+
+
+def test_local_calls_ignore_proxy_environment(
+    daemon: Daemon, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # A corporate proxy in the environment must not capture our own loopback health and hook calls.
+    from cfxd.daemon import get_health, post_hook
+
+    for var in ("HTTP_PROXY", "http_proxy", "ALL_PROXY", "all_proxy"):
+        monkeypatch.setenv(var, "http://127.0.0.1:9")
+    for var in ("NO_PROXY", "no_proxy"):
+        monkeypatch.delenv(var, raising=False)
+    status, _ = get_health(daemon.port)
+    assert status == 200
+    status, body = post_hook(daemon.port, "PreToolUse", b"{}")
+    assert status == 200
+    assert json.loads(body) == {}

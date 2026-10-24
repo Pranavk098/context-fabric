@@ -1,6 +1,6 @@
 # G2 — Audit-fix report (whole-repo, excluding sidecar server + B8 harness)
 
-Worker: task_1dbb50048a3c / dispatch ctx_d706a111e04f. Branch `Pranavk098/audit-fixes-repo`.
+Audit-fix worker (internal task and dispatch identifiers removed).
 Scope honored: edited only `protocol/`, `kernel/` (not `kernel/store/sqlite_store.py`),
 `adapters/` (unchanged), `evals/` (not `b8_live.py`/`b8_aggregate.py`), `sidecar/repro.py`,
 `scripts/`, `pyproject.toml`, `uv.lock`, `README.md`, `docs/`, `tests/` (not `test_b8*.py`,

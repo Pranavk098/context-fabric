@@ -2,8 +2,7 @@
 
 Pre-registration: `docs/engineering/B4-V3-PREREGISTRATION.md` (frozen 2026-10-19 03:20 UTC).
 Objectives: written blind by a separate agent, `evals/fixtures/b4v3_objectives.json`, unchanged
-since `acf246a`. Runs were executed by an Orca-supervised OpenCode worker (dispatch
-`ctx_fde0e2d7ed51`), with zero errors in every arm. The coordinator then recomputed both verdicts
+since `acf246a`. Runs were executed by an Orca-supervised OpenCode worker (internal run id removed), with zero errors in every arm. The coordinator then recomputed both verdicts
 from the per-request records and they match.
 
 Receipts: `evals/reports/b4_v3_20261018_202752.json` (1.5B), `evals/reports/b4_v3_20261018_202945.json`
