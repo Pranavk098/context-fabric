@@ -59,11 +59,11 @@ as if it were not installed), makes **no network calls**, and writes only **size
 Needs [`uv`](https://docs.astral.sh/uv/) and, on Windows, Git for Windows. Full steps and what is stored on disk:
 [`docs/INSTALL-ALPHA.md`](docs/INSTALL-ALPHA.md). **Use it on your own computer only** for now.
 
-No install needed to look at your own data (nothing leaves your machine, output is counts and sizes):
+No plugin needed to look at your own data. This reads your local Claude Code transcripts and prints counts and
+sizes only (nothing leaves your machine):
 
 ```bash
-git clone https://github.com/Pranavk098/context-fabric && cd context-fabric
-uv run --no-project --python ">=3.12" python -m cfxd audit
+uvx --from git+https://github.com/Pranavk098/context-fabric cfxd audit
 ```
 
 ## What we have measured, including the losses

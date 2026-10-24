@@ -63,6 +63,21 @@ read (an estimate of what was *not shown*, not a measurement of your bill).
 
 To switch a feature off or on: `... python -m cfxd set brief off` (or `carry`, `on`).
 
+## Help us measure (the most useful thing you can do)
+
+Nobody can honestly say yet whether this saves tokens, so the data from your own sessions matters more than opinions.
+After a few days of normal use, run these two commands. Both print **counts and sizes only** (no paths, commands or
+text), and nothing is sent anywhere; read the output, then paste it into an
+[alpha feedback issue](https://github.com/Pranavk098/context-fabric/issues/new?template=alpha-feedback.md).
+
+```
+uvx --from git+https://github.com/Pranavk098/context-fabric cfxd audit
+uvx --from git+https://github.com/Pranavk098/context-fabric cfxd stats
+```
+
+`audit` reads your Claude Code transcripts (it works even without the plugin) and shows where a typical session's
+tokens go. Tell us too if anything broke or felt slower.
+
 ## What it keeps on your computer
 
 Everything stays on your machine. The helper only listens on your own computer (`127.0.0.1`) and the plugin makes no

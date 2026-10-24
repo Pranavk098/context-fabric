@@ -15,12 +15,11 @@ labels: alpha-feedback
 
 **Did a "context-fabric-brief" note ever confuse a sub-agent?**
 
-**Output of these two commands** (from the plugin folder; they contain counts and sizes only, no paths or text — read it before pasting):
+**Output of these two commands** (they contain counts and sizes only, no paths or text — read it before pasting):
 
 ```text
-python -m cfxd stats
-
-python -m cfxd audit
+uvx --from git+https://github.com/Pranavk098/context-fabric cfxd audit
+uvx --from git+https://github.com/Pranavk098/context-fabric cfxd stats
 ```
 
 **Anything else?**
