@@ -12,6 +12,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+from cfxd.config import read_config, set_flag
 from cfxd.daemon import (
     DEFAULT_PORT,
     STATE_FILE,
@@ -74,6 +75,12 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_state_dir(stats)
     stats.set_defaults(func=_cmd_stats)
 
+    setp = subparsers.add_parser("set", help="toggle brief or carry on/off")
+    setp.add_argument("flag", choices=["brief", "carry"], help="feature to toggle")
+    setp.add_argument("value", choices=["on", "off"], help="new state")
+    _add_state_dir(setp)
+    setp.set_defaults(func=_cmd_set)
+
     return parser
 
 
@@ -116,6 +123,12 @@ def _cmd_status(args: argparse.Namespace) -> int:
         f"cfxd status: running (pid {state.get('pid')}, port {state.get('port')}, "
         f"version {state.get('version', '?')})"
     )
+    return 0
+
+
+def _cmd_set(args: argparse.Namespace) -> int:
+    set_flag(resolve_state_dir(args.state_dir), args.flag, args.value == "on")
+    print(f"cfxd set: {args.flag} {args.value}")
     return 0
 
 
@@ -189,6 +202,10 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
         f"cfxd doctor: http://127.0.0.1:{port} (pid {state.get('pid')}, "
         f"version {state.get('version', '?')})"
     )
+    cfg = read_config(state_dir)
+    brief = "on" if cfg["brief"] else "off"
+    carry = "on" if cfg["carry"] else "off"
+    print(f"flags:       brief={brief} carry={carry}")
     print(f"health:      {'ok' if healthy else 'FAIL'}")
     print(
         f"round trips: n={len(samples)} p50={p50:.2f} ms p95={p95:.2f} ms "
