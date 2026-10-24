@@ -1,4 +1,4 @@
-"""cfxd ships in the wheel with a `cfxd` command, so `uvx --from <repo> cfxd audit` works without a clone."""
+"""cfxd is packaged with a `cfxd` command, so `uvx --from <repo> cfxd ...` needs no clone."""
 
 from __future__ import annotations
 
