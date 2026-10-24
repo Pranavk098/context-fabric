@@ -95,3 +95,42 @@ def test_broken_uv_still_exits_zero(tmp_path: Path) -> None:
     fake.write_text("#!/bin/sh\nexit 7\n", encoding="utf-8", newline="\n")
     fake.chmod(0o755)
     assert _run(["session-start"], env).returncode == 0
+
+
+@pytest.mark.skipif(
+    _uv_in_fixed_dirs(), reason="a real uv sits in a dir the script always searches"
+)
+def test_empty_path_does_not_search_cwd(tmp_path: Path) -> None:
+    # With an empty PATH the script must not produce an empty element (which POSIX
+    # treats as the cwd) and so must not pick up a uv sitting in the project repo.
+    assert SH is not None
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    fake = cwd / "uv"
+    fake.write_text('#!/bin/sh\nprintf "CWD-UV-FOUND"\n', encoding="utf-8", newline="\n")
+    fake.chmod(0o755)
+
+    home = tmp_path / "home"
+    bindir = home / ".local" / "bin"
+    bindir.mkdir(parents=True)
+
+    env = {
+        "PATH": "",
+        "HOME": str(home),
+        "USERPROFILE": str(home),
+        "LOCALAPPDATA": str(home / "local"),
+        "SYSTEMROOT": os.environ.get("SYSTEMROOT", ""),
+    }
+    proc = subprocess.run(
+        [SH, str(SCRIPT), "session-start"],
+        input="{}",
+        capture_output=True,
+        text=True,
+        env=env,
+        cwd=str(cwd),
+        timeout=30,
+    )
+    assert proc.returncode == 0
+    assert "CWD-UV-FOUND" not in proc.stdout
+    message = json.loads(proc.stdout)["systemMessage"]
+    assert "uv" in message
