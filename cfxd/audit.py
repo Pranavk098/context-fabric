@@ -35,6 +35,24 @@ _UNCHANGED_PHRASES = ("file unchanged", "<file unchanged>")
 _EDIT_TOOLS = frozenset({"Edit", "Write", "MultiEdit", "NotebookEdit"})
 _MCP_SERVER_RE = re.compile(r"[A-Za-z0-9_-]{1,40}")
 
+_SYSTEM_REMINDER_RE = re.compile(r"<system-reminder[^>]*>.*?</system-reminder>", re.DOTALL)
+_TYPE_NAME_RE = re.compile(r"^[A-Za-z0-9_-]{1,40}$")
+
+# Composition categories, in report order.
+_COMP_CATEGORIES = (
+    "assistant_text",
+    "assistant_thinking",
+    "tool_use_input",
+    "tool_result",
+    "user_text",
+    "system_reminder",
+    "hook_additional_context",
+    "compact_summary",
+    "image",
+    "other",
+)
+_TOOL_INPUT_BUCKETS = ("Edit", "Write", "Bash", "Agent", "other")
+
 
 def _as_int(value: Any) -> int | None:
     if isinstance(value, bool) or not isinstance(value, int):
@@ -65,6 +83,22 @@ def _texts(content: Any) -> list[str]:
                     out.append(text)
         return out
     return []
+
+
+def _json_bytes(value: Any) -> int:
+    """UTF-8 byte length of a value's JSON serialisation (counts/sizes only)."""
+    return len(json.dumps(value, ensure_ascii=False).encode("utf-8"))
+
+
+def _reminder_split(text: str) -> tuple[int, int, int]:
+    """Return (reminder bytes, remaining bytes, span count) for one text string."""
+    total = len(text.encode("utf-8"))
+    rem = 0
+    spans = 0
+    for match in _SYSTEM_REMINDER_RE.finditer(text):
+        rem += len(match.group(0).encode("utf-8"))
+        spans += 1
+    return rem, total - rem, spans
 
 
 def _weighted(usage: dict[str, Any]) -> float:
@@ -157,11 +191,60 @@ def _scan(path: Path, known: set[int] | None = None) -> dict[str, Any]:
 
     own_known: set[int] = set()
 
+    # Composition accumulators (counts and sizes only).
+    cat_bytes = {c: 0 for c in _COMP_CATEGORIES}
+    cat_count = {c: 0 for c in _COMP_CATEGORIES}
+    tool_input = {b: {"bytes": 0, "count": 0} for b in _TOOL_INPUT_BUCKETS}
+    other_types: dict[str, int] = {}
+    prefix_bytes = {c: 0 for c in _COMP_CATEGORIES}
+    assistant_seen = 0
+    total_bytes = 0
+    first_turn_tokens = 0
+    visible_before_first = 0
+
+    def _add(cat: str, nbytes: int, count: int, prefix: bool) -> None:
+        nonlocal total_bytes
+        cat_bytes[cat] += nbytes
+        cat_count[cat] += count
+        total_bytes += nbytes
+        if prefix:
+            prefix_bytes[cat] += nbytes
+
+    def _other(name: object, nbytes: int, count: int, prefix: bool) -> None:
+        _add("other", nbytes, count, prefix)
+        key = name if isinstance(name, str) and _TYPE_NAME_RE.fullmatch(name) else "other"
+        other_types[key] = other_types.get(key, 0) + count
+
     for obj in _iter_objects(path):
+        obj_type = obj.get("type")
+        is_assistant = obj_type == "assistant"
+        # First 3 assistant turns: assistant content plus everything before turn 4.
+        prefix = (assistant_seen < 3) if is_assistant else (assistant_seen <= 3)
+
         if "isCompactSummary" in obj or obj.get("subtype") == "compact_boundary":
             compactions += 1
             has_compaction = True
             after_last = 0
+            _add("compact_summary", _json_bytes(obj), 1, prefix)
+            continue
+
+        if obj_type == "attachment":
+            att = obj.get("attachment")
+            att_type = att.get("type") if isinstance(att, dict) else None
+            if isinstance(att_type, str) and att_type.startswith("hook_"):
+                _add("hook_additional_context", _json_bytes(obj), 1, prefix)
+            else:
+                _other("attachment", _json_bytes(obj), 1, prefix)
+            continue
+        if obj_type == "system":
+            if "hookAdditionalContext" in obj or obj.get("subtype") == "stop_hook_summary":
+                _add("hook_additional_context", _json_bytes(obj), 1, prefix)
+            else:
+                _other("system", _json_bytes(obj), 1, prefix)
+            continue
+        if obj_type not in ("assistant", "user"):
+            _other(obj_type, _json_bytes(obj), 1, prefix)
+            continue
 
         msg = obj.get("message")
         content = msg.get("content") if isinstance(msg, dict) else None
@@ -171,17 +254,26 @@ def _scan(path: Path, known: set[int] | None = None) -> dict[str, Any]:
 
         usage = msg.get("usage") if isinstance(msg, dict) else None
         usage = usage if isinstance(usage, dict) else None
-        if obj.get("type") == "assistant" and usage is not None:
-            if known is not None and not touched and any(_touches(b, known) for b in tool_uses):
-                before_first_touch = weighted
-                touched = True
-            turns += 1
-            after_last += 1
-            weighted += _weighted(usage)
-            raw_in += _as_int(usage.get("input_tokens")) or 0
-            raw_out += _as_int(usage.get("output_tokens")) or 0
-            raw_cc += _as_int(usage.get("cache_creation_input_tokens")) or 0
-            raw_cr += _as_int(usage.get("cache_read_input_tokens")) or 0
+        if is_assistant:
+            if assistant_seen == 0:
+                visible_before_first = total_bytes
+                if usage is not None:
+                    first_turn_tokens = (
+                        (_as_int(usage.get("input_tokens")) or 0)
+                        + (_as_int(usage.get("cache_creation_input_tokens")) or 0)
+                        + (_as_int(usage.get("cache_read_input_tokens")) or 0)
+                    )
+            if usage is not None:
+                if known is not None and not touched and any(_touches(b, known) for b in tool_uses):
+                    before_first_touch = weighted
+                    touched = True
+                turns += 1
+                after_last += 1
+                weighted += _weighted(usage)
+                raw_in += _as_int(usage.get("input_tokens")) or 0
+                raw_out += _as_int(usage.get("output_tokens")) or 0
+                raw_cc += _as_int(usage.get("cache_creation_input_tokens")) or 0
+                raw_cr += _as_int(usage.get("cache_read_input_tokens")) or 0
 
         for block in tool_uses:
             name = block.get("name")
@@ -230,6 +322,57 @@ def _scan(path: Path, known: set[int] | None = None) -> dict[str, Any]:
                 if tid in repeat_ids:
                     repeat_read_bytes += nbytes
 
+        # Composition: block-level content.
+        if is_assistant:
+            for block in blocks:
+                bt = block.get("type")
+                if bt == "text":
+                    t = block.get("text")
+                    if isinstance(t, str):
+                        _add("assistant_text", len(t.encode("utf-8")), 1, prefix)
+                elif bt == "thinking":
+                    t = block.get("thinking")
+                    if isinstance(t, str):
+                        _add("assistant_thinking", len(t.encode("utf-8")), 1, prefix)
+                elif bt == "tool_use":
+                    inp = block.get("input")
+                    nbytes = _json_bytes(inp) if inp is not None else 0
+                    _add("tool_use_input", nbytes, 1, prefix)
+                    name = block.get("name")
+                    bucket = (
+                        name if isinstance(name, str) and name in _TOOL_INPUT_BUCKETS else "other"
+                    )
+                    tool_input[bucket]["bytes"] += nbytes
+                    tool_input[bucket]["count"] += 1
+                else:
+                    _other(bt, _json_bytes(block), 1, prefix)
+            assistant_seen += 1
+        else:
+            for block in blocks:
+                bt = block.get("type")
+                if bt == "text":
+                    t = block.get("text")
+                    if isinstance(t, str):
+                        rem, rest, spans = _reminder_split(t)
+                        _add("system_reminder", rem, spans, prefix)
+                        _add("user_text", rest, 1, prefix)
+                elif bt == "tool_result":
+                    texts = _texts(block.get("content"))
+                    total = sum(len(t.encode("utf-8")) for t in texts)
+                    rem = spans = 0
+                    for t in texts:
+                        r, _, s = _reminder_split(t)
+                        rem += r
+                        spans += s
+                    _add("tool_result", total - rem, 1, prefix)
+                    _add("system_reminder", rem, spans, prefix)
+                elif bt == "image":
+                    src = block.get("source")
+                    data = src.get("data") if isinstance(src, dict) else None
+                    _add("image", len(data) if isinstance(data, str) else 0, 1, prefix)
+                else:
+                    _other(bt, _json_bytes(block), 1, prefix)
+
     return {
         "turns": turns,
         "after_last": after_last if has_compaction else None,
@@ -249,6 +392,15 @@ def _scan(path: Path, known: set[int] | None = None) -> dict[str, Any]:
         "before_first_touch": before_first_touch,
         "touched": touched,
         "own_known": own_known,
+        "comp_categories": {
+            c: {"bytes": cat_bytes[c], "count": cat_count[c]} for c in _COMP_CATEGORIES
+        },
+        "comp_tool_input": tool_input,
+        "comp_other_types": other_types,
+        "comp_prefix": prefix_bytes,
+        "comp_total": total_bytes,
+        "first_turn_tokens": first_turn_tokens,
+        "visible_before_first": visible_before_first,
     }
 
 
@@ -287,6 +439,31 @@ def _pctl(values: list[int], p: float) -> float:
     return percentile([float(v) for v in values], p)
 
 
+def _group_summary(
+    bytes_: dict[str, int],
+    counts: dict[str, int],
+    tool_input: dict[str, dict[str, int]],
+    other_types: dict[str, int],
+) -> dict[str, Any]:
+    """Build one group's composition block from aggregated category bytes/counts."""
+    total = sum(bytes_.values())
+    categories: dict[str, Any] = {}
+    for cat in _COMP_CATEGORIES:
+        entry: dict[str, Any] = {"bytes": bytes_[cat], "count": counts[cat]}
+        if cat == "tool_use_input":
+            entry["by_tool"] = tool_input
+        elif cat == "other":
+            entry["types"] = other_types
+        categories[cat] = entry
+    shares = {cat: round(bytes_[cat] / total, 4) if total else 0.0 for cat in _COMP_CATEGORIES}
+    return {
+        "total_bytes": total,
+        "categories": categories,
+        "shares": shares,
+        "estimated_tokens": {cat: round(bytes_[cat] / 4.0, 1) for cat in _COMP_CATEGORIES},
+    }
+
+
 def audit(root: Path, since: str = "30d", now: datetime | None = None) -> dict[str, Any]:
     """Aggregate counts-only audit stats over every transcript under ``root``."""
     if now is None:
@@ -308,6 +485,15 @@ def audit(root: Path, since: str = "30d", now: datetime | None = None) -> dict[s
 
     parent_known: dict[str, set[int]] = {}
 
+    comp_bytes = {c: 0 for c in _COMP_CATEGORIES}
+    comp_count = {c: 0 for c in _COMP_CATEGORIES}
+    comp_tool_input = {b: {"bytes": 0, "count": 0} for b in _TOOL_INPUT_BUCKETS}
+    comp_other_types: dict[str, int] = {}
+    prefix_lists: dict[str, list[int]] = {c: [] for c in _COMP_CATEGORIES}
+    whole_lists: dict[str, list[int]] = {c: [] for c in _COMP_CATEGORIES}
+    first_turn_tokens_list: list[int] = []
+    visible_before_list: list[int] = []
+
     for path in parents:
         r = _scan(path, known=None)
         turn_counts.append(r["turns"])
@@ -324,11 +510,30 @@ def audit(root: Path, since: str = "30d", now: datetime | None = None) -> dict[s
         if r["after_last"] is not None:
             after_last_counts.append(r["after_last"])
         parent_known[path.stem] = r["own_known"]
+        for cat in _COMP_CATEGORIES:
+            comp_bytes[cat] += r["comp_categories"][cat]["bytes"]
+            comp_count[cat] += r["comp_categories"][cat]["count"]
+        for tool, slot in r["comp_tool_input"].items():
+            comp_tool_input[tool]["bytes"] += slot["bytes"]
+            comp_tool_input[tool]["count"] += slot["count"]
+        for name, cnt in r["comp_other_types"].items():
+            comp_other_types[name] = comp_other_types.get(name, 0) + cnt
+        if r["turns"] > 0:
+            for cat in _COMP_CATEGORIES:
+                prefix_lists[cat].append(r["comp_prefix"][cat])
+                whole_lists[cat].append(r["comp_categories"][cat]["bytes"])
+            first_turn_tokens_list.append(r["first_turn_tokens"])
+            visible_before_list.append(r["visible_before_first"])
 
     sub_weighted = 0.0
     sub_raw_in = sub_raw_out = sub_raw_cc = sub_raw_cr = 0
     fractions: list[float] = []
     never_touched = 0
+
+    sub_comp_bytes = {c: 0 for c in _COMP_CATEGORIES}
+    sub_comp_count = {c: 0 for c in _COMP_CATEGORIES}
+    sub_comp_tool_input = {b: {"bytes": 0, "count": 0} for b in _TOOL_INPUT_BUCKETS}
+    sub_comp_other_types: dict[str, int] = {}
 
     for path, parent_id in subs:
         r = _scan(path, known=parent_known.get(parent_id, set()))
@@ -341,6 +546,14 @@ def audit(root: Path, since: str = "30d", now: datetime | None = None) -> dict[s
             fractions.append((r["before_first_touch"] or 0.0) / r["weighted"])
         else:
             never_touched += 1
+        for cat in _COMP_CATEGORIES:
+            sub_comp_bytes[cat] += r["comp_categories"][cat]["bytes"]
+            sub_comp_count[cat] += r["comp_categories"][cat]["count"]
+        for tool, slot in r["comp_tool_input"].items():
+            sub_comp_tool_input[tool]["bytes"] += slot["bytes"]
+            sub_comp_tool_input[tool]["count"] += slot["count"]
+        for name, cnt in r["comp_other_types"].items():
+            sub_comp_other_types[name] = sub_comp_other_types.get(name, 0) + cnt
 
     # Metric 2/3: per-tool byte stats and share of bytes from >10 KB results.
     total_bytes = sum(sum(sizes) for sizes in tool_sizes.values())
@@ -361,6 +574,29 @@ def audit(root: Path, since: str = "30d", now: datetime | None = None) -> dict[s
         }
         if total_bytes:
             share_over_10k[bucket] = round(sum(over_10) / total_bytes, 4)
+
+    parents_group = _group_summary(comp_bytes, comp_count, comp_tool_input, comp_other_types)
+    parents_group["starting_prefix_median_bytes"] = {
+        cat: round(_pctl(prefix_lists[cat], 50), 1) for cat in _COMP_CATEGORIES
+    }
+    parents_group["whole_session_median_bytes"] = {
+        cat: round(_pctl(whole_lists[cat], 50), 1) for cat in _COMP_CATEGORIES
+    }
+    ratios = [
+        tok / (vb / 4.0)
+        for tok, vb in zip(first_turn_tokens_list, visible_before_list, strict=True)
+        if vb > 0
+    ]
+    visible_bytes_median = _pctl(visible_before_list, 50)
+    parents_group["first_turn"] = {
+        "usage_tokens_median": round(_pctl(first_turn_tokens_list, 50), 1),
+        "visible_bytes_median": round(visible_bytes_median, 1),
+        "visible_tokens_estimated_median": round(visible_bytes_median / 4.0, 1),
+        "ratio_median": round(percentile(ratios, 50), 3),
+    }
+    subagents_group = _group_summary(
+        sub_comp_bytes, sub_comp_count, sub_comp_tool_input, sub_comp_other_types
+    )
 
     return {
         "since": since,
@@ -403,7 +639,33 @@ def audit(root: Path, since: str = "30d", now: datetime | None = None) -> dict[s
             },
             "never_touched": never_touched,
         },
+        "composition": {"parents": parents_group, "subagents": subagents_group},
     }
+
+
+def _comp_group_lines(label: str, group: dict[str, Any]) -> list[str]:
+    """Human lines for one composition group (counts and sizes only)."""
+    total = group["total_bytes"]
+    lines = [
+        f"Context composition ({label}):",
+        f"  total {total:,} bytes (~{total / 4:,.0f} est. tokens)",
+    ]
+    for cat in _COMP_CATEGORIES:
+        st = group["categories"][cat]
+        share = group["shares"][cat]
+        line = f"  {cat}: {st['count']:,} blocks, {st['bytes']:,} bytes ({share * 100:.1f}%)"
+        if cat == "tool_use_input":
+            bt = st["by_tool"]
+            line += " (" + ", ".join(f"{t} {bt[t]['bytes']:,}" for t in _TOOL_INPUT_BUCKETS) + ")"
+        if cat == "other":
+            types = st.get("types", {})
+            if types:
+                top = ", ".join(
+                    f"{k} {v:,}" for k, v in sorted(types.items(), key=lambda kv: -kv[1])[:8]
+                )
+                line += f" [types: {top}]"
+        lines.append(line)
+    return lines
 
 
 def format_human(report: dict[str, Any], dir_name: str = ".") -> str:
@@ -449,5 +711,20 @@ def format_human(report: dict[str, Any], dir_name: str = ".") -> str:
         f"mean {sa['first_touch_fraction']['mean']:.3f}, "
         f"{sa['never_touched']} never touched a known file"
     )
+    lines.extend(_comp_group_lines("parents", report["composition"]["parents"]))
+    pg = report["composition"]["parents"]
+    lines.append("Starting prefix (first 3 turns, parents) median bytes / whole-session median:")
+    for cat in _COMP_CATEGORIES:
+        lines.append(
+            f"  {cat}: {pg['starting_prefix_median_bytes'][cat]:,.0f} / "
+            f"{pg['whole_session_median_bytes'][cat]:,.0f}"
+        )
+    ft = pg["first_turn"]
+    lines.append(
+        f"First-turn context (parents): median usage {ft['usage_tokens_median']:,.0f} tokens vs "
+        f"{ft['visible_tokens_estimated_median']:,.0f} est. visible tokens -> "
+        f"ratio {ft['ratio_median']:.2f}"
+    )
+    lines.extend(_comp_group_lines("sub-agents", report["composition"]["subagents"]))
     lines.append("This report contains counts and sizes only; no paths, commands or text.")
     return "\n".join(lines)

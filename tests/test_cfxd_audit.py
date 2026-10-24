@@ -377,3 +377,276 @@ def test_cli_empty_root_exits_0(tmp_path: Path) -> None:
     )
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == "No transcripts found under empty."
+
+
+def _json_len(value: object) -> int:
+    return len(json.dumps(value).encode("utf-8"))
+
+
+def test_composition_exact_bytes(tmp_path: Path) -> None:
+    hook_line = {
+        "type": "attachment",
+        "attachment": {"type": "hook_success", "hookEvent": "PreToolUse", "content": "added"},
+        "sessionId": "s",
+    }
+    compact_line = {"type": "system", "subtype": "compact_boundary", "content": "summary text"}
+    lines = [
+        hook_line,
+        compact_line,
+        _assistant(
+            {"type": "text", "text": "abc"},
+            {"type": "thinking", "thinking": "defg"},
+            _tool_use("b1", "Bash", command="ls"),
+            usage=_usage(10, 2),
+        ),
+        _user(
+            {"type": "text", "text": "hello"},
+            {
+                "type": "image",
+                "source": {"type": "base64", "media_type": "image/png", "data": "QUJD"},
+            },
+        ),
+    ]
+    _session(tmp_path, "proj", "s1", lines)
+    cats = audit(tmp_path, "all")["composition"]["parents"]["categories"]
+
+    assert cats["assistant_text"] == {"bytes": 3, "count": 1}
+    assert cats["assistant_thinking"] == {"bytes": 4, "count": 1}
+    assert cats["tool_use_input"]["bytes"] == _json_len({"command": "ls"})
+    assert cats["tool_use_input"]["count"] == 1
+    assert cats["tool_use_input"]["by_tool"]["Bash"]["bytes"] == _json_len({"command": "ls"})
+    assert cats["user_text"] == {"bytes": 5, "count": 1}
+    assert cats["image"] == {"bytes": 4, "count": 1}
+    assert cats["hook_additional_context"] == {"bytes": _json_len(hook_line), "count": 1}
+    assert cats["compact_summary"] == {"bytes": _json_len(compact_line), "count": 1}
+    assert cats["tool_result"] == {"bytes": 0, "count": 0}
+    assert cats["system_reminder"] == {"bytes": 0, "count": 0}
+    assert cats["other"] == {"bytes": 0, "count": 0, "types": {}}
+
+    total = audit(tmp_path, "all")["composition"]["parents"]["total_bytes"]
+    assert total == sum(c["bytes"] for c in cats.values())
+    assert audit(tmp_path, "all")["composition"]["parents"]["shares"]["assistant_text"] == (
+        pytest.approx(3 / total, abs=5e-5)
+    )
+
+
+def test_composition_tool_use_input_bucketing(tmp_path: Path) -> None:
+    lines = [
+        _assistant(
+            _tool_use("e1", "Edit", file_path="f", old_string="a", new_string="b"),
+            _tool_use("w1", "Write", file_path="g", content="c"),
+            _tool_use("b1", "Bash", command="ls"),
+            _tool_use("a1", "Agent", prompt="p"),
+            _tool_use("g1", "Grep", pattern="x"),
+            usage=_usage(1, 0),
+        ),
+    ]
+    _session(tmp_path, "proj", "s1", lines)
+    bt = audit(tmp_path, "all")["composition"]["parents"]["categories"]["tool_use_input"]["by_tool"]
+
+    assert bt["Edit"]["count"] == 1
+    assert bt["Edit"]["bytes"] == _json_len(
+        {"file_path": "f", "old_string": "a", "new_string": "b"}
+    )
+    assert bt["Write"]["count"] == 1
+    assert bt["Bash"]["count"] == 1
+    assert bt["Agent"]["count"] == 1
+    assert bt["other"]["count"] == 1
+    assert bt["other"]["bytes"] == _json_len({"pattern": "x"})
+
+
+def test_composition_system_reminder_no_double_counting(tmp_path: Path) -> None:
+    u_span = "<system-reminder>do not forget</system-reminder>"
+    r_span = '<system-reminder id="1">note</system-reminder>'
+    user_text = "before " + u_span + " after"
+    result_text = "x " + r_span + " y"
+    lines = [
+        _assistant(_tool_use("r1", "Read", file_path="f"), usage=_usage(1, 0)),
+        _user(
+            {"type": "text", "text": user_text},
+            _tool_result("r1", result_text),
+        ),
+    ]
+    _session(tmp_path, "proj", "s1", lines)
+    cats = audit(tmp_path, "all")["composition"]["parents"]["categories"]
+
+    assert cats["user_text"]["bytes"] == len(user_text.encode("utf-8")) - len(
+        u_span.encode("utf-8")
+    )
+    assert cats["tool_result"]["bytes"] == len(result_text.encode("utf-8")) - len(
+        r_span.encode("utf-8")
+    )
+    assert cats["system_reminder"]["bytes"] == len(u_span.encode("utf-8")) + len(
+        r_span.encode("utf-8")
+    )
+    assert cats["system_reminder"]["count"] == 2
+
+
+def test_composition_tool_result_content_shapes(tmp_path: Path) -> None:
+    reminder = "<system-reminder>note</system-reminder>"
+    lines = [
+        _assistant(
+            _tool_use("r1", "Read", file_path="f"), _tool_use("r2", "Bash"), usage=_usage(1, 0)
+        ),
+        _user(
+            _tool_result("r1", "plain"),
+            _tool_result("r2", [{"type": "text", "text": "a" + reminder + "b"}]),
+        ),
+    ]
+    _session(tmp_path, "proj", "s1", lines)
+    cats = audit(tmp_path, "all")["composition"]["parents"]["categories"]
+
+    assert cats["tool_result"]["bytes"] == len("plain") + len("ab")
+    assert cats["system_reminder"]["bytes"] == len(reminder)
+    assert cats["system_reminder"]["count"] == 1
+
+
+def test_composition_other_types(tmp_path: Path) -> None:
+    lines = [
+        {"type": "queue-operation", "operation": "delete"},
+        {"type": "attachment", "attachment": {"type": "total_tokens_reminder", "text": "x"}},
+        _assistant(_tool_use("b1", "Bash"), usage=_usage(1, 0)),
+        _user({"type": "document", "source": {"type": "base64", "data": "abcd"}}),
+    ]
+    _session(tmp_path, "proj", "s1", lines)
+    other = audit(tmp_path, "all")["composition"]["parents"]["categories"]["other"]
+
+    assert other["count"] == 3
+    assert other["types"] == {"queue-operation": 1, "attachment": 1, "document": 1}
+
+
+def test_composition_prefix_and_first_turn(tmp_path: Path) -> None:
+    _session(
+        tmp_path,
+        "proj",
+        "s1",
+        [
+            _user({"type": "text", "text": "hi"}),
+            _assistant({"type": "text", "text": "abcd"}, usage=_usage(40, 1)),
+        ],
+    )
+    _session(
+        tmp_path,
+        "proj",
+        "s2",
+        [
+            _user({"type": "text", "text": "yo"}),
+            _assistant({"type": "text", "text": "xyz"}, usage=_usage(80, 1)),
+        ],
+    )
+    pg = audit(tmp_path, "all")["composition"]["parents"]
+
+    assert pg["starting_prefix_median_bytes"]["assistant_text"] == pytest.approx(3.5)
+    assert pg["whole_session_median_bytes"]["assistant_text"] == pytest.approx(3.5)
+    assert pg["starting_prefix_median_bytes"]["user_text"] == pytest.approx(2.0)
+    assert pg["first_turn"]["usage_tokens_median"] == pytest.approx(60.0)
+    assert pg["first_turn"]["visible_bytes_median"] == pytest.approx(2.0)
+    assert pg["first_turn"]["visible_tokens_estimated_median"] == pytest.approx(0.5)
+    # 40/(2/4)=80 and 80/(2/4)=160, median 120
+    assert pg["first_turn"]["ratio_median"] == pytest.approx(120.0)
+
+
+def test_composition_subagents_grouped_separately(tmp_path: Path) -> None:
+    _session(
+        tmp_path,
+        "proj",
+        "ps",
+        [_assistant({"type": "text", "text": "parent"}, usage=_usage(10, 1))],
+    )
+    _subagent(
+        tmp_path,
+        "proj",
+        "ps",
+        "agent-1",
+        [_assistant({"type": "text", "text": "child"}, usage=_usage(10, 1))],
+    )
+    comp = audit(tmp_path, "all")["composition"]
+
+    assert comp["parents"]["categories"]["assistant_text"]["bytes"] == len("parent")
+    assert comp["subagents"]["categories"]["assistant_text"]["bytes"] == len("child")
+
+
+def test_composition_canary_strings_never_leak(tmp_path: Path) -> None:
+    canaries = [
+        "CANARYREMINDER-0000",
+        "CANARYHOOK-1111",
+        "CANARYTHINK-2222",
+        "CANARYIMG-3333",
+        "CANARYCOMPACT-4444",
+    ]
+    lines = [
+        {
+            "type": "attachment",
+            "attachment": {"type": "hook_success", "content": canaries[1]},
+            "sessionId": "s",
+        },
+        {"type": "system", "subtype": "compact_boundary", "content": canaries[4]},
+        _assistant(
+            {"type": "text", "text": "hello"},
+            {"type": "thinking", "thinking": canaries[2]},
+            _tool_use("b1", "Bash", command="x"),
+            usage=_usage(1, 0),
+        ),
+        _user(
+            {"type": "text", "text": "note <system-reminder>" + canaries[0] + "</system-reminder>"},
+            {"type": "image", "source": {"type": "base64", "data": canaries[3]}},
+        ),
+    ]
+    _session(tmp_path, "proj", "s1", lines)
+
+    for extra in ([], ["--json"]):
+        result = subprocess.run(
+            [sys.executable, "-m", "cfxd", "audit", "--root", str(tmp_path), *extra],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        assert result.returncode == 0, result.stderr
+        for canary in canaries:
+            assert canary not in result.stdout
+            assert canary not in result.stderr
+
+
+def test_cli_json_composition(tmp_path: Path) -> None:
+    _session(
+        tmp_path, "proj", "s1", [_assistant({"type": "text", "text": "hi"}, usage=_usage(10, 2))]
+    )
+    result = subprocess.run(
+        [sys.executable, "-m", "cfxd", "audit", "--root", str(tmp_path), "--json"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert result.returncode == 0, result.stderr
+    data = json.loads(result.stdout)
+    comp = data["composition"]
+    assert comp["parents"]["categories"]["assistant_text"]["bytes"] == 2
+    assert "shares" in comp["parents"]
+    assert "subagents" in comp
+
+
+def test_cli_human_composition(tmp_path: Path) -> None:
+    _session(
+        tmp_path, "proj", "s1", [_assistant({"type": "text", "text": "hi"}, usage=_usage(1, 0))]
+    )
+    result = subprocess.run(
+        [sys.executable, "-m", "cfxd", "audit", "--root", str(tmp_path)],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "Context composition (parents)" in result.stdout
+    assert "Context composition (sub-agents)" in result.stdout
+
+
+def test_composition_empty_root(tmp_path: Path) -> None:
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    comp = audit(empty, "all")["composition"]
+    assert comp["parents"]["total_bytes"] == 0
+    assert comp["subagents"]["total_bytes"] == 0
+    assert comp["parents"]["categories"]["other"]["types"] == {}
