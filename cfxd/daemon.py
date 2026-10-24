@@ -25,9 +25,10 @@ from urllib.error import HTTPError
 from urllib.parse import unquote
 from urllib.request import Request, urlopen
 
-from cfxd import __version__
+from cfxd import __version__, session_state
+from cfxd.brief import install as brief_install
 from cfxd.fold import install
-from cfxd.handlers import dispatch
+from cfxd.handlers import add_observer, dispatch
 
 STATE_FILE = "state.json"
 EVENTS_FILE = "events.jsonl"
@@ -170,6 +171,8 @@ class Daemon:
     def start(self) -> None:
         self.state_dir.mkdir(parents=True, exist_ok=True)
         install(self.state_dir)
+        brief_install(self.state_dir)
+        add_observer("PostToolUse", session_state.observe_post_tool_use)
         httpd = _CfxdServer(("127.0.0.1", self._port), _Handler)
         httpd.daemon = self
         self._httpd = httpd

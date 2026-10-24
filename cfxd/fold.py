@@ -21,6 +21,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from cfxd import session_state
 from cfxd.handlers import register
 
 FOLD_MIN_BYTES = 20_000
@@ -97,6 +98,8 @@ def handle_post_tool_use(payload: dict[str, Any], state_dir: Path) -> dict[str, 
     if not isinstance(session_id, str):
         session_id = None
 
+    source = _fold_source(tool_name, tool_input)
+
     updated = copy.deepcopy(response)
     folded = False
 
@@ -121,6 +124,7 @@ def handle_post_tool_use(payload: dict[str, Any], state_dir: Path) -> dict[str, 
             state_dir,
             _code_ext(tool_input),
             _read_range_note(file),
+            source,
         )
         if replacement is None:
             return {}
@@ -131,7 +135,7 @@ def handle_post_tool_use(payload: dict[str, Any], state_dir: Path) -> dict[str, 
             content = response.get(field)
             if not isinstance(content, str):
                 continue
-            replacement = _fold(content, tool_name, field, session_id, state_dir, None)
+            replacement = _fold(content, tool_name, field, session_id, state_dir, None, "", source)
             if replacement is not None:
                 updated[field] = replacement
                 folded = True
@@ -141,7 +145,7 @@ def handle_post_tool_use(payload: dict[str, Any], state_dir: Path) -> dict[str, 
             return {}
         if _path_in_obs(tool_input.get("path"), state_dir):
             return {}
-        replacement = _fold(content, tool_name, "content", session_id, state_dir, None)
+        replacement = _fold(content, tool_name, "content", session_id, state_dir, None, "", source)
         if replacement is None:
             return {}
         updated["content"] = replacement
@@ -150,7 +154,7 @@ def handle_post_tool_use(payload: dict[str, Any], state_dir: Path) -> dict[str, 
         content = response.get("result")
         if not isinstance(content, str):
             return {}
-        replacement = _fold(content, tool_name, "result", session_id, state_dir, None)
+        replacement = _fold(content, tool_name, "result", session_id, state_dir, None, "", source)
         if replacement is None:
             return {}
         updated["result"] = replacement
@@ -180,6 +184,7 @@ def _fold(
     state_dir: Path,
     code_ext: str | None,
     note: str = "",
+    source: str = "",
 ) -> str | None:
     """Fold one string field; return the replacement text, or ``None`` to skip folding."""
     content_bytes = content.encode("utf-8")
@@ -208,7 +213,35 @@ def _fold(
         len(replacement.encode("utf-8")),
         obs_id,
     )
+    try:
+        session_state.record_fold(
+            session_id,
+            tool_name,
+            source,
+            obs_id,
+            obs_path.resolve().as_posix(),
+            len(content_bytes),
+            kind,
+        )
+    except Exception:
+        pass
     return replacement
+
+
+def _fold_source(tool_name: str, tool_input: dict[str, Any]) -> str:
+    """The fact source for a fold: file path, redacted command, bare URL, or ``Grep``."""
+    if tool_name == "Bash":
+        command = tool_input.get("command")
+        return session_state.redact_command(command) if isinstance(command, str) else ""
+    if tool_name == "WebFetch":
+        url = tool_input.get("url")
+        if isinstance(url, str):
+            return url.split("?", 1)[0].split("#", 1)[0]
+        return ""
+    if tool_name == "Read":
+        file_path = tool_input.get("file_path")
+        return file_path if isinstance(file_path, str) else ""
+    return "Grep"
 
 
 def _replacement(

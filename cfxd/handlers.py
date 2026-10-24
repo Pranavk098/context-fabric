@@ -10,8 +10,10 @@ from collections.abc import Callable
 from typing import Any
 
 Handler = Callable[[dict[str, Any]], dict[str, Any] | None]
+Observer = Callable[[dict[str, Any]], None]
 
 _HANDLERS: dict[str, Handler] = {}
+_OBSERVERS: dict[str, list[Observer]] = {}
 
 
 def register(event: str, fn: Handler) -> None:
@@ -19,8 +21,22 @@ def register(event: str, fn: Handler) -> None:
     _HANDLERS[event] = fn
 
 
+def add_observer(event: str, fn: Observer) -> None:
+    """Register ``fn`` as an observer for ``event``.
+
+    Observers run before the handler; their result is ignored and exceptions
+    are swallowed, so they can never change or break the hook response.
+    """
+    _OBSERVERS.setdefault(event, []).append(fn)
+
+
 def dispatch(event: str, payload: dict[str, Any]) -> dict[str, Any]:
-    """Run the handler for ``event``; no handler or a ``None`` result yields ``{}``."""
+    """Run observers then the handler for ``event``; no handler or ``None`` -> ``{}``."""
+    for observer in _OBSERVERS.get(event, ()):
+        try:
+            observer(payload)
+        except Exception:
+            pass
     fn = _HANDLERS.get(event)
     if fn is None:
         return {}
@@ -34,5 +50,6 @@ def echo(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def clear() -> None:
-    """Test helper: drop every registered handler."""
+    """Test helper: drop every registered handler and observer."""
     _HANDLERS.clear()
+    _OBSERVERS.clear()
