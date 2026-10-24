@@ -91,6 +91,8 @@ def handle_post_tool_use(payload: dict[str, Any], state_dir: Path) -> dict[str, 
     tool_name = payload.get("tool_name")
     if tool_name not in _FOLD_TOOLS:
         return {}
+    if not _fold_enabled(state_dir):
+        return {}
     response = payload.get("tool_response")
     if not isinstance(response, dict):
         return {}
@@ -173,6 +175,10 @@ def handle_post_tool_use(payload: dict[str, Any], state_dir: Path) -> dict[str, 
             "updatedToolOutput": updated,
         }
     }
+
+
+def _fold_enabled(state_dir: Path) -> bool:
+    return bool(read_config(state_dir).get("fold", False))
 
 
 def _fold_read_enabled(state_dir: Path) -> bool:
