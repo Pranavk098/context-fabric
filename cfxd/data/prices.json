@@ -1,0 +1,62 @@
+{
+  "as_of": "2026-10-24",
+  "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+  "note": "re-check before relying on dollars",
+  "models": [
+    {
+      "family": "sonnet-5-5",
+      "input": 2.0,
+      "cache_write_5m": 2.5,
+      "cache_write_1h": 4.0,
+      "cache_read": 0.10,
+      "output": 10.0
+    },
+    {
+      "family": "sonnet-5",
+      "input": 2.0,
+      "cache_write_5m": 2.5,
+      "cache_write_1h": 4.0,
+      "cache_read": 0.20,
+      "output": 10.0
+    },
+    {
+      "family": "sonnet-4-6",
+      "input": 3.0,
+      "cache_write_5m": 3.75,
+      "cache_write_1h": 6.0,
+      "cache_read": 0.30,
+      "output": 15.0
+    },
+    {
+      "family": "haiku-4-5",
+      "input": 1.0,
+      "cache_write_5m": 1.25,
+      "cache_write_1h": 2.0,
+      "cache_read": 0.10,
+      "output": 5.0
+    },
+    {
+      "family": "haiku-5-5",
+      "input": 0.10,
+      "cache_write_5m": 0.125,
+      "cache_write_1h": 0.20,
+      "cache_read": 0.01,
+      "output": 0.50,
+      "over_100k": {
+        "input": 0.50,
+        "cache_write_5m": 0.625,
+        "cache_write_1h": 1.0,
+        "cache_read": 0.05,
+        "output": 2.50
+      }
+    },
+    {
+      "family": "opus",
+      "input": 5.0,
+      "cache_write_5m": 6.25,
+      "cache_write_1h": 10.0,
+      "cache_read": 0.50,
+      "output": 25.0
+    }
+  ]
+}
