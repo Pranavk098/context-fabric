@@ -70,11 +70,13 @@ After a few days (terminal):
 ```bash
 uvx --from git+https://github.com/Pranavk098/context-fabric cfxd audit
 uvx --from git+https://github.com/Pranavk098/context-fabric cfxd stats
+uvx --from git+https://github.com/Pranavk098/context-fabric cfxd diet --share
 ```
 
-Both print counts and sizes only: no file paths, commands, prompts or code. **Read the output before you share it.**
+All three print counts and sizes only: no file paths, commands, prompts or code. **Read the output before you share it.**
 Open an [alpha feedback issue](https://github.com/Pranavk098/context-fabric/issues/new?template=alpha-feedback.md) and
-paste it, or send it to the person who gave you this link. `audit` works even if you only want to look at your own
+paste it, or send it to the person who gave you this link. (`diet` without `--share` prints the names of your
+skills and connectors for your own eyes; do not paste that version.) `audit` works even if you only want to look at your own
 history and skip the plugin: it needs no install.
 
 ## 4. Questions we want answered

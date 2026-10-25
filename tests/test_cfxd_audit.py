@@ -417,7 +417,8 @@ def test_composition_exact_bytes(tmp_path: Path) -> None:
     assert cats["tool_use_input"]["by_tool"]["Bash"]["bytes"] == _json_len({"command": "ls"})
     assert cats["user_text"] == {"bytes": 5, "count": 1}
     assert cats["image"] == {"bytes": 4, "count": 1}
-    assert cats["hook_additional_context"] == {"bytes": _json_len(hook_line), "count": 1}
+    # the largest field of the hook attachment is hookEvent ("PreToolUse"), counted once
+    assert cats["hook_additional_context"] == {"bytes": _json_len("PreToolUse"), "count": 1}
     assert cats["compact_summary"] == {"bytes": _json_len(compact_line), "count": 1}
     assert cats["tool_result"] == {"bytes": 0, "count": 0}
     assert cats["system_reminder"] == {"bytes": 0, "count": 0}
@@ -513,7 +514,7 @@ def test_composition_other_types(tmp_path: Path) -> None:
 
     assert cats["other"]["count"] == 2
     assert cats["other"]["types"] == {"queue-operation": 1, "document": 1}
-    assert cats["attachment:total_tokens_reminder"]["bytes"] == _json_len(lines[1])
+    assert cats["attachment:total_tokens_reminder"]["bytes"] == _json_len("x")
     assert cats["attachment:total_tokens_reminder"]["count"] == 1
 
 
@@ -528,13 +529,13 @@ def test_composition_attachment_categories(tmp_path: Path) -> None:
     _session(tmp_path, "proj", "s1", lines)
     cats = audit(tmp_path, "all")["composition"]["parents"]["categories"]
 
-    assert cats["attachment:skill_listing"]["bytes"] == _json_len(lines[0]) + _json_len(lines[3])
+    assert cats["attachment:skill_listing"]["bytes"] == _json_len("a") + _json_len("d")
     assert cats["attachment:skill_listing"]["count"] == 2
-    assert cats["attachment:prompt_snapshot"]["bytes"] == _json_len(lines[1])
-    assert cats["attachment:instructions"]["bytes"] == _json_len(lines[2])
+    assert cats["attachment:prompt_snapshot"]["bytes"] == _json_len("b")
+    assert cats["attachment:instructions"]["bytes"] == _json_len("c")
     # hook attachments keep their existing hook_additional_context meaning
     assert "attachment:hook_success" not in cats
-    assert cats["hook_additional_context"]["bytes"] == _json_len(lines[4])
+    assert cats["hook_additional_context"]["bytes"] == _json_len("e")
 
     total = audit(tmp_path, "all")["composition"]["parents"]["total_bytes"]
     assert total == sum(c["bytes"] for c in cats.values())
@@ -550,7 +551,7 @@ def test_composition_attachment_hostile_names(tmp_path: Path) -> None:
     _session(tmp_path, "proj", "s1", lines)
     cats = audit(tmp_path, "all")["composition"]["parents"]["categories"]
 
-    expected = sum(len(json.dumps(ln, ensure_ascii=False).encode("utf-8")) for ln in lines)
+    expected = len(lines) * _json_len("z")
     assert cats["attachment:other"]["bytes"] == expected
     assert cats["attachment:other"]["count"] == len(lines)
     for t in hostile:
@@ -622,7 +623,7 @@ def test_composition_starting_prefix_by_item(tmp_path: Path) -> None:
     assert by_item["attachment:skill_listing"]["sessions_present"] == 2
     assert by_item["attachment:prompt_snapshot"]["sessions_present"] == 1
     assert by_item["attachment:skill_listing"]["median_bytes"] == pytest.approx(
-        (_json_len(s1[1]) + _json_len(s2[1])) / 2
+        (_json_len("a") + _json_len("bb")) / 2
     )
     assert pg["starting_prefix_by_item_total_median_bytes"] == pytest.approx(
         sum(v["median_bytes"] for v in by_item.values())
@@ -785,3 +786,28 @@ def test_composition_empty_root(tmp_path: Path) -> None:
     assert comp["parents"]["total_bytes"] == 0
     assert comp["subagents"]["total_bytes"] == 0
     assert comp["parents"]["categories"]["other"]["types"] == {}
+
+
+def test_attachment_bytes_do_not_double_count_names_and_text(tmp_path: Path) -> None:
+    # Real attachments store the same entries as a names list and as text; the model sees one.
+    text = "x" * 100
+    lines = [
+        {
+            "type": "attachment",
+            "attachment": {"type": "skill_listing", "names": ["a", "b"], "content": text},
+        },
+        {
+            "type": "attachment",
+            "attachment": {
+                "type": "deferred_tools_delta",
+                "addedNames": ["mcp__s__t1", "mcp__s__t2"],
+                "addedLines": ["mcp__s__t1", "mcp__s__t2"],
+            },
+        },
+    ]
+    _session(tmp_path, "proj", "s1", lines)
+    cats = audit(tmp_path, "all")["composition"]["parents"]["categories"]
+    assert cats["attachment:skill_listing"]["bytes"] == _json_len(text)
+    assert cats["attachment:deferred_tools_delta"]["bytes"] == _json_len(
+        ["mcp__s__t1", "mcp__s__t2"]
+    )

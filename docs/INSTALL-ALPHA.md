@@ -74,6 +74,8 @@ Each command is `uvx --from git+https://github.com/Pranavk098/context-fabric cfx
 | `status` | running or not, pid, port, version |
 | `stats [--since 7d] [--session ID] [--json]` | folds and hook timings from the daemon's logs |
 | `audit [--since 7d\|30d\|all] [--json]` | where your sessions' tokens go (reads local transcripts; works without the plugin) |
+| `diet [--since 30d] [--share] [--json]` | your starting-prefix items, which were never used, per-turn cost; `--share` hashes all names so it can be pasted |
+| `waste [--since 30d] [--json]` | cost share of loops, retry streaks, tail sessions and repeated discovery |
 | `replay [--since 30d] [--json]` | simulated saving from shrinking old tool output, with cache effects |
 | `set brief\|carry\|fold\|fold_read on\|off` | feature flags (brief and carry on; fold and fold_read off) |
 | `stop` | stop the daemon (the next session starts it again) |

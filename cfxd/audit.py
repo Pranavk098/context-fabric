@@ -97,6 +97,20 @@ def _json_bytes(value: Any) -> int:
     return len(json.dumps(value, ensure_ascii=False).encode("utf-8"))
 
 
+def _attachment_bytes(obj: dict[str, Any]) -> int:
+    """Bytes the model sees for one attachment line: its largest field, counted once.
+
+    Transcript attachments store the same entries twice (a names list and the rendered
+    text, e.g. ``addedNames`` and ``addedLines``), so summing the whole line double counts.
+    """
+    att = obj.get("attachment")
+    if isinstance(att, dict):
+        sizes = [_json_bytes(v) for k, v in att.items() if k != "type"]
+        if sizes:
+            return max(sizes)
+    return _json_bytes(obj)
+
+
 def _reminder_split(text: str) -> tuple[int, int, int]:
     """Return (reminder bytes, remaining bytes, span count) for one text string."""
     total = len(text.encode("utf-8"))
@@ -239,9 +253,9 @@ def _scan(path: Path, known: set[int] | None = None) -> dict[str, Any]:
             att = obj.get("attachment")
             att_type = att.get("type") if isinstance(att, dict) else None
             if isinstance(att_type, str) and att_type.startswith("hook_"):
-                _add("hook_additional_context", _json_bytes(obj), 1, prefix)
+                _add("hook_additional_context", _attachment_bytes(obj), 1, prefix)
             else:
-                _add(_attachment_category(att_type), _json_bytes(obj), 1, prefix)
+                _add(_attachment_category(att_type), _attachment_bytes(obj), 1, prefix)
             continue
         if obj_type == "system":
             if "hookAdditionalContext" in obj or obj.get("subtype") == "stop_hook_summary":

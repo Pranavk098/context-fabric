@@ -634,6 +634,36 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "must_appear_in": [
         "README.md"
       ]
+    },
+    {
+      "id": "plugin_loops_retries_cost_share",
+      "claim": "Share of weighted cost in repeat loops (3+ identical tool calls within 10) and retry streaks, 864 sessions (cfxd waste)",
+      "display": "1.4%",
+      "kind": "display-only",
+      "artifact": "evals/reports/plugin_alpha_20261024/exploratory_results.json",
+      "must_appear_in": [
+        "README.md"
+      ]
+    },
+    {
+      "id": "plugin_top_decile_cost_share",
+      "claim": "Share of weighted cost carried by the most expensive 10% of sessions (cfxd waste)",
+      "display": "80%",
+      "kind": "display-only",
+      "artifact": "evals/reports/plugin_alpha_20261024/exploratory_results.json",
+      "must_appear_in": [
+        "README.md"
+      ]
+    },
+    {
+      "id": "plugin_itemized_setup_prefix",
+      "claim": "Median estimated tokens of the user's own setup in the starting prefix (skills, connector listings and instructions, memory, hooks; cfxd diet)",
+      "display": "14K",
+      "kind": "display-only",
+      "artifact": "evals/reports/plugin_alpha_20261024/exploratory_results.json",
+      "must_appear_in": [
+        "README.md"
+      ]
     }
   ],
   "stale_patterns": [
