@@ -12,6 +12,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+from cfxd.agents import READERS, build_report, default_root, since_cutoff
+from cfxd.agents import format_human as format_agent_report
 from cfxd.audit import DEFAULT_ROOT, audit
 from cfxd.audit import format_human as format_audit
 from cfxd.config import read_config, set_flag
@@ -93,6 +95,22 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     auditp.add_argument("--json", action="store_true", help="emit a single JSON object")
     auditp.set_defaults(func=_cmd_audit)
+
+    agentp = subparsers.add_parser(
+        "agent-audit", help="counts-only analysis of non-Claude agent transcripts"
+    )
+    agentp.add_argument(
+        "--agent", choices=("codex", "opencode"), required=True, help="agent to audit"
+    )
+    agentp.add_argument("--root", default=None, help="transcripts root (default: agent default)")
+    agentp.add_argument(
+        "--since",
+        choices=("7d", "30d", "all"),
+        default="30d",
+        help="time window by file mtime (default: 30d)",
+    )
+    agentp.add_argument("--json", action="store_true", help="emit a single JSON object")
+    agentp.set_defaults(func=_cmd_agent_audit)
 
     dietp = subparsers.add_parser(
         "diet", help="starting-prefix items never used in the window, and their cost"
@@ -331,6 +349,19 @@ def _cmd_audit(args: argparse.Namespace) -> int:
         print(json.dumps(report))
     else:
         print(format_audit(report, root.name))
+    return 0
+
+
+def _cmd_agent_audit(args: argparse.Namespace) -> int:
+    if args.agent == "opencode":
+        print("agent 'opencode' not supported yet", file=sys.stderr)
+        return 2
+    root = Path(args.root) if args.root else default_root(args.agent)
+    report = build_report(args.agent, READERS[args.agent](root, since_cutoff(args.since)))
+    if args.json:
+        print(json.dumps(report))
+    else:
+        print(format_agent_report(report, root.name))
     return 0
 
 
