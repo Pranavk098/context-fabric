@@ -13,6 +13,7 @@ prints the daemon's response body — or ``{}`` on any failure — always exitin
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -116,6 +117,30 @@ def _post(event: str, payload: bytes, timeout: float, token: str | None) -> None
         print("{}")
 
 
+_WELCOME_MARKER = "welcomed"
+_WELCOME = json.dumps(
+    {
+        "systemMessage": (
+            "Context Fabric (alpha) is active. It records which files and outputs this session "
+            "touches so sub-agents and /compact can reuse them. Nothing leaves your machine. "
+            "Check it with `cfxd doctor`; what to try and what to send back: "
+            "https://github.com/Pranavk098/context-fabric/blob/main/docs/TESTING-GUIDE.md"
+        )
+    }
+)
+
+
+def _first_run(state_dir: Path) -> bool:
+    """True exactly once per install: creates the marker so the welcome is shown a single time."""
+    marker = state_dir / _WELCOME_MARKER
+    try:
+        fd = os.open(marker, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    except OSError:
+        return False
+    os.close(fd)
+    return True
+
+
 def _session_start() -> int:
     payload = sys.stdin.buffer.read()
     port = _port()
@@ -123,12 +148,20 @@ def _session_start() -> int:
     if not _health_ok(port):
         _ensure_daemon(port)
     token = read_token(state_dir)
-    if not verify_identity(state_dir, port):
+    verified = verify_identity(state_dir, port)
+    if not verified:
         if _health_ok(port):
             # Something answers /health but cannot prove it is our daemon.
             print(_SQUATTER_WARNING)
             return 0
         # Nothing answers: fall through to the normal fail-open forward.
+    if verified and token is not None and _first_run(state_dir):
+        try:
+            post_hook(port, "SessionStart", payload, 1.0, token)
+        except Exception:
+            pass
+        print(_WELCOME)
+        return 0
     _post("SessionStart", payload, 1.0, token)
     return 0
 

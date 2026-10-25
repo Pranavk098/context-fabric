@@ -45,7 +45,8 @@ The same thing inside Claude Code is `/plugin marketplace add Pranavk098/context
 the marketplace `Pranavk098/context-fabric`. The CLI is the tested path; hooks in the desktop app and VS Code are not
 yet verified.
 
-Restart Claude Code. Open any project and run one normal task. Then check (terminal):
+Restart Claude Code. In your first session you should see one short message, "Context Fabric (alpha) is active"; it
+appears only once. Open any project and run one normal task. Then check (terminal):
 
 ```bash
 uvx --from git+https://github.com/Pranavk098/context-fabric cfxd doctor
