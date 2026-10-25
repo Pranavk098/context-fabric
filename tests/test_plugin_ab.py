@@ -86,10 +86,11 @@ def test_plan_runs_balanced_and_seeded() -> None:
 def test_isolation_distinct_cfx_and_port(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     captured: list[dict[str, str]] = []
 
-    def fake_run(cmd: list[str], **kwargs: object) -> None:
+    def fake_run(cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[bytes]:
         env = kwargs.get("env")
         if isinstance(env, dict):
             captured.append({k: v for k, v in env.items() if k in ("CFX_HOME", "CFX_PORT")})
+        return subprocess.CompletedProcess(cmd, 0, b"", b"")
 
     monkeypatch.setattr(runner.subprocess, "run", fake_run)
     monkeypatch.setattr(runner, "_copy_fixture", lambda fixture, dest: None)
@@ -456,3 +457,75 @@ def test_real_runs_keep_the_login_and_skip_user_settings(tmp_path: Path) -> None
     i = cmd.index("--setting-sources")
     assert cmd[i + 1] == "project,local"
     assert "--plugin-dir" not in cmd
+
+
+def test_session_ids_are_valid_uuids() -> None:
+    # Claude Code rejects anything else ("Invalid session ID. Must be a valid UUID").
+    import uuid
+
+    ids = {runner._new_session_id() for _ in range(5)}
+    assert len(ids) == 5
+    for sid in ids:
+        assert str(uuid.UUID(sid)) == sid
+
+
+def test_infra_failure_is_recorded_and_two_in_a_row_stop_the_run(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("PLUGIN_AB_CLAUDE", str(FAKE))
+    monkeypatch.setenv("PLUGIN_AB_FAKE_ERROR", "1")
+    plain = next(t for t in runner.load_tasks() if t.kind == "plain")
+    report = runner.run_experiment(
+        [plain],
+        arms=("off", "on"),
+        reps=2,
+        seed=0,
+        model="haiku",
+        claude_bin=str(FAKE),
+        plugin_root=REPO,
+        fixture=runner.DEFAULT_FIXTURE,
+        prices=prices.load_prices(),
+        python=sys.executable,
+        fake=True,
+        pilot=True,
+        run_id="infra",
+        report_dir=tmp_path / "reports",
+        isolation=tmp_path / "iso",
+    )
+    assert len(report["runs"]) == 2  # stopped after two consecutive infrastructure failures
+    assert all(r["infra_failure"] for r in report["runs"])
+    assert "Not logged in" in report["runs"][0]["infra_reason"]
+    assert "infrastructure" in report["aborted"]
+
+
+def test_analyzer_excludes_infrastructure_failures() -> None:
+    def rec(task: str, arm: str, dollars: float | None, **extra: object) -> dict[str, object]:
+        base: dict[str, object] = {
+            "task": task,
+            "kind": "plain",
+            "arm": arm,
+            "rep": 1,
+            "warm_up": False,
+            "resolved": True,
+            "dollars": dollars,
+            "weighted_tokens": 1.0,
+            "turns": 1,
+        }
+        base.update(extra)
+        return base
+
+    records = [
+        rec("t1", "off", 1.0),
+        rec("t1", "on", 0.5),
+        {
+            "task": "t1",
+            "kind": "plain",
+            "arm": "on",
+            "rep": 2,
+            "warm_up": False,
+            "infra_failure": True,
+        },
+    ]
+    result = analyze.analyze(records)
+    assert result["infra_excluded"] == 1
+    assert result["geometric_mean_ratio"] == pytest.approx(0.5)

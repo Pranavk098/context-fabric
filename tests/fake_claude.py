@@ -113,6 +113,10 @@ def main(argv: list[str] | None = None) -> int:
     args = _parse(sys.argv[1:] if argv is None else argv)
     step = os.environ.get("PLUGIN_AB_FAKE_STEP", "run")
     session_id = _session_id(args)
+    if os.environ.get("PLUGIN_AB_FAKE_ERROR") == "1":
+        # what the real claude prints (and exits 1 with) when it cannot run, e.g. not logged in
+        print(json.dumps({"type": "result", "is_error": True, "result": "Not logged in"}))
+        return 1
     cwd = os.getcwd()
     project_dir = _project_dir(cwd)
     parent = project_dir / f"{session_id}.jsonl"
