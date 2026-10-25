@@ -391,3 +391,31 @@ def test_first_turn_context_from_usage_is_reported(tmp_path: Path) -> None:
     text = format_human(report)
     assert "First-turn context" in text
     assert "system prompt and tool definitions" in text
+
+
+def test_effect_is_computed_per_session_not_from_summed_medians(tmp_path: Path) -> None:
+    # Session A has a never-used connector (400 bytes) and 3 turns; session B lacks it, 2 turns.
+    # Effect = 400/4 tokens x 3 turns = 300 tokens, over 5 turns = 60 tokens per turn (not 100).
+    block = "x" * 387
+    listing = _skill_listing(["alpha:used"], "- alpha:used: A\n")
+    a = [
+        listing,
+        _deferred_tools(["mcp__gone__t1"]),
+        _mcp_instructions(["gone"], [block]),
+        _assistant(_tool_use("s1", "Skill", skill="alpha:used")),
+        _assistant(),
+        _assistant(),
+    ]
+    b = [listing, _assistant(), _assistant()]
+    _session(tmp_path, "proj", "a", a)
+    _session(tmp_path, "proj", "b", b)
+    report = diet(tmp_path, "all")
+
+    assert report["turns"] == 5
+    assert report["effect"]["total_tokens"] == 300
+    assert report["effect"]["per_turn_tokens"] == 60
+    (conn,) = report["never_used"]["connectors"]
+    assert (
+        conn["per_turn_tokens"] == 50.0
+    )  # expected cost per session: 400 bytes in 1 of 2 sessions
+    assert conn["share"] == round(200 / 215, 4)  # mean prefix per session: (415 + 15) / 2

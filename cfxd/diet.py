@@ -237,13 +237,14 @@ def _scan(path: Path) -> dict[str, Any]:
     }
 
 
-def _skill_item(name: str, sizes: list[int], used: bool) -> dict[str, Any]:
+def _skill_item(name: str, sizes: list[int], used: bool, n_sessions: int) -> dict[str, Any]:
     return {
         "kind": "skill",
         "name": name,
         "group": _plugin(name),
         "sessions": len(sizes),
         "median_bytes": round(_med(sizes), 1),
+        "mean_bytes": round(sum(sizes) / n_sessions, 1) if n_sessions else 0.0,
         "used": used,
     }
 
@@ -255,6 +256,7 @@ def _connector_item(
     tool_names_bytes: list[int],
     instructions_bytes: list[int],
     used: bool,
+    n_sessions: int,
 ) -> dict[str, Any]:
     return {
         "kind": "connector",
@@ -262,6 +264,7 @@ def _connector_item(
         "group": name,
         "sessions": len(sizes),
         "median_bytes": round(_med(sizes), 1),
+        "mean_bytes": round(sum(sizes) / n_sessions, 1) if n_sessions else 0.0,
         "used": used,
         "tools": round(_med(tools)),
         "tool_names_bytes": round(_med(tool_names_bytes), 1),
@@ -269,13 +272,14 @@ def _connector_item(
     }
 
 
-def _file_item(kind: str, name: str, sizes: list[int]) -> dict[str, Any]:
+def _file_item(kind: str, name: str, sizes: list[int], n_sessions: int) -> dict[str, Any]:
     return {
         "kind": kind,
         "name": name,
         "group": name,
         "sessions": len(sizes),
         "median_bytes": round(_med(sizes), 1),
+        "mean_bytes": round(sum(sizes) / n_sessions, 1) if n_sessions else 0.0,
     }
 
 
@@ -287,17 +291,19 @@ def _group_plugins(items: list[dict[str, Any]], used: bool, total: float) -> lis
     groups = []
     for plugin, members in by_plugin.items():
         median_bytes = sum(m["median_bytes"] for m in members)
+        mean_bytes = sum(m["mean_bytes"] for m in members)
         groups.append(
             {
                 "plugin": plugin,
                 "count": len(members),
                 "skills": sorted(m["name"] for m in members),
                 "median_bytes": round(median_bytes, 1),
-                "per_turn_tokens": round(median_bytes / 4.0, 1),
-                "share": round(median_bytes / total, 4) if total else 0.0,
+                "mean_bytes": round(mean_bytes, 1),
+                "per_turn_tokens": round(mean_bytes / 4.0, 1),
+                "share": round(mean_bytes / total, 4) if total else 0.0,
             }
         )
-    groups.sort(key=lambda g: (-g["median_bytes"], g["plugin"]))
+    groups.sort(key=lambda g: (-g["mean_bytes"], g["plugin"]))
     return groups
 
 
@@ -315,11 +321,12 @@ def _group_connectors(
                     "instructions_bytes": item["instructions_bytes"],
                     "sessions": item["sessions"],
                     "median_bytes": item["median_bytes"],
-                    "per_turn_tokens": round(item["median_bytes"] / 4.0, 1),
-                    "share": round(item["median_bytes"] / total, 4) if total else 0.0,
+                    "mean_bytes": item["mean_bytes"],
+                    "per_turn_tokens": round(item["mean_bytes"] / 4.0, 1),
+                    "share": round(item["mean_bytes"] / total, 4) if total else 0.0,
                 }
             )
-    out.sort(key=lambda c: (-c["median_bytes"], c["name"]))
+    out.sort(key=lambda c: (-c["mean_bytes"], c["name"]))
     return out
 
 
@@ -344,6 +351,7 @@ def diet(root: Path, since: str = "30d", now: datetime | None = None) -> dict[st
     hook_sizes: dict[str, list[int]] = {}
     session_prefix_bytes: list[int] = []
     first_turn_tokens: list[int] = []
+    per_session: list[tuple[int, dict[tuple[str, str], int]]] = []
 
     for path in parents:
         r = _scan(path)
@@ -379,6 +387,16 @@ def diet(root: Path, since: str = "30d", now: datetime | None = None) -> dict[st
         for name, nbytes in r["hooks"].items():
             hook_sizes.setdefault(name, []).append(nbytes)
 
+        per_session.append(
+            (
+                r["turns"],
+                {("skill", n): b for n, b in r["skills"].items()}
+                | {
+                    ("connector", k): s["tool_names_bytes"] + s["instructions_bytes"]
+                    for k, s in r["connectors"].items()
+                },
+            )
+        )
         session_prefix_bytes.append(
             sum(r["skills"].values())
             + sum(s["tool_names_bytes"] + s["instructions_bytes"] for s in r["connectors"].values())
@@ -386,9 +404,10 @@ def diet(root: Path, since: str = "30d", now: datetime | None = None) -> dict[st
             + sum(r["hooks"].values())
         )
 
+    n_sessions = len(parents) - listing_not_found
     items: list[dict[str, Any]] = []
     for name, sizes in skill_sizes.items():
-        items.append(_skill_item(name, sizes, name in used_skills))
+        items.append(_skill_item(name, sizes, name in used_skills, n_sessions))
     for key, sizes in conn_sizes.items():
         meta = conn_meta[key]
         items.append(
@@ -399,20 +418,28 @@ def diet(root: Path, since: str = "30d", now: datetime | None = None) -> dict[st
                 meta["tool_names_bytes"],
                 meta["instructions_bytes"],
                 key in used_servers,
+                n_sessions,
             )
         )
     for name, sizes in mem_sizes.items():
-        items.append(_file_item("memory", name, sizes))
+        items.append(_file_item("memory", name, sizes, n_sessions))
     for name, sizes in hook_sizes.items():
-        items.append(_file_item("hook", name, sizes))
+        items.append(_file_item("hook", name, sizes, n_sessions))
 
     items.sort(key=lambda it: (-it["median_bytes"], it["name"]))
 
-    total = sum(it["median_bytes"] for it in items)
-    never_tokens = (
-        sum(it["median_bytes"] for it in items if it["kind"] in _DISABLE_KINDS and not it["used"])
-        / 4.0
+    # Shares use each item's expected bytes per session (absent sessions count as zero), so they
+    # add up to the mean itemized prefix; the effect is summed session by session so an item
+    # that appears in few sessions is not charged to all of them.
+    total = sum(it["mean_bytes"] for it in items)
+    never_keys = {("skill", n) for n in skill_sizes if n not in used_skills} | {
+        ("connector", k) for k in conn_sizes if k not in used_servers
+    }
+    never_tokens_total = sum(
+        turns * sum(b for key, b in sess.items() if key in never_keys) / 4.0
+        for turns, sess in per_session
     )
+    never_tokens = never_tokens_total / total_turns if total_turns else 0.0
 
     return {
         "since": since,
@@ -435,7 +462,7 @@ def diet(root: Path, since: str = "30d", now: datetime | None = None) -> dict[st
         "effect": {
             "per_turn_tokens": round(never_tokens, 1),
             "turns": total_turns,
-            "total_tokens": round(never_tokens * total_turns, 1),
+            "total_tokens": round(never_tokens_total, 1),
         },
     }
 
