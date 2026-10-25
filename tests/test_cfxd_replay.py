@@ -531,3 +531,16 @@ def test_reset_cli_refetch(tmp_path: Path) -> None:
         ("with_summary_cost", 0.5),
     }
     assert len(data["reset_break_even_f"]) == 1
+
+
+def test_cli_rejects_refetch_fraction_outside_zero_to_one(tmp_path: Path) -> None:
+    # A re-fetch fraction above 1 means re-reading more than was dropped; the model diverges.
+    proc = subprocess.run(
+        [sys.executable, "-m", "cfxd", "replay", "--root", str(tmp_path), "--refetch", "0.5,2.0"],
+        capture_output=True,
+        text=True,
+        cwd=Path(__file__).resolve().parents[1],
+        timeout=60,
+    )
+    assert proc.returncode != 0
+    assert "between 0 and 1" in (proc.stderr + proc.stdout)
