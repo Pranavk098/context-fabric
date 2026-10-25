@@ -399,3 +399,34 @@ def test_end_to_end_fake(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Non
     for task in selected:
         assert task.prompt not in text
         assert json.dumps(task.reference_patch, sort_keys=True) not in text
+
+
+def test_turn_tokens_reads_the_nested_cache_creation_split() -> None:
+    # Real transcripts carry usage.cache_creation.{ephemeral_5m,ephemeral_1h}_input_tokens; the
+    # 1-hour write costs 2x base input versus 1.25x, so merging them understates dollars.
+    from evals.plugin_ab.usage import _turn_tokens
+
+    usage = {
+        "input_tokens": 10,
+        "output_tokens": 20,
+        "cache_read_input_tokens": 30,
+        "cache_creation_input_tokens": 300,
+        "cache_creation": {"ephemeral_5m_input_tokens": 100, "ephemeral_1h_input_tokens": 200},
+    }
+    assert _turn_tokens(usage) == (10, 100, 200, 30, 20)
+    # no split available: the merged field is priced at the 5-minute rate (documented)
+    assert _turn_tokens({"cache_creation_input_tokens": 50}) == (0, 50, 0, 0, 0)
+
+
+def test_model_ids_map_to_their_own_price_rows() -> None:
+    from evals.plugin_ab.prices import normalize_model
+
+    assert normalize_model("claude-opus-5-5") == "opus-5.5"
+    assert normalize_model("claude-opus-5") == "opus-5"
+    assert normalize_model("claude-opus-4-8") == "opus-4.8"
+    assert normalize_model("claude-sonnet-5") == "sonnet-5"
+    assert normalize_model("claude-sonnet-5-5") == "sonnet-5.5"
+    assert normalize_model("claude-haiku-4-5-20251001") == "haiku-4.5"
+    assert normalize_model("claude-haiku-5-5") == "haiku-5.5"
+    assert normalize_model("claude-fable-5-1") == "fable-5.1"
+    assert normalize_model("<synthetic>") is None

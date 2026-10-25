@@ -62,6 +62,14 @@ def _turn_tokens(usage: dict[str, Any]) -> tuple[int, int, int, int, int]:
     inp = _as_int(usage.get("input_tokens")) or 0
     out = _as_int(usage.get("output_tokens")) or 0
     cr = _as_int(usage.get("cache_read_input_tokens")) or 0
+    nested = usage.get("cache_creation")
+    if isinstance(nested, dict) and (
+        "ephemeral_5m_input_tokens" in nested or "ephemeral_1h_input_tokens" in nested
+    ):
+        # Claude Code transcripts: usage.cache_creation.{ephemeral_5m,ephemeral_1h}_input_tokens
+        n5 = _as_int(nested.get("ephemeral_5m_input_tokens")) or 0
+        n1 = _as_int(nested.get("ephemeral_1h_input_tokens")) or 0
+        return inp, n5, n1, cr, out
     cc5 = _as_int(usage.get("cache_creation_input_tokens_5m"))
     cc1 = _as_int(usage.get("cache_creation_input_tokens_1h"))
     if cc5 is not None or cc1 is not None:

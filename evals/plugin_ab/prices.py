@@ -29,16 +29,18 @@ def load_prices(path: Path = PRICES_PATH) -> dict[str, Any]:
 
 def normalize_model(model: str) -> str | None:
     """Map a Claude Code model id to a price-table key, or ``None`` when unpriced."""
-    m = model.lower()
-    if "opus" in m:
-        return "opus-4.5"
-    if "sonnet" in m and ("5.5" in m or "5-5" in m):
-        return "sonnet-5.5"
-    if "haiku" in m and ("5.5" in m or "5-5" in m):
-        return "haiku-5.5"
-    if "haiku" in m and ("4.5" in m or "4-5" in m):
-        return "haiku-4.5"
-    return None
+    name = model.strip().lower()
+    if name.startswith("claude-"):
+        name = name[len("claude-") :]
+    parts = [p for p in name.split("-") if not (p.isdigit() and len(p) >= 4)]  # drop date suffixes
+    if len(parts) < 2 or parts[0] not in {"opus", "sonnet", "haiku", "fable", "mythos"}:
+        return None
+    if not parts[1].isdigit():
+        return None
+    version = parts[1]
+    if len(parts) > 2 and parts[2].isdigit():
+        version += "." + parts[2]
+    return f"{parts[0]}-{version}"
 
 
 def _select_tier(tiers: list[Any], prompt_tokens: int) -> dict[str, Any] | None:
