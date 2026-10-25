@@ -20,6 +20,7 @@ from cfxd.audit import (
     _iter_objects,
     _weighted,
 )
+from cfxd.daemon import percentile
 
 _DEFAULT_PRICES = Path(__file__).with_name("data") / "prices.json"
 
@@ -32,6 +33,10 @@ _SYNTHETIC_MODEL = "<synthetic>"
 _HAIKU_100K = 100_000
 _MTOK = 1_000_000.0
 
+# A cold model switch must rewrite a context above this many tokens where at
+# least half of it is cache creation (the new model's first cache write).
+_COLD_CONTEXT = 20_000
+
 _DISCLAIMER = (
     "Dollars are API-list-price equivalents, not a bill. Subscription users pay no "
     "per-token dollars; this is a common currency for relative weight."
@@ -40,6 +45,7 @@ _LIMITS = (
     "Same token counts assumed: a cheaper model may take more turns, fail more, or need re-runs.",
     "Quality is not measured here.",
     "This is an upper bound on the price effect only.",
+    "Model-switch premiums are API-list-price equivalents, not a bill.",
 )
 
 _FAMILIES_KEY = "families"
@@ -128,6 +134,17 @@ def _turn_dollars(entry: dict[str, Any], tokens: dict[str, int], prompt: int) ->
 def _turn_cache_read_dollars(entry: dict[str, Any], tokens: dict[str, int], prompt: int) -> float:
     price = _price_for(entry, prompt)
     return tokens["cache_read"] * float(price["cache_read"]) / _MTOK
+
+
+def _switch_premium(entry: dict[str, Any], tokens: dict[str, int], prompt: int) -> float:
+    """Cold-switch premium: cache writes at write price minus the same tokens at read price."""
+    price = _price_for(entry, prompt)
+    written = tokens["cache_creation_5m"] + tokens["cache_creation_1h"]
+    write_cost = tokens["cache_creation_5m"] * float(price["cache_write_5m"]) + tokens[
+        "cache_creation_1h"
+    ] * float(price["cache_write_1h"])
+    read_cost = written * float(price["cache_read"])
+    return (write_cost - read_cost) / _MTOK
 
 
 def _tier(fam: str) -> int:
@@ -245,16 +262,44 @@ def routing(
     for name, fam in targets.items():
         wa[name] = {"family": fam, "actual": 0.0, "target": 0.0, "turns": 0, "sessions": set()}
 
+    switch_cold = 0
+    switch_warm = 0
+    switch_unpriced = 0
+    switch_sessions: set[str] = set()
+    switch_ctx: list[int] = []
+    switch_premiums: list[float] = []
+    switch_transitions: dict[tuple[str, str], int] = {}
+
     for role, paths in (("parent", parents), ("subagent", [p for p, _ in subs])):
         for path in paths:
             turns = _scan_turns(path, families)
             seen_families: set[str] = set()
             seen_unpriced: set[str] = set()
+            have_prev = False
+            prev_fam: str | None = None
             for turn in turns:
                 role_turns[role] += 1
                 _add_tokens(role_tokens[role], turn["tokens"])
                 role_weighted[role] += turn["weighted"]
                 fam = turn["family"]
+                if role == "parent" and have_prev and fam != prev_fam:
+                    ctx = turn["prompt"]
+                    cc = turn["tokens"]["cache_creation_5m"] + turn["tokens"]["cache_creation_1h"]
+                    if fam is None or prev_fam is None:
+                        switch_unpriced += 1
+                    elif ctx > _COLD_CONTEXT and cc * 2 >= ctx:
+                        switch_cold += 1
+                        switch_sessions.add(str(path))
+                        switch_ctx.append(ctx)
+                        switch_premiums.append(_switch_premium(families[fam], turn["tokens"], ctx))
+                    else:
+                        switch_warm += 1
+                    if fam is not None and prev_fam is not None:
+                        key = (prev_fam, fam)
+                        switch_transitions[key] = switch_transitions.get(key, 0) + 1
+                if role == "parent":
+                    have_prev = True
+                    prev_fam = fam
                 if fam is None:
                     unpriced_turns += 1
                     unpriced_weighted += turn["weighted"]
@@ -381,6 +426,31 @@ def routing(
             "sessions": len(scenario["sessions"]),
         }
 
+    premium_total = sum(switch_premiums)
+    model_switches: dict[str, Any] = {
+        "cold": switch_cold,
+        "warm": switch_warm,
+        "sessions": len(switch_sessions),
+        "unpriced": switch_unpriced,
+        "context_tokens": {
+            "median": round(percentile([float(v) for v in switch_ctx], 50), 1),
+            "p90": round(percentile([float(v) for v in switch_ctx], 90), 1),
+            "max": max(switch_ctx) if switch_ctx else 0,
+        },
+        "premium_total": round(premium_total, 4),
+        "premium_median": round(percentile(switch_premiums, 50), 4),
+        "premium_share_of_parent_dollars": round(premium_total / role_dollars["parent"], 4)
+        if role_dollars["parent"]
+        else 0.0,
+        "transitions": [
+            {"from": frm, "to": to, "count": count}
+            for (frm, to), count in sorted(
+                switch_transitions.items(),
+                key=lambda kv: (-kv[1], kv[0][0], kv[0][1]),
+            )[:5]
+        ],
+    }
+
     return {
         "since": since,
         "as_of": prices.get("as_of"),
@@ -397,6 +467,7 @@ def routing(
         "roles": roles,
         "unpriced": unpriced_report,
         "whatif": whatif_report,
+        "model_switches": model_switches,
         "limits": list(_LIMITS),
     }
 
@@ -460,6 +531,31 @@ def format_human(report: dict[str, Any], dir_name: str = ".") -> str:
             )
     else:
         lines.append("  (none)")
+    ms = report["model_switches"]
+    lines.append("")
+    lines.append(
+        f"Model switches: {ms['cold']:,} cold, {ms['warm']:,} warm, "
+        f"{ms['unpriced']:,} involving an unpriced model"
+    )
+    if ms["cold"] == 0:
+        lines.append("  no cold model switches in this window")
+    else:
+        ctx = ms["context_tokens"]
+        lines.append(f"  cold switches in {ms['sessions']:,} parent sessions")
+        lines.append(
+            f"  context tokens per cold switch: median {ctx['median']:,.0f}, "
+            f"p90 {ctx['p90']:,.0f}, max {ctx['max']:,}"
+        )
+        lines.append(
+            f"  premium: total ${ms['premium_total']:,.4f}, "
+            f"median ${ms['premium_median']:,.4f}, "
+            f"{ms['premium_share_of_parent_dollars'] * 100:.2f}% of parent dollars"
+        )
+        if ms["transitions"]:
+            transitions = ", ".join(
+                f"{t['from']} -> {t['to']} ({t['count']})" for t in ms["transitions"]
+            )
+            lines.append(f"  top transitions: {transitions}")
     lines.append("")
     lines.append("What-if (sub-agent turns re-priced on a cheaper tier, same tokens):")
     for name in ("haiku", "sonnet"):
