@@ -89,7 +89,7 @@ def format_human(report: dict[str, Any], dir_name: str = ".") -> str:
     """Render the report as short plain text (counts and sizes only)."""
     agent = report["agent"]
     if report["sessions"] == 0 and report["subagent_sessions"] == 0:
-        return f"No {agent} sessions found under {dir_name}."
+        return f"No {agent} sessions found under {dir_name} in this time window (try --since all)."
     lines = [
         f"{agent} sessions",
         f"Sessions: {report['sessions']:,}   sub-agent sessions: {report['subagent_sessions']:,}",
