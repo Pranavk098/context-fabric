@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 640" width="1200" height="640" role="img" aria-labelledby="t d">
+  <title id="t">How Context Fabric works</title>
+  <desc id="d">Agents connect through fail-open adapters to a local daemon that observes sessions, briefs sub-agents, carries state across compaction and writes content-free receipts. An offline lane reads your transcripts and reports where tokens go.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1020"/>
+      <stop offset="1" stop-color="#1a2342"/>
+    </linearGradient>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="640" rx="18" fill="url(#bg)"/>
+  <g font-family="'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif">
+
+    <!-- column headers -->
+    <g font-size="13" font-weight="600" fill="#94a3b8" letter-spacing="1.4">
+      <text x="40" y="44">AGENTS</text>
+      <text x="316" y="44">ADAPTER</text>
+      <text x="520" y="44">CONTEXT FABRIC DAEMON  ·  LOCAL, 127.0.0.1</text>
+    </g>
+
+    <!-- agents -->
+    <g>
+      <rect x="40" y="62" width="236" height="66" rx="10" fill="#0f172a" stroke="#5eead4" stroke-width="1.5"/>
+      <circle cx="62" cy="86" r="6" fill="#5eead4"/>
+      <text x="78" y="91" font-size="18" font-weight="700" fill="#f8fafc">Claude Code</text>
+      <text x="62" y="114" font-size="13" fill="#94a3b8">plugin · alpha, working</text>
+
+      <rect x="40" y="144" width="236" height="66" rx="10" fill="#0f172a" stroke="#475569" stroke-width="1.5" stroke-dasharray="6 5"/>
+      <circle cx="62" cy="168" r="6" fill="#64748b"/>
+      <text x="78" y="173" font-size="18" font-weight="700" fill="#cbd5e1">OpenCode</text>
+      <text x="62" y="196" font-size="13" fill="#94a3b8">plugin · planned</text>
+
+      <rect x="40" y="226" width="236" height="66" rx="10" fill="#0f172a" stroke="#475569" stroke-width="1.5" stroke-dasharray="6 5"/>
+      <circle cx="62" cy="250" r="6" fill="#64748b"/>
+      <text x="78" y="255" font-size="18" font-weight="700" fill="#cbd5e1">Codex</text>
+      <text x="62" y="278" font-size="13" fill="#94a3b8">hooks · planned</text>
+
+      <rect x="40" y="308" width="236" height="66" rx="10" fill="#0f172a" stroke="#475569" stroke-width="1.5" stroke-dasharray="6 5"/>
+      <circle cx="62" cy="332" r="6" fill="#64748b"/>
+      <text x="78" y="337" font-size="18" font-weight="700" fill="#cbd5e1">LangGraph, others</text>
+      <text x="62" y="360" font-size="13" fill="#94a3b8">adapter · earlier code</text>
+    </g>
+
+    <!-- agent -> adapter arrows -->
+    <g stroke="#94a3b8" stroke-width="1.6" fill="none" marker-end="url(#ar)">
+      <line x1="278" y1="95" x2="312" y2="95"/>
+      <line x1="278" y1="177" x2="312" y2="177" stroke-dasharray="5 4"/>
+      <line x1="278" y1="259" x2="312" y2="259" stroke-dasharray="5 4"/>
+      <line x1="278" y1="341" x2="312" y2="341" stroke-dasharray="5 4"/>
+    </g>
+
+    <!-- adapter band -->
+    <rect x="314" y="62" width="150" height="312" rx="12" fill="#111a33" stroke="#334155"/>
+    <g font-size="14" fill="#cbd5e1">
+      <text x="389" y="104" text-anchor="middle" font-weight="700" fill="#f8fafc" font-size="16">Hook layer</text>
+      <text x="389" y="140" text-anchor="middle">fail-open</text>
+      <text x="389" y="166" text-anchor="middle">150 ms deadline</text>
+      <text x="389" y="192" text-anchor="middle">token + identity</text>
+      <text x="389" y="218" text-anchor="middle">check</text>
+      <text x="389" y="262" text-anchor="middle" fill="#94a3b8" font-size="13">any error:</text>
+      <text x="389" y="282" text-anchor="middle" fill="#94a3b8" font-size="13">the agent carries</text>
+      <text x="389" y="302" text-anchor="middle" fill="#94a3b8" font-size="13">on unchanged</text>
+    </g>
+    <line x1="466" y1="218" x2="498" y2="218" stroke="#94a3b8" stroke-width="1.6" marker-end="url(#ar)"/>
+
+    <!-- daemon -->
+    <rect x="500" y="62" width="660" height="312" rx="14" fill="#0f172a" stroke="#475569"/>
+
+    <!-- chips -->
+    <g>
+      <rect x="520" y="82" width="300" height="82" rx="10" fill="#111a33" stroke="#5eead4"/>
+      <text x="538" y="110" font-size="17" font-weight="700" fill="#f8fafc">Observe</text>
+      <text x="800" y="110" font-size="12" font-weight="600" fill="#5eead4" text-anchor="end">WORKING</text>
+      <text x="538" y="134" font-size="13.5" fill="#cbd5e1">Records which files, commands and</text>
+      <text x="538" y="152" font-size="13.5" fill="#cbd5e1">saved outputs a session touched.</text>
+
+      <rect x="840" y="82" width="300" height="82" rx="10" fill="#111a33" stroke="#fbbf24"/>
+      <text x="858" y="110" font-size="17" font-weight="700" fill="#f8fafc">Brief</text>
+      <text x="1120" y="110" font-size="12" font-weight="600" fill="#fbbf24" text-anchor="end">EXPERIMENTAL</text>
+      <text x="858" y="134" font-size="13.5" fill="#cbd5e1">Starts a sub-agent with the files the</text>
+      <text x="858" y="152" font-size="13.5" fill="#cbd5e1">parent already opened. Facts only.</text>
+
+      <rect x="520" y="178" width="300" height="82" rx="10" fill="#111a33" stroke="#fbbf24"/>
+      <text x="538" y="206" font-size="17" font-weight="700" fill="#f8fafc">Carry</text>
+      <text x="800" y="206" font-size="12" font-weight="600" fill="#fbbf24" text-anchor="end">EXPERIMENTAL</text>
+      <text x="538" y="230" font-size="13.5" fill="#cbd5e1">Snapshots the working set before</text>
+      <text x="538" y="248" font-size="13.5" fill="#cbd5e1">/compact and restores it after.</text>
+
+      <rect x="840" y="178" width="300" height="82" rx="10" fill="#111a33" stroke="#475569" stroke-dasharray="6 5"/>
+      <text x="858" y="206" font-size="17" font-weight="700" fill="#cbd5e1">Fold</text>
+      <text x="1120" y="206" font-size="12" font-weight="600" fill="#94a3b8" text-anchor="end">OFF BY DEFAULT</text>
+      <text x="858" y="230" font-size="13.5" fill="#94a3b8">Shortens huge tool output, keeps a</text>
+      <text x="858" y="248" font-size="13.5" fill="#94a3b8">full copy. Not proven to save tokens.</text>
+    </g>
+
+    <!-- receipts -->
+    <rect x="520" y="278" width="620" height="76" rx="10" fill="#0b1226" stroke="#334155"/>
+    <text x="538" y="306" font-size="16" font-weight="700" fill="#f8fafc">Receipts ledger</text>
+    <text x="538" y="330" font-size="13.5" fill="#cbd5e1">Every decision is logged as sizes, counts and hashes. Never file contents or tool output.</text>
+    <text x="538" y="346" font-size="12" fill="#64748b">events.jsonl · briefs.jsonl · carry.jsonl · folds.jsonl</text>
+
+    <!-- offline lane -->
+    <line x1="40" y1="408" x2="1160" y2="408" stroke="#334155" stroke-dasharray="4 6"/>
+    <text x="40" y="436" font-size="13" font-weight="600" fill="#94a3b8" letter-spacing="1.4">OFFLINE  ·  WORKS WITHOUT THE PLUGIN</text>
+
+    <rect x="40" y="454" width="300" height="96" rx="12" fill="#0f172a" stroke="#475569"/>
+    <text x="60" y="484" font-size="17" font-weight="700" fill="#f8fafc">Your session transcripts</text>
+    <text x="60" y="508" font-size="13.5" fill="#cbd5e1">Claude Code today; Codex and</text>
+    <text x="60" y="526" font-size="13.5" fill="#cbd5e1">OpenCode logs are next.</text>
+
+    <line x1="344" y1="502" x2="396" y2="502" stroke="#94a3b8" stroke-width="1.6" marker-end="url(#ar)"/>
+
+    <rect x="400" y="454" width="300" height="96" rx="12" fill="#0f172a" stroke="#5eead4"/>
+    <text x="420" y="484" font-size="17" font-weight="700" fill="#f8fafc">audit · replay</text>
+    <text x="420" y="508" font-size="13.5" fill="#cbd5e1">Counts and sizes only. Replays what</text>
+    <text x="420" y="526" font-size="13.5" fill="#cbd5e1">shrinking old output would have saved.</text>
+
+    <line x1="704" y1="502" x2="756" y2="502" stroke="#94a3b8" stroke-width="1.6" marker-end="url(#ar)"/>
+
+    <rect x="760" y="454" width="400" height="96" rx="12" fill="#0f172a" stroke="#475569"/>
+    <text x="780" y="484" font-size="17" font-weight="700" fill="#f8fafc">Report</text>
+    <text x="780" y="508" font-size="13.5" fill="#cbd5e1">Where each session's tokens go, which</text>
+    <text x="780" y="526" font-size="13.5" fill="#cbd5e1">fixes pay, and which ideas did not.</text>
+
+    <!-- loop note -->
+    <text x="40" y="592" font-size="14" fill="#94a3b8">Measure on real sessions  →  keep only what paired runs show pays  →  publish the numbers, losses included.</text>
+
+    <!-- legend -->
+    <g font-size="12.5" fill="#94a3b8">
+      <circle cx="46" cy="616" r="5" fill="#5eead4"/><text x="58" y="620">working</text>
+      <circle cx="138" cy="616" r="5" fill="#fbbf24"/><text x="150" y="620">experimental</text>
+      <circle cx="262" cy="616" r="5" fill="#64748b"/><text x="274" y="620">planned or off by default</text>
+    </g>
+  </g>
+</svg>
