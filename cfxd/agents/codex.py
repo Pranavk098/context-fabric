@@ -35,7 +35,8 @@ _USAGE_FIELDS = (
 
 _SKIP_MSG = (
     "{} compressed session(s) skipped; install the optional decoder: "
-    "uvx --with zstandard python -m cfxd agent-audit --agent codex"
+    "uvx --with zstandard --from git+https://github.com/Pranavk098/context-fabric "
+    "cfxd agent-audit --agent codex --since all"
 )
 
 

@@ -299,7 +299,9 @@ def test_empty_root(tmp_path: Path) -> None:
     report = build_report("codex", read_sessions(empty, None))
     assert report["sessions"] == 0
     assert report["subagent_sessions"] == 0
-    assert format_human(report, empty.name) == "No codex sessions found under empty."
+    assert format_human(report, empty.name) == (
+        "No codex sessions found under empty in this time window (try --since all)."
+    )
 
 
 def test_canary_strings_never_leak(tmp_path: Path) -> None:
@@ -388,7 +390,7 @@ def test_decoder_missing_message(
     list(codex.read_sessions(tmp_path, None))
     err = capsys.readouterr().err
     assert "2 compressed session(s) skipped" in err
-    assert "uvx --with zstandard" in err
+    assert "uvx --with zstandard --from git+https://github.com/Pranavk098/context-fabric" in err
 
 
 def test_zst_file(tmp_path: Path) -> None:
