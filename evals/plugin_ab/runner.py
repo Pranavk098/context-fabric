@@ -533,6 +533,10 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    for stream in (sys.stdout, sys.stderr):  # a legacy Windows console cannot print every symbol
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8", errors="replace")
     args = _parser().parse_args(sys.argv[1:] if argv is None else argv)
     pilot = bool(args.pilot)
     ok, message = prereg.gate_ok(_PKG, pilot)

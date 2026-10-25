@@ -262,6 +262,11 @@ def main(argv: list[str] | None = None) -> int:
     import argparse
     import sys
 
+    for stream in (sys.stdout, sys.stderr):  # a legacy Windows console cannot print every symbol
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8", errors="replace")
+
     p = argparse.ArgumentParser(prog="python -m evals.plugin_ab.analyze")
     p.add_argument(
         "--report-dir",
