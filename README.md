@@ -66,6 +66,8 @@ pay.
 | `cfxd audit` | Counts-only breakdown of your transcripts: starting prefix by item, tool results, repeated reads, sub-agents, compactions | working |
 | `cfxd diet` | Lists your starting-prefix items (skills, connectors, memory, hooks), which you never used in 30 days, and what each costs every turn | working |
 | `cfxd waste` | Measures how much cost sits in loops, retry streaks, the most expensive sessions and repeated discovery | working |
+| `cfxd routing` | Splits your sessions' tokens and API-equivalent dollars by model and by main conversation versus sub-agents, and shows what a cheaper sub-agent tier would change (price only, quality unmeasured) | working |
+| `cfxd agent-audit` | The same counts-only breakdown for Codex and OpenCode session logs | working |
 | `cfxd replay` | Simulates shrinking old tool output on your sessions, with prompt-cache effects, and reports the bound | working |
 | Brief | Gives a sub-agent the files and saved outputs the parent already touched | experimental |
 | Carry | Snapshots the working set before `/compact`, restores it after | experimental |
@@ -160,7 +162,7 @@ in [`docs/engineering/NUMBERS.md`](docs/engineering/NUMBERS.md).
 
 **Next.**
 - [ ] Earlier compaction or restart of very long sessions, if the offline upper bound justifies it
-- [ ] OpenCode and Codex adapters; `audit` readers for their session logs
+- [ ] OpenCode and Codex plugin adapters (their session-log readers already exist)
 - [ ] Pre-registered paired benchmark: cache-weighted cost per resolved task, raw data published
 
 **Later.**
