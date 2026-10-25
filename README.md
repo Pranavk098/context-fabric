@@ -72,6 +72,11 @@ pay.
 | Fold | Replaces very large tool output with a short note plus a pointer to the full copy | off by default |
 | `cfxd stats`, `doctor` | Per-session numbers and a health check, including daemon identity | working |
 
+<img src="docs/assets/diet-example.svg" alt="Example output of cfxd diet --share: first-turn context, itemized setup, never-used items and the estimated effect" width="100%">
+
+Real output of `cfxd diet --share` on one developer's last 30 days, with skill, plugin and connector names replaced by
+hashes. Without `--share` it prints the real names, for your own screen only.
+
 ## Try it
 
 You need Claude Code, [uv](https://docs.astral.sh/uv/), and on Windows [Git for Windows](https://git-scm.com/download/win).
