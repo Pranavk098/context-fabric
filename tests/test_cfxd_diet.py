@@ -377,3 +377,17 @@ def test_subagent_types_recorded(tmp_path: Path) -> None:
     _session(tmp_path, "proj", "s1", lines)
     report = diet(tmp_path, "all")
     assert report["subagent_types"] == ["general-purpose"]
+
+
+def test_first_turn_context_from_usage_is_reported(tmp_path: Path) -> None:
+    # The itemized setup prefix is only part of the first-turn context; show the real figure too.
+    lines = [
+        _skill_listing(["alpha:one"], "- alpha:one: A\n"),
+        _assistant(usage={"input_tokens": 100, "cache_creation_input_tokens": 900}),
+    ]
+    _session(tmp_path, "proj", "s1", lines)
+    report = diet(tmp_path, "all")
+    assert report["first_turn_tokens_median"] == 1000
+    text = format_human(report)
+    assert "First-turn context" in text
+    assert "system prompt and tool definitions" in text

@@ -262,8 +262,21 @@
   "note": "k=3 batch=1 r=0 optimistic variant (no cache re-creation penalty); upper bound; the conservative variant is strongly negative"
  },
  "starting_prefix": {
-  "tool": "cfxd audit --since 30d",
+  "tool": "cfxd diet --since 30d; cfxd audit --since 30d",
   "parent_sessions": 183,
-  "median_first_turn_context_tokens": 61903
+  "median_first_turn_context_tokens": 61903,
+  "itemized_setup_median_tokens_estimated": 14134,
+  "first_turn_median_tokens_from_usage": 61800,
+  "note": "itemized = skills + connector listings and instructions + memory + hook output; the rest of the first-turn context is the agent's own system prompt and tool definitions"
+ },
+ "waste": {
+  "tool": "cfxd waste --since 30d",
+  "sessions": 864,
+  "repeat_loops_cost_share_pct": 1.2,
+  "retry_streaks_cost_share_pct": 0.2,
+  "loops_and_retries_cost_share_pct": 1.4,
+  "top_10pct_sessions_cost_share_pct": 80.4,
+  "top_20pct_sessions_cost_share_pct": 89.5,
+  "note": "weighted cost = input + 1.25*cache_creation + 0.1*cache_read + 5*output; one developer's transcripts"
  }
 }

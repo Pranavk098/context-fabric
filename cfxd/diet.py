@@ -129,6 +129,7 @@ def _scan(path: Path) -> dict[str, Any]:
     turns = 0
     listing_seen = False
     assistant_seen = 0
+    first_turn_tokens: int | None = None
 
     for obj in _iter_objects(path):
         obj_type = obj.get("type")
@@ -189,8 +190,19 @@ def _scan(path: Path) -> dict[str, Any]:
         blocks = [b for b in content if isinstance(b, dict)] if isinstance(content, list) else []
 
         if is_assistant:
-            if isinstance(msg, dict) and isinstance(msg.get("usage"), dict):
+            usage = msg.get("usage") if isinstance(msg, dict) else None
+            if isinstance(usage, dict):
                 turns += 1
+                if first_turn_tokens is None:
+                    first_turn_tokens = sum(
+                        v
+                        for k in (
+                            "input_tokens",
+                            "cache_creation_input_tokens",
+                            "cache_read_input_tokens",
+                        )
+                        if isinstance(v := usage.get(k), int) and not isinstance(v, bool)
+                    )
             assistant_seen += 1
 
         for block in blocks:
@@ -221,6 +233,7 @@ def _scan(path: Path) -> dict[str, Any]:
         "subagent_types": subagent_types,
         "turns": turns,
         "listing_seen": listing_seen,
+        "first_turn_tokens": first_turn_tokens,
     }
 
 
@@ -330,6 +343,7 @@ def diet(root: Path, since: str = "30d", now: datetime | None = None) -> dict[st
     mem_sizes: dict[str, list[int]] = {}
     hook_sizes: dict[str, list[int]] = {}
     session_prefix_bytes: list[int] = []
+    first_turn_tokens: list[int] = []
 
     for path in parents:
         r = _scan(path)
@@ -337,6 +351,8 @@ def diet(root: Path, since: str = "30d", now: datetime | None = None) -> dict[st
         used_servers |= r["used_servers"]
         subagent_types |= r["subagent_types"]
         total_turns += r["turns"]
+        if r["first_turn_tokens"]:
+            first_turn_tokens.append(r["first_turn_tokens"])
         if not r["listing_seen"]:
             listing_not_found += 1
 
@@ -405,6 +421,7 @@ def diet(root: Path, since: str = "30d", now: datetime | None = None) -> dict[st
         "turns": total_turns,
         "subagent_types": sorted(subagent_types),
         "prefix_tokens_estimated_median": round(_med(session_prefix_bytes) / 4.0, 1),
+        "first_turn_tokens_median": round(_med(first_turn_tokens)) if first_turn_tokens else None,
         "total_median_bytes": round(total, 1),
         "items": items,
         "never_used": {
@@ -481,9 +498,18 @@ def format_human(report: dict[str, Any], share: bool = False, dir_name: str = ".
     if report["listing_not_found"]:
         header += f"   listing not found in {report['listing_not_found']} sessions"
     lines.append(header)
-    lines.append(
-        f"Typical starting prefix: ~{report['prefix_tokens_estimated_median']:,.0f} est. tokens"
-    )
+    first = report.get("first_turn_tokens_median")
+    if first:
+        lines.append(f"First-turn context (from token usage): median {first:,.0f} tokens")
+        lines.append(
+            f"Itemized below (skills, connectors, memory, hooks): "
+            f"~{report['prefix_tokens_estimated_median']:,.0f} est. tokens. The rest is the "
+            "agent's own system prompt and tool definitions, which you cannot change."
+        )
+    else:
+        lines.append(
+            f"Itemized setup prefix: ~{report['prefix_tokens_estimated_median']:,.0f} est. tokens"
+        )
 
     lines.append("Top items by median size:")
     for item in report["items"][:10]:

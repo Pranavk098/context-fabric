@@ -20,6 +20,7 @@ labels: alpha-feedback
 ```text
 uvx --from git+https://github.com/Pranavk098/context-fabric cfxd audit
 uvx --from git+https://github.com/Pranavk098/context-fabric cfxd stats
+uvx --from git+https://github.com/Pranavk098/context-fabric cfxd diet --share
 ```
 
 **Anything else?**

@@ -39,8 +39,9 @@ itself is **not yet proven**; [Evidence](#evidence-so-far) lists what we measure
 In an agent session, cost grows with *turns × context size*, because the whole window is re-read on every turn. Four
 sources of waste are visible in real transcripts:
 
-- **Starting prefix.** Skill and tool listings, connector instructions and project memory are in context before the
-  first prompt. On the machine we measured, the median was 62K tokens.
+- **Starting prefix.** The window opens with Claude Code's own system prompt and tool definitions, plus your skill
+  and tool listings, connector instructions, memory and hook output. On the machine we measured, the median first-turn
+  context was 62K tokens, of which about 14K came from the user's own setup.
 - **Cold-start sub-agents.** A sub-agent begins with nothing, or with a copy of everything.
 - **State lost at `/compact`.** After compaction the agent re-discovers which files and outputs it was working with.
 - **Oversized tool output.** One large result stays in the window for every later turn.
@@ -63,6 +64,8 @@ pay.
 | Part | What it does | State |
 | :--- | :--- | :--- |
 | `cfxd audit` | Counts-only breakdown of your transcripts: starting prefix by item, tool results, repeated reads, sub-agents, compactions | working |
+| `cfxd diet` | Lists your starting-prefix items (skills, connectors, memory, hooks), which you never used in 30 days, and what each costs every turn | working |
+| `cfxd waste` | Measures how much cost sits in loops, retry streaks, the most expensive sessions and repeated discovery | working |
 | `cfxd replay` | Simulates shrinking old tool output on your sessions, with prompt-cache effects, and reports the bound | working |
 | Brief | Gives a sub-agent the files and saved outputs the parent already touched | experimental |
 | Carry | Snapshots the working set before `/compact`, restores it after | experimental |
@@ -142,16 +145,16 @@ in [`docs/engineering/NUMBERS.md`](docs/engineering/NUMBERS.md).
 | Folding `Read` output | **+101%** tokens on tasks that read whole files; the model re-read the saved copy | off by default |
 | Folding long command output | No measurable saving; Claude Code already shortens very large output | off by default |
 | Shrinking old tool results (852 sessions and sub-agent runs replayed) | At most about **7%** weighted cost, as an optimistic bound | no proxy built for it |
-| Starting prefix | Median **62K** tokens in context before the first prompt | next target |
+| Starting prefix | Median **62K** tokens in context before the first prompt; about 14K from the user's own setup | `diet` reports it |
+| Loops and retries | 1.4% of weighted cost on the same sessions; the top 10% of sessions carry 80% of cost | loop guard not worth building here |
 | Brief, carry | Work end to end; token effect not yet measured | measuring |
 
 ## Roadmap
 
-**Now.** Claude Code plugin (alpha), offline `audit` and `replay`, brief and carry in experimental state.
+**Now.** Claude Code plugin (alpha); offline `audit`, `diet`, `waste` and `replay`; brief and carry in experimental state.
 
 **Next.**
-- [ ] Prefix report: name the largest starting-prefix items, what each costs per turn, and the setting that removes it
-- [ ] Authenticated hook transport: per-install token on every hook call
+- [ ] Earlier compaction or restart of very long sessions, if the offline upper bound justifies it
 - [ ] OpenCode and Codex adapters; `audit` readers for their session logs
 - [ ] Pre-registered paired benchmark: cache-weighted cost per resolved task, raw data published
 
