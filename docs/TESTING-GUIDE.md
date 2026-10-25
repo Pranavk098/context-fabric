@@ -54,6 +54,10 @@ uvx --from git+https://github.com/Pranavk098/context-fabric cfxd doctor
 
 You should see `healthy` and `identity: verified`. If not, see [Troubleshooting](#troubleshooting).
 
+Optional one-command check (macOS, Linux, or Git Bash on Windows): download the repo's
+[`scripts/smoke_plugin.sh`](../scripts/smoke_plugin.sh) and run `sh smoke_plugin.sh`. It runs a tiny Claude Code session
+with the plugin and prints `PASS` or `FAIL` with the reason; it changes none of your settings.
+
 ## 2. Use it normally (3 to 7 days)
 
 Work as you always do. Two things make the data more useful, if they fit your work:
