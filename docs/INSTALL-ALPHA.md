@@ -1,122 +1,122 @@
-# Context Fabric alpha: install and try it
+# Install and reference
 
-Context Fabric is a Claude Code plugin that tries to cut the tokens a coding session spends. **Whether it actually
-does is the question this alpha is for.** Our first small tests (a few tasks, a few runs each) showed no measurable
-saving yet, and one setting we first tried made some tasks cost more, so we turned it off. Please treat it as an
-experiment, not a money-saver. This alpha has three parts:
+Context Fabric is an alpha Claude Code plugin. Its objective is the same work with fewer tokens; whether it achieves
+that is **not yet proven** (see [Evidence](../README.md#evidence-so-far)). If you are testing it, follow
+[`TESTING-GUIDE.md`](TESTING-GUIDE.md); this page is the reference.
 
-- **Fold (off by default).** When a search, command or web fetch returns a very large output, Claude can be shown a short
-  version plus the path to the full copy. In our first tests this saved nothing measurable (Claude Code already
-  shortens very large outputs itself) and folding file reads cost more, so it is switched off. `cfxd set fold on`
-  turns it on, `cfxd set fold_read on` adds file reads.
-- **Brief.** When Claude starts a sub-agent, a short note lists the files the main session already opened and where
-  the full copies of large outputs are saved, so the sub-agent doesn't start from zero.
-- **Carry.** Before `/compact`, it notes which files and outputs the session was working with; afterwards it puts that
-  note back so Claude doesn't lose its place.
+## 1. Requirements
 
-Brief and carry use only paths, sizes and names it saw; never the contents of files or tool output.
+| Need | Why | Check |
+| :--- | :--- | :--- |
+| Claude Code | host agent | `claude --version` |
+| [uv](https://docs.astral.sh/uv/) | runs the plugin's Python; fetches Python if missing | `uv --version` |
+| Python 3.12 available to uv | avoids a download inside a hook, which can time out | `uv python list --only-installed` |
+| Windows only: Git for Windows | the plugin's start-up script runs in Git Bash | `bash --version` |
 
-It is an early alpha. It works on Windows, macOS and Linux, and it is built to get out of the way: if anything goes
-wrong, Claude Code carries on exactly as it would without the plugin.
+Install what is missing (run once, then open a **new** terminal):
 
-**Please use it on your own account.** The helper listens on a fixed local port and now requires a per-install token
-(it writes one to `~/.cfx/daemon/token`, readable only by you); hooks send that token, so another user on a shared
-machine can no longer read what passes through it or answer in its place. Any process running **as you** still can, so
-it is fine on a personal account, not a shared login.
+**macOS / Linux**
 
-## What you need
-
-- **Claude Code**, signed in.
-- **uv** (a small tool that runs the plugin's Python; it downloads Python itself if needed).
-  - macOS / Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh`
-  - Windows (PowerShell): `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
-- **Windows only:** Git for Windows (Claude Code uses its Git Bash; the plugin's start-up script runs there).
-
-Then open a new terminal so `uv` is found, and run this once so the first Claude Code session does not have to
-download Python inside a hook (that can time out; the plugin then simply starts a session later):
-
-```
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
 uv python install 3.12
+curl -fsSL https://claude.ai/install.sh | bash        # Claude Code
 ```
 
-## Install
+**Windows (PowerShell)**
 
-In Claude Code:
-
-```
-/plugin marketplace add Pranavk098/context-fabric
-/plugin install context-fabric@context-fabric
-```
-
-Restart Claude Code. That's it: the first session starts a small background helper that listens on `127.0.0.1:47831`.
-
-## Check it is working
-
-Use Claude Code normally for a session or two. Then, in a terminal, from the plugin folder:
-
-- macOS / Linux: `cd ~/.claude/plugins/cache/context-fabric/context-fabric/*/`
-- Windows (PowerShell): `cd $env:USERPROFILE\.claude\plugins\cache\context-fabric\context-fabric\0.1.0-alpha.1`
-
-```
-uv run --no-project --quiet --python ">=3.12" python -m cfxd status
-uv run --no-project --quiet --python ">=3.12" python -m cfxd doctor
-uv run --no-project --quiet --python ">=3.12" python -m cfxd stats
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+winget install --id Git.Git -e
+uv python install 3.12
+irm https://claude.ai/install.ps1 | iex               # Claude Code
 ```
 
-`status` should say `running`. `doctor` should end with `healthy` and `identity: verified`. `stats` says `No folds yet.`
-unless you turned fold on; it then shows how many outputs were folded and roughly how many bytes Claude did not have to
-read (an estimate of what was *not shown*, not a measurement of your bill).
+## 2. Add the plugin
 
-To switch a feature off or on: `... python -m cfxd set brief off` (or `carry`, `on`).
+Either form installs the same plugin at user scope.
 
-## Help us measure (the most useful thing you can do)
+| Where | How |
+| :--- | :--- |
+| Terminal (any system) | `claude plugin marketplace add Pranavk098/context-fabric` then `claude plugin install context-fabric@context-fabric` |
+| Inside Claude Code (CLI) | `/plugin marketplace add Pranavk098/context-fabric` then `/plugin install context-fabric@context-fabric` |
+| VS Code extension | type `/plugins`, Marketplaces tab, add `Pranavk098/context-fabric`, then Install |
+| Desktop app, Code tab (local sessions) | **+ → Add plugins**, add marketplace `Pranavk098/context-fabric`, install |
+| JetBrains | use the terminal forms above in the IDE terminal |
+| Claude Code on the web | not supported (cloud sessions do not load plugins) |
 
-Nobody can honestly say yet whether this saves tokens, so the data from your own sessions matters more than opinions.
-After a few days of normal use, run these two commands. Both print **counts and sizes only** (no paths, commands or
-text), and nothing is sent anywhere; read the output, then paste it into an
-[alpha feedback issue](https://github.com/Pranavk098/context-fabric/issues/new?template=alpha-feedback.md).
+The CLI is the path we test. Hook execution in the desktop app and VS Code is expected but **not verified** by us. The
+terminal, desktop app (local sessions) and VS Code share one `~/.claude`, so installing in one makes it available in
+the others.
 
-```
-uvx --from git+https://github.com/Pranavk098/context-fabric cfxd audit
-uvx --from git+https://github.com/Pranavk098/context-fabric cfxd stats
-```
+Restart Claude Code. The first session starts the local helper on `127.0.0.1:47831`.
 
-`audit` reads your Claude Code transcripts (it works even without the plugin) and shows where a typical session's
-tokens go. Tell us too if anything broke or felt slower.
+**Pin a version** (once releases exist): `claude plugin marketplace add Pranavk098/context-fabric#<tag>`.
 
-## What it keeps on your computer
+## 3. Verify
 
-The helper receives each tool call's input and output in memory while Claude Code runs (it needs them to build the
-brief and carry notes), so treat it like any tool that sits next to your agent. It does not send anything over the
-network. It writes only the files below, and never the contents of your files or tool output unless you turn fold on.
+From any terminal (this runs `cfxd` from GitHub; nothing needs to be cloned):
 
-Everything stays on your machine. The helper only listens on your own computer (`127.0.0.1`) and the plugin makes no
-network calls.
-
-- `~/.cfx/daemon/events.jsonl`, `folds.jsonl`, `briefs.jsonl`, `carry.jsonl`: event names, sizes, counts and timings. No file contents.
-- `~/.cfx/daemon/carry/`: one small note per session (file paths, line counts, recent commands with obvious secrets masked, todo text).
-- `~/.cfx/daemon/obs/`: the **full copy of each folded output**, so Claude can read the rest. This can include code,
-  command output or web pages from your session. Files are deleted after 7 days.
-
-To remove all of it at any time: stop the helper (`... python -m cfxd stop`, from the plugin folder) and delete the
-`.cfx` folder in your home directory.
-
-## If something looks wrong
-
-- Claude Code warns that `uv` can't be found: install uv (above), then restart Claude Code.
-- `status` says `not running`: start a new Claude Code session, or run `... python -m cfxd doctor`.
-- Port `47831` already in use by another program: tell me; it is a fixed port in this alpha.
-- Anything else: run `... python -m cfxd doctor` and send me its output (it contains no file contents).
-
-## Uninstall
-
-```
-/plugin uninstall context-fabric@context-fabric
+```bash
+uvx --from git+https://github.com/Pranavk098/context-fabric cfxd doctor
 ```
 
-Then stop the helper and delete `~/.cfx` as above.
+Expect `healthy` and `identity: verified`. `identity` confirms the program on port 47831 is the daemon that owns your
+token file.
 
-## What I'd like to know
+## 4. Commands
 
-Did Claude ever seem confused by a note it didn't expect (a brief block in a sub-agent, or the note after `/compact`)? Did anything feel slower? Did a session fail or behave differently
-from usual? Any of that, even vague, helps.
+Each command is `uvx --from git+https://github.com/Pranavk098/context-fabric cfxd <command>`.
+
+| Command | Output |
+| :--- | :--- |
+| `doctor` | health, daemon identity, feature flags, hook latency |
+| `status` | running or not, pid, port, version |
+| `stats [--since 7d] [--session ID] [--json]` | folds and hook timings from the daemon's logs |
+| `audit [--since 7d\|30d\|all] [--json]` | where your sessions' tokens go (reads local transcripts; works without the plugin) |
+| `replay [--since 30d] [--json]` | simulated saving from shrinking old tool output, with cache effects |
+| `set brief\|carry\|fold\|fold_read on\|off` | feature flags (brief and carry on; fold and fold_read off) |
+| `stop` | stop the daemon (the next session starts it again) |
+
+`audit`, `replay` and `stats` print counts and sizes only: no paths, commands, prompts or text.
+
+## 5. What it stores
+
+All under `~/.cfx/daemon/` (Windows: `C:\Users\<you>\.cfx\daemon\`). Nothing is sent over the network.
+
+| Path | Content | Kept |
+| :--- | :--- | :--- |
+| `events.jsonl`, `briefs.jsonl`, `carry.jsonl`, `folds.jsonl` | event names, sizes, counts, hashes, latencies | rotated by size |
+| `carry/<session>.json` | one note per compacted session: file paths, line counts, recent commands with obvious secrets masked, to-do text | 7 days |
+| `obs/` | full copies of folded output (**only if you turn fold on**; may contain code or command output) | 7 days |
+| `token` | per-install secret that authenticates hook calls (readable only by you) | until deleted |
+| `config.json`, `state.json`, `daemon.log` | flags, pid and port, daemon messages | until deleted |
+
+The helper receives each tool call's input and output in memory while Claude Code runs; it needs them to build brief
+and carry notes. It does not write that content to disk, except the opt-in fold copies.
+
+## 6. Security model
+
+Fail-open hooks, loopback-only daemon, per-install token, daemon identity checked before any payload is sent. Any
+process running **as you** can read the token, so use it on a personal account, not a shared login. Details and
+reporting: [`SECURITY.md`](../SECURITY.md).
+
+## 7. Troubleshooting
+
+| Symptom | Fix |
+| :--- | :--- |
+| Warning that `uv` cannot be found | install uv (above), open a new terminal, restart Claude Code |
+| `doctor` says not running | start a new Claude Code session, run `doctor` again |
+| `doctor` says identity NOT verified | something else holds port 47831, or an old daemon is running: `cfxd stop`, restart Claude Code |
+| Port 47831 in use | another program holds it; the port is fixed in this alpha, please report it |
+| Windows: nothing happens | install Git for Windows; the start-up script needs Git Bash |
+| First session slow | run `uv python install 3.12` once |
+
+## 8. Uninstall
+
+```bash
+claude plugin uninstall context-fabric@context-fabric
+uvx --from git+https://github.com/Pranavk098/context-fabric cfxd stop
+```
+
+Then delete the data: macOS / Linux `rm -rf ~/.cfx`; Windows PowerShell `Remove-Item -Recurse -Force $HOME\.cfx`.
