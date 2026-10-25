@@ -18,7 +18,7 @@ TITLE_H = 40
 
 
 def render(text: str, title: str, max_cols: int = 110) -> str:
-    lines = [ln.rstrip("\n")[: max_cols] for ln in text.splitlines()]
+    lines = [ln.rstrip("\n")[:max_cols] for ln in text.splitlines()]
     cols = max((len(ln) for ln in lines), default=20)
     width = int(PAD * 2 + cols * CHAR_W)
     height = TITLE_H + PAD + len(lines) * LINE_H + PAD // 2
