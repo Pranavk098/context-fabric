@@ -299,3 +299,122 @@ def test_cli_empty_root_exits_0(tmp_path: Path) -> None:
     )
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == "No transcripts found under empty."
+
+
+# --- Reset policies R(k, s) ---
+
+
+def _reset_variant(report: dict, k: int, s: int, variant: str) -> dict:
+    for rp in report["reset_policies"]:
+        if rp["k"] == k and rp["summary_tokens"] == s:
+            for v in rp["variants"]:
+                if v["variant"] == variant:
+                    return v
+    raise AssertionError(f"variant {variant} not found for k={k} S={s}")
+
+
+def _reset_turn_lines(n: int, out: int = 2) -> list[dict]:
+    """n assistant turns, cr = 10*(t+1), no input/creation, output = out."""
+    return [_assistant(usage=_usage(0, out, 0, 10 * (t + 1))) for t in range(n)]
+
+
+def test_reset_below_k_unchanged(tmp_path: Path) -> None:
+    _session(tmp_path, "proj", "s1", _reset_turn_lines(4))
+    report = replay(tmp_path, "all", reset_ks=(5,), summary_tokens=(100,))
+
+    rp = report["reset_policies"][0]
+    assert rp["sessions_affected"] == 0
+    assert rp["affected_cost_share"] == 0.0
+    ub = _reset_variant(report, 5, 100, "upper_bound")
+    assert ub["simulated_weighted"] == pytest.approx(report["baseline_weighted"], abs=0.1)
+    assert ub["pct_saved"] == 0.0
+    assert ub["pct_saved_affected"] == 0.0
+
+
+def test_reset_one_reset_known_numbers(tmp_path: Path) -> None:
+    lines = [
+        _assistant(usage=_usage(100, 2, 0, 0)),  # t0: C=100, weighted 110
+        _assistant(usage=_usage(0, 2, 0, 100)),  # t1: C=100, weighted 20
+        _assistant(usage=_usage(0, 2, 0, 120)),  # t2: C=120, weighted 22 (reset)
+        _assistant(usage=_usage(0, 2, 30, 110)),  # t3: C=140, weighted 58.5
+    ]
+    _session(tmp_path, "proj", "s1", lines)
+    report = replay(tmp_path, "all", reset_ks=(3,), summary_tokens=(50,))
+
+    assert report["baseline_weighted"] == pytest.approx(210.5, abs=0.1)
+    rp = report["reset_policies"][0]
+    assert rp["sessions_affected"] == 1
+    assert rp["affected_cost_share"] == pytest.approx(1.0, abs=1e-9)
+    ub = _reset_variant(report, 3, 50, "upper_bound")
+    assert ub["simulated_weighted"] == pytest.approx(359.4286, abs=0.1)
+    wsc = _reset_variant(report, 3, 50, "with_summary_cost")
+    assert wsc["simulated_weighted"] == pytest.approx(621.4286, abs=0.1)
+
+
+def test_reset_rereset_and_summary_cost(tmp_path: Path) -> None:
+    _session(tmp_path, "proj", "s1", _reset_turn_lines(7))
+    report = replay(tmp_path, "all", reset_ks=(3,), summary_tokens=(100,))
+
+    assert report["baseline_weighted"] == pytest.approx(98.0, abs=0.1)
+    ub = _reset_variant(report, 3, 100, "upper_bound")
+    assert ub["simulated_weighted"] == pytest.approx(385.0, abs=0.2)
+    wsc = _reset_variant(report, 3, 100, "with_summary_cost")
+    assert wsc["simulated_weighted"] == pytest.approx(1394.0, abs=0.2)
+    assert wsc["simulated_weighted"] > ub["simulated_weighted"]
+
+
+def test_reset_compaction_fresh_segment(tmp_path: Path) -> None:
+    lines: list[dict] = []
+    for t in range(5):
+        if t == 3:
+            lines.append({"type": "system", "subtype": "compact_boundary"})
+        lines.append(_assistant(usage=_usage(0, 1, 0, 10 * (t + 1))))
+    _session(tmp_path, "proj", "s1", lines)
+    report = replay(tmp_path, "all", reset_ks=(2,), summary_tokens=(0,))
+
+    ub = _reset_variant(report, 2, 0, "upper_bound")
+    assert ub["simulated_weighted"] == pytest.approx(94.5, abs=0.2)
+
+
+def test_reset_cli_json_output(tmp_path: Path) -> None:
+    _session(tmp_path, "proj", "s1", _reset_turn_lines(7))
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "cfxd",
+            "replay",
+            "--root",
+            str(tmp_path),
+            "--k",
+            "3",
+            "--batch",
+            "1",
+            "--min-bytes",
+            "8",
+            "--stub-bytes",
+            "4",
+            "--reset-at",
+            "3,5",
+            "--summary-tokens",
+            "50,100",
+            "--json",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert result.returncode == 0, result.stderr
+    data = json.loads(result.stdout)
+    assert [(rp["k"], rp["summary_tokens"]) for rp in data["reset_policies"]] == [
+        (3, 50),
+        (5, 50),
+        (3, 100),
+        (5, 100),
+    ]
+    for rp in data["reset_policies"]:
+        assert rp["sessions_simulated"] == 1
+        assert rp["sessions_affected"] == (1 if 7 >= rp["k"] else 0)
+        assert {v["variant"] for v in rp["variants"]} == {"upper_bound", "with_summary_cost"}
+    assert [be["summary_tokens"] for be in data["reset_break_even"]] == [50, 100]
