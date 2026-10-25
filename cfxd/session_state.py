@@ -202,7 +202,8 @@ def _file_fact(
     if isinstance(tool_response, dict):
         file = tool_response.get("file")
         if isinstance(file, dict):
-            for field in ("totalLines", "numLines"):
+            # numLines is what this call returned (a partial read is shorter than the file).
+            for field in ("numLines", "totalLines"):
                 value = file.get(field)
                 if isinstance(value, int) and not isinstance(value, bool):
                     lines = value
