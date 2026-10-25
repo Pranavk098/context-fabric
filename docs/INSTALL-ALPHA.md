@@ -74,7 +74,7 @@ Each command is `uvx --from git+https://github.com/Pranavk098/context-fabric cfx
 | `status` | running or not, pid, port, version |
 | `stats [--since 7d] [--session ID] [--json]` | folds and hook timings from the daemon's logs |
 | `audit [--since 7d\|30d\|all] [--json]` | where your sessions' tokens go (reads local transcripts; works without the plugin) |
-| `diet [--since 30d] [--share] [--json]` | your starting-prefix items, which were never used, per-turn cost; `--share` hashes all names so it can be pasted |
+| `diet [--since 30d] [--share] [--json] [--apply [--yes] \| --undo [--all]]` | your starting-prefix items, which were never used, per-turn cost; `--share` hashes all names so it can be pasted; `--apply` disables fully-unused local plugins (dry run unless `--yes`), `--undo` restores them |
 | `waste [--since 30d] [--json]` | cost share of loops, retry streaks, tail sessions and repeated discovery |
 | `routing [--since 30d] [--prices FILE] [--json]` | tokens and API-equivalent dollars by model and role; what-if for cheaper sub-agent tiers (price only) |
 | `agent-audit --agent codex\|opencode [--since all]` | counts-only breakdown of Codex or OpenCode session logs (Codex needs the optional `zstandard` decoder) |

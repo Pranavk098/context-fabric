@@ -67,6 +67,11 @@ Work as you always do. Two things make the data more useful, if they fit your wo
 
 You do not need to do anything special. Please do not turn it off to "help".
 
+Optional: `cfxd diet --apply` shows which fully-unused local plugins it would disable and prints the exact
+commands; add `--yes` to do it, open a **new** session and check the number in `/context`, then run
+`cfxd diet --undo` to restore. It only calls `claude plugin`; items synced from your Claude account are listed
+for claude.ai Settings instead, because they cannot be changed from the terminal.
+
 ## 3. Send results
 
 After a few days (terminal):
