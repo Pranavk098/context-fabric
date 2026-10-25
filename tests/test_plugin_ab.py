@@ -430,3 +430,29 @@ def test_model_ids_map_to_their_own_price_rows() -> None:
     assert normalize_model("claude-haiku-5-5") == "haiku-5.5"
     assert normalize_model("claude-fable-5-1") == "fable-5.1"
     assert normalize_model("<synthetic>") is None
+
+
+def test_real_runs_keep_the_login_and_skip_user_settings(tmp_path: Path) -> None:
+    # A fresh CLAUDE_CONFIG_DIR means "Not logged in", so real runs use the real config home and
+    # isolate with --setting-sources instead (user-scope settings and plugins are not loaded).
+    from evals.plugin_ab.runner import _claude_home, build_command
+
+    run_dir = tmp_path / "run"
+    cfg, override = _claude_home(fake=False, run_dir=run_dir)
+    assert override is False
+    assert cfg != run_dir / "claude"
+    cfg, override = _claude_home(fake=True, run_dir=run_dir)
+    assert override is True
+    assert cfg == run_dir / "claude"
+
+    cmd = build_command(
+        "claude",
+        prompt="p",
+        model="haiku",
+        session_id="s",
+        arm="off",
+        plugin_root=tmp_path,
+    )
+    i = cmd.index("--setting-sources")
+    assert cmd[i + 1] == "project,local"
+    assert "--plugin-dir" not in cmd
