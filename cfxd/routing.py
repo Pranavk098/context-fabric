@@ -131,6 +131,8 @@ def _turn_cache_read_dollars(entry: dict[str, Any], tokens: dict[str, int], prom
 
 
 def _tier(fam: str) -> int:
+    if fam.startswith("fable"):
+        return 4
     if fam.startswith("opus"):
         return 3
     if fam.startswith("sonnet"):

@@ -135,13 +135,13 @@ def test_longest_prefix_matching(tmp_path: Path) -> None:
     )
     parent = routing(tmp_path, "all")["roles"]["parent"]
     names = {m["model"] for m in parent["models"]}
-    assert names == {"sonnet-5-5", "sonnet-5", "haiku-4-5", "opus"}
+    assert names == {"sonnet-5-5", "sonnet-5", "haiku-4-5", "opus-5-5"}
 
     assert _model_entry(parent, "sonnet-5-5")["tokens"]["input"] == 1_000_000
     assert _model_entry(parent, "sonnet-5")["tokens"]["input"] == 2_000_000
-    # date suffix is stripped; opus-5-5 collapses to the opus family
+    # the date suffix is stripped; each Opus version has its own price row
     assert _model_entry(parent, "haiku-4-5")["tokens"]["input"] == 1_000_000
-    assert _model_entry(parent, "opus")["tokens"]["input"] == 1_000_000
+    assert _model_entry(parent, "opus-5-5")["tokens"]["input"] == 1_000_000
 
     assert _normalize("claude-sonnet-5-5") == "sonnet-5-5"
     assert _normalize("claude-haiku-4-5-20251001") == "haiku-4-5"
@@ -154,7 +154,7 @@ def test_unpriced_model(tmp_path: Path) -> None:
         tmp_path,
         "proj",
         "p1",
-        [_turn("claude-fable-5", input_tokens=1_000_000, output=1_000_000)],
+        [_turn("claude-zeta-9", input_tokens=1_000_000, output=1_000_000)],
     )
     report = routing(tmp_path, "all")
     assert report["totals"]["dollars"] == pytest.approx(0.0)
@@ -163,7 +163,7 @@ def test_unpriced_model(tmp_path: Path) -> None:
     assert u["turns"] == 1
     assert u["sessions"] == 1
     assert u["tokens"]["input"] == 1_000_000
-    assert u["models"][0]["model"] == "claude-fable-5"
+    assert u["models"][0]["model"] == "claude-zeta-9"
     assert u["models"][0]["turns"] == 1
 
 
@@ -416,3 +416,19 @@ def test_cli_human_output(tmp_path: Path) -> None:
     assert "sonnet-5" in result.stdout
     assert "not a bill" in result.stdout
     assert "Limits:" in result.stdout
+
+
+def test_each_model_version_resolves_to_its_own_price_row() -> None:
+    # Opus 5.5 is priced below Opus 5 (input $4 vs $5, cache read $0.20 vs $0.50 per MTok); a
+    # generic "opus" row overstated it. Longest-prefix matching must pick the exact version.
+    from cfxd.routing import _load_prices, _match_family, _normalize
+
+    prices = _load_prices(Path(__file__).resolve().parents[1] / "cfxd" / "data" / "prices.json")
+    fams = prices["families"]
+    assert _match_family(_normalize("claude-opus-5-5"), fams) == "opus-5-5"
+    assert _match_family(_normalize("claude-opus-5"), fams) == "opus-5"
+    assert _match_family(_normalize("claude-opus-4-8"), fams) == "opus-4-8"
+    assert _match_family(_normalize("claude-fable-5"), fams) == "fable-5"
+    assert fams["opus-5-5"]["cache_read"] == 0.20
+    assert fams["opus-5"]["cache_read"] == 0.50
+    assert fams["fable-5"]["output"] == 50
