@@ -28,6 +28,8 @@ from cfxd.daemon import (
     run_serve,
     verify_identity,
 )
+from cfxd.diet import _anonymize, diet
+from cfxd.diet import format_human as format_diet
 from cfxd.replay import format_replay, replay
 from cfxd.stats import collect_stats, format_human
 
@@ -90,6 +92,20 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     auditp.add_argument("--json", action="store_true", help="emit a single JSON object")
     auditp.set_defaults(func=_cmd_audit)
+
+    dietp = subparsers.add_parser(
+        "diet", help="starting-prefix items never used in the window, and their cost"
+    )
+    dietp.add_argument("--root", default=None, help=f"transcripts root (default: {DEFAULT_ROOT})")
+    dietp.add_argument(
+        "--since",
+        choices=("7d", "30d", "all"),
+        default="30d",
+        help="time window by file mtime (default: 30d)",
+    )
+    dietp.add_argument("--share", action="store_true", help="replace names with hash labels")
+    dietp.add_argument("--json", action="store_true", help="emit a single JSON object")
+    dietp.set_defaults(func=_cmd_diet)
 
     replayp = subparsers.add_parser(
         "replay", help="offline replay: upper bound on shrinking old tool results"
@@ -301,6 +317,16 @@ def _cmd_audit(args: argparse.Namespace) -> int:
         print(json.dumps(report))
     else:
         print(format_audit(report, root.name))
+    return 0
+
+
+def _cmd_diet(args: argparse.Namespace) -> int:
+    root = Path(args.root) if args.root else DEFAULT_ROOT
+    report = _anonymize(diet(root, args.since)) if args.share else diet(root, args.since)
+    if args.json:
+        print(json.dumps(report))
+    else:
+        print(format_diet(report, share=args.share, dir_name=root.name))
     return 0
 
 
