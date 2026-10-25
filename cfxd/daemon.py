@@ -24,9 +24,7 @@ from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, cast
-from urllib.error import HTTPError
 from urllib.parse import parse_qs, unquote, urlparse
-from urllib.request import ProxyHandler, Request, build_opener
 
 from cfxd import __version__, session_state
 from cfxd.brief import install as brief_install
@@ -34,14 +32,31 @@ from cfxd.carry import install as carry_install
 from cfxd.fold import install
 from cfxd.fsutil import ensure_dir, open_log, rotate
 from cfxd.handlers import add_observer, dispatch
+from cfxd.hookclient import (  # noqa: F401  # client-side helpers, re-exported for CLI + launcher
+    DEFAULT_PORT,
+    TOKEN_FILE,
+    _health_ok,
+    get_health,
+    post_hook,
+    read_token,
+    resolve_state_dir,
+    verify_identity,
+)
+
+# Re-exported so `from cfxd.daemon import ...` keeps working under mypy's
+# --no-implicit-reexport (part of --strict).
+__all__ = [
+    "DEFAULT_PORT",
+    "get_health",
+    "post_hook",
+    "read_token",
+    "resolve_state_dir",
+    "verify_identity",
+]
 
 STATE_FILE = "state.json"
 EVENTS_FILE = "events.jsonl"
-TOKEN_FILE = "token"
 HANDLER_TIMEOUT_MS = 150.0
-HEALTH_TIMEOUT_S = 0.5
-DEFAULT_PORT = 47831
-DEFAULT_STATE_DIR = Path.home() / ".cfx" / "daemon"
 MAX_BODY_BYTES = 8 * 1024 * 1024
 MAX_CONNECTIONS = 64
 EVENTS_ROTATE_BYTES = 20 * 1024 * 1024
@@ -49,21 +64,8 @@ _BUSY_RESPONSE = (
     b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
 )
 
-# Our own calls are loopback-only: never route them through a proxy set in the environment.
-_OPENER = build_opener(ProxyHandler({}))
-
 # Handlers run here so a slow one is abandoned at the deadline instead of holding the hook.
 _POOL = ThreadPoolExecutor(max_workers=16, thread_name_prefix="cfxd-handler")
-
-
-def resolve_state_dir(explicit: str | None = None) -> Path:
-    """``--state-dir`` > ``CFX_HOME`` > ``%USERPROFILE%/.cfx/daemon``."""
-    if explicit:
-        return Path(explicit)
-    env = os.environ.get("CFX_HOME")
-    if env:
-        return Path(env)
-    return DEFAULT_STATE_DIR
 
 
 def percentile(values: list[float], p: float) -> float:
@@ -135,87 +137,6 @@ def _ensure_token(state_dir: Path) -> str:
             pass
         return token
     return token
-
-
-def read_token(state_dir: Path) -> str | None:
-    try:
-        token = (state_dir / TOKEN_FILE).read_text(encoding="utf-8").strip()
-    except OSError:
-        return None
-    return token or None
-
-
-def get_health(
-    port: int, timeout: float = HEALTH_TIMEOUT_S, nonce: str | None = None
-) -> tuple[int, bytes]:
-    url = f"http://127.0.0.1:{port}/health"
-    if nonce is not None:
-        url += f"?nonce={nonce}"
-    try:
-        with _OPENER.open(url, timeout=timeout) as resp:
-            return resp.status, resp.read()
-    except HTTPError as exc:
-        return exc.code, exc.read()
-
-
-def verify_identity(state_dir: Path, port: int) -> bool:
-    """Prove ``/health`` on ``port`` is answered by the daemon that owns ``state_dir``."""
-    token = read_token(state_dir)
-    if token is None:
-        return False
-    nonce = secrets.token_hex(16)
-    try:
-        status, body = get_health(port, nonce=nonce)
-    except OSError:
-        return False
-    if status != 200:
-        return False
-    try:
-        health = json.loads(body)
-    except ValueError:
-        return False
-    if not isinstance(health, dict):
-        return False
-    proof = health.get("proof")
-    expected = hmac.new(token.encode("utf-8"), nonce.encode("utf-8"), hashlib.sha256).hexdigest()
-    return isinstance(proof, str) and hmac.compare_digest(proof, expected)
-
-
-def post_hook(
-    port: int,
-    event: str,
-    payload: bytes,
-    timeout: float = 1.0,
-    token: str | None = None,
-) -> tuple[int, bytes]:
-    headers = {"Content-Type": "application/json"}
-    if token is not None:
-        headers["X-Cfx-Token"] = token
-    req = Request(
-        f"http://127.0.0.1:{port}/hooks/{event}",
-        data=payload,
-        headers=headers,
-        method="POST",
-    )
-    try:
-        with _OPENER.open(req, timeout=timeout) as resp:
-            return resp.status, resp.read()
-    except HTTPError as exc:
-        return exc.code, exc.read()
-
-
-def _health_ok(port: int) -> bool:
-    try:
-        status, body = get_health(port)
-    except OSError:
-        return False
-    if status != 200:
-        return False
-    try:
-        health = json.loads(body)
-    except ValueError:
-        return False
-    return isinstance(health, dict) and health.get("ok") is True
 
 
 def daemon_alive(state: dict[str, Any]) -> bool:
