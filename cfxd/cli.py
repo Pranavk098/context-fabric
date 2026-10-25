@@ -34,6 +34,7 @@ from cfxd.daemon import (
 )
 from cfxd.diet import _anonymize, diet
 from cfxd.diet import format_human as format_diet
+from cfxd.refetch import format_refetch, refetch
 from cfxd.replay import format_replay, replay
 from cfxd.routing import format_human as format_routing
 from cfxd.routing import routing
@@ -170,6 +171,27 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     replayp.add_argument("--json", action="store_true", help="emit a single JSON object")
     replayp.set_defaults(func=_cmd_replay)
+
+    refetchp = subparsers.add_parser(
+        "refetch", help="how much of the context dropped by a compaction is re-read"
+    )
+    refetchp.add_argument(
+        "--root", default=None, help=f"transcripts root (default: {DEFAULT_ROOT})"
+    )
+    refetchp.add_argument(
+        "--since",
+        choices=("7d", "30d", "all"),
+        default="30d",
+        help="time window by file mtime (default: 30d)",
+    )
+    refetchp.add_argument(
+        "--window",
+        type=int,
+        default=20,
+        help="assistant turns after a boundary to count re-reads (default: 20)",
+    )
+    refetchp.add_argument("--json", action="store_true", help="emit a single JSON object")
+    refetchp.set_defaults(func=_cmd_refetch)
 
     wastep = subparsers.add_parser(
         "waste", help="loop, retry and rediscovery waste in Claude Code transcripts"
@@ -444,6 +466,16 @@ def _cmd_replay(args: argparse.Namespace) -> int:
         print(json.dumps(report))
     else:
         print(format_replay(report, root.name))
+    return 0
+
+
+def _cmd_refetch(args: argparse.Namespace) -> int:
+    root = Path(args.root) if args.root else DEFAULT_ROOT
+    report = refetch(root, args.since, args.window)
+    if args.json:
+        print(json.dumps(report))
+    else:
+        print(format_refetch(report, root.name))
     return 0
 
 
