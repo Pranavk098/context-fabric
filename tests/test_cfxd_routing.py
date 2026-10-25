@@ -432,3 +432,165 @@ def test_each_model_version_resolves_to_its_own_price_row() -> None:
     assert fams["opus-5-5"]["cache_read"] == 0.20
     assert fams["opus-5"]["cache_read"] == 0.50
     assert fams["fable-5"]["output"] == 50
+
+
+def test_cold_switch_premium_and_counts(tmp_path: Path) -> None:
+    _session(
+        tmp_path,
+        "proj",
+        "p1",
+        [
+            _turn("claude-sonnet-5"),
+            _turn("claude-opus-5", cc5m=100_000),
+        ],
+    )
+    ms = routing(tmp_path, "all")["model_switches"]
+    assert ms["cold"] == 1
+    assert ms["warm"] == 0
+    assert ms["unpriced"] == 0
+    assert ms["sessions"] == 1
+    assert ms["context_tokens"] == {"median": 100_000.0, "p90": 100_000.0, "max": 100_000}
+    # opus-5: 100K cache writes at $6.25/MTok minus $0.50/MTok read = $0.575.
+    assert ms["premium_total"] == pytest.approx(0.575)
+    assert ms["premium_median"] == pytest.approx(0.575)
+    # parent dollars = the same turn's write cost $0.625, so the premium is 92% of it.
+    assert ms["premium_share_of_parent_dollars"] == pytest.approx(0.92)
+    assert ms["transitions"] == [{"from": "sonnet-5", "to": "opus-5", "count": 1}]
+
+
+def test_cold_switch_premium_uses_1h_write_price(tmp_path: Path) -> None:
+    _session(
+        tmp_path,
+        "proj",
+        "p1",
+        [_turn("claude-sonnet-5"), _turn("claude-opus-5", cc1h=100_000)],
+    )
+    ms = routing(tmp_path, "all")["model_switches"]
+    assert ms["cold"] == 1
+    # opus-5: cache_write_1h $10 minus cache_read $0.5 = $9.5/MTok -> $0.95.
+    assert ms["premium_total"] == pytest.approx(0.95)
+
+
+def test_warm_switch_counted_no_premium(tmp_path: Path) -> None:
+    _session(
+        tmp_path,
+        "proj",
+        "p1",
+        [_turn("claude-sonnet-5"), _turn("claude-opus-5", cr=100_000)],
+    )
+    ms = routing(tmp_path, "all")["model_switches"]
+    assert ms["cold"] == 0
+    assert ms["warm"] == 1
+    assert ms["unpriced"] == 0
+    assert ms["premium_total"] == pytest.approx(0.0)
+    assert ms["premium_median"] == pytest.approx(0.0)
+    assert ms["context_tokens"] == {"median": 0.0, "p90": 0.0, "max": 0}
+    assert ms["transitions"] == [{"from": "sonnet-5", "to": "opus-5", "count": 1}]
+
+
+def test_switch_at_20k_context_is_not_cold(tmp_path: Path) -> None:
+    _session(
+        tmp_path,
+        "proj",
+        "p1",
+        [_turn("claude-sonnet-5"), _turn("claude-opus-5", cc5m=20_000)],
+    )
+    ms = routing(tmp_path, "all")["model_switches"]
+    assert ms["cold"] == 0
+    assert ms["warm"] == 1
+
+
+def test_subagent_model_change_is_not_a_switch(tmp_path: Path) -> None:
+    _subagent(
+        tmp_path,
+        "proj",
+        "p1",
+        "agent-1",
+        [_turn("claude-sonnet-5"), _turn("claude-opus-5", cc5m=100_000)],
+    )
+    ms = routing(tmp_path, "all")["model_switches"]
+    assert ms["cold"] == 0
+    assert ms["warm"] == 0
+    assert ms["unpriced"] == 0
+    assert ms["transitions"] == []
+
+
+def test_unpriced_model_switch_listed_separately(tmp_path: Path) -> None:
+    _session(
+        tmp_path,
+        "proj",
+        "p1",
+        [
+            _turn("claude-sonnet-5"),
+            _turn("claude-zeta-9", cc5m=100_000),
+            _turn("claude-opus-5", cc5m=100_000),
+        ],
+    )
+    ms = routing(tmp_path, "all")["model_switches"]
+    assert ms["unpriced"] == 2
+    assert ms["cold"] == 0
+    assert ms["warm"] == 0
+    assert ms["premium_total"] == pytest.approx(0.0)
+    assert ms["transitions"] == []
+
+
+def test_transitions_ordered_by_count_then_name(tmp_path: Path) -> None:
+    _session(
+        tmp_path,
+        "proj",
+        "p1",
+        [
+            _turn("claude-sonnet-5"),
+            _turn("claude-opus-5"),
+            _turn("claude-sonnet-5"),
+            _turn("claude-opus-5"),
+            _turn("claude-sonnet-5"),
+            _turn("claude-haiku-4-5"),
+        ],
+    )
+    ms = routing(tmp_path, "all")["model_switches"]
+    assert ms["transitions"] == [
+        {"from": "opus-5", "to": "sonnet-5", "count": 2},
+        {"from": "sonnet-5", "to": "opus-5", "count": 2},
+        {"from": "sonnet-5", "to": "haiku-4-5", "count": 1},
+    ]
+
+
+def test_no_cold_switches_message(tmp_path: Path) -> None:
+    _session(
+        tmp_path,
+        "proj",
+        "p1",
+        [_turn("claude-sonnet-5"), _turn("claude-opus-5", cr=100_000)],
+    )
+    assert "no cold model switches in this window" in format_human(routing(tmp_path, "all"))
+
+
+def test_model_switches_json_shape(tmp_path: Path) -> None:
+    _session(
+        tmp_path,
+        "proj",
+        "p1",
+        [_turn("claude-sonnet-5"), _turn("claude-opus-5", cc5m=100_000)],
+    )
+    result = subprocess.run(
+        [sys.executable, "-m", "cfxd", "routing", "--root", str(tmp_path), "--json"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert result.returncode == 0, result.stderr
+    ms = json.loads(result.stdout)["model_switches"]
+    assert set(ms) == {
+        "cold",
+        "warm",
+        "sessions",
+        "unpriced",
+        "context_tokens",
+        "premium_total",
+        "premium_median",
+        "premium_share_of_parent_dollars",
+        "transitions",
+    }
+    assert set(ms["context_tokens"]) == {"median", "p90", "max"}
