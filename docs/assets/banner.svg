@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 320" width="1200" height="320" role="img" aria-labelledby="t d">
-  <title id="t">Context Fabric: give each coding agent only the context it needs</title>
+  <title id="t">Context Fabric: see where your coding agent's context goes</title>
   <desc id="d">A context window drawn as a stacked bar: starting prefix, conversation, tool results and headroom.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
@@ -15,8 +15,8 @@
   <g font-family="'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif">
     <text x="64" y="122" font-size="62" font-weight="700" fill="#f8fafc" letter-spacing="-1">Context Fabric</text>
     <rect x="64" y="146" width="96" height="5" rx="2.5" fill="url(#ac)"/>
-    <text x="64" y="196" font-size="22" fill="#cbd5e1">Give each agent only the context it needs.</text>
-    <text x="64" y="230" font-size="22" fill="#cbd5e1">Same work, fewer tokens. Every step receipted.</text>
+    <text x="64" y="196" font-size="22" fill="#cbd5e1">See where your agent's context goes.</text>
+    <text x="64" y="230" font-size="22" fill="#cbd5e1">Experimental: restart long sessions, keep your place.</text>
     <text x="64" y="282" font-size="15" fill="#64748b" letter-spacing="1.5">OPEN SOURCE  ·  ALPHA  ·  CLAUDE CODE FIRST</text>
   </g>
   <g font-family="'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="13" fill="#0b1020" font-weight="600">

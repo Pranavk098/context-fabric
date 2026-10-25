@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/banner.svg" alt="Context Fabric: give each agent only the context it needs" width="100%">
+<img src="docs/assets/banner.svg" alt="Context Fabric: see where your coding agent's context goes" width="100%">
 
 [![CI](https://github.com/Pranavk098/context-fabric/actions/workflows/ci.yml/badge.svg)](https://github.com/Pranavk098/context-fabric/actions/workflows/ci.yml)
 [![Plugin CI](https://github.com/Pranavk098/context-fabric/actions/workflows/plugin.yml/badge.svg)](https://github.com/Pranavk098/context-fabric/actions/workflows/plugin.yml)
@@ -11,14 +11,16 @@
 
 </div>
 
-Context Fabric is a context layer for coding agents. It works through the agent's own hooks and decides what each
-agent sees: what a sub-agent starts with, what survives `/compact`, and what replaces a very large tool output.
+Context Fabric measures where a coding agent's context and tokens go, from your own session transcripts, and is
+building tools that keep long sessions lean. It is a Claude Code plugin plus offline command-line tools; Codex and
+OpenCode logs can be measured too.
 
-**Objective:** the same work with fewer tokens, and a receipt for every decision so the saving can be checked rather
-than believed.
+**Objective:** keep the context a coding agent re-reads on every turn as small as the work allows, and show every
+effect as a receipt you can re-run on your own data, so a saving is checked rather than believed.
 
-**Status:** alpha, Claude Code first (OpenCode and Codex next). Brief and carry work end to end. The token saving
-itself is **not yet proven**; [Evidence](#evidence-so-far) lists what we measured, including what did not work.
+**Status:** alpha, Claude Code first. The measurement tools work. The mechanisms that act on context (brief, carry)
+are experimental and have no measured token effect yet; fold is off. **No saving is proven.**
+[Evidence](#evidence-so-far) lists what we measured, including what did not work.
 
 ## Principles
 
@@ -42,12 +44,14 @@ sources of waste are visible in real transcripts:
 - **Starting prefix.** The window opens with Claude Code's own system prompt and tool definitions, plus your skill
   and tool listings, connector instructions, memory and hook output. On the machine we measured, the median first-turn
   context was 62K tokens, of which about 14K came from the user's own setup.
+- **Long sessions.** On the machine we measured, sessions of 40+ turns carried 95% of the cost, because the whole
+  window is re-read on every turn.
 - **Cold-start sub-agents.** A sub-agent begins with nothing, or with a copy of everything.
 - **State lost at `/compact`.** After compaction the agent re-discovers which files and outputs it was working with.
 - **Oversized tool output.** One large result stays in the window for every later turn.
 
-Most developers cannot see any of this. Context Fabric measures it per session and acts on the parts that measurably
-pay.
+Most developers cannot see any of this. Context Fabric shows it per session; the tools that act on it stay
+experimental until a paired test shows they pay.
 
 ## How it works
 
@@ -69,8 +73,8 @@ pay.
 | `cfxd routing` | Splits your sessions' tokens and API-equivalent dollars by model and by main conversation versus sub-agents, and shows what a cheaper sub-agent tier would change (price only, quality unmeasured) | working |
 | `cfxd agent-audit` | The same counts-only breakdown for Codex and OpenCode session logs | working |
 | `cfxd replay` | Simulates shrinking old tool output on your sessions, with prompt-cache effects, and reports the bound | working |
-| Brief | Gives a sub-agent the files and saved outputs the parent already touched | experimental |
-| Carry | Snapshots the working set before `/compact`, restores it after | experimental |
+| Brief | Gives a sub-agent the files and saved outputs the parent already touched; fires only when a sub-agent runs | experimental |
+| Carry | Snapshots the working set before `/compact`, restores it after; acts only at a compaction, which is rare | experimental |
 | Fold | Replaces very large tool output with a short note plus a pointer to the full copy | off by default |
 | `cfxd stats`, `doctor` | Per-session numbers and a health check, including daemon identity | working |
 
@@ -154,14 +158,17 @@ in [`docs/engineering/NUMBERS.md`](docs/engineering/NUMBERS.md).
 | Shrinking old tool results (852 sessions and sub-agent runs replayed) | At most about **7%** weighted cost, as an optimistic bound | no proxy built for it |
 | Starting prefix | Median **62K** tokens in context before the first prompt; about 14K from the user's own setup | `diet` reports it |
 | Loops and retries | 1.4% of weighted cost on the same sessions; the top 10% of sessions carry 80% of cost | loop guard not worth building here |
-| Brief, carry | Work end to end; token effect not yet measured | measuring |
+| Brief, carry | Function end to end; token effect not yet measured | measuring |
 
 ## Roadmap
 
 **Now.** Claude Code plugin (alpha); offline `audit`, `diet`, `waste` and `replay`; brief and carry in experimental state.
 
 **Next.**
-- [ ] Earlier compaction or restart of very long sessions, if the offline upper bound justifies it
+- [ ] Checkpoint and restart for long sessions: a short working-state handoff restored after `/clear`, tested first on how
+      much of the dropped context the agent actually re-reads
+- [ ] `cfxd diet --apply` with an exact undo, checked against Claude Code's own `/context`
+- [ ] Session coach: context size and cost per turn, with one nudge at natural breaks
 - [ ] OpenCode and Codex plugin adapters (their session-log readers already exist)
 - [ ] Pre-registered paired benchmark: cache-weighted cost per resolved task, raw data published
 
