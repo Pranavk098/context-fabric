@@ -17,6 +17,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -26,7 +27,8 @@ _PLUGIN_ROOT = Path(__file__).resolve().parent.parent
 if str(_PLUGIN_ROOT) not in sys.path:
     sys.path.insert(0, str(_PLUGIN_ROOT))
 
-from cfxd.daemon import (  # noqa: E402
+from cfxd.fsutil import ensure_dir, open_log  # noqa: E402
+from cfxd.hookclient import (  # noqa: E402
     DEFAULT_PORT,
     _health_ok,
     post_hook,
@@ -34,7 +36,6 @@ from cfxd.daemon import (  # noqa: E402
     resolve_state_dir,
     verify_identity,
 )
-from cfxd.fsutil import ensure_dir, open_log  # noqa: E402
 
 HEALTH_POLL_SECONDS = 3.0
 
@@ -53,6 +54,27 @@ _NO_WINDOW = 0x08000000
 def _port() -> int:
     env = os.environ.get("CFX_PORT")
     return int(env) if env else DEFAULT_PORT
+
+
+_PY_CACHE_FILE = "python"
+
+
+def _write_python_cache(state_dir: Path) -> None:
+    """Cache this interpreter's path so launch.sh forward can skip ``uv run`` startup."""
+    try:
+        ensure_dir(state_dir)
+        fd, tmp = tempfile.mkstemp(dir=str(state_dir), prefix=".python.", suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                fh.write(sys.executable)
+                fh.flush()
+            os.chmod(tmp, 0o600)
+            os.replace(tmp, state_dir / _PY_CACHE_FILE)
+        finally:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+    except OSError:
+        pass
 
 
 def _spawn(state_dir: Path, port: int) -> None:
@@ -145,6 +167,7 @@ def _session_start() -> int:
     payload = sys.stdin.buffer.read()
     port = _port()
     state_dir = resolve_state_dir()
+    _write_python_cache(state_dir)
     if not _health_ok(port):
         _ensure_daemon(port)
     token = read_token(state_dir)

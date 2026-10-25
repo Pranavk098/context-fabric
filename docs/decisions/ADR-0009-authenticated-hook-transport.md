@@ -46,6 +46,11 @@ hook. A `command` hook runs our code, so it can read the daemon's 0600 token fil
 - Every hot-path tool event now spawns a process (~400 ms here), versus the old in-process `http` hook. `PostToolUse`
   is async so it does not block the loop; `PreToolUse` fires only on the Agent tool, not every tool call.
 - The token is minted once at daemon start and reused; it never appears in logs or event records.
+- Follow-up cut the forward latency: `session-start` now caches the resolved interpreter path (`sys.executable`,
+  0600, atomic) to `<state_dir>/python`, and `launch.sh forward` runs it directly — falling back to `uv run` if the
+  cache is missing, stale, or not executable — while `launch.py forward` imports a minimal stdlib `cfxd/hookclient`
+  (token read, HMAC proof, POST) instead of the whole daemon. Same machine, 20 cold runs: p50 407 ms → 296 ms,
+  p95 426 ms → 307 ms. What remains is Git Bash process spawn (sh, dirname, cygpath), not interpreter startup.
 
 ## Supersedes
 

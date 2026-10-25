@@ -10,6 +10,7 @@ import http.client
 import json
 import os
 import socket
+import stat
 import subprocess
 import sys
 import time
@@ -142,6 +143,22 @@ def test_first_session_start_prints_welcome_once(state: tuple[int, Path], tmp_pa
     rc, out = _run_launch(["session-start"], payload, _env(state_dir, port), tmp_path)
     assert rc == 0
     assert json.loads(out) == {}
+
+
+def test_session_start_writes_python_cache(state: tuple[int, Path], tmp_path: Path) -> None:
+    port, state_dir = state
+    _run_launch(["session-start"], b"{}", _env(state_dir, port), tmp_path)
+    cache = state_dir / "python"
+    assert cache.exists()
+    assert cache.read_text(encoding="utf-8").strip() == sys.executable
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX permissions")
+def test_python_cache_perms_0600(state: tuple[int, Path], tmp_path: Path) -> None:
+    port, state_dir = state
+    _run_launch(["session-start"], b"{}", _env(state_dir, port), tmp_path)
+    mode = stat.S_IMODE((state_dir / "python").stat().st_mode)
+    assert mode == 0o600
 
 
 def test_session_start_prints_empty_when_port_occupied(tmp_path: Path) -> None:
