@@ -418,3 +418,116 @@ def test_reset_cli_json_output(tmp_path: Path) -> None:
         assert rp["sessions_affected"] == (1 if 7 >= rp["k"] else 0)
         assert {v["variant"] for v in rp["variants"]} == {"upper_bound", "with_summary_cost"}
     assert [be["summary_tokens"] for be in data["reset_break_even"]] == [50, 100]
+
+
+def _reset_variant_f(report: dict, k: int, s: int, variant: str, f: float) -> dict:
+    for rp in report["reset_policies"]:
+        if rp["k"] == k and rp["summary_tokens"] == s:
+            for v in rp["variants"]:
+                if v["variant"] == variant and v["f"] == f:
+                    return v
+    raise AssertionError(f"variant {variant} f={f} not found for k={k} S={s}")
+
+
+def test_reset_refetch_half_hand_computed(tmp_path: Path) -> None:
+    # k=3, S=0, prefix C(0)=100; reset at turn 2 drops D = 120 - 100 = 20.
+    lines = [
+        _assistant(usage=_usage(100, 0, 0, 0)),  # t0 C=100 w=100
+        _assistant(usage=_usage(0, 0, 0, 100)),  # t1 C=100 w=10
+        _assistant(usage=_usage(0, 0, 0, 120)),  # t2 C=120 w=12 (reset)
+        _assistant(usage=_usage(0, 0, 0, 140)),  # t3 C=140 w=14
+        _assistant(usage=_usage(0, 0, 0, 160)),  # t4 C=160 w=16
+    ]
+    _session(tmp_path, "proj", "s1", lines)
+    report = replay(tmp_path, "all", reset_ks=(3,), summary_tokens=(0,))
+
+    assert report["baseline_weighted"] == pytest.approx(152.0, abs=0.1)
+    ub0 = _reset_variant_f(report, 3, 0, "upper_bound", 0.0)["simulated_weighted"]
+    assert ub0 == pytest.approx(261.0, abs=0.1)
+    # f=0.5: 10 re-fetched tokens read at 0.1 on t3/t4 (+2) and created once at t3 (+12.5)
+    ub05 = _reset_variant_f(report, 3, 0, "upper_bound", 0.5)["simulated_weighted"]
+    assert ub05 == pytest.approx(275.5, abs=0.1)
+    assert ub05 > ub0
+
+
+def test_reset_rereset_drops_refetch(tmp_path: Path) -> None:
+    # Two resets (turns 2 and 5). Re-fetched content from reset 1 is dropped at reset 2
+    # and re-fetched again (compounding): D1 = (C(5)-C(2)) + f*D0 = 60 + 10 = 70.
+    lines = [
+        _assistant(usage=_usage(100, 0, 0, 0)),  # t0 C=100
+        _assistant(usage=_usage(0, 0, 0, 100)),  # t1 C=100
+        _assistant(usage=_usage(0, 0, 0, 120)),  # t2 C=120 (reset 1, D=20)
+        _assistant(usage=_usage(0, 0, 0, 140)),  # t3 C=140
+        _assistant(usage=_usage(0, 0, 0, 160)),  # t4 C=160
+        _assistant(usage=_usage(0, 0, 0, 180)),  # t5 C=180 (reset 2)
+        _assistant(usage=_usage(0, 0, 0, 200)),  # t6 C=200
+    ]
+    _session(tmp_path, "proj", "s1", lines)
+    report = replay(tmp_path, "all", reset_ks=(3,), summary_tokens=(0,))
+
+    assert report["baseline_weighted"] == pytest.approx(190.0, abs=0.1)
+    ub0 = _reset_variant_f(report, 3, 0, "upper_bound", 0.0)["simulated_weighted"]
+    assert ub0 == pytest.approx(398.0, abs=0.2)
+    ub05 = _reset_variant_f(report, 3, 0, "upper_bound", 0.5)["simulated_weighted"]
+    assert ub05 == pytest.approx(459.75, abs=0.2)
+
+
+def test_reset_break_even_f(tmp_path: Path) -> None:
+    # Single reset, large drop: sim(f) = 645 + 2755*f, baseline = 1100.
+    lines = [
+        _assistant(usage=_usage(100, 0, 0, 0)),  # t0 C=100 (prefix)
+        _assistant(usage=_usage(0, 0, 0, 1000)),  # t1 C=1000
+        _assistant(usage=_usage(0, 0, 0, 2000)),  # t2 C=2000 (reset, D=1900)
+        _assistant(usage=_usage(0, 0, 0, 3000)),  # t3 C=3000
+        _assistant(usage=_usage(0, 0, 0, 4000)),  # t4 C=4000
+    ]
+    _session(tmp_path, "proj", "s1", lines)
+    report = replay(tmp_path, "all", reset_ks=(3,), summary_tokens=(0,))
+
+    assert report["baseline_weighted"] == pytest.approx(1100.0, abs=0.1)
+    be = report["reset_break_even_f"][0]
+    assert be["k"] == 3
+    assert be["summary_tokens"] == 0
+    # upper_bound: 645 + 2755f < 1100 -> f < 0.165, so break-even f = 0.15
+    assert be["upper_bound"]["break_even_f"] == pytest.approx(0.15, abs=1e-9)
+    # saving < 10% when sim > 990 -> f > 0.125, so the first grid f below 10% is 0.15
+    assert be["upper_bound"]["f_below_10pct"] == pytest.approx(0.15, abs=1e-9)
+    # with_summary_cost: 845 + 2755f < 1100 -> f < 0.093, so break-even f = 0.05
+    assert be["with_summary_cost"]["break_even_f"] == pytest.approx(0.05, abs=1e-9)
+    assert be["with_summary_cost"]["f_below_10pct"] == pytest.approx(0.10, abs=1e-9)
+
+
+def test_reset_cli_refetch(tmp_path: Path) -> None:
+    _session(tmp_path, "proj", "s1", _reset_turn_lines(7))
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "cfxd",
+            "replay",
+            "--root",
+            str(tmp_path),
+            "--reset-at",
+            "3",
+            "--summary-tokens",
+            "0",
+            "--refetch",
+            "0,0.5",
+            "--json",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert result.returncode == 0, result.stderr
+    data = json.loads(result.stdout)
+    rp = data["reset_policies"][0]
+    fs = {(v["variant"], v["f"]) for v in rp["variants"]}
+    assert fs == {
+        ("upper_bound", 0.0),
+        ("upper_bound", 0.5),
+        ("with_summary_cost", 0.0),
+        ("with_summary_cost", 0.5),
+    }
+    assert len(data["reset_break_even_f"]) == 1

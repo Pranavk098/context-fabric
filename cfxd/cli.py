@@ -143,6 +143,11 @@ def _build_parser() -> argparse.ArgumentParser:
         default="2000,5000",
         help="comma-separated summary token sizes for reset policies (default: 2000,5000)",
     )
+    replayp.add_argument(
+        "--refetch",
+        default="0,0.1,0.25,0.5",
+        help="comma-separated re-fetch fractions for reset policies (default: 0,0.1,0.25,0.5)",
+    )
     replayp.add_argument("--json", action="store_true", help="emit a single JSON object")
     replayp.set_defaults(func=_cmd_replay)
 
@@ -386,6 +391,7 @@ def _cmd_replay(args: argparse.Namespace) -> int:
     batches = _parse_ints(args.batch)
     reset_ks = _parse_ints(args.reset_at)
     summary_tokens = _parse_ints(args.summary_tokens)
+    refetch = _parse_floats(args.refetch)
     report = replay(
         root,
         args.since,
@@ -395,6 +401,7 @@ def _cmd_replay(args: argparse.Namespace) -> int:
         args.stub_bytes,
         reset_ks,
         summary_tokens,
+        refetch,
     )
     if args.json:
         print(json.dumps(report))
@@ -427,6 +434,11 @@ def _cmd_routing(args: argparse.Namespace) -> int:
 def _parse_ints(value: str) -> tuple[int, ...]:
     parts = [p.strip() for p in value.split(",") if p.strip()]
     return tuple(int(p) for p in parts)
+
+
+def _parse_floats(value: str) -> tuple[float, ...]:
+    parts = [p.strip() for p in value.split(",") if p.strip()]
+    return tuple(float(p) for p in parts)
 
 
 def main(argv: list[str] | None = None) -> int:
