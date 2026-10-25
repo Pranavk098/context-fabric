@@ -392,6 +392,9 @@ def _cmd_replay(args: argparse.Namespace) -> int:
     reset_ks = _parse_ints(args.reset_at)
     summary_tokens = _parse_ints(args.summary_tokens)
     refetch = _parse_floats(args.refetch)
+    if any(not 0.0 <= f <= 1.0 for f in refetch):
+        print("cfxd replay: --refetch values must be between 0 and 1", file=sys.stderr)
+        return 2
     report = replay(
         root,
         args.since,
