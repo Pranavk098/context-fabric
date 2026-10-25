@@ -24,6 +24,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -161,6 +162,45 @@ def build_command(
     if arm != "off":
         cmd += ["--plugin-dir", str(plugin_root)]
     return cmd
+
+
+def _new_session_id() -> str:
+    """Claude Code requires ``--session-id`` to be a UUID, and an id can be used only once."""
+    return str(uuid.uuid4())
+
+
+def _infra_record(task: Task, spec: RunSpec, session_id: str, reason: str) -> dict[str, Any]:
+    """A run that did not produce data (launch failure, login error, missing transcript).
+
+    The protocol excludes only infrastructure failures, decided blind to the arm; a run that
+    ran but did not solve the task is data, never an exclusion.
+    """
+    return {
+        "task": task.id,
+        "kind": task.kind,
+        "arm": spec.arm,
+        "rep": spec.rep,
+        "order_index": spec.order_index,
+        "warm_up": spec.warm_up,
+        "infra_failure": True,
+        "infra_reason": reason[:160],
+        "session_id": session_id,
+    }
+
+
+def _claude_failure(proc: subprocess.CompletedProcess[bytes]) -> str | None:
+    """Return a short reason when the claude call failed, else None (no model text kept)."""
+    out = proc.stdout.decode("utf-8", "replace").strip().splitlines()
+    if out:
+        try:
+            obj = json.loads(out[-1])
+        except ValueError:
+            obj = None
+        if isinstance(obj, dict) and obj.get("is_error") is True:
+            return str(obj.get("result") or "claude reported an error")
+    if proc.returncode != 0:
+        return f"claude exited with code {proc.returncode}"
+    return None
 
 
 def _claude_home(*, fake: bool, run_dir: Path) -> tuple[Path, bool]:
@@ -313,7 +353,7 @@ def run_one(
     python: str,
     fake: bool,
 ) -> dict[str, Any]:
-    session_id = f"ab-{task.id}-{spec.arm}-{spec.rep}"
+    session_id = _new_session_id()
     run_dir = isolation / f"{task.id}__{spec.arm}__{spec.rep}"
     work = run_dir / "work"
     cfx_home = run_dir / "cfx"
@@ -360,11 +400,22 @@ def run_one(
             if solution_path is not None:
                 env["PLUGIN_AB_SOLUTION"] = str(solution_path)
         start = time.perf_counter()
-        subprocess.run(cmd, cwd=work, env=env, capture_output=True, timeout=CLAUDE_TIMEOUT_S)
+        try:
+            proc = subprocess.run(
+                cmd, cwd=work, env=env, capture_output=True, timeout=CLAUDE_TIMEOUT_S
+            )
+        except subprocess.TimeoutExpired:
+            return _infra_record(task, spec, session_id, "claude call timed out")
         duration += time.perf_counter() - start
+        failure = _claude_failure(proc)
+        if failure is not None:
+            return _infra_record(task, spec, session_id, failure)
 
     resolved = run_oracle(python, work, task.oracle)
-    parent, subs, total, sub_count = collect_session_usage(config_dir, session_id, prices)
+    try:
+        parent, subs, total, sub_count = collect_session_usage(config_dir, session_id, prices)
+    except RuntimeError:
+        return _infra_record(task, spec, session_id, "no transcript found for the session")
 
     record: dict[str, Any] = {
         "task": task.id,
@@ -416,22 +467,27 @@ def run_experiment(
     if max_runs is not None:
         specs = specs[:max_runs]
     records: list[dict[str, Any]] = []
+    aborted: str | None = None
+    consecutive_infra = 0
     for spec in specs:
         task = next(t for t in tasks if t.id == spec.task_id)
-        records.append(
-            run_one(
-                task,
-                spec,
-                model=model,
-                claude_bin=claude_bin,
-                plugin_root=plugin_root,
-                fixture=fixture,
-                isolation=isolation,
-                prices=prices,
-                python=python,
-                fake=fake,
-            )
+        record = run_one(
+            task,
+            spec,
+            model=model,
+            claude_bin=claude_bin,
+            plugin_root=plugin_root,
+            fixture=fixture,
+            isolation=isolation,
+            prices=prices,
+            python=python,
+            fake=fake,
         )
+        records.append(record)
+        consecutive_infra = consecutive_infra + 1 if record.get("infra_failure") else 0
+        if consecutive_infra >= 2:  # stop rule from PROTOCOL.md
+            aborted = "two consecutive infrastructure failures (see infra_reason in the runs)"
+            break
     report = {
         "run_id": run_id,
         "mode": "pilot" if pilot else "confirmatory",
@@ -444,6 +500,8 @@ def run_experiment(
         "started_at": datetime.now(UTC).isoformat(),
         "runs": records,
     }
+    if aborted is not None:
+        report["aborted"] = aborted
     report_dir.mkdir(parents=True, exist_ok=True)
     (report_dir / f"{run_id}.json").write_text(
         json.dumps(report, indent=2, sort_keys=True), encoding="utf-8"
@@ -490,7 +548,7 @@ def main(argv: list[str] | None = None) -> int:
     max_runs = 8 if pilot else None
     isolation = Path(tempfile.mkdtemp(prefix="plugin_ab_"))
     try:
-        run_experiment(
+        report = run_experiment(
             tasks,
             arms=arms,
             reps=args.repetitions,
@@ -512,6 +570,9 @@ def main(argv: list[str] | None = None) -> int:
         if not args.keep:
             shutil.rmtree(isolation, ignore_errors=True)
     print(json.dumps({"run_id": run_id, "report_dir": str(Path(args.report_dir))}))
+    if report.get("aborted"):
+        print(f"stopped early: {report['aborted']}", file=sys.stderr)
+        return 3
     return 0
 
 

@@ -96,6 +96,8 @@ def analyze(
     seed: int = BOOTSTRAP_SEED,
     resamples: int = BOOTSTRAP_RESAMPLES,
 ) -> dict[str, Any]:
+    infra_excluded = sum(1 for r in records if r.get("infra_failure"))
+    records = [r for r in records if not r.get("infra_failure")]  # protocol: infrastructure only
     tasks = sorted({r["task"] for r in records})
     arms = sorted({r["arm"] for r in records})
 
@@ -179,6 +181,7 @@ def analyze(
         "overhead": overhead,
         "claim_cheaper_than": CLAIM_CHEAPER,
         "claim_met": claim_met,
+        "infra_excluded": infra_excluded,
         "pilot": bool(records and records[0].get("mode") == "pilot"),
     }
 
@@ -194,6 +197,11 @@ def format_markdown(result: dict[str, Any]) -> str:
         )
     else:
         lines.append("Geometric-mean on/off cost ratio: unavailable (no priced tasks)")
+    if result.get("infra_excluded"):
+        lines.append(
+            "Excluded as infrastructure failures (decided blind to the arm): "
+            f"{result['infra_excluded']} run(s)"
+        )
     lines.append("")
     lines.append("## Resolve rate")
     for arm, rate in result["resolve_rate"].items():
