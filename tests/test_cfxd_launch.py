@@ -139,33 +139,65 @@ def test_session_start_prints_empty_when_port_occupied(tmp_path: Path) -> None:
     assert out.strip() == "{}"
 
 
+def test_forward_without_daemon_prints_empty_and_does_not_spawn(
+    state: tuple[int, Path], tmp_path: Path
+) -> None:
+    port, state_dir = state
+    rc, out = _run_launch(["forward", "PostToolUse"], b"{}", _env(state_dir, port), tmp_path)
+    assert rc == 0
+    assert out.strip() == "{}"
+    assert not (state_dir / "state.json").exists()
+
+
+def test_forward_missing_token_file_sends_nothing(state: tuple[int, Path], tmp_path: Path) -> None:
+    port, state_dir = state
+    _run_launch(["ensure"], b"", _env(state_dir, port), tmp_path)
+    (state_dir / "token").unlink()
+    rc, out = _run_launch(["forward", "PostToolUse"], b"{}", _env(state_dir, port), tmp_path)
+    assert rc == 0
+    assert out.strip() == "{}"
+    assert _read_events(state_dir) == []
+
+
+def test_forward_to_running_daemon_sends_token(state: tuple[int, Path], tmp_path: Path) -> None:
+    port, state_dir = state
+    _run_launch(["ensure"], b"", _env(state_dir, port), tmp_path)
+    payload = {"session_id": "sess-1", "tool_name": "Read"}
+    rc, out = _run_launch(
+        ["forward", "PostToolUse"], json.dumps(payload).encode(), _env(state_dir, port), tmp_path
+    )
+    assert rc == 0
+    assert out.strip() == "{}"
+    assert any(e["event"] == "PostToolUse" for e in _read_events(state_dir))
+
+
 def test_hooks_json_shape() -> None:
     data = json.loads((ROOT / "hooks" / "hooks.json").read_text(encoding="utf-8"))
     events = data["hooks"]
     for event, groups in events.items():
         for group in groups:
             for hook in group["hooks"]:
-                if hook["type"] == "http":
-                    assert hook["url"] == f"http://127.0.0.1:47831/hooks/{event}"
-                elif hook["type"] == "command":
-                    assert hook["shell"] == "bash"
-                    assert hook["command"].startswith('sh "${CLAUDE_PLUGIN_ROOT}/cfxd/launch.sh" ')
+                assert hook["type"] == "command", f"{event} must be a command hook"
+                assert hook["shell"] == "bash"
+                assert hook["command"].startswith('sh "${CLAUDE_PLUGIN_ROOT}/cfxd/launch.sh" ')
 
     session_start = events["SessionStart"][0]["hooks"][0]
-    assert session_start["type"] == "command"
     assert session_start["command"].endswith(" session-start")
 
     pre_compact = events["PreCompact"][0]["hooks"][0]
-    assert pre_compact["type"] == "command"
     assert pre_compact["command"].endswith(" forward PreCompact")
 
-    for event in ("PreToolUse", "PostToolUse", "SubagentStart", "SubagentStop"):
-        group = events[event][0]
-        assert group["hooks"][0]["type"] == "http"
-        assert group["hooks"][0]["url"].endswith(f"/hooks/{event}")
+    pre_tool = events["PreToolUse"][0]
+    assert pre_tool["matcher"] == "Agent"
+    assert pre_tool["hooks"][0]["command"].endswith(" forward PreToolUse")
 
-    assert events["PreToolUse"][0]["matcher"] == "*"
-    assert events["PostToolUse"][0]["matcher"] == "*"
+    post_tool = events["PostToolUse"][0]
+    assert post_tool["matcher"] == "*"
+    assert post_tool["hooks"][0]["command"].endswith(" forward PostToolUse")
+
+    # SubagentStart/SubagentStop have no handlers: they must be gone.
+    assert "SubagentStart" not in events
+    assert "SubagentStop" not in events
 
 
 def test_launcher_never_raises(

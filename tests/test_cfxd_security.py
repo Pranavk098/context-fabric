@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from conftest import hook_headers
 
 import cfxd.daemon as daemon_mod
 import cfxd.fold as fold_mod
@@ -137,7 +138,7 @@ def test_carry_and_brief_logs_restrictive(tmp_path: Path) -> None:
 def test_content_length_over_cap_413_no_read(daemon: Daemon) -> None:
     status, body = _raw_request(
         daemon.port,
-        {"Content-Type": "application/json"},
+        hook_headers(daemon),
         path="/hooks/PreToolUse",
     )
     assert status == 200  # empty body is fine

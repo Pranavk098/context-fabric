@@ -25,7 +25,14 @@ _PLUGIN_ROOT = Path(__file__).resolve().parent.parent
 if str(_PLUGIN_ROOT) not in sys.path:
     sys.path.insert(0, str(_PLUGIN_ROOT))
 
-from cfxd.daemon import DEFAULT_PORT, _health_ok, post_hook, resolve_state_dir, verify_identity  # noqa: E402
+from cfxd.daemon import (  # noqa: E402
+    DEFAULT_PORT,
+    _health_ok,
+    post_hook,
+    read_token,
+    resolve_state_dir,
+    verify_identity,
+)
 from cfxd.fsutil import ensure_dir, open_log  # noqa: E402
 
 HEALTH_POLL_SECONDS = 3.0
@@ -98,9 +105,9 @@ def _ensure_daemon(port: int) -> bool:
     return _wait_healthy(port)
 
 
-def _post(event: str, payload: bytes, timeout: float) -> None:
+def _post(event: str, payload: bytes, timeout: float, token: str | None) -> None:
     try:
-        status, body = post_hook(_port(), event, payload, timeout)
+        status, body = post_hook(_port(), event, payload, timeout, token=token)
     except Exception:
         status, body = -1, b"{}"
     if status == 200:
@@ -115,18 +122,28 @@ def _session_start() -> int:
     state_dir = resolve_state_dir()
     if not _health_ok(port):
         _ensure_daemon(port)
+    token = read_token(state_dir)
     if not verify_identity(state_dir, port):
         if _health_ok(port):
             # Something answers /health but cannot prove it is our daemon.
             print(_SQUATTER_WARNING)
             return 0
         # Nothing answers: fall through to the normal fail-open forward.
-    _post("SessionStart", payload, 1.0)
+    _post("SessionStart", payload, 1.0, token)
     return 0
 
 
 def _forward(event: str) -> int:
-    _post(event, sys.stdin.buffer.read(), 1.0)
+    # Never spawn here (only session-start does). If the daemon is down or its
+    # identity cannot be proven, send nothing so a squatter never sees the token.
+    payload = sys.stdin.buffer.read()
+    state_dir = resolve_state_dir()
+    port = _port()
+    token = read_token(state_dir)
+    if token is None or not verify_identity(state_dir, port):
+        print("{}")
+        return 0
+    _post(event, payload, 1.0, token)
     return 0
 
 

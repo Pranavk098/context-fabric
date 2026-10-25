@@ -206,14 +206,14 @@ def test_pruning(tmp_path: Path) -> None:
     assert new.exists()
 
 
-def _post(port: int, event: str, payload: bytes) -> tuple[int, dict[str, Any]]:
+def _post(port: int, event: str, payload: bytes, token: str) -> tuple[int, dict[str, Any]]:
     conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
     try:
         conn.request(
             "POST",
             f"/hooks/{event}",
             body=payload,
-            headers={"Content-Type": "application/json"},
+            headers={"Content-Type": "application/json", "X-Cfx-Token": token},
         )
         resp = conn.getresponse()
         body = resp.read()
@@ -237,7 +237,7 @@ def test_end_to_end_precompact_then_session_start(tmp_path: Path) -> None:
                 },
             }
         ).encode("utf-8")
-        assert _post(d.port, "PostToolUse", read_payload)[0] == 200
+        assert _post(d.port, "PostToolUse", read_payload, d.token)[0] == 200
         todo_payload = json.dumps(
             {
                 "tool_name": "TodoWrite",
@@ -245,15 +245,15 @@ def test_end_to_end_precompact_then_session_start(tmp_path: Path) -> None:
                 "tool_input": {"todos": [{"content": "finish carry", "status": "in_progress"}]},
             }
         ).encode("utf-8")
-        assert _post(d.port, "PostToolUse", todo_payload)[0] == 200
+        assert _post(d.port, "PostToolUse", todo_payload, d.token)[0] == 200
 
         compact_payload = json.dumps({"session_id": "sess-1", "trigger": "auto"}).encode("utf-8")
-        status, body = _post(d.port, "PreCompact", compact_payload)
+        status, body = _post(d.port, "PreCompact", compact_payload, d.token)
         assert status == 200
         assert body == {}
 
         start_payload = json.dumps({"session_id": "sess-1", "source": "compact"}).encode("utf-8")
-        status, body = _post(d.port, "SessionStart", start_payload)
+        status, body = _post(d.port, "SessionStart", start_payload, d.token)
         assert status == 200
         context = body["hookSpecificOutput"]["additionalContext"]
         assert '<context-fabric-carry v="0" trigger="auto">' in context

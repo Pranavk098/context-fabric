@@ -19,9 +19,10 @@ Brief and carry use only paths, sizes and names it saw; never the contents of fi
 It is an early alpha. It works on Windows, macOS and Linux, and it is built to get out of the way: if anything goes
 wrong, Claude Code carries on exactly as it would without the plugin.
 
-**Please use it on your own computer only.** The helper listens on a fixed local port with no password (Claude Code
-can't send one yet), so on a shared machine another user could read what passes through it. It is fine on a personal
-laptop or desktop.
+**Please use it on your own account.** The helper listens on a fixed local port and now requires a per-install token
+(it writes one to `~/.cfx/daemon/token`, readable only by you); hooks send that token, so another user on a shared
+machine can no longer read what passes through it or answer in its place. Any process running **as you** still can, so
+it is fine on a personal account, not a shared login.
 
 ## What you need
 

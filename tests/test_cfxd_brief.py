@@ -174,14 +174,14 @@ def test_config_off_returns_empty(tmp_path: Path) -> None:
     assert _last_receipt(tmp_path)["skip_reason"] == "disabled"
 
 
-def _post(port: int, event: str, payload: bytes) -> tuple[int, dict[str, Any]]:
+def _post(port: int, event: str, payload: bytes, token: str) -> tuple[int, dict[str, Any]]:
     conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
     try:
         conn.request(
             "POST",
             f"/hooks/{event}",
             body=payload,
-            headers={"Content-Type": "application/json"},
+            headers={"Content-Type": "application/json", "X-Cfx-Token": token},
         )
         resp = conn.getresponse()
         body = resp.read()
@@ -205,7 +205,7 @@ def test_end_to_end_brief(tmp_path: Path) -> None:
                 },
             }
         ).encode("utf-8")
-        assert _post(d.port, "PostToolUse", read_payload)[0] == 200
+        assert _post(d.port, "PostToolUse", read_payload, d.token)[0] == 200
 
         agent_payload = json.dumps(
             {
@@ -214,7 +214,7 @@ def test_end_to_end_brief(tmp_path: Path) -> None:
                 "tool_input": {"prompt": "P" * 300, "model": "sonnet"},
             }
         ).encode("utf-8")
-        status, body = _post(d.port, "PreToolUse", agent_payload)
+        status, body = _post(d.port, "PreToolUse", agent_payload, d.token)
         assert status == 200
         updated = body["hookSpecificOutput"]["updatedInput"]
         assert "<context-fabric-brief" in updated["prompt"]
