@@ -202,3 +202,22 @@ def test_state_concurrency_bounds() -> None:
     # runner is scheduler jitter. The real limit is the daemon's 150 ms handler deadline.
     assert percentile(latencies, 50) < 1.0
     assert percentile(latencies, 99) < 50.0
+
+
+def test_partial_read_records_lines_actually_read() -> None:
+    # Claude Code can return only part of a file; the brief must not claim the whole file was read.
+    ss.reset()
+    ss.observe_post_tool_use(
+        {
+            "session_id": "s-partial",
+            "tool_name": "Read",
+            "tool_input": {"file_path": "big.py"},
+            "tool_response": {
+                "type": "text",
+                "file": {"content": "x", "numLines": 3034, "startLine": 1, "totalLines": 5000},
+            },
+        }
+    )
+    facts = ss.snapshot("s-partial")
+    assert facts is not None
+    assert facts.files[0].lines == 3034
