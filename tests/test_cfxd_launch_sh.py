@@ -53,6 +53,22 @@ def _uv_in_fixed_dirs() -> bool:
     )
 
 
+def _fake_uv(bindir: Path) -> None:
+    """A uv stand-in that reports it ran, so a test can prove the uv fallback was taken."""
+    fake = bindir / "uv"
+    fake.write_text('#!/bin/sh\nprintf \'{"fake_uv": "run"}\'\n', encoding="utf-8", newline="\n")
+    fake.chmod(0o755)
+
+
+def _state_env(tmp_path: Path) -> tuple[dict[str, str], Path]:
+    """A bare env plus a CFX_HOME pointing at a fresh, empty state dir."""
+    env = _bare_env(tmp_path)
+    state_dir = tmp_path / "cfx"
+    state_dir.mkdir(parents=True)
+    env["CFX_HOME"] = str(state_dir)
+    return env, state_dir
+
+
 @pytest.mark.skipif(
     _uv_in_fixed_dirs(), reason="a real uv sits in a dir the script always searches"
 )
@@ -134,3 +150,55 @@ def test_empty_path_does_not_search_cwd(tmp_path: Path) -> None:
     assert "CWD-UV-FOUND" not in proc.stdout
     message = json.loads(proc.stdout)["systemMessage"]
     assert "uv" in message
+
+
+def test_forward_missing_cache_falls_back_to_uv(tmp_path: Path) -> None:
+    # No cache file exists, so forward must run through uv as before.
+    env = _bare_env(tmp_path)
+    bindir = Path(env["HOME"]) / ".local" / "bin"
+    bindir.mkdir(parents=True)
+    _fake_uv(bindir)
+    proc = _run(["forward", "PreCompact"], env)
+    assert proc.returncode == 0
+    assert json.loads(proc.stdout) == {"fake_uv": "run"}
+
+
+def test_forward_stale_cache_falls_back_to_uv(tmp_path: Path) -> None:
+    # A cache pointing at a now-missing interpreter must never break a hook.
+    env, state_dir = _state_env(tmp_path)
+    bindir = Path(env["HOME"]) / ".local" / "bin"
+    bindir.mkdir(parents=True)
+    _fake_uv(bindir)
+    (state_dir / "python").write_text(str(state_dir / "gone"), encoding="utf-8")
+    proc = _run(["forward", "PreCompact"], env)
+    assert proc.returncode == 0
+    assert json.loads(proc.stdout) == {"fake_uv": "run"}
+
+
+def test_forward_non_executable_cache_falls_back_to_uv(tmp_path: Path) -> None:
+    # A cache whose interpreter exists but is not executable falls back to uv.
+    # (A shebang script would be treated as executable on Windows, so use a plain
+    # non-executable file to make the -x check fail on every platform.)
+    env, state_dir = _state_env(tmp_path)
+    bindir = Path(env["HOME"]) / ".local" / "bin"
+    bindir.mkdir(parents=True)
+    _fake_uv(bindir)
+    interp = state_dir / "python-real.txt"
+    interp.write_text("not an executable", encoding="utf-8")
+    (state_dir / "python").write_text(str(interp), encoding="utf-8")
+    proc = _run(["forward", "PreCompact"], env)
+    assert proc.returncode == 0
+    assert json.loads(proc.stdout) == {"fake_uv": "run"}
+
+
+def test_forward_uses_cached_python(tmp_path: Path) -> None:
+    # The cached interpreter is run directly (no uv on PATH), so its stdout proves
+    # the cache path was taken — a non-flaky counter, not wall-clock timing.
+    env, state_dir = _state_env(tmp_path)
+    interp = state_dir / "python-real"
+    interp.write_text('#!/bin/sh\nprintf \'{"cache_used": "1"}\'\n', encoding="utf-8", newline="\n")
+    interp.chmod(0o755)
+    (state_dir / "python").write_text(str(interp), encoding="utf-8")
+    proc = _run(["forward", "PostToolUse"], env)
+    assert proc.returncode == 0
+    assert json.loads(proc.stdout) == {"cache_used": "1"}

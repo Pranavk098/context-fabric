@@ -18,6 +18,30 @@ to_posix() {
     fi
 }
 
+# The state dir must match launch.py's resolve_state_dir so the cached interpreter
+# path is read from where session-start writes it.
+if [ -n "$CFX_HOME" ]; then
+    state_dir="$(to_posix "$CFX_HOME")"
+else
+    state_dir="$(to_posix "${USERPROFILE:-$HOME}")/.cfx/daemon"
+fi
+
+# forward (the hot path) skips `uv run` startup when session-start has cached the
+# resolved interpreter, so it runs before the PATH loop below (which only exists to
+# find uv). Any problem with the cache falls through to uv, so a stale or missing
+# cache can never break a hook.
+if [ "$1" = "forward" ]; then
+    py_file="$state_dir/python"
+    if [ -f "$py_file" ]; then
+        read -r py < "$py_file"
+        py="$(to_posix "$py")"
+        if [ -n "$py" ] && [ -f "$py" ] && [ -x "$py" ]; then
+            "$py" "$here/launch.py" "$@"
+            exit 0
+        fi
+    fi
+fi
+
 for d in \
     "$HOME/.local/bin" \
     "$XDG_BIN_HOME" \
