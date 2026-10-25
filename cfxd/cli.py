@@ -31,6 +31,8 @@ from cfxd.daemon import (
 from cfxd.diet import _anonymize, diet
 from cfxd.diet import format_human as format_diet
 from cfxd.replay import format_replay, replay
+from cfxd.routing import format_human as format_routing
+from cfxd.routing import routing
 from cfxd.stats import collect_stats, format_human
 from cfxd.waste import format_waste, waste
 
@@ -156,6 +158,30 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     wastep.add_argument("--json", action="store_true", help="emit a single JSON object")
     wastep.set_defaults(func=_cmd_waste)
+
+    routingp = subparsers.add_parser(
+        "routing", help="tokens and API-equivalent dollars by model and role"
+    )
+    routingp.add_argument(
+        "--root", default=None, help=f"transcripts root (default: {DEFAULT_ROOT})"
+    )
+    routingp.add_argument(
+        "--since",
+        choices=("7d", "30d", "all"),
+        default="30d",
+        help="time window by file mtime (default: 30d)",
+    )
+    routingp.add_argument(
+        "--prices", default=None, help="price table JSON (default: shipped table)"
+    )
+    routingp.add_argument(
+        "--whatif",
+        choices=("haiku", "sonnet", "both"),
+        default="both",
+        help="cheaper sub-agent tier to re-price against (default: both)",
+    )
+    routingp.add_argument("--json", action="store_true", help="emit a single JSON object")
+    routingp.set_defaults(func=_cmd_routing)
 
     setp = subparsers.add_parser("set", help="toggle brief, carry, fold or fold_read on/off")
     setp.add_argument(
@@ -384,6 +410,17 @@ def _cmd_waste(args: argparse.Namespace) -> int:
         print(json.dumps(report))
     else:
         print(format_waste(report, root.name))
+    return 0
+
+
+def _cmd_routing(args: argparse.Namespace) -> int:
+    root = Path(args.root) if args.root else DEFAULT_ROOT
+    prices = Path(args.prices) if args.prices else None
+    report = routing(root, args.since, prices, args.whatif)
+    if args.json:
+        print(json.dumps(report))
+    else:
+        print(format_routing(report, root.name))
     return 0
 
 
