@@ -1,0 +1,160 @@
+[
+  {
+    "id": "plain-fix-discount",
+    "kind": "plain",
+    "prompt": "The bulk-discount rule in the shop is wrong: it only gives the 5% discount when the subtotal reaches $1000 instead of $100. Find the bug in `shop/discounts.py` and fix it so that `tests/test_discounts.py` passes.",
+    "setup_patch": {
+      "shop/discounts.py": [
+        {"old": "if subtotal >= Decimal(\"100\"):", "new": "if subtotal >= Decimal(\"1000\"):"}
+      ]
+    },
+    "oracle": "tests/test_discounts.py",
+    "reference_patch": {
+      "shop/discounts.py": [
+        {"old": "if subtotal >= Decimal(\"1000\"):", "new": "if subtotal >= Decimal(\"100\"):"}
+      ]
+    },
+    "needs_read_files": ["shop/discounts.py", "shop/orders.py", "tests/test_discounts.py"]
+  },
+  {
+    "id": "plain-implement-tax",
+    "kind": "plain",
+    "prompt": "Implement `compute_tax` in `shop/pricing.py` according to its docstring: it should return `subtotal * rate` rounded to cents. The function is currently stubbed with `raise NotImplementedError`. Make `tests/test_pricing.py` pass.",
+    "setup_patch": {
+      "shop/pricing.py": [
+        {"old": "    return round(subtotal * rate, 2)", "new": "    raise NotImplementedError"}
+      ]
+    },
+    "oracle": "tests/test_pricing.py",
+    "reference_patch": {
+      "shop/pricing.py": [
+        {"old": "    raise NotImplementedError", "new": "    return round(subtotal * rate, 2)"}
+      ]
+    },
+    "needs_read_files": ["shop/pricing.py", "tests/test_pricing.py"]
+  },
+  {
+    "id": "plain-rename-format-currency",
+    "kind": "plain",
+    "prompt": "Rename the money formatter `format_money` to `format_currency` across the shop. It is defined in `shop/formatting.py` and used in `shop/orders.py`, `shop/pricing.py`, and inside `format_receipt`. A new test `tests/test_rename.py` expects `format_currency` to exist. Make that test pass.",
+    "setup_patch": {
+      "tests/test_rename.py": [
+        {
+          "create": "\"\"\"Rename oracle: the currency formatter must be named ``format_currency``.\"\"\"\nfrom decimal import Decimal\n\nfrom shop.formatting import format_currency\n\n\ndef test_format_currency() -> None:\n    assert format_currency(Decimal(\"12.3\")) == \"$12.30\"\n    assert format_currency(Decimal(\"5\")) == \"$5.00\"\n"
+        }
+      ]
+    },
+    "oracle": "tests/test_rename.py",
+    "reference_patch": {
+      "shop/formatting.py": [
+        {"old": "format_money", "new": "format_currency", "all": true}
+      ],
+      "shop/orders.py": [
+        {"old": "format_money", "new": "format_currency", "all": true}
+      ],
+      "shop/pricing.py": [
+        {"old": "format_money", "new": "format_currency", "all": true}
+      ],
+      "tests/test_formatting.py": [
+        {"old": "format_money", "new": "format_currency", "all": true}
+      ]
+    },
+    "needs_read_files": ["shop/formatting.py", "shop/orders.py", "shop/pricing.py"]
+  },
+  {
+    "id": "plain-add-empty-order-validation",
+    "kind": "plain",
+    "prompt": "Add a validation rule to `shop/validators.py`: an order with no line items should report the error `order is empty`. A new test in `tests/test_validators.py` expects this. Make `tests/test_validators.py` pass.",
+    "setup_patch": {
+      "tests/test_validators.py": [
+        {
+          "append": "\n\ndef test_empty_order_rejected() -> None:\n    assert validate_order(Order()) == [\"order is empty\"]\n"
+        }
+      ]
+    },
+    "oracle": "tests/test_validators.py",
+    "reference_patch": {
+      "shop/validators.py": [
+        {
+          "old": "    errors: list[str] = []",
+          "new": "    errors: list[str] = []\n    if not order.lines:\n        errors.append(\"order is empty\")"
+        }
+      ]
+    },
+    "needs_read_files": ["shop/validators.py", "shop/orders.py", "tests/test_validators.py"]
+  },
+  {
+    "id": "subagent-fix-pricing",
+    "kind": "subagent",
+    "prompt": "First, read `shop/pricing.py`, `shop/orders.py`, and `shop/discounts.py` yourself to understand the totals code. Then use the Agent tool (general-purpose sub-agent) to fix the bug in `total_price`: it currently ADDS the discount instead of subtracting it. Finish by running `tests/test_pricing.py` and fixing anything still failing.",
+    "setup_patch": {
+      "shop/pricing.py": [
+        {"old": "    discounted = subtotal - discount", "new": "    discounted = subtotal + discount"}
+      ]
+    },
+    "oracle": "tests/test_pricing.py",
+    "reference_patch": {
+      "shop/pricing.py": [
+        {"old": "    discounted = subtotal + discount", "new": "    discounted = subtotal - discount"}
+      ]
+    },
+    "needs_read_files": ["shop/pricing.py", "shop/orders.py", "shop/discounts.py"]
+  },
+  {
+    "id": "subagent-fix-inventory",
+    "kind": "subagent",
+    "prompt": "First, read `shop/inventory.py`, `shop/catalog.py`, and `shop/orders.py` yourself. Then use the Agent tool (general-purpose sub-agent) to fix the off-by-one bug in `Inventory.reserve`: it refuses to reserve exactly the available quantity. Finish by running `tests/test_inventory.py` and fixing anything still failing.",
+    "setup_patch": {
+      "shop/inventory.py": [
+        {"old": "        if self.stock.get(product_id, 0) < quantity:", "new": "        if self.stock.get(product_id, 0) <= quantity:"}
+      ]
+    },
+    "oracle": "tests/test_inventory.py",
+    "reference_patch": {
+      "shop/inventory.py": [
+        {"old": "        if self.stock.get(product_id, 0) <= quantity:", "new": "        if self.stock.get(product_id, 0) < quantity:"}
+      ]
+    },
+    "needs_read_files": ["shop/inventory.py", "shop/catalog.py", "shop/orders.py"]
+  },
+  {
+    "id": "compact-format-receipt",
+    "kind": "compact",
+    "prompt": "Implement `format_receipt` in `shop/formatting.py` according to its docstring: it should return a one-line receipt like `Total: $12.34 (tax $1.02)` using `format_money`. The function is currently stubbed. Make `tests/test_formatting.py` pass.",
+    "setup_patch": {
+      "shop/formatting.py": [
+        {
+          "old": "    total = subtotal + tax\n    return f\"Total: {format_money(total)} (tax {format_money(tax)})\"",
+          "new": "    raise NotImplementedError"
+        }
+      ]
+    },
+    "oracle": "tests/test_formatting.py",
+    "reference_patch": {
+      "shop/formatting.py": [
+        {
+          "old": "    raise NotImplementedError",
+          "new": "    total = subtotal + tax\n    return f\"Total: {format_money(total)} (tax {format_money(tax)})\""
+        }
+      ]
+    },
+    "needs_read_files": ["shop/formatting.py", "tests/test_formatting.py"]
+  },
+  {
+    "id": "compact-catalog-lookup",
+    "kind": "compact",
+    "prompt": "Implement `list_products` in `shop/catalog.py` according to its docstring: it should return every product in the catalog. The function is currently stubbed. Make `tests/test_catalog.py` pass.",
+    "setup_patch": {
+      "shop/catalog.py": [
+        {"old": "    return list(_CATALOG.values())", "new": "    raise NotImplementedError"}
+      ]
+    },
+    "oracle": "tests/test_catalog.py",
+    "reference_patch": {
+      "shop/catalog.py": [
+        {"old": "    raise NotImplementedError", "new": "    return list(_CATALOG.values())"}
+      ]
+    },
+    "needs_read_files": ["shop/catalog.py", "tests/test_catalog.py"]
+  }
+]

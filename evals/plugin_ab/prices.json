@@ -1,0 +1,20 @@
+{
+  "as_of": "2026-10-24",
+  "source": "https://platform.claude.com/docs/en/about-claude/pricing",
+  "note": "USD per million tokens. cache_write prices the cache-creation tokens; Claude Code transcripts merge 5m and 1h cache creation into one field, which the harness prices at the 5m rate (documented in PROTOCOL.md). unknown models are reported as unpriced, never guessed.",
+  "models": {
+    "haiku-4.5": [
+      {"input": 1.0, "cache_write_5m": 1.25, "cache_write_1h": 2.0, "cache_read": 0.10, "output": 5.0}
+    ],
+    "haiku-5.5": [
+      {"max_prompt_tokens": 100000, "input": 0.10, "cache_write_5m": 0.125, "cache_write_1h": 0.20, "cache_read": 0.01, "output": 0.50},
+      {"input": 0.50, "cache_write_5m": 0.625, "cache_write_1h": 1.0, "cache_read": 0.05, "output": 2.50}
+    ],
+    "sonnet-5.5": [
+      {"input": 2.0, "cache_write_5m": 2.5, "cache_write_1h": 4.0, "cache_read": 0.10, "output": 10.0}
+    ],
+    "opus-4.5": [
+      {"input": 5.0, "cache_write_5m": 6.25, "cache_write_1h": 10.0, "cache_read": 0.50, "output": 25.0}
+    ]
+  }
+}
