@@ -115,6 +115,16 @@ def _build_parser() -> argparse.ArgumentParser:
     replayp.add_argument(
         "--batch", default="1,5", help="comma-separated batch values (default: 1,5)"
     )
+    replayp.add_argument(
+        "--reset-at",
+        default="40,80,120",
+        help="comma-separated reset turn counts for reset policies (default: 40,80,120)",
+    )
+    replayp.add_argument(
+        "--summary-tokens",
+        default="2000,5000",
+        help="comma-separated summary token sizes for reset policies (default: 2000,5000)",
+    )
     replayp.add_argument("--json", action="store_true", help="emit a single JSON object")
     replayp.set_defaults(func=_cmd_replay)
 
@@ -322,7 +332,18 @@ def _cmd_replay(args: argparse.Namespace) -> int:
     root = Path(args.root) if args.root else DEFAULT_ROOT
     ks = _parse_ints(args.k)
     batches = _parse_ints(args.batch)
-    report = replay(root, args.since, ks, batches, args.min_bytes, args.stub_bytes)
+    reset_ks = _parse_ints(args.reset_at)
+    summary_tokens = _parse_ints(args.summary_tokens)
+    report = replay(
+        root,
+        args.since,
+        ks,
+        batches,
+        args.min_bytes,
+        args.stub_bytes,
+        reset_ks,
+        summary_tokens,
+    )
     if args.json:
         print(json.dumps(report))
     else:

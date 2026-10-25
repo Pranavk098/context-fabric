@@ -38,6 +38,22 @@ Model (see strategy memo D4 and the cache-invalidation paragraph in C):
   A turn with no previous timestamp is excluded from the classes but its cost
   still counts toward the "total" denominators. A cold-cache turn has
   ``cache_read < 0.1 * (cache_read + cache_creation)``.
+
+Reset policies R(k, s) (upper bound on compacting/restarting a long session):
+- Context at turn t is ``C(t) = input + cache_creation + cache_read``; the
+  starting prefix is ``P = C(1)`` of the current segment. At the first turn
+  ``t0 >= k`` (and every k turns after) the context is replaced by ``P + s``
+  (the prefix plus a ``s``-token summary). At ``t0`` the whole ``P + s`` is a
+  cache miss (1.25 per token); on later turns the unchanged part is read at 0.1
+  and the growth ``C(t) - C(t0)`` is priced at the recorded turn's average input
+  rate (the recorded creation/read split, scaled). Output stays as recorded.
+- ``with_summary_cost`` variant: one extra turn per reset, charging the full
+  ``C(t0)`` as a cache read (0.1) plus ``s`` output tokens at 5x.
+- This is an UPPER BOUND: a perfect summary loses nothing, summary production is
+  free in the main variant, the user's time is ignored, and cache expiry across
+  idle gaps is not modelled. Recorded compaction boundaries already in the
+  transcript restart the segment (treated as an existing reset, never counted
+  twice). Sessions shorter than k are unchanged.
 """
 
 from __future__ import annotations
@@ -67,8 +83,10 @@ _GAP_GT60 = ">60m"
 @dataclass
 class _Turn:
     weighted: float
-    cr: int
+    inp: int
     cc: int
+    cr: int
+    out: int
     ts: datetime | None
 
 
@@ -131,8 +149,10 @@ def _reconstruct(path: Path) -> tuple[list[_Turn], list[_Result], list[bool]]:
             turns.append(
                 _Turn(
                     weighted=_weighted(usage),
-                    cr=_as_int(usage.get("cache_read_input_tokens")) or 0,
+                    inp=_as_int(usage.get("input_tokens")) or 0,
                     cc=_as_int(usage.get("cache_creation_input_tokens")) or 0,
+                    cr=_as_int(usage.get("cache_read_input_tokens")) or 0,
+                    out=_as_int(usage.get("output_tokens")) or 0,
                     ts=ts,
                 )
             )
@@ -213,6 +233,55 @@ def _simulate(
     return total
 
 
+def _context(turn: _Turn) -> int:
+    return turn.inp + turn.cc + turn.cr
+
+
+def _simulate_reset(
+    turns: list[_Turn],
+    resets: list[bool],
+    k: int,
+    s: int,
+    with_summary_cost: bool,
+) -> float:
+    """Return the simulated weighted cost of one transcript under reset policy R(k, s).
+
+    A reset turns the whole context into the starting prefix P (context at the first
+    turn of the current segment) plus a ``s``-token summary. At the reset turn that
+    P + s is a cache miss (1.25 per token); on later turns P + s is read at 0.1 and the
+    growth since the reset is priced at the recorded turn's average input rate
+    (``(inp + 1.25*cc + 0.1*cr) / C(t)``), an approximation of the recorded creation/read
+    split. Recorded compaction boundaries restart the segment (an existing reset).
+    """
+    n = len(turns)
+    if n < k:
+        return sum(t.weighted for t in turns)
+    total = 0.0
+    seg_start = 0
+    prefix = _context(turns[0])
+    for t in range(n):
+        turn = turns[t]
+        c_t = _context(turn)
+        if resets[t]:
+            seg_start = t
+            prefix = c_t
+        since = t - seg_start
+        if since < k - 1:
+            total += turn.weighted
+            continue
+        if (since - (k - 1)) % k == 0:
+            cost = 1.25 * (prefix + s) + 5.0 * turn.out
+            if with_summary_cost:
+                cost += 0.1 * c_t + 5.0 * s
+            total += cost
+            continue
+        r = seg_start + (k - 1) + ((since - (k - 1)) // k) * k
+        growth = max(0.0, float(c_t - _context(turns[r])))
+        rate = (turn.weighted - 5.0 * turn.out) / c_t if c_t > 0 else 0.0
+        total += 0.1 * (prefix + s) + growth * rate + 5.0 * turn.out
+    return total
+
+
 def _parse_csv_ints(value: str, default: tuple[int, ...]) -> tuple[int, ...]:
     if value is None:
         return default
@@ -237,6 +306,8 @@ def replay(
     batches: tuple[int, ...] = (1, 5),
     min_bytes: int = 2048,
     stub_bytes: int = 300,
+    reset_ks: tuple[int, ...] = (40, 80, 120),
+    summary_tokens: tuple[int, ...] = (2000, 5000),
     now: datetime | None = None,
 ) -> dict[str, Any]:
     """Aggregate the replay simulation over every transcript under ``root``."""
@@ -258,6 +329,18 @@ def replay(
             for var in VARIANTS:
                 for r in R_FRACTIONS:
                     sim_total[(k, b, var, r)] = [0.0, 0.0]
+
+    reset_tot: dict[tuple[int, int], dict[str, float]] = {}
+    for k in reset_ks:
+        for s in summary_tokens:
+            reset_tot[(k, s)] = {
+                "sim_main": 0.0,
+                "sim_summary": 0.0,
+                "aff_baseline": 0.0,
+                "aff_sim_main": 0.0,
+                "aff_sim_summary": 0.0,
+                "aff_count": 0.0,
+            }
 
     cache_classes = {_GAP_LE5: 0.0, _GAP_5TO60: 0.0, _GAP_GT60: 0.0}
     cache_cc = {_GAP_LE5: 0.0, _GAP_5TO60: 0.0, _GAP_GT60: 0.0}
@@ -286,6 +369,17 @@ def replay(
             if over_30:
                 acc[1] += sim
 
+        for (k, s), racc in reset_tot.items():
+            sim_main = _simulate_reset(turns, resets, k, s, False)
+            sim_summary = _simulate_reset(turns, resets, k, s, True)
+            racc["sim_main"] += sim_main
+            racc["sim_summary"] += sim_summary
+            if len(turns) >= k:
+                racc["aff_count"] += 1.0
+                racc["aff_baseline"] += baseline
+                racc["aff_sim_main"] += sim_main
+                racc["aff_sim_summary"] += sim_summary
+
         _accumulate_cache(turns, cache_classes, cache_cc, cache_weighted, cache_cold_cc)
         cache_total_cc += sum(t.cc for t in turns)
         cache_total_weighted += sum(t.weighted for t in turns)
@@ -308,6 +402,42 @@ def replay(
                     )
             policies.append({"k": k, "batch": b, "variants": variants})
 
+    reset_policies: list[dict[str, Any]] = []
+    break_even: list[dict[str, Any]] = []
+    for s in summary_tokens:
+        be_k: int | None = None
+        for k in reset_ks:
+            racc = reset_tot[(k, s)]
+            aff_baseline = racc["aff_baseline"]
+            entry: dict[str, Any] = {
+                "k": k,
+                "summary_tokens": s,
+                "sessions_simulated": sessions,
+                "sessions_affected": int(racc["aff_count"]),
+                "affected_cost_share": round(aff_baseline / baseline_total, 4)
+                if baseline_total
+                else 0.0,
+                "baseline_weighted": round(baseline_total, 1),
+                "variants": [
+                    {
+                        "variant": "upper_bound",
+                        "simulated_weighted": round(racc["sim_main"], 1),
+                        "pct_saved": round(_pct(baseline_total, racc["sim_main"]), 1),
+                        "pct_saved_affected": round(_pct(aff_baseline, racc["aff_sim_main"]), 1),
+                    },
+                    {
+                        "variant": "with_summary_cost",
+                        "simulated_weighted": round(racc["sim_summary"], 1),
+                        "pct_saved": round(_pct(baseline_total, racc["sim_summary"]), 1),
+                        "pct_saved_affected": round(_pct(aff_baseline, racc["aff_sim_summary"]), 1),
+                    },
+                ],
+            }
+            reset_policies.append(entry)
+            if be_k is None and racc["sim_main"] < baseline_total:
+                be_k = k
+        break_even.append({"summary_tokens": s, "break_even_k": be_k})
+
     cache_expiry: dict[str, dict[str, float]] = {}
     for cls in (_GAP_LE5, _GAP_5TO60, _GAP_GT60):
         cache_expiry[cls] = {
@@ -327,6 +457,8 @@ def replay(
         "sessions_over_30": sessions_over_30,
         "baseline_weighted": round(baseline_total, 1),
         "policies": policies,
+        "reset_policies": reset_policies,
+        "reset_break_even": break_even,
         "cache_expiry": cache_expiry,
     }
 
@@ -378,6 +510,27 @@ def format_replay(report: dict[str, Any], dir_name: str = ".") -> str:
                 f"  {v['variant']} r={v['r']}: sim {v['simulated_weighted']:,.1f}, "
                 f"saved {v['pct_saved']:.1f}% overall, {v['pct_saved_over_30']:.1f}% over 30 turns"
             )
+    lines.append(
+        "Reset policies (UPPER BOUND: a perfect summary loses nothing, summary cost is "
+        "charged only in the second variant, the user's time and cache expiry across idle "
+        "gaps are ignored):"
+    )
+    for rp in report["reset_policies"]:
+        lines.append(f"R(k={rp['k']}, S={rp['summary_tokens']}):")
+        lines.append(
+            f"  sessions {rp['sessions_simulated']:,}, affected (>= {rp['k']} turns) "
+            f"{rp['sessions_affected']:,} ({rp['affected_cost_share'] * 100:.1f}% of baseline cost)"
+        )
+        for v in rp["variants"]:
+            lines.append(
+                f"  {v['variant']}: sim {v['simulated_weighted']:,.1f}, "
+                f"saved {v['pct_saved']:.1f}% overall, {v['pct_saved_affected']:.1f}% "
+                f"over affected sessions"
+            )
+    lines.append("Reset break-even (smallest k with positive saving):")
+    for be in report["reset_break_even"]:
+        be_k = be["break_even_k"]
+        lines.append(f"  S={be['summary_tokens']}: {'none' if be_k is None else f'k={be_k}'}")
     lines.append("Cache expiry (gap since previous turn):")
     for cls in (_GAP_LE5, _GAP_5TO60, _GAP_GT60):
         e = report["cache_expiry"][cls]
