@@ -31,10 +31,9 @@ API-equivalent **USD per resolved task**, using the dated price table in
       + output_tokens * output
     (each per-MTok, / 1e6), divided by the number of resolved tasks.
 
-Claude Code transcripts merge 5-minute and 1-hour cache-creation into one
-`cache_creation_input_tokens` field; the harness prices that merged value at the
-5-minute write rate unless a transcript carries explicit
-`cache_creation_input_tokens_5m` / `_1h` fields. Unknown models are reported as
+Claude Code transcripts record the split in `usage.cache_creation` (`ephemeral_5m_input_tokens`,
+`ephemeral_1h_input_tokens`); the harness prices each at its own write rate and falls back to pricing the merged
+`cache_creation_input_tokens` at the 5-minute rate only when the split is absent. Unknown models are reported as
 unpriced and never guessed. Secondary metrics: turns, weighted tokens
 (`input + 1.25*cache_creation + 0.1*cache_read + 5*output`), wall time.
 
