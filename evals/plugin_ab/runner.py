@@ -152,11 +152,27 @@ def build_command(
         "acceptEdits",
         "--allowedTools",
         _ALLOWED_TOOLS,
+        # Keep the login but do not load user-scope settings or plugins, so a plugin the user
+        # installs later can never leak into the "off" arm (a fresh config dir would log out).
+        "--setting-sources",
+        "project,local",
     ]
     cmd += ["--resume", session_id] if resume else ["--session-id", session_id]
     if arm != "off":
         cmd += ["--plugin-dir", str(plugin_root)]
     return cmd
+
+
+def _claude_home(*, fake: bool, run_dir: Path) -> tuple[Path, bool]:
+    """Where transcripts live, and whether to override ``CLAUDE_CONFIG_DIR`` for this run.
+
+    The test stand-in writes into an isolated directory. A real ``claude`` must keep the
+    user's own config home or it is logged out.
+    """
+    if fake:
+        return run_dir / "claude", True
+    configured = os.environ.get("CLAUDE_CONFIG_DIR")
+    return (Path(configured) if configured else Path.home() / ".claude"), False
 
 
 def _steps_for(task: Task) -> tuple[list[str], list[str]]:
@@ -301,11 +317,12 @@ def run_one(
     run_dir = isolation / f"{task.id}__{spec.arm}__{spec.rep}"
     work = run_dir / "work"
     cfx_home = run_dir / "cfx"
-    config_dir = run_dir / "claude"
+    config_dir, override_config = _claude_home(fake=fake, run_dir=run_dir)
     _copy_fixture(fixture, work)
     apply_patch(work, task.setup_patch)
     cfx_home.mkdir(parents=True, exist_ok=True)
-    config_dir.mkdir(parents=True, exist_ok=True)
+    if override_config:
+        config_dir.mkdir(parents=True, exist_ok=True)
     port = free_port()
 
     if spec.arm == "on_fold":
@@ -334,7 +351,8 @@ def run_one(
         env = os.environ.copy()
         env["CFX_HOME"] = str(cfx_home)
         env["CFX_PORT"] = str(port)
-        env["CLAUDE_CONFIG_DIR"] = str(config_dir)
+        if override_config:
+            env["CLAUDE_CONFIG_DIR"] = str(config_dir)
         if fake:
             env["PLUGIN_AB_FAKE_STEP"] = step
             if task.kind == "subagent":

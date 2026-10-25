@@ -51,7 +51,8 @@ unpriced and never guessed. Secondary metrics: turns, weighted tokens
   carry on, fold off, as shipped). Optional third arm `on_fold` (fold and
   fold_read on via the isolated config) behind `--with-fold`.
 - **Isolation.** Each run gets its own temp working copy, a fresh `CFX_HOME`, a
-  free `CFX_PORT`, a fresh `CLAUDE_CONFIG_DIR`, and a fresh `--session-id`.
+  free `CFX_PORT`, and a fresh `--session-id`; `claude` runs with `--setting-sources project,local` so user-scope
+  settings and plugins never load (a fresh config directory would log the run out).
 - **Invocation.** `claude -p … --model haiku --output-format json --max-turns 25
   --max-budget-usd 0.50 --permission-mode acceptEdits --allowedTools
   "Read,Edit,Write,Grep,Glob,Agent,Bash(python -m pytest:*)"`. Compact tasks run
