@@ -30,6 +30,7 @@ from cfxd.daemon import (
 )
 from cfxd.replay import format_replay, replay
 from cfxd.stats import collect_stats, format_human
+from cfxd.waste import format_waste, waste
 
 _SHIM_PATH = Path(__file__).with_name("shim.py")
 
@@ -116,6 +117,19 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     replayp.add_argument("--json", action="store_true", help="emit a single JSON object")
     replayp.set_defaults(func=_cmd_replay)
+
+    wastep = subparsers.add_parser(
+        "waste", help="loop, retry and rediscovery waste in Claude Code transcripts"
+    )
+    wastep.add_argument("--root", default=None, help=f"transcripts root (default: {DEFAULT_ROOT})")
+    wastep.add_argument(
+        "--since",
+        choices=("7d", "30d", "all"),
+        default="30d",
+        help="time window by file mtime (default: 30d)",
+    )
+    wastep.add_argument("--json", action="store_true", help="emit a single JSON object")
+    wastep.set_defaults(func=_cmd_waste)
 
     setp = subparsers.add_parser("set", help="toggle brief, carry, fold or fold_read on/off")
     setp.add_argument(
@@ -313,6 +327,16 @@ def _cmd_replay(args: argparse.Namespace) -> int:
         print(json.dumps(report))
     else:
         print(format_replay(report, root.name))
+    return 0
+
+
+def _cmd_waste(args: argparse.Namespace) -> int:
+    root = Path(args.root) if args.root else DEFAULT_ROOT
+    report = waste(root, args.since)
+    if args.json:
+        print(json.dumps(report))
+    else:
+        print(format_waste(report, root.name))
     return 0
 
 
