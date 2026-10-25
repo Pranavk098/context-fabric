@@ -17,6 +17,7 @@ from cfxd.agents import format_human as format_agent_report
 from cfxd.audit import DEFAULT_ROOT, audit
 from cfxd.audit import format_human as format_audit
 from cfxd.config import read_config, set_flag
+from cfxd.console import ensure_utf8_output
 from cfxd.daemon import (
     DEFAULT_PORT,
     STATE_FILE,
@@ -476,6 +477,7 @@ def _parse_floats(value: str) -> tuple[float, ...]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    ensure_utf8_output()
     parsed = _build_parser().parse_args(sys.argv[1:] if argv is None else argv)
     result: Any = parsed.func(parsed)
     return int(result) if result is not None else 0

@@ -529,3 +529,32 @@ def test_analyzer_excludes_infrastructure_failures() -> None:
     result = analyze.analyze(records)
     assert result["infra_excluded"] == 1
     assert result["geometric_mean_ratio"] == pytest.approx(0.5)
+
+
+def test_analyzer_cli_survives_a_legacy_windows_console_encoding(tmp_path: Path) -> None:
+    report_dir = tmp_path / "reports"
+    report_dir.mkdir()
+    run = {
+        "task": "t1",
+        "kind": "plain",
+        "arm": "off",
+        "rep": 1,
+        "warm_up": False,
+        "resolved": True,
+        "dollars": 1.0,
+        "weighted_tokens": 1.0,
+        "turns": 1,
+    }
+    (report_dir / "r.json").write_text(
+        json.dumps({"mode": "pilot", "runs": [run, {**run, "arm": "on", "dollars": 0.5}]}),
+        encoding="utf-8",
+    )
+    env = {**os.environ, "PYTHONIOENCODING": "cp1252", "PYTHONUTF8": "0"}
+    proc = subprocess.run(
+        [sys.executable, "-m", "evals.plugin_ab.analyze", "--report-dir", str(report_dir)],
+        capture_output=True,
+        env=env,
+        cwd=REPO,
+        timeout=60,
+    )
+    assert proc.returncode == 0, proc.stderr.decode("utf-8", "replace")

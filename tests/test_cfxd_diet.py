@@ -419,3 +419,20 @@ def test_effect_is_computed_per_session_not_from_summed_medians(tmp_path: Path) 
         conn["per_turn_tokens"] == 50.0
     )  # expected cost per session: 400 bytes in 1 of 2 sessions
     assert conn["share"] == round(200 / 215, 4)  # mean prefix per session: (415 + 15) / 2
+
+
+def test_cli_survives_a_legacy_windows_console_encoding(tmp_path: Path) -> None:
+    # A CJK skill name must not crash `cfxd diet` on a legacy cp1252 console.
+    lines = [_skill_listing(["技能:héllo"], "- 技能:héllo: A\n"), _assistant()]
+    _session(tmp_path, "proj", "s1", lines)
+    env = {**os.environ, "PYTHONIOENCODING": "cp1252", "PYTHONUTF8": "0"}
+    proc = subprocess.run(
+        [sys.executable, "-m", "cfxd", "diet", "--root", str(tmp_path), "--since", "all"],
+        capture_output=True,
+        env=env,
+        cwd=ROOT,
+        timeout=60,
+    )
+    assert proc.returncode == 0, proc.stderr.decode("utf-8", "replace")
+    assert b"Traceback" not in proc.stderr
+    assert b"llo" in proc.stdout  # the skill name was printed, not silently skipped
