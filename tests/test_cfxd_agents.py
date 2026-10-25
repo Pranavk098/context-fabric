@@ -92,7 +92,7 @@ def test_default_root_codex_and_override(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setenv("CODEX_HOME", str(Path("C:/custom/codex")))
     assert default_root("codex") == Path("C:/custom/codex") / "sessions"
     with pytest.raises(ValueError):
-        default_root("opencode")
+        default_root("unknown")
 
 
 def test_since_cutoff() -> None:
@@ -370,15 +370,26 @@ def test_cli_human_output(tmp_path: Path) -> None:
 
 
 def test_opencode_not_supported(tmp_path: Path) -> None:
+    # Replaced by the OpenCode reader: see tests/test_cfxd_agents_opencode.py.
+    # A missing database still exits non-zero with a clear message.
     result = subprocess.run(
-        [sys.executable, "-m", "cfxd", "agent-audit", "--agent", "opencode"],
+        [
+            sys.executable,
+            "-m",
+            "cfxd",
+            "agent-audit",
+            "--agent",
+            "opencode",
+            "--root",
+            str(tmp_path / "nope.db"),
+        ],
         cwd=ROOT,
         capture_output=True,
         text=True,
         timeout=60,
     )
-    assert result.returncode == 2
-    assert "not supported yet" in result.stderr
+    assert result.returncode == 1
+    assert "not found" in result.stderr
 
 
 def test_decoder_missing_message(
