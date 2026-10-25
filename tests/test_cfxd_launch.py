@@ -116,6 +116,9 @@ def test_session_start_forwards_and_prints_daemon_json(
 ) -> None:
     port, state_dir = state
     payload = {"session_id": "abc-123", "source": "startup"}
+    # Start the daemon and consume the one-time welcome so this test sees the plain forward path.
+    _run_launch(["ensure"], b"", _env(state_dir, port), tmp_path)
+    (state_dir / "welcomed").write_text("", encoding="utf-8")
     rc, out = _run_launch(
         ["session-start"], json.dumps(payload).encode(), _env(state_dir, port), tmp_path
     )
@@ -123,6 +126,22 @@ def test_session_start_forwards_and_prints_daemon_json(
     assert json.loads(out) == {}
     events = _read_events(state_dir)
     assert any(e["event"] == "SessionStart" and e["session_id"] == "abc-123" for e in events)
+
+
+def test_first_session_start_prints_welcome_once(state: tuple[int, Path], tmp_path: Path) -> None:
+    port, state_dir = state
+    payload = json.dumps({"session_id": "w-1", "source": "startup"}).encode()
+    rc, out = _run_launch(["session-start"], payload, _env(state_dir, port), tmp_path)
+    assert rc == 0
+    message = json.loads(out)["systemMessage"]
+    assert "Context Fabric" in message
+    assert "TESTING-GUIDE" in message
+    assert (state_dir / "welcomed").exists()
+    # The event still reached the daemon, and the second session is silent.
+    assert any(e["event"] == "SessionStart" for e in _read_events(state_dir))
+    rc, out = _run_launch(["session-start"], payload, _env(state_dir, port), tmp_path)
+    assert rc == 0
+    assert json.loads(out) == {}
 
 
 def test_session_start_prints_empty_when_port_occupied(tmp_path: Path) -> None:
