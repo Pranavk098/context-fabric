@@ -14,6 +14,7 @@ from typing import Any
 
 from cfxd.agents import READERS, build_report, default_root, since_cutoff
 from cfxd.agents import format_human as format_agent_report
+from cfxd.agents.opencode import OpenCodeDBError
 from cfxd.audit import DEFAULT_ROOT, audit
 from cfxd.audit import format_human as format_audit
 from cfxd.config import read_config, set_flag
@@ -394,11 +395,12 @@ def _cmd_audit(args: argparse.Namespace) -> int:
 
 
 def _cmd_agent_audit(args: argparse.Namespace) -> int:
-    if args.agent == "opencode":
-        print("agent 'opencode' not supported yet", file=sys.stderr)
-        return 2
     root = Path(args.root) if args.root else default_root(args.agent)
-    report = build_report(args.agent, READERS[args.agent](root, since_cutoff(args.since)))
+    try:
+        report = build_report(args.agent, READERS[args.agent](root, since_cutoff(args.since)))
+    except OpenCodeDBError as exc:
+        print(f"cfxd agent-audit: {exc}", file=sys.stderr)
+        return 1
     if args.json:
         print(json.dumps(report))
     else:

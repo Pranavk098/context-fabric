@@ -71,7 +71,26 @@ def default_root(agent: str) -> Path:
     """Default transcript root for an agent on this OS, honouring overrides."""
     if agent == "codex":
         return Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex"))) / "sessions"
+    if agent == "opencode":
+        return _default_opencode_root()
     raise ValueError(f"unknown agent: {agent}")
+
+
+def _default_opencode_root() -> Path:
+    """Default OpenCode database path (``~/.local/share/opencode/opencode.db``)."""
+    override = os.environ.get("OPENCODE_DB")
+    if override:
+        return Path(override)
+    xdg = os.environ.get("XDG_DATA_HOME")
+    if xdg:
+        return Path(xdg) / "opencode" / "opencode.db"
+    if os.name == "nt":
+        local = os.environ.get("LOCALAPPDATA")
+        if local:
+            candidate = Path(local) / "opencode" / "opencode.db"
+            if candidate.exists():
+                return candidate
+    return Path.home() / ".local" / "share" / "opencode" / "opencode.db"
 
 
 def sanitize_tool_name(name: str) -> str:

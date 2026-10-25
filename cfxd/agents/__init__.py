@@ -13,11 +13,15 @@ from cfxd.agents.model import (
     sanitize_tool_name,
     since_cutoff,
 )
+from cfxd.agents.opencode import OpenCodeDBError
+from cfxd.agents.opencode import read_sessions as _read_opencode
 from cfxd.agents.report import build_report, format_human
 
 READERS["codex"] = _read_codex
+READERS["opencode"] = _read_opencode
 
 __all__ = [
+    "OpenCodeDBError",
     "READERS",
     "Session",
     "ToolResult",
