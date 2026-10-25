@@ -1,5 +1,16 @@
 # Contributing to Context Fabric
 
+## Repository layout
+
+| Path | What it is | Generation |
+|---|---|---|
+| `cfxd/`, `hooks/`, `.claude-plugin/` | The Claude Code plugin: daemon, launcher, handlers (brief, carry, fold), `audit`, `replay`, manifests | current |
+| `tests/test_cfxd_*.py` | Tests for the plugin | current |
+| `spikes/` | Throwaway experiments kept as evidence (hook capabilities) | current |
+| `protocol/`, `kernel/`, `sidecar/`, `adapters/` | Context compiler, OpenAI-compatible sidecar (`cfx`), framework adapters | first generation; not used by the plugin |
+| `evals/` | Experiment harnesses and the raw reports behind published numbers | both |
+| `docs/` | Index in `docs/README.md`; decisions in `docs/decisions/` | both |
+
 ## Development environment
 
 Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/).

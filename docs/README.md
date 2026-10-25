@@ -1,6 +1,19 @@
 # Documentation Index
 
-Everything that matters is here. "Main" documents are marked ⭐.
+## Current: the Claude Code plugin (alpha)
+
+- [`INSTALL-ALPHA.md`](INSTALL-ALPHA.md) — install, what is stored on disk, uninstall.
+- [`TESTING-GUIDE.md`](TESTING-GUIDE.md) — what test users do, in order, and what to send back.
+- [`decisions/`](decisions/) — architecture decisions (ADR-0006 hook transport, ADR-0007 fold, ADR-0008 brief and carry).
+- [`engineering/NUMBERS.md`](engineering/NUMBERS.md) — every published number, its baseline and its evidence level.
+- [`engineering/HOOK-SPIKE-2026-10-21.md`](engineering/HOOK-SPIKE-2026-10-21.md) — what Claude Code hooks can and cannot do.
+- [`research/HOOKS-OPENCODE-CODEX.md`](research/HOOKS-OPENCODE-CODEX.md) — hook capabilities of OpenCode and Codex.
+- Code: [`cfxd/`](../cfxd/) (daemon, launcher, handlers, audit, replay), [`hooks/`](../hooks/), [`.claude-plugin/`](../.claude-plugin/).
+
+## First-generation research: context compiler and sidecar
+
+Everything below documents the earlier work (deterministic context compiler, OpenAI-compatible sidecar, pre-registered
+results on local models). The plugin does not use this code. "Main" documents are marked ⭐.
 
 ## product/
 - ⭐ `Prod-Intro.md` — product brief, problem, paradigm, market, business model.
