@@ -34,6 +34,7 @@ from cfxd.daemon import (
 )
 from cfxd.diet import _anonymize, diet
 from cfxd.diet import format_human as format_diet
+from cfxd.dietapply import apply_report, undo_records
 from cfxd.refetch import format_refetch, refetch
 from cfxd.replay import format_replay, replay
 from cfxd.routing import format_human as format_routing
@@ -129,6 +130,17 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     dietp.add_argument("--share", action="store_true", help="replace names with hash labels")
     dietp.add_argument("--json", action="store_true", help="emit a single JSON object")
+    diet_action = dietp.add_mutually_exclusive_group()
+    diet_action.add_argument(
+        "--apply",
+        action="store_true",
+        help="disable fully-unused local plugins (dry run unless --yes)",
+    )
+    diet_action.add_argument(
+        "--undo", action="store_true", help="re-enable plugins from the last record"
+    )
+    dietp.add_argument("--yes", action="store_true", help="with --apply: run the disable commands")
+    dietp.add_argument("--all", action="store_true", help="with --undo: undo every pending record")
     dietp.set_defaults(func=_cmd_diet)
 
     replayp = subparsers.add_parser(
@@ -432,8 +444,23 @@ def _cmd_agent_audit(args: argparse.Namespace) -> int:
 
 
 def _cmd_diet(args: argparse.Namespace) -> int:
+    if (args.apply or args.undo) and (args.share or args.json):
+        print(
+            "cfxd diet: --apply/--undo cannot be combined with --share or --json", file=sys.stderr
+        )
+        return 2
+    if args.yes and not args.apply:
+        print("cfxd diet: --yes needs --apply", file=sys.stderr)
+        return 2
+    if args.all and not args.undo:
+        print("cfxd diet: --all needs --undo", file=sys.stderr)
+        return 2
+    if args.undo:
+        return undo_records(args.all)
     root = Path(args.root) if args.root else DEFAULT_ROOT
     report = _anonymize(diet(root, args.since)) if args.share else diet(root, args.since)
+    if args.apply:
+        return apply_report(report, yes=args.yes)
     if args.json:
         print(json.dumps(report))
     else:
