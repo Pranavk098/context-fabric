@@ -64,6 +64,7 @@ Work as you always do. Two things make the data more useful, if they fit your wo
 
 - Run at least one task that starts a **sub-agent** (for example ask Claude to "use an agent to review these files").
 - Run `/compact` once in a long session.
+- Optional, experimental: `cfxd set bound on`, run your tests as usual, then `cfxd stats`; `cfxd set bound off` stops it.
 
 You do not need to do anything special. Please do not turn it off to "help".
 

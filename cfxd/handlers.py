@@ -21,6 +21,24 @@ def register(event: str, fn: Handler) -> None:
     _HANDLERS[event] = fn
 
 
+def register_after(event: str, fn: Handler) -> None:
+    """Register ``fn`` without displacing a handler already on ``event``.
+
+    The first handler to return a non-empty response wins, so two handlers can
+    share one event when they act on different tools.
+    """
+    prev = _HANDLERS.get(event)
+    if prev is None:
+        _HANDLERS[event] = fn
+        return
+
+    def chained(payload: dict[str, Any]) -> dict[str, Any] | None:
+        result = prev(payload)
+        return result if result else fn(payload)
+
+    _HANDLERS[event] = chained
+
+
 def add_observer(event: str, fn: Observer) -> None:
     """Register ``fn`` as an observer for ``event``.
 

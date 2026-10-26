@@ -1,9 +1,10 @@
-"""On/off switch for brief and carry, read from ``<state_dir>/config.json``.
+"""On/off switches for brief, carry, fold, fold_read and bound, read from
+``<state_dir>/config.json``.
 
-Both default on so the alpha produces data. The daemon is shared across Claude
-Code sessions, so a file is the only way one session can reach the daemon; it is
-re-read whenever its mtime changes. A missing or malformed file falls back to
-the defaults.
+Brief and carry default on so the alpha produces data; bound is experimental and
+defaults off. The daemon is shared across Claude Code sessions, so a file is the
+only way one session can reach the daemon; it is re-read whenever its mtime
+changes. A missing or malformed file falls back to the defaults.
 """
 
 from __future__ import annotations
@@ -19,7 +20,13 @@ CONFIG_FILE = "config.json"
 # fold and fold_read are off (2026-10-24 exploratory A/Bs): folding Read outputs made the model
 # re-read the saved file and roughly doubled tokens on read-everything tasks, and folding Bash/Grep
 # output showed no measurable saving because Claude Code already stubs very large outputs itself.
-_DEFAULTS: dict[str, bool] = {"brief": True, "carry": True, "fold": False, "fold_read": False}
+_DEFAULTS: dict[str, bool] = {
+    "brief": True,
+    "carry": True,
+    "fold": False,
+    "fold_read": False,
+    "bound": False,
+}
 _CACHE: dict[Path, tuple[int, dict[str, bool]]] = {}
 
 
