@@ -12,6 +12,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+from cfxd import checkpoint
 from cfxd.agents import READERS, build_report, default_root, since_cutoff
 from cfxd.agents import format_human as format_agent_report
 from cfxd.agents.opencode import OpenCodeDBError
@@ -242,6 +243,14 @@ def _build_parser() -> argparse.ArgumentParser:
     routingp.add_argument("--json", action="store_true", help="emit a single JSON object")
     routingp.set_defaults(func=_cmd_routing)
 
+    checkpoint_parser = subparsers.add_parser(
+        "checkpoint", help="experimental: save, show or clear a restart checkpoint"
+    )
+    checkpoint_parser.add_argument("action", choices=["save", "show", "clear"])
+    checkpoint_parser.add_argument("--cwd", default=None, help="directory (default: current)")
+    _add_state_dir(checkpoint_parser)
+    checkpoint_parser.set_defaults(func=_cmd_checkpoint)
+
     setp = subparsers.add_parser("set", help="toggle brief, carry, fold, fold_read or bound on/off")
     setp.add_argument(
         "flag",
@@ -323,6 +332,42 @@ def _cmd_set(args: argparse.Namespace) -> int:
         else:
             flag.unlink(missing_ok=True)
     print(f"cfxd set: {args.flag} {args.value}")
+    return 0
+
+
+def _cmd_checkpoint(args: argparse.Namespace) -> int:
+    state_dir = resolve_state_dir(args.state_dir)
+    cwd = args.cwd if args.cwd else os.getcwd()
+    if args.action == "clear":
+        cleared = checkpoint.clear(state_dir, cwd)
+        print("cfxd checkpoint: cleared" if cleared else "cfxd checkpoint: no checkpoint to clear.")
+        return 0
+    if args.action == "show":
+        text = checkpoint.show_text(state_dir, cwd)
+        if text is None:
+            print("cfxd checkpoint: no checkpoint for this directory.", file=sys.stderr)
+            return 1
+        print(text)
+        print()
+        print("local only; not sent anywhere except into your next session")
+        return 0
+    state = read_state(state_dir / STATE_FILE)
+    port = state.get("port") if state is not None else None
+    token = read_token(state_dir)
+    if not isinstance(port, int) or state is None or not daemon_alive(state) or token is None:
+        print("cfxd checkpoint: the local helper is not running; start Claude Code first.")
+        return 1
+    payload = json.dumps({"cwd": cwd}).encode("utf-8")
+    try:
+        status, body = post_hook(port, "checkpoint-save", payload, 5.0, token=token)
+        obj = json.loads(body) if status == 200 else {}
+    except (OSError, ValueError):
+        obj = {}
+    summary = obj.get("summary") if isinstance(obj, dict) else None
+    if not isinstance(summary, str):
+        print("cfxd checkpoint: save failed (no response from the local helper).")
+        return 1
+    print(summary)
     return 0
 
 

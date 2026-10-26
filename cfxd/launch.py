@@ -203,6 +203,29 @@ def _forward(event: str) -> int:
     return 0
 
 
+def _checkpoint_save() -> int:
+    """Ask the daemon to save a checkpoint for this cwd; print one human line."""
+    state_dir = resolve_state_dir()
+    port = _port()
+    token = read_token(state_dir)
+    if token is None or not verify_identity(state_dir, port):
+        print("Checkpoint not saved: the local helper is not running.")
+        return 0
+    payload = json.dumps({"cwd": os.getcwd()}).encode("utf-8")
+    try:
+        status, body = post_hook(port, "checkpoint-save", payload, 2.0, token=token)
+        obj = json.loads(body) if status == 200 else {}
+    except Exception:
+        obj = {}
+    summary = obj.get("summary") if isinstance(obj, dict) else None
+    print(
+        summary
+        if isinstance(summary, str)
+        else "Checkpoint not saved: no response from the local helper."
+    )
+    return 0
+
+
 def _ensure() -> int:
     port = _port()
     state_dir = resolve_state_dir()
@@ -229,6 +252,8 @@ def _dispatch(args: list[str]) -> int:
         return _session_start()
     if len(args) >= 2 and args[0] == "forward":
         return _forward(args[1])
+    if args and args[0] == "checkpoint-save":
+        return _checkpoint_save()
     if args and args[0] == "ensure":
         return _ensure()
     print("{}")

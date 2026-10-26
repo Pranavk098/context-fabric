@@ -6,6 +6,7 @@
 #
 #   launch.sh session-start
 #   launch.sh forward PreCompact
+#   launch.sh checkpoint-save
 
 here=$(dirname "$0")
 
