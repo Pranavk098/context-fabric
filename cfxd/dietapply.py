@@ -68,11 +68,17 @@ def _name(plugin: dict[str, Any]) -> str | None:
     return pid.split("@", 1)[0] if isinstance(pid, str) and "@" in pid else None
 
 
+LOCAL_SCOPES = ("user", "project", "local")
+
+
 def _by_name(plugins: list[dict[str, Any]], enabled_only: bool) -> dict[str, dict[str, Any]]:
     out: dict[str, dict[str, Any]] = {}
     for plugin in plugins:
         name = _name(plugin)
         if name is None or (enabled_only and plugin.get("enabled") is not True):
+            continue
+        if enabled_only and plugin.get("scope") not in LOCAL_SCOPES:
+            # e.g. account-synced plugins: `claude plugin disable` cannot change them.
             continue
         cur = out.get(name)
         if cur is None or (plugin.get("enabled") and not cur.get("enabled")):

@@ -352,3 +352,14 @@ def test_nothing_else_is_modified(tmp_path: Path) -> None:
     assert {k: v for k, v in after.items() if k != "plugins.json"} == {
         k: v for k, v in before.items() if k != "plugins.json"
     }
+
+
+def test_account_synced_scope_is_not_a_local_candidate() -> None:
+    from cfxd.dietapply import _by_name
+
+    plugins = [
+        {"id": "a@market", "scope": "user", "enabled": True},
+        {"id": "b@synced", "scope": "synced", "enabled": True},
+    ]
+    assert set(_by_name(plugins, enabled_only=True)) == {"a"}
+    assert set(_by_name(plugins, enabled_only=False)) == {"a", "b"}
