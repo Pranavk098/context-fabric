@@ -79,7 +79,7 @@ Each command is `uvx --from git+https://github.com/Pranavk098/context-fabric cfx
 | `routing [--since 30d] [--prices FILE] [--json]` | tokens and API-equivalent dollars by model and role; what-if for cheaper sub-agent tiers (price only) |
 | `agent-audit --agent codex\|opencode [--since all]` | counts-only breakdown of Codex or OpenCode session logs (Codex needs the optional `zstandard` decoder) |
 | `replay [--since 30d] [--json]` | simulated saving from shrinking old tool output, with cache effects |
-| `set brief\|carry\|fold\|fold_read on\|off` | feature flags (brief and carry on; fold and fold_read off) |
+| `set brief\|carry\|fold\|fold_read\|bound on\|off` | feature flags (brief and carry on; fold, fold_read and bound off) |
 | `stop` | stop the daemon (the next session starts it again) |
 
 `audit`, `replay` and `stats` print counts and sizes only: no paths, commands, prompts or text.
@@ -90,7 +90,7 @@ All under `~/.cfx/daemon/` (Windows: `C:\Users\<you>\.cfx\daemon\`). Nothing is 
 
 | Path | Content | Kept |
 | :--- | :--- | :--- |
-| `events.jsonl`, `briefs.jsonl`, `carry.jsonl`, `folds.jsonl` | event names, sizes, counts, hashes, latencies | rotated by size |
+| `events.jsonl`, `briefs.jsonl`, `carry.jsonl`, `folds.jsonl`, `bound.jsonl` | event names, sizes, counts, hashes, latencies | rotated by size |
 | `carry/<session>.json` | one note per compacted session: file paths, line counts, recent commands with obvious secrets masked, to-do text | 7 days |
 | `obs/` | full copies of folded output (**only if you turn fold on**; may contain code or command output) | 7 days |
 | `token` | per-install secret that authenticates hook calls (readable only by you) | until deleted |

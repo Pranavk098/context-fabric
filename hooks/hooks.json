@@ -35,6 +35,17 @@
             "timeout": 2
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/cfxd/launch.sh\" forward PreToolUse",
+            "timeout": 2
+          }
+        ]
       }
     ],
     "PostToolUse": [

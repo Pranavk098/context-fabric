@@ -242,9 +242,11 @@ def _build_parser() -> argparse.ArgumentParser:
     routingp.add_argument("--json", action="store_true", help="emit a single JSON object")
     routingp.set_defaults(func=_cmd_routing)
 
-    setp = subparsers.add_parser("set", help="toggle brief, carry, fold or fold_read on/off")
+    setp = subparsers.add_parser("set", help="toggle brief, carry, fold, fold_read or bound on/off")
     setp.add_argument(
-        "flag", choices=["brief", "carry", "fold", "fold_read"], help="feature to toggle"
+        "flag",
+        choices=["brief", "carry", "fold", "fold_read", "bound"],
+        help="feature to toggle",
     )
     setp.add_argument("value", choices=["on", "off"], help="new state")
     _add_state_dir(setp)
@@ -311,7 +313,15 @@ def _cmd_status(args: argparse.Namespace) -> int:
 
 
 def _cmd_set(args: argparse.Namespace) -> int:
-    set_flag(resolve_state_dir(args.state_dir), args.flag, args.value == "on")
+    state_dir = resolve_state_dir(args.state_dir)
+    set_flag(state_dir, args.flag, args.value == "on")
+    if args.flag == "bound":
+        # launch.sh reads this flag file to skip Python for non-bounded Bash calls.
+        flag = state_dir / "bound.on"
+        if args.value == "on":
+            flag.touch()
+        else:
+            flag.unlink(missing_ok=True)
     print(f"cfxd set: {args.flag} {args.value}")
     return 0
 

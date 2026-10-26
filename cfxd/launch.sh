@@ -31,12 +31,22 @@ fi
 # find uv). Any problem with the cache falls through to uv, so a stale or missing
 # cache can never break a hook.
 if [ "$1" = "forward" ]; then
+    # Read the payload once and feed it to whichever path runs: the fast exit needs
+    # it, and the child process cannot see stdin after the command substitution.
+    payload=$(cat 2>/dev/null)
+
+    # A Bash call with bound off cannot produce a response, so skip Python entirely.
+    if [ "$2" = "PreToolUse" ] && [ ! -f "$state_dir/bound.on" ] \
+        && printf '%s' "$payload" | grep -q '"tool_name" *: *"Bash"'; then
+        exit 0
+    fi
+
     py_file="$state_dir/python"
     if [ -f "$py_file" ]; then
         read -r py < "$py_file"
         py="$(to_posix "$py")"
         if [ -n "$py" ] && [ -f "$py" ] && [ -x "$py" ]; then
-            "$py" "$here/launch.py" "$@"
+            printf '%s' "$payload" | "$py" "$here/launch.py" "$@"
             exit 0
         fi
     fi
@@ -70,5 +80,9 @@ if ! command -v uv >/dev/null 2>&1; then
     exit 0
 fi
 
-uv run --no-config --no-project --quiet --python '>=3.12' "$here/launch.py" "$@"
+if [ "$1" = "forward" ]; then
+    printf '%s' "$payload" | uv run --no-config --no-project --quiet --python '>=3.12' "$here/launch.py" "$@"
+else
+    uv run --no-config --no-project --quiet --python '>=3.12' "$here/launch.py" "$@"
+fi
 exit 0
