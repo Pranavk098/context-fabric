@@ -61,6 +61,11 @@ What each number means:
 **What to send back:** paste the whole `week --share` output into the template at
 [`FEEDBACK-TEMPLATE.md`](FEEDBACK-TEMPLATE.md), fill in the rest, and send it as described in [section 6](#6-send-results).
 
+**Then, once a week:** run `cfxd week --save` instead of `cfxd week --share`. It prints the same report and writes one
+numbers-only snapshot; after two weeks, `cfxd trend --share` shows week-over-week change with the snapshot where each
+switch first appears marked. Every change line is labelled OBSERVED: it is a before/after in your own data, and other
+changes also move the numbers, so it is not a counterfactual. Nothing is scheduled for you.
+
 **Optional:** `uvx --from git+https://github.com/Pranavk098/context-fabric cfxd fidelity --since 30d` is an experimental measurement of how many files each compaction summary names back and how many named paths never appeared before it; it prints counts only.
 
 ## 4. The one-week path
