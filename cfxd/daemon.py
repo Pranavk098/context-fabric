@@ -328,19 +328,22 @@ class _Handler(BaseHTTPRequestHandler):
         status: int = 403,
         message: str = "forbidden",
     ) -> None:
-        self._daemon.log_event(
-            {
-                "ts": datetime.now(UTC).isoformat(),
-                "event": event,
-                "tool_name": None,
-                "session_id": None,
-                "latency_ms": round((time.perf_counter() - start) * 1000.0, 3),
-                "outcome": "rejected",
-                "reason": reason,
-                "bytes_in": bytes_in,
-                "bytes_out": 0,
-            }
-        )
+        # A bad Host means the request was not addressed to our loopback service;
+        # nothing about it is worth keeping. The event name is attacker-chosen, so cap it.
+        if self._host_ok():
+            self._daemon.log_event(
+                {
+                    "ts": datetime.now(UTC).isoformat(),
+                    "event": event[:64],
+                    "tool_name": None,
+                    "session_id": None,
+                    "latency_ms": round((time.perf_counter() - start) * 1000.0, 3),
+                    "outcome": "rejected",
+                    "reason": reason,
+                    "bytes_in": bytes_in,
+                    "bytes_out": 0,
+                }
+            )
         self.close_connection = True
         self._send_json(status, {"error": message})
 

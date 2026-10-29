@@ -34,8 +34,8 @@ def _resolve_db_path(root: Path) -> Path:
 def _connect(db: Path) -> sqlite3.Connection:
     if not db.exists():
         raise OpenCodeDBError(f"opencode database not found: {db}")
-    # shortcut: assumes the path has no '?'/'#'/space; plain db paths only.
-    uri = f"file:{db.as_posix()}?mode=ro"
+    # as_uri() percent-encodes '?', '#' and '%', so they cannot be read as URI syntax.
+    uri = Path(db).resolve().as_uri() + "?mode=ro"
     try:
         con = sqlite3.connect(uri, uri=True, timeout=2)
         con.execute("PRAGMA busy_timeout = 2000")

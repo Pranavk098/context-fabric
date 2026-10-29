@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -177,7 +178,8 @@ def _session_start() -> int:
             # Something answers /health but cannot prove it is our daemon.
             print(_SQUATTER_WARNING)
             return 0
-        # Nothing answers: fall through to the normal fail-open forward.
+        # Nothing answers: fall through to the normal fail-open forward, but
+        # without the token — identity was never proven.
     if verified and token is not None and _first_run(state_dir):
         try:
             post_hook(port, "SessionStart", payload, 1.0, token)
@@ -185,7 +187,7 @@ def _session_start() -> int:
             pass
         print(_WELCOME)
         return 0
-    _post("SessionStart", payload, 1.0, token)
+    _post("SessionStart", payload, 1.0, token if verified else None)
     return 0
 
 
@@ -203,8 +205,27 @@ def _forward(event: str) -> int:
     return 0
 
 
+_NOTE_NAME = re.compile(r"checkpoint-note-[A-Za-z0-9_-]+\.txt")
+
+
+def _accepted_note_file(value: str) -> Path | None:
+    """Return the path only if it is a regular file in the plugin data dir with the note name."""
+    data = os.environ.get("CLAUDE_PLUGIN_DATA")
+    allowed = Path(data).resolve() if data else _PLUGIN_ROOT
+    path = Path(value)
+    try:
+        if path.is_symlink():
+            return None
+        resolved = path.resolve(strict=True)
+    except OSError:
+        return None
+    if resolved.parent != allowed or _NOTE_NAME.fullmatch(resolved.name) is None:
+        return None
+    return resolved
+
+
 def _checkpoint_note(args: list[str]) -> str | None:
-    """Read ``--note`` or ``--note-file`` from argv; the file is deleted after reading."""
+    """Read ``--note`` or ``--note-file``; an accepted note file is deleted after reading."""
     note: str | None = None
     index = 0
     while index < len(args):
@@ -212,13 +233,16 @@ def _checkpoint_note(args: list[str]) -> str | None:
             note = args[index + 1]
             index += 2
         elif args[index] == "--note-file" and index + 1 < len(args):
-            path = Path(args[index + 1])
-            try:
-                if path.stat().st_size <= 4096:
-                    note = path.read_text(encoding="utf-8")
-            except (OSError, UnicodeDecodeError):
-                note = None
-            finally:
+            path = _accepted_note_file(args[index + 1])
+            read_ok = False
+            if path is not None:
+                try:
+                    if path.stat().st_size <= 4096:
+                        note = path.read_text(encoding="utf-8")
+                        read_ok = True
+                except (OSError, UnicodeDecodeError):
+                    note = None
+            if path is not None and read_ok:
                 try:
                     path.unlink(missing_ok=True)
                 except OSError:
