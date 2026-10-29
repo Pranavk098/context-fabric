@@ -36,6 +36,8 @@ def _find_sh() -> str | None:
 
 
 SH = _find_sh()
+# The wrapper uses `set -o pipefail` (Claude Code's Bash tool runs bash); dash rejects it.
+BASH = SH if os.name == "nt" else shutil.which("bash")
 
 
 @pytest.fixture(autouse=True)
@@ -194,7 +196,7 @@ def test_malformed_payload_fails_open(tmp_path: Path) -> None:
         assert handle_pre_tool_use(payload, tmp_path) == {}
 
 
-@pytest.mark.skipif(SH is None, reason="sh is not available")
+@pytest.mark.skipif(BASH is None, reason="bash is not available")
 def test_wrapper_keeps_exit_and_last_150_lines(tmp_path: Path) -> None:
     script = tmp_path / "noisy.sh"
     script.write_text(
@@ -203,7 +205,7 @@ def test_wrapper_keeps_exit_and_last_150_lines(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     proc = subprocess.run(
-        [str(SH), "-c", wrap_command(f"sh '{script.as_posix()}'")],
+        [str(BASH), "-c", wrap_command(f"sh '{script.as_posix()}'")],
         capture_output=True,
         text=True,
         timeout=30,
