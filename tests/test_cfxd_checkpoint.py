@@ -331,7 +331,10 @@ def test_save_uses_transcript_when_daemon_is_empty(
     )
     state_dir = tmp_path / "cfx"
     result = checkpoint.handle_checkpoint_save({"cwd": "/proj"}, state_dir)
-    assert result["summary"] == "Checkpoint saved: 1 files, 1 commands, 1 todos"
+    assert result["summary"] == (
+        "Checkpoint saved: 1 files, 1 commands, 1 todos"
+        " (completed from the transcript; the helper missed some tool calls)"
+    )
     obj = _obj(state_dir)
     assert obj["sid"] == "sess-t"
     assert len(obj["files"]) == 1

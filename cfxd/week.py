@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from cfxd import __version__
-from cfxd.audit import _SINCE_DELTAS, _discover, _scan
+from cfxd.audit import _SINCE_DELTAS, _discover, _scan, coverage
 from cfxd.diet import diet
 from cfxd.refetch import refetch
 from cfxd.routing import _DEFAULT_PRICES, _load_prices, _scan_turns, _turn_dollars, routing
@@ -189,6 +189,7 @@ def week(
     else:
         notes["receipts"] = "no state directory"
     notes["checkpoints"] = "not recorded by cfxd stats"
+    hook_delivery = coverage(root, state_dir, days, now=now) if state_dir is not None else None
 
     report: dict[str, Any] = {
         "version": __version__,
@@ -209,6 +210,7 @@ def week(
             "tokens_per_turn": tokens_per_turn,
         },
         "receipts": receipts,
+        "hook_delivery": hook_delivery,
         "notes": notes,
         "share": share,
         "safe_to_paste": _SAFE,
@@ -287,11 +289,25 @@ def format_week(report: dict[str, Any], share: bool = False) -> str:
             )
         lines.append(diet_line)
         lines.extend(_receipt_lines(report))
+        lines.append(_hook_delivery_line(report))
     lines.append("What this means:")
     lines.extend(f"  - {sentence}" for sentence in report["meaning"])
     if share:
         lines.append(_SAFE)
     return "\n".join(lines)
+
+
+def _hook_delivery_line(report: dict[str, Any]) -> str:
+    data = report.get("hook_delivery")
+    if data is None:
+        return "Hook delivery: n/a (no state directory)"
+    delivery = data["delivery"]
+    if delivery is None:
+        return f"Hook delivery: n/a ({data['na_reason']})"
+    return (
+        f"Hook delivery: {delivery['overall'] * 100:.0f}% of tool calls observed "
+        f"({data['sessions_compared']} sessions)"
+    )
 
 
 def _receipt_lines(report: dict[str, Any]) -> list[str]:

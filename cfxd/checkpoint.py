@@ -51,6 +51,7 @@ _PRUNE_TTL_SECONDS = 7 * 24 * 3600
 _TRIGGER = "checkpoint"
 
 _NO_SESSION = "Checkpoint not saved: no live session with recorded facts for this directory."
+_TRANSCRIPT_SUFFIX = " (completed from the transcript; the helper missed some tool calls)"
 
 # session_id of the most recent tool call seen in each cwd (in memory only).
 _last_active: dict[str, tuple[int, str]] = {}
@@ -417,7 +418,11 @@ def _save(payload: dict[str, Any], state_dir: Path) -> dict[str, Any]:
             "source": source,
         },
     )
-    return {"summary": _summary(counts)}
+    summary = _summary(counts)
+    daemon_files = len(daemon.files) if daemon is not None else 0
+    if daemon_files * 2 < len(facts.files):
+        summary += _TRANSCRIPT_SUFFIX
+    return {"summary": summary}
 
 
 def _clean_note(value: Any) -> str | None:
