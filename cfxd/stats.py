@@ -15,6 +15,7 @@ from cfxd.bound import BOUND_LOG, TAIL_LINES
 from cfxd.coach import COACH_LOG
 from cfxd.daemon import EVENTS_FILE, percentile
 from cfxd.fold import FOLDS_LOG
+from cfxd.idle import RESUME_LOG
 
 _SINCE_LABELS = {"all": "all time", "7d": "last 7 days", "24h": "last 24 hours"}
 _SINCE_DELTAS = {"7d": timedelta(days=7), "24h": timedelta(hours=24)}
@@ -153,6 +154,26 @@ def collect_stats(
             continue
         nudges += 1
 
+    cold_count = 0
+    cold_usd = 0.0
+    resume_receipts = 0
+    for entry in _read_objects(state_dir / RESUME_LOG):
+        if not _match_session(entry.get("session_id"), session):
+            continue
+        if not _in_window(entry.get("ts"), cutoff):
+            continue
+        if entry.get("event") not in ("resume", "resume_cold"):
+            continue
+        resume_receipts += 1
+        if entry.get("event") != "resume_cold":
+            continue
+        tokens = _as_int(entry.get("context_tokens"))
+        dollars = _as_float(entry.get("est_write_usd"))
+        if tokens is None or dollars is None:
+            continue
+        cold_count += 1
+        cold_usd += dollars
+
     return {
         "since": since,
         "sessions": len(sessions),
@@ -176,12 +197,22 @@ def collect_stats(
             "errors": errors,
             "rejected": rejected,
         },
+        "cold_resumes": {
+            "count": cold_count,
+            "usd": round(cold_usd, 2),
+            "receipts": resume_receipts,
+        },
     }
 
 
 def format_human(stats: dict[str, Any]) -> str:
     """Render the stats as the short plain-text report (``No folds yet.`` when empty)."""
-    if not stats["folds"]["count"] and not stats["bounded"] and not stats["nudges"]:
+    if (
+        not stats["folds"]["count"]
+        and not stats["bounded"]
+        and not stats["nudges"]
+        and not stats["cold_resumes"]["receipts"]
+    ):
         return "No folds yet."
     label = _SINCE_LABELS.get(str(stats["since"]), "all time")
     n = stats["sessions"]
@@ -189,6 +220,7 @@ def format_human(stats: dict[str, Any]) -> str:
     by_tool = ", ".join(f"{tool} {count:,}" for tool, count in stats["folds"]["by_tool"].items())
     out = stats["output"]
     hooks = stats["hooks"]
+    cold = stats["cold_resumes"]
     lines = [
         f"Context Fabric, {label} ({sess})",
         f"{'Folds:':<12}{stats['folds']['count']:,}   ({by_tool})",
@@ -199,6 +231,10 @@ def format_human(stats: dict[str, Any]) -> str:
         ),
         (f"{'Bounded:':<12}{stats['bounded']:,}   Bash commands capped (tail {TAIL_LINES} lines)"),
         (f"{'Nudges:':<12}{stats['nudges']:,}   long-session nudges shown"),
+        (
+            f"Cold resumes: {cold['count']:,}   about ${cold['usd']:,.2f}"
+            " API-equivalent in cache writes"
+        ),
         (
             f"{'Hook calls:':<12}{hooks['count']:,}   p50 {hooks['p50_ms']:.1f} ms"
             f"   p95 {hooks['p95_ms']:.1f} ms   errors {hooks['errors']}"

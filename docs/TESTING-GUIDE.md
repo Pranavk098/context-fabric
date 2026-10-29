@@ -73,6 +73,8 @@ Work as you always do. Two things make the data more useful, if they fit your wo
 - Optional, experimental (`cfxd set coach on`): after 30 turns and about 150K context, the Stop hook prints one plain line with the session's
   cache-read cost and the `/checkpoint` then `/clear` workflow; `cfxd stats` counts nudges shown. Whether this saves tokens is not yet proven;
   `cfxd set coach off` stops it.
+- Optional, experimental (`cfxd set idle_notice on`): on a resumed session whose prompt cache expired, one line shows the API-equivalent
+  re-read cost and notes that `/clear` starts cheap; `cfxd set idle_notice off` stops it. Whether this changes anything is unproven.
 - Optional, experimental (`/checkpoint`): do a normal task for a while, run `/checkpoint`, then `/clear`. The new session should start with a
   `context-fabric-carry` block saved minutes earlier, and `cfxd checkpoint show` prints the same block. Whether this saves tokens is not yet
   proven; if the block looks wrong or stale, run `cfxd checkpoint clear`.

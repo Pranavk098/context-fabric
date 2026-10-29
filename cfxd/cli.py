@@ -274,11 +274,11 @@ def _build_parser() -> argparse.ArgumentParser:
     checkpoint_parser.set_defaults(func=_cmd_checkpoint)
 
     setp = subparsers.add_parser(
-        "set", help="toggle brief, carry, fold, fold_read, bound or coach on/off"
+        "set", help="toggle brief, carry, fold, fold_read, bound, coach or idle_notice on/off"
     )
     setp.add_argument(
         "flag",
-        choices=["brief", "carry", "fold", "fold_read", "bound", "coach"],
+        choices=["brief", "carry", "fold", "fold_read", "bound", "coach", "idle_notice"],
         help="feature to toggle",
     )
     setp.add_argument("value", choices=["on", "off"], help="new state")

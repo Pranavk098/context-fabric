@@ -209,6 +209,7 @@ def test_json_shape(tmp_path: Path) -> None:
         "hook_errors",
         "hook_rejected",
         "checkpoints",
+        "cold_resumes",
     }
 
 

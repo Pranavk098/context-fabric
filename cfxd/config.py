@@ -28,6 +28,7 @@ _DEFAULTS: dict[str, bool] = {
     "fold_read": False,
     "bound": False,
     "coach": False,
+    "idle_notice": False,
 }
 _CACHE: dict[Path, tuple[int, dict[str, bool]]] = {}
 
