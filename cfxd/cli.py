@@ -36,6 +36,7 @@ from cfxd.daemon import (
 from cfxd.diet import _anonymize, diet
 from cfxd.diet import format_human as format_diet
 from cfxd.dietapply import apply_report, undo_records
+from cfxd.ledger import format_ledger, ledger
 from cfxd.refetch import format_refetch, refetch
 from cfxd.replay import format_replay, replay
 from cfxd.routing import format_human as format_routing
@@ -264,6 +265,18 @@ def _build_parser() -> argparse.ArgumentParser:
     weekp.add_argument("--json", action="store_true", help="emit a single JSON object")
     _add_state_dir(weekp)
     weekp.set_defaults(func=_cmd_week)
+
+    ledgerp = subparsers.add_parser(
+        "ledger", help="experimental: what the plugin did and what changed, with evidence tiers"
+    )
+    ledgerp.add_argument("--root", default=None, help=f"transcripts root (default: {DEFAULT_ROOT})")
+    ledgerp.add_argument("--days", type=int, default=30, help="time window in days (default: 30)")
+    ledgerp.add_argument(
+        "--share", action="store_true", help="append the safe-to-paste line (numbers only)"
+    )
+    ledgerp.add_argument("--json", action="store_true", help="emit a single JSON object")
+    _add_state_dir(ledgerp)
+    ledgerp.set_defaults(func=_cmd_ledger)
 
     checkpoint_parser = subparsers.add_parser(
         "checkpoint", help="experimental: save, show or clear a restart checkpoint"
@@ -621,6 +634,16 @@ def _cmd_week(args: argparse.Namespace) -> int:
     root = Path(args.root) if args.root else DEFAULT_ROOT
     report = week(root, args.days, resolve_state_dir(args.state_dir), share=args.share)
     print(json.dumps(report) if args.json else format_week(report, args.share))
+    return 0
+
+
+def _cmd_ledger(args: argparse.Namespace) -> int:
+    if args.days < 1:
+        print("cfxd ledger: --days must be at least 1", file=sys.stderr)
+        return 2
+    root = Path(args.root) if args.root else DEFAULT_ROOT
+    report = ledger(root, args.days, resolve_state_dir(args.state_dir), share=args.share)
+    print(json.dumps(report) if args.json else format_ledger(report, args.share))
     return 0
 
 
