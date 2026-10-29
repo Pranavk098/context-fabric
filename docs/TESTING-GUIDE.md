@@ -1,145 +1,134 @@
 # Testing guide
 
-Thank you for testing Context Fabric. This page says exactly what to do, how long it takes and what to send back.
-Everything you send is counts and sizes. Nothing leaves your machine unless you paste it yourself.
+This guide takes about 30 minutes to read and try, then about a week of normal work. It says what to run, what to look
+for, and what to send back.
 
-**What is being tested.** A Claude Code plugin (alpha) that records which files and outputs a session touched, hands
-that to sub-agents (brief) and restores it after `/compact` (carry). Whether it saves tokens is **unknown**, which is
-why we need real sessions. Do not expect your usage to drop.
+## 1. What we are testing
 
-**Time.** About 15 minutes to set up. After that, use Claude Code as you normally do for 3 to 7 days, then 5 minutes to
-send results.
+- **Objective:** the same work with fewer tokens. Whether Context Fabric achieves that is **not proven**.
+- **What works today:** measurement. `doctor`, `audit`, `stats`, `diet` and `week` show where your tokens go.
+- **What is experimental:** `bound`, `coach`, `/checkpoint`, the idle notice, and `diet --apply`. Their saving is not
+  proven.
+- **No saving is proven.** Do not expect your usage to drop.
+- **Why your data matters:** only real sessions can show whether any of this helps.
 
-**Use your own computer only.** The plugin runs a local helper on `127.0.0.1`. Do not install it on a shared machine.
+## 2. Before you start
 
-## 1. Set up (once)
+Install the plugin with [`INSTALL-ALPHA.md`](INSTALL-ALPHA.md). Use your own computer, not a shared machine.
 
-Pick your system. Commands marked *terminal* go in a normal terminal, not inside Claude Code.
-
-**macOS / Linux** (terminal)
-
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh        # uv, the only prerequisite
-uv python install 3.12
-curl -fsSL https://claude.ai/install.sh | bash          # Claude Code, if you do not have it
-```
-
-**Windows** (PowerShell)
-
-```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-winget install --id Git.Git -e          # Git for Windows, if you do not have it
-uv python install 3.12
-irm https://claude.ai/install.ps1 | iex # Claude Code, if you do not have it
-```
-
-Open a **new** terminal so the tools are found. Then install the plugin (terminal):
-
-```bash
-claude plugin marketplace add Pranavk098/context-fabric
-claude plugin install context-fabric@context-fabric
-```
-
-The same thing inside Claude Code is `/plugin marketplace add Pranavk098/context-fabric` followed by
-`/plugin install context-fabric@context-fabric`. Desktop app (Code tab, local sessions): **+ → Add plugins**, then add
-the marketplace `Pranavk098/context-fabric`. The CLI is the tested path; hooks in the desktop app and VS Code are not
-yet verified.
-
-Restart Claude Code. In your first session you should see one short message, "Context Fabric (alpha) is active"; it
-appears only once. Open any project and run one normal task. Then check (terminal):
+Start one Claude Code session, then check the helper from a terminal:
 
 ```bash
 uvx --from git+https://github.com/Pranavk098/context-fabric cfxd doctor
 ```
 
-You should see `healthy` and `identity: verified`. If not, see [Troubleshooting](#troubleshooting).
+Expect `healthy` and `identity: verified`. If not, see [Known limits](#5-known-limits-and-things-that-may-look-wrong) or
+the troubleshooting table in [`INSTALL-ALPHA.md`](INSTALL-ALPHA.md#7-troubleshooting).
 
-**First run, guided (terminal):** `uvx --from git+https://github.com/Pranavk098/context-fabric cfxd tour`
-walks through five steps on your own transcripts: doctor, where your tokens go, long sessions, your starting
-context, and what to try next. It prints every step without pausing; add `--yes` to skip the Enter prompts. The
-switches it suggests are experimental and whether they save tokens is unproven.
+**Privacy.** Nothing leaves your machine. The helper records event names, sizes, counts, timings and, for carry and
+checkpoint notes, file paths, line counts, recent commands with obvious secrets masked, and to-do text. It does not store file
+contents or tool output. `--share` prints counts, sizes and model ids only; read the output before you paste it.
 
-Optional one-command check (macOS, Linux, or Git Bash on Windows): download the repo's
-[`scripts/smoke_plugin.sh`](../scripts/smoke_plugin.sh) and run `sh smoke_plugin.sh`. It runs a tiny Claude Code session
-with the plugin and prints `PASS` or `FAIL` with the reason; it changes none of your settings.
+## 3. The 10-minute path
 
-## 2. Use it normally (3 to 7 days)
-
-Work as you always do. Two things make the data more useful, if they fit your work:
-
-- Run at least one task that starts a **sub-agent** (for example ask Claude to "use an agent to review these files").
-- Run `/compact` once in a long session.
-- Optional, experimental: `cfxd set bound on`, run your tests as usual, then `cfxd stats`; `cfxd set bound off` stops it.
-- Optional, experimental (`cfxd set coach on`): after 30 turns and about 150K context, the Stop hook prints one plain line with the session's
-  cache-read cost and the `/checkpoint` then `/clear` workflow; `cfxd stats` counts nudges shown. Whether this saves tokens is not yet proven;
-  `cfxd set coach off` stops it.
-- Optional, experimental (`cfxd set idle_notice on`): on a resumed session whose prompt cache expired, one line shows the API-equivalent
-  re-read cost and notes that `/clear` starts cheap; `cfxd set idle_notice off` stops it. Whether this changes anything is unproven.
-- Optional, experimental (`/checkpoint [note]`): do a normal task for a while, run `/checkpoint` (optionally with a short goal
-  note, up to 300 characters), then `/clear`. The new session should start with a `context-fabric-carry` block saved minutes
-  earlier: your goal note, the last allowlisted test run and its result, and listed files marked `[changed since checkpoint]`
-  or `[missing]`. `cfxd checkpoint show` prints the same block. Whether this saves tokens is not yet proven; saving is unproven
-  and the marks come from one `stat` per file (no reads). If the block looks wrong or stale, run `cfxd checkpoint clear`.
-- Optional, experimental (plugin A/B v2, repo checkout only): `uv run --python 3.12 python -m pytest -q tests/test_plugin_ab_v2.py`
-  checks the chain runner with a fake `claude` and spends nothing; the paid path is
-  `python -m evals.plugin_ab.runner --tasks evals/plugin_ab/tasks_v2.json --stratum long --pilot`. The chain benchmark is experimental and its saving is unproven.
-
-You do not need to do anything special. Please do not turn it off to "help".
-
-Optional: `cfxd diet --apply` shows which fully-unused local plugins it would disable and prints the exact
-commands; add `--yes` to do it, open a **new** session and check the number in `/context`, then run
-`cfxd diet --undo` to restore. It only calls `claude plugin`; items synced from your Claude account are listed
-for claude.ai Settings instead, because they cannot be changed from the terminal.
-
-## 3. Send results
-
-After a few days (terminal):
+**Step 1: take the tour.** It walks through five steps on your own transcripts and prints everything without pausing:
 
 ```bash
-uvx --from git+https://github.com/Pranavk098/context-fabric cfxd audit
-uvx --from git+https://github.com/Pranavk098/context-fabric cfxd stats
-uvx --from git+https://github.com/Pranavk098/context-fabric cfxd diet --share
+uvx --from git+https://github.com/Pranavk098/context-fabric cfxd tour --yes
 ```
 
-All three print counts and sizes only: no file paths, commands, prompts or code. **Read the output before you share it.**
-Open an [alpha feedback issue](https://github.com/Pranavk098/context-fabric/issues/new?template=alpha-feedback.md) and
-paste it, or send it to the person who gave you this link. (`diet` without `--share` prints the names of your
-skills and connectors for your own eyes; do not paste that version.) `audit` works even if you only want to look at your own
-history and skip the plugin: it needs no install.
-
-Or send one command instead: `uvx --from git+https://github.com/Pranavk098/context-fabric cfxd week --share`.
-It is experimental and whether its suggestions save anything is unproven; it prints a short weekly summary with a
-version line, counts, sizes and model ids only, ending with "Safe to paste: counts, sizes and model ids only."
-
-## 4. Questions we want answered
-
-1. Did anything break, error or feel slower?
-2. After `/compact`, did work feel better, the same or worse?
-3. Did a sub-agent seem confused by a note it was given (a block named `context-fabric-brief`)?
-4. What surprised you in the `audit` output?
-5. Would you act on what it shows (for example disabling skills or connectors you never use)? What would you want it to
-   tell you instead?
-
-## What it keeps on your computer
-
-Under `~/.cfx/daemon/` (Windows: `C:\Users\<you>\.cfx\daemon\`): logs of event names, sizes, counts and timings, and
-one small note per session for carry (file paths, line counts, recent commands with obvious secrets masked, to-do
-text). It does not store file contents or tool output. The helper does see tool inputs and outputs in memory while
-Claude Code runs, and sends nothing over the network. Details: [`INSTALL-ALPHA.md`](INSTALL-ALPHA.md).
-
-## Troubleshooting
-
-- **A warning says `uv` cannot be found.** Install uv (above), open a new terminal, restart Claude Code.
-- **`doctor` says not running.** Start a new Claude Code session, then run `doctor` again.
-- **Port 47831 in use.** Another program holds the port. Tell us; it is fixed in this alpha.
-- **Windows: nothing happens.** The plugin's start-up script runs in Git Bash, so Git for Windows must be installed.
-- Anything else: run `doctor` and paste its output in an issue.
-
-## Remove it completely
+**Step 2: get your weekly summary.** This is experimental, but it only counts:
 
 ```bash
-claude plugin uninstall context-fabric@context-fabric
-uvx --from git+https://github.com/Pranavk098/context-fabric cfxd stop
+uvx --from git+https://github.com/Pranavk098/context-fabric cfxd week --share
 ```
 
-Then delete the data folder: macOS / Linux `rm -rf ~/.cfx`; Windows PowerShell `Remove-Item -Recurse -Force $HOME\.cfx`.
+What each number means:
+
+- **Total API-equivalent dollars:** what these tokens would cost at list API prices, not your subscription bill.
+- **Cost is roughly turns x context size:** every turn re-reads the context, so long sessions keep paying for the same
+  history.
+- **Sessions by length:** how much of the cost sits in short, medium and long sessions. In our data, long sessions
+  carry most of it.
+- **Cache-read share:** the share of tokens read from the prompt cache. A high number means history was reused, not
+  re-sent at full price.
+- **Model switches:** how often you switched models, and the extra cache-write cost that caused.
+- **Plugin receipts:** counts from the plugin's local logs: rewrites, hook calls and errors.
+- **First-turn context:** median tokens already in the window before you type.
+- **Refetch after compaction:** how much of the dropped context was read again afterwards.
+- **Diet:** skills and connectors you never used and their estimated cost per turn.
+
+**What to send back:** paste the whole `week --share` output into the template at
+[`FEEDBACK-TEMPLATE.md`](FEEDBACK-TEMPLATE.md), fill in the rest, and send it as described in [section 6](#6-send-results).
+
+## 4. The one-week path
+
+Use Claude Code as you normally do for 3 to 7 days. Run one experiment at a time so you can tell what changed. Each
+one is optional and experimental; none has a proven saving.
+
+### 4.1 Diet apply and undo
+
+- **What it does:** experimental; saving not proven. Lists fully-unused local plugins, then can disable them; account-synced items cannot be changed locally.
+- **Turn on:** `uvx --from git+https://github.com/Pranavk098/context-fabric cfxd diet --apply` is a dry run; `uvx --from git+https://github.com/Pranavk098/context-fabric cfxd diet --apply --yes` disables what it lists.
+- **What to do:** open a **new** session and run `/context`; compare the setup number with the one you saw before.
+- **What to look for:** a lower first-turn context, and nothing you needed going missing.
+- **Turn off:** `uvx --from git+https://github.com/Pranavk098/context-fabric cfxd diet --undo`
+- **What to report:** the before and after `/context` numbers, and anything that disappeared.
+
+### 4.2 Bound
+
+- **What it does:** experimental; saving not proven. Keeps only the last 150 lines of a short list of simple test and log commands (`pytest`, `npm test`, `go test`, `git log`, `docker logs` and similar).
+- **Turn on:** `uvx --from git+https://github.com/Pranavk098/context-fabric cfxd set bound on`
+- **What to do:** run your tests and log commands as usual.
+- **What to look for:** whether Claude still finds the line it needs, and whether errors stay visible.
+- **Turn off:** `uvx --from git+https://github.com/Pranavk098/context-fabric cfxd set bound off`
+- **What to report:** any command that was cut too short, and whether the agent recovered.
+
+### 4.3 Coach
+
+- **What it does:** experimental; saving not proven. After about 30 turns and 150K context, adds one visible line with the session's cache-read cost and the checkpoint workflow.
+- **Turn on:** `uvx --from git+https://github.com/Pranavk098/context-fabric cfxd set coach on`
+- **What to do:** work normally through at least one long session.
+- **What to look for:** whether the line helped you notice context growth, or just added noise.
+- **Turn off:** `uvx --from git+https://github.com/Pranavk098/context-fabric cfxd set coach off`
+- **What to report:** how often it appeared and what you did next.
+
+### 4.4 Checkpoint, then `/clear`
+
+- **What it does:** experimental; saving not proven. Saves the working state and an optional goal note, then restores it once after `/clear`.
+- **Turn on:** after a normal task, run `/checkpoint [note]` (optional, up to 300 characters), then `/clear`; if the short name is not found, use `/context-fabric:checkpoint [note]`.
+- **What to do:** start the next task in the new session.
+- **What to look for:** a `context-fabric-carry` block with your note, the last test result and files marked `[changed since checkpoint]` or `[missing]`.
+- **Turn off / undo:** the restore happens once; `uvx --from git+https://github.com/Pranavk098/context-fabric cfxd checkpoint show` previews the block and `uvx --from git+https://github.com/Pranavk098/context-fabric cfxd checkpoint clear` deletes a saved checkpoint.
+- **What to report:** whether the block matched what you were doing, and any stale or wrong marks.
+
+### 4.5 Idle notice
+
+- **What it does:** experimental; saving not proven. On a resumed session whose prompt cache expired, shows one line with the API-equivalent re-read cost and notes that `/clear` starts cheap.
+- **Turn on:** `uvx --from git+https://github.com/Pranavk098/context-fabric cfxd set idle_notice on`
+- **What to do:** leave a session alone long enough for the cache to expire, then resume it.
+- **What to look for:** whether the cost line changed what you did next.
+- **Turn off:** `uvx --from git+https://github.com/Pranavk098/context-fabric cfxd set idle_notice off`
+- **What to report:** what the line said and whether it was useful or confusing.
+
+## 5. Known limits and things that may look wrong
+
+- **Windows needs Git for Windows.** The plugin's start-up script runs in Git Bash.
+- **The first hook call can be slow.** Python starts on the first call; later calls are fast. `uv python install 3.12`
+  removes the download that can make it worse.
+- **Account-synced plugins cannot be disabled locally.** `diet --apply` lists them for the claude.ai settings page
+  instead.
+- **A checkpoint restores only after `/clear`, and only within 60 minutes.** A normal restart or `/compact` does not
+  consume it.
+- **Bound rewrites only a short list of simple test and log commands.** Pipes, chains, redirects and background runs
+  are left exactly as they were.
+
+## 6. Send results
+
+Use [`FEEDBACK-TEMPLATE.md`](FEEDBACK-TEMPLATE.md). Paste your `week --share` output, then send the filled template to
+the person who gave you this guide or open an
+[alpha feedback issue](https://github.com/Pranavk098/context-fabric/issues/new?template=alpha-feedback.md).
+
+Read the output before you share it. Counts, sizes and model ids are safe; names from `diet` without `--share` are not.
+
+To stop or remove the plugin, follow [`INSTALL-ALPHA.md`](INSTALL-ALPHA.md#8-uninstall).
