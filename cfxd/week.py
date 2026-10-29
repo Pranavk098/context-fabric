@@ -48,7 +48,8 @@ def _meaning(report: dict[str, Any]) -> list[str]:
     switches = report["model_switches"]
     if switches["count"]:
         sentences.append(
-            f"You switched models {switches['count']} times, adding about "
+            f"You switched models {switches['count']} "
+            f"{'time' if switches['count'] == 1 else 'times'}, adding about "
             f"${switches['premium']:,.2f} in cache writes."
         )
     d = report["diet"]

@@ -117,17 +117,16 @@ def _step_next() -> list[str]:
     return [
         "Every switch below is experimental and its saving is unproven. Turn it off the same "
         "way you turned it on.",
-        "  1. cfxd set bound on - starts the helper only for commands that need it. Look for "
-        "faster Bash turns in cfxd stats; turn off with cfxd set bound off.",
+        "  1. cfxd set bound on - keeps only the last 150 lines of test and log commands (pytest, "
+        "npm test, git log, docker logs). Look for whether the agent still finds what it "
+        "needs; turn off with cfxd set bound off.",
         "  2. cfxd set coach on - adds a short coaching note when a session gets long. Look for "
-        "whether it helps you notice context growth; turn off with cfxd set coach off. (May "
-        "not exist yet in your build.)",
+        "whether it helps you notice context growth; turn off with cfxd set coach off.",
         "  3. /context-fabric:checkpoint then /clear - saves a local note and restores it once "
         "in the next session. Look for a restored context-fabric-carry block that matches what "
         "you were doing; clear it with cfxd checkpoint clear.",
         "  4. cfxd week --share - a weekly summary of counts and sizes. Look for the trend it "
-        "shows and paste it if useful; it is one-shot, so there is nothing to turn off. (May "
-        "not exist yet in your build.)",
+        "shows and paste it if useful; it is one-shot, so there is nothing to turn off.",
         'Feedback: section "3. Send results" in docs/TESTING-GUIDE.md says where to post it. '
         "Nothing leaves your machine.",
     ]
