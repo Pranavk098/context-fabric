@@ -1,0 +1,51 @@
+name: Bug report
+description: Something in the plugin broke, errored or felt slower
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for trying the alpha. Please do not paste prompts, file paths, commands or
+        secrets. Vulnerability reports belong in the private channel linked on the new-issue
+        page, not here.
+  - type: input
+    id: os
+    attributes:
+      label: OS and version
+      placeholder: macOS 15.2, Ubuntu 24.04, Windows 11
+    validations:
+      required: true
+  - type: input
+    id: claude-version
+    attributes:
+      label: Claude Code version
+      description: The output of `claude --version`.
+    validations:
+      required: true
+  - type: input
+    id: cfxd-version
+    attributes:
+      label: cfxd version
+      description: The first line of `cfxd week --share`, for example `cfxd week 0.1.0a1`.
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: The command or action, what you expected, and what happened instead. Counts only.
+    validations:
+      required: true
+  - type: textarea
+    id: share-output
+    attributes:
+      label: cfxd week --share output
+      description: Paste the whole block. It contains counts, sizes and model ids only.
+      render: text
+  - type: checkboxes
+    id: safe-output
+    attributes:
+      label: Safe to share
+      options:
+        - label: I pasted only `--share` output or counts, no prompts, paths or commands
+          required: true
