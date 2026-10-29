@@ -42,6 +42,7 @@ from cfxd.routing import format_human as format_routing
 from cfxd.routing import routing
 from cfxd.stats import collect_stats, format_human
 from cfxd.waste import format_waste, waste
+from cfxd.week import format_week, week
 
 _SHIM_PATH = Path(__file__).with_name("shim.py")
 
@@ -242,6 +243,18 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     routingp.add_argument("--json", action="store_true", help="emit a single JSON object")
     routingp.set_defaults(func=_cmd_routing)
+
+    weekp = subparsers.add_parser(
+        "week", help="experimental: one shareable weekly summary of all the analyzers"
+    )
+    weekp.add_argument("--root", default=None, help=f"transcripts root (default: {DEFAULT_ROOT})")
+    weekp.add_argument("--days", type=int, default=7, help="time window in days (default: 7)")
+    weekp.add_argument(
+        "--share", action="store_true", help="append the version and the safe-to-paste line"
+    )
+    weekp.add_argument("--json", action="store_true", help="emit a single JSON object")
+    _add_state_dir(weekp)
+    weekp.set_defaults(func=_cmd_week)
 
     checkpoint_parser = subparsers.add_parser(
         "checkpoint", help="experimental: save, show or clear a restart checkpoint"
@@ -579,6 +592,16 @@ def _cmd_routing(args: argparse.Namespace) -> int:
         print(json.dumps(report))
     else:
         print(format_routing(report, root.name))
+    return 0
+
+
+def _cmd_week(args: argparse.Namespace) -> int:
+    if args.days < 1:
+        print("cfxd week: --days must be at least 1", file=sys.stderr)
+        return 2
+    root = Path(args.root) if args.root else DEFAULT_ROOT
+    report = week(root, args.days, resolve_state_dir(args.state_dir), share=args.share)
+    print(json.dumps(report) if args.json else format_week(report, args.share))
     return 0
 
 
