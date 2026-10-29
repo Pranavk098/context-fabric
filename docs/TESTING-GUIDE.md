@@ -113,6 +113,13 @@ one is optional and experimental; none has a proven saving.
 - **Turn off:** `uvx --from git+https://github.com/Pranavk098/context-fabric cfxd set idle_notice off`
 - **What to report:** what the line said and whether it was useful or confusing.
 
+### 4.6 After a week: the ledger
+
+- **What it does:** experimental; nothing is proven. After you have run this setup for about a week, lists what the plugin did and what changed, and labels every line OBSERVED (taken from your own transcripts or receipts), ESTIMATED (a formula with a stated assumption) or PROVEN (needs the pre-registered paired test, which has not run).
+- **Run:** `uvx --from git+https://github.com/Pranavk098/context-fabric cfxd ledger --days 30`; add `--share` to print numbers and model ids only.
+- **What to look for:** the diet before/after first-turn context, the checkpoint counts and estimate, and the restart ceiling. The header says no saving is proven; treat every number as a hint, not a result.
+- **What to report:** the whole `ledger --share` output and whether the labels matched what you expected to change.
+
 ## 5. Known limits and things that may look wrong
 
 - **Windows needs Git for Windows.** The plugin's start-up script runs in Git Bash.
