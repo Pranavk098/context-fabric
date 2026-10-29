@@ -73,9 +73,11 @@ Work as you always do. Two things make the data more useful, if they fit your wo
 - Optional, experimental (`cfxd set coach on`): after 30 turns and about 150K context, the Stop hook prints one plain line with the session's
   cache-read cost and the `/checkpoint` then `/clear` workflow; `cfxd stats` counts nudges shown. Whether this saves tokens is not yet proven;
   `cfxd set coach off` stops it.
-- Optional, experimental (`/checkpoint`): do a normal task for a while, run `/checkpoint`, then `/clear`. The new session should start with a
-  `context-fabric-carry` block saved minutes earlier, and `cfxd checkpoint show` prints the same block. Whether this saves tokens is not yet
-  proven; if the block looks wrong or stale, run `cfxd checkpoint clear`.
+- Optional, experimental (`/checkpoint [note]`): do a normal task for a while, run `/checkpoint` (optionally with a short goal
+  note, up to 300 characters), then `/clear`. The new session should start with a `context-fabric-carry` block saved minutes
+  earlier: your goal note, the last allowlisted test run and its result, and listed files marked `[changed since checkpoint]`
+  or `[missing]`. `cfxd checkpoint show` prints the same block. Whether this saves tokens is not yet proven; saving is unproven
+  and the marks come from one `stat` per file (no reads). If the block looks wrong or stale, run `cfxd checkpoint clear`.
 
 You do not need to do anything special. Please do not turn it off to "help".
 

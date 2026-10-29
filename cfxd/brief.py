@@ -192,12 +192,14 @@ def _cap(text: str, limit: int = ITEM_MAX_BYTES) -> str:
     return data[:limit].decode("utf-8", "ignore")
 
 
-def _file_line(fact: FileFact) -> str:
+def _file_line(fact: FileFact, suffix: str = "") -> str:
     status = "edited" if fact.edited else "read"
     path = _cap(_sanitize(Path(fact.path).as_posix()))
     if fact.lines is not None:
-        return f"- {path} | {fact.lines} lines | {status}"
-    return f"- {path} | {status}"
+        line = f"- {path} | {fact.lines} lines | {status}"
+    else:
+        line = f"- {path} | {status}"
+    return line + suffix
 
 
 def _fold_line(fact: FoldFact) -> str:

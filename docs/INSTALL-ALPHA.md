@@ -70,8 +70,8 @@ Each command is `uvx --from git+https://github.com/Pranavk098/context-fabric cfx
 
 | Command | Output |
 | :--- | :--- |
-| `/checkpoint` (inside Claude Code) | experimental: saves the current session's working state, then tells you to run `/clear`; the next session restores it once |
-| `checkpoint save\|show\|clear [--cwd DIR]` | `save` asks the running helper for a checkpoint (fails if it is not running); `show` prints exactly what the next session would receive (local only); `clear` deletes it |
+| `/checkpoint [note]` (inside Claude Code) | experimental, saving unproven: saves the current session's working state plus an optional goal note (up to 300 characters), the last test result, then tells you to run `/clear`; the next session restores it once and marks listed files missing or changed since the save |
+| `checkpoint save [--note TEXT]\|show\|clear [--cwd DIR]` | `save` asks the running helper for a checkpoint (fails if it is not running); `show` prints exactly what the next session would receive (local only); `clear` deletes it |
 | `doctor` | health, daemon identity, feature flags, hook latency |
 | `status` | running or not, pid, port, version |
 | `stats [--since 7d] [--session ID] [--json]` | folds and hook timings from the daemon's logs |
@@ -97,7 +97,7 @@ All under `~/.cfx/daemon/` (Windows: `C:\Users\<you>\.cfx\daemon\`). Nothing is 
 | :--- | :--- | :--- |
 | `events.jsonl`, `briefs.jsonl`, `carry.jsonl`, `folds.jsonl`, `bound.jsonl`, `coach.jsonl` | event names, sizes, counts, hashes, latencies | rotated by size |
 | `carry/<session>.json` | one note per compacted session: file paths, line counts, recent commands with obvious secrets masked, to-do text | 7 days |
-| `checkpoint/<cwd-hash>.json` | experimental `/checkpoint` package for one directory, same fields as a carry note plus a saved time and an armed flag | 7 days |
+| `checkpoint/<cwd-hash>.json` | experimental `/checkpoint` package for one directory, same fields as a carry note plus a goal note, the last test runner and result (no command text or output), a saved time and an armed flag; restore stats listed files to mark them missing or changed | 7 days |
 | `obs/` | full copies of folded output (**only if you turn fold on**; may contain code or command output) | 7 days |
 | `token` | per-install secret that authenticates hook calls (readable only by you) | until deleted |
 | `config.json`, `state.json`, `daemon.log` | flags, pid and port, daemon messages | until deleted |

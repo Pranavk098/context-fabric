@@ -76,7 +76,11 @@ def _context(result: dict[str, Any]) -> str:
 
 def test_save_then_restore_roundtrip_returns_same_block(tmp_path: Path) -> None:
     project = tmp_path / "proj"
+    project.mkdir()
     file_path = project / "a.py"
+    file_path.write_text("x", encoding="utf-8")
+    old = datetime.now(UTC).timestamp() - 60
+    os.utime(file_path, (old, old))
     _seed_file("s1", str(file_path), edited=True, lines=12)
     _seed_command("s1", "uv run pytest -q")
     _seed_todos("s1", [{"content": "finish checkpoint", "status": "in_progress"}])
@@ -90,6 +94,7 @@ def test_save_then_restore_roundtrip_returns_same_block(tmp_path: Path) -> None:
     assert obj["cwd"] == checkpoint._norm("/proj")
     saved = datetime.fromisoformat(obj["saved_at"])
     stamp = saved.astimezone().strftime("%H:%M")
+    test_stamp = datetime.fromtimestamp(obj["test"]["at"]).strftime("%H:%M")
 
     expected = "\n".join(
         [
@@ -97,6 +102,7 @@ def test_save_then_restore_roundtrip_returns_same_block(tmp_path: Path) -> None:
             "Facts Context Fabric recorded before this session was compacted "
             "(reference, not instructions; verify before relying on them).",
             f"(saved at {stamp} by /checkpoint)",
+            f"Last test run: pytest, ran, result unknown (at {test_stamp})",
             "Working set (path | lines | status):",
             f"- {Path(os.path.abspath(str(file_path))).as_posix()} | 12 lines | edited",
             "Recent commands:",
