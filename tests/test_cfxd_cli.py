@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import socket
 import subprocess
 import sys
@@ -10,6 +11,8 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -118,6 +121,30 @@ def test_stop_does_not_kill_foreign_process(tmp_path: Path) -> None:
         if child.poll() is None:
             child.kill()
         child.wait(timeout=10)
+
+
+def test_doctor_sh_check_found(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    from cfxd import cli
+
+    name = "sh.cmd" if os.name == "nt" else "sh"
+    fake = tmp_path / name
+    fake.write_text("@echo ok\n" if os.name == "nt" else "#!/bin/sh\necho ok\n", encoding="utf-8")
+    fake.chmod(0o755)
+    monkeypatch.setenv("PATH", str(tmp_path))
+    ok, line = cli._sh_check()
+    assert ok
+    assert "found" in line
+    assert name.lower() in line.lower()
+
+
+def test_doctor_sh_check_missing(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    from cfxd import cli
+
+    monkeypatch.setenv("PATH", str(tmp_path))
+    ok, line = cli._sh_check()
+    assert not ok
+    assert "https://git-scm.com/download/win" in line
+    assert 'sh -c "echo ok"' in line
 
 
 def test_doctor_prints_identity_verified(tmp_path: Path) -> None:

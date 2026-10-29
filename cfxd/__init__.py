@@ -6,4 +6,4 @@ Claude Code points its http hooks at the daemon; command-hook clients
 
 from __future__ import annotations
 
-__version__ = "0.1.0a1"
+__version__ = "0.1.1a1"

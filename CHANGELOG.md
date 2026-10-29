@@ -3,6 +3,46 @@
 All notable changes to Context Fabric are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.1.1-alpha.1] - 2026-10-29
+
+Next alpha of the Claude Code plugin. **Experimental. The token saving is still not proven.**
+
+### Measurement
+- New offline commands: `tour` (guided first run), `week` (one weekly summary), `ledger` (every action labelled
+  OBSERVED, ESTIMATED or PROVEN), `fidelity` (compaction-summary recall and path precision), `routing`
+  (tokens and API-equivalent dollars by model and role), `agent-audit` (Codex/OpenCode logs) and `refetch`.
+- `diet --apply` / `--undo`: reversibly disable fully-unused local plugins (dry run unless `--yes`).
+- `replay` reset policies gained a re-fetch sensitivity factor; `stats` and `week` gained cold-resume lines;
+  `routing` prices one row per model version.
+
+### Mechanisms (experimental)
+- `/checkpoint` v1.1: saves the working state plus an optional goal note and the last test result, restores it
+  once after `/clear`, and marks listed files missing or changed; saving unproven.
+- `bound` (tail noisy Bash output), `coach` (long-session nudge) and the idle notice: all off by default,
+  effect unproven.
+- Plugin A/B harness v2: paired plugin-on/off runs with session-length-stratified task chains and a checkpoint
+  arm, behind a pre-registered protocol; pilot only, no result claimed.
+
+### Proof and trust
+- Checkpoint facts are rebuilt from the session transcript when hook events were dropped, and the A/B harness
+  records infrastructure failures instead of scoring them.
+- Fidelity metrics frozen at v1 with stricter path matching; test runs are recognised in compound commands.
+- Command-drift tests keep README and install guide in step with the CLI; the numbers registry still guards
+  every headline figure. No paired saving result exists yet.
+
+### Security
+- Launcher notes pass through stdin and a quoted heredoc (no model-written files, no wildcard pre-approval);
+  token and state-dir guards, a `stop` identity check, diet argv hardening and daemon request rejection.
+- Broader secret masking (to-do text redacted, WebFetch sources trimmed), ordinal share labels, bounded JSONL
+  readers; SECURITY.md updated.
+- Release workflow actions pinned and attestation-gated; `pip-audit` at release time reports no known
+  vulnerabilities for the resolved set (a point-in-time snapshot, not a guarantee).
+
+### Docs
+- Tester guide rewritten with an alpha feedback template; install guide, README command table and troubleshooting
+  refreshed for the new commands and the Windows `sh` / Git for Windows requirement.
+- Added `docs/release-notes/v0.1.1-alpha.1.md` and `docs/RELEASE-CHECKLIST.md`.
+
 ## [Unreleased]
 
 ### Added (2026-10-24)

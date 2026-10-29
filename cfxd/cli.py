@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -466,9 +467,22 @@ def _warn_outside_profile(state_dir: Path) -> None:
         )
 
 
+def _sh_check() -> tuple[bool, str]:
+    """The hooks run ``sh launch.sh``; Windows gets that from Git for Windows."""
+    found = shutil.which("sh")
+    if found:
+        return True, f"sh:          found ({found})"
+    return False, (
+        "sh:          NOT found. Windows needs Git for Windows: "
+        + "https://git-scm.com/download/win\n"
+        + '             after installing, open a new terminal; check: sh -c "echo ok"'
+    )
+
+
 def _cmd_doctor(args: argparse.Namespace) -> int:
     state_dir = resolve_state_dir(args.state_dir)
     _warn_outside_profile(state_dir)
+    sh_ok, sh_line = _sh_check()
     state_file = state_dir / STATE_FILE
     state = read_state(state_file)
     if state is None:
@@ -520,6 +534,7 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
     print(f"flags:       brief={brief} carry={carry} fold={fold}")
     print(f"health:      {'ok' if healthy else 'FAIL'}")
     print(f"identity:    {'verified' if verify_identity(state_dir, port) else 'NOT verified'}")
+    print(sh_line)
     print(
         f"round trips: n={len(samples)} p50={p50:.2f} ms p95={p95:.2f} ms "
         f"({ok_trips}/{len(samples)} ok)"
@@ -529,7 +544,7 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
         f"p95={shim_p95:.2f} ms ({shim_failures} failed)"
     )
 
-    if not healthy or ok_trips != len(samples) or p95 > 50.0:
+    if not healthy or not sh_ok or ok_trips != len(samples) or p95 > 50.0:
         print("cfxd doctor: unhealthy")
         return 1
     print("cfxd doctor: healthy")

@@ -25,6 +25,10 @@ curl -fsSL https://claude.ai/install.sh | bash        # Claude Code
 
 **Windows (PowerShell)**
 
+Windows needs `sh` from Git for Windows: the plugin's hooks run `sh launch.sh`. Check first with
+`sh -c "echo ok"`; if that fails, install Git for Windows (<https://git-scm.com/download/win>) and open a new
+terminal. `cfxd doctor` prints the same check and link.
+
 ```powershell
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 winget install --id Git.Git -e
@@ -123,7 +127,7 @@ reporting: [`SECURITY.md`](../SECURITY.md).
 | `doctor` says not running | start a new Claude Code session, run `doctor` again |
 | `doctor` says identity NOT verified | something else holds port 47831, or an old daemon is running: `cfxd stop`, restart Claude Code |
 | Port 47831 in use | another program holds it; the port is fixed in this alpha, please report it |
-| Windows: nothing happens | install Git for Windows; the start-up script needs Git Bash |
+| Windows: nothing happens | check `sh -c "echo ok"`; if it fails, install Git for Windows (link above) and open a new terminal — the start-up script needs it |
 | First session slow | run `uv python install 3.12` once |
 
 ## 8. Uninstall

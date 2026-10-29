@@ -1,6 +1,6 @@
 [project]
 name = "context-fabric"
-version = "0.1.0a1"
+version = "0.1.1a1"
 description = "Context Fabric — semantic MMU / context compiler for AI agents (CPP v1.0)"
 requires-python = ">=3.12"
 dependencies = [

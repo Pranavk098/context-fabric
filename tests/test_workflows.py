@@ -36,3 +36,10 @@ def test_release_requires_a_tag_on_main() -> None:
     text = (WORKFLOWS / "release.yml").read_text(encoding="utf-8")
     assert "git fetch origin main" in text
     assert "merge-base --is-ancestor" in text
+
+
+def test_release_has_a_manual_dry_run() -> None:
+    text = (WORKFLOWS / "release.yml").read_text(encoding="utf-8")
+    assert "workflow_dispatch:" in text
+    assert "dry_run:" in text
+    assert "github.event_name == 'push'" in text
