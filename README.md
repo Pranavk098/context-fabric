@@ -73,6 +73,12 @@ experimental until a paired test shows they pay.
 | `cfxd routing` | Splits your sessions' tokens and API-equivalent dollars by model and by main conversation versus sub-agents, and shows what a cheaper sub-agent tier would change (price only, quality unmeasured) | working |
 | `cfxd agent-audit` | The same counts-only breakdown for Codex and OpenCode session logs | working |
 | `cfxd replay` | Simulates shrinking old tool output on your sessions, with prompt-cache effects, and reports the bound | working |
+| `cfxd tour`, `week --share` | A guided first run, and a one-command weekly summary of counts that is safe to paste | working |
+| `cfxd refetch` | Measures how much of the context dropped by a compaction or `/clear` the agent reads again | working |
+| `cfxd diet --apply` / `--undo` | Disables fully unused local plugins through Claude Code's own command, with an exact undo | experimental |
+| Checkpoint (`/context-fabric:checkpoint`, then `/clear`) | Saves a short note of files, commands, todos and an optional goal, and restores it once in the next session | experimental |
+| Bound (`cfxd set bound on`) | Keeps only the last 150 lines of simple test and log commands | experimental, off by default |
+| Coach, idle notice (`cfxd set coach on`, `idle_notice on`) | One plain line when a session gets long, or when a resume finds the cache expired | experimental, off by default |
 | Brief | Gives a sub-agent the files and saved outputs the parent already touched; fires only when a sub-agent runs | experimental |
 | Carry | Snapshots the working set before `/compact`, restores it after; acts only at a compaction, which is rare | experimental |
 | Fold | Replaces very large tool output with a short note plus a pointer to the full copy | off by default |
@@ -165,10 +171,10 @@ in [`docs/engineering/NUMBERS.md`](docs/engineering/NUMBERS.md).
 **Now.** Claude Code plugin (alpha); offline `audit`, `diet`, `waste` and `replay`; brief and carry in experimental state.
 
 **Next.**
-- [ ] Checkpoint and restart for long sessions: a short working-state handoff restored after `/clear`, tested first on how
-      much of the dropped context the agent actually re-reads
-- [ ] `cfxd diet --apply` with an exact undo, checked against Claude Code's own `/context`
-- [ ] Session coach: context size and cost per turn, with one nudge at natural breaks
+- [x] Checkpoint and restart for long sessions (shipped, experimental). `cfxd refetch` found that agents re-read almost
+      none of what a compaction dropped; whether the restart saves tokens without losing work is the next paired test
+- [x] `cfxd diet --apply` with an exact undo (shipped, experimental; its effect is still to be checked in `/context`)
+- [x] Session coach (shipped, experimental, off by default)
 - [ ] OpenCode and Codex plugin adapters (their session-log readers already exist)
 - [ ] Pre-registered paired benchmark: cache-weighted cost per resolved task, raw data published
 
