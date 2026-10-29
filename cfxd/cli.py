@@ -251,10 +251,12 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_state_dir(checkpoint_parser)
     checkpoint_parser.set_defaults(func=_cmd_checkpoint)
 
-    setp = subparsers.add_parser("set", help="toggle brief, carry, fold, fold_read or bound on/off")
+    setp = subparsers.add_parser(
+        "set", help="toggle brief, carry, fold, fold_read, bound or coach on/off"
+    )
     setp.add_argument(
         "flag",
-        choices=["brief", "carry", "fold", "fold_read", "bound"],
+        choices=["brief", "carry", "fold", "fold_read", "bound", "coach"],
         help="feature to toggle",
     )
     setp.add_argument("value", choices=["on", "off"], help="new state")
@@ -324,9 +326,9 @@ def _cmd_status(args: argparse.Namespace) -> int:
 def _cmd_set(args: argparse.Namespace) -> int:
     state_dir = resolve_state_dir(args.state_dir)
     set_flag(state_dir, args.flag, args.value == "on")
-    if args.flag == "bound":
-        # launch.sh reads this flag file to skip Python for non-bounded Bash calls.
-        flag = state_dir / "bound.on"
+    if args.flag in ("bound", "coach"):
+        # launch.sh reads this flag file to skip Python until the feature is on.
+        flag = state_dir / f"{args.flag}.on"
         if args.value == "on":
             flag.touch()
         else:

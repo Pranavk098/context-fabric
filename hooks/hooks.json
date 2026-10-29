@@ -61,6 +61,18 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/cfxd/launch.sh\" forward Stop",
+            "timeout": 2
+          }
+        ]
+      }
     ]
   }
 }

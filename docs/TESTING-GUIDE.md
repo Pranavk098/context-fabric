@@ -65,6 +65,9 @@ Work as you always do. Two things make the data more useful, if they fit your wo
 - Run at least one task that starts a **sub-agent** (for example ask Claude to "use an agent to review these files").
 - Run `/compact` once in a long session.
 - Optional, experimental: `cfxd set bound on`, run your tests as usual, then `cfxd stats`; `cfxd set bound off` stops it.
+- Optional, experimental (`cfxd set coach on`): after 30 turns and about 150K context, the Stop hook prints one plain line with the session's
+  cache-read cost and the `/checkpoint` then `/clear` workflow; `cfxd stats` counts nudges shown. Whether this saves tokens is not yet proven;
+  `cfxd set coach off` stops it.
 - Optional, experimental (`/checkpoint`): do a normal task for a while, run `/checkpoint`, then `/clear`. The new session should start with a
   `context-fabric-carry` block saved minutes earlier, and `cfxd checkpoint show` prints the same block. Whether this saves tokens is not yet
   proven; if the block looks wrong or stale, run `cfxd checkpoint clear`.

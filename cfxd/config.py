@@ -1,10 +1,11 @@
-"""On/off switches for brief, carry, fold, fold_read and bound, read from
+"""On/off switches for brief, carry, fold, fold_read, bound and coach, read from
 ``<state_dir>/config.json``.
 
-Brief and carry default on so the alpha produces data; bound is experimental and
-defaults off. The daemon is shared across Claude Code sessions, so a file is the
-only way one session can reach the daemon; it is re-read whenever its mtime
-changes. A missing or malformed file falls back to the defaults.
+Brief and carry default on so the alpha produces data; bound and coach are
+experimental and default off. The daemon is shared across Claude Code sessions,
+so a file is the only way one session can reach the daemon; it is re-read
+whenever its mtime changes. A missing or malformed file falls back to the
+defaults.
 """
 
 from __future__ import annotations
@@ -26,6 +27,7 @@ _DEFAULTS: dict[str, bool] = {
     "fold": False,
     "fold_read": False,
     "bound": False,
+    "coach": False,
 }
 _CACHE: dict[Path, tuple[int, dict[str, bool]]] = {}
 

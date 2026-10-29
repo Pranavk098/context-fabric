@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from cfxd.bound import BOUND_LOG, TAIL_LINES
+from cfxd.coach import COACH_LOG
 from cfxd.daemon import EVENTS_FILE, percentile
 from cfxd.fold import FOLDS_LOG
 
@@ -142,10 +143,21 @@ def collect_stats(
             continue
         bounded += 1
 
+    nudges = 0
+    for entry in _read_objects(state_dir / COACH_LOG):
+        if entry.get("event") != "coach_nudge" or entry.get("outcome") != "shown":
+            continue
+        if not _match_session(entry.get("session_id"), session):
+            continue
+        if not _in_window(entry.get("ts"), cutoff):
+            continue
+        nudges += 1
+
     return {
         "since": since,
         "sessions": len(sessions),
         "bounded": bounded,
+        "nudges": nudges,
         "folds": {
             "count": fold_count,
             "by_tool": dict(sorted(by_tool.items(), key=lambda kv: (-kv[1], kv[0]))),
@@ -169,7 +181,7 @@ def collect_stats(
 
 def format_human(stats: dict[str, Any]) -> str:
     """Render the stats as the short plain-text report (``No folds yet.`` when empty)."""
-    if not stats["folds"]["count"] and not stats["bounded"]:
+    if not stats["folds"]["count"] and not stats["bounded"] and not stats["nudges"]:
         return "No folds yet."
     label = _SINCE_LABELS.get(str(stats["since"]), "all time")
     n = stats["sessions"]
@@ -186,6 +198,7 @@ def format_human(stats: dict[str, Any]) -> str:
             f" about {out['tokens_estimated']:,} tokens, {out['percent_saved']}%)"
         ),
         (f"{'Bounded:':<12}{stats['bounded']:,}   Bash commands capped (tail {TAIL_LINES} lines)"),
+        (f"{'Nudges:':<12}{stats['nudges']:,}   long-session nudges shown"),
         (
             f"{'Hook calls:':<12}{hooks['count']:,}   p50 {hooks['p50_ms']:.1f} ms"
             f"   p95 {hooks['p95_ms']:.1f} ms   errors {hooks['errors']}"
