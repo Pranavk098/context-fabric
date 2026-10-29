@@ -348,7 +348,8 @@ def test_checkpoint_arm_saves_and_restarts_the_session(
     assert record["checkpoint_restore_outcome"] == "restored"
     assert len(record["checkpoints"]) == 2
     assert all(c["restore_outcome"] == "restored" for c in record["checkpoints"])
-    assert len(fresh_envs) == 2
+    # The daemon starts with step 1's environment, so every step carries the variable.
+    assert len(fresh_envs) == len(commands)
 
     sessions = [
         cmd[cmd.index("--session-id") + 1]

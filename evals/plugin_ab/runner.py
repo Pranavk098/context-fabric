@@ -575,7 +575,10 @@ def _run_chain(
         env = os.environ.copy()
         env["CFX_HOME"] = str(cfx_home)
         env["CFX_PORT"] = str(port)
-        if fresh_session:
+        # The restore handler runs inside the daemon, which starts with the first step's
+        # environment, so the checkpoint arm sets this for every step (nothing is saved
+        # before the first boundary, so step 1 restores nothing).
+        if spec.arm == "checkpoint":
             env["CFX_RESTORE_ON_STARTUP"] = "1"
         if override_config:
             env["CLAUDE_CONFIG_DIR"] = str(config_dir)
