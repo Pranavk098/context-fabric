@@ -86,6 +86,7 @@ Each command is `uvx --from git+https://github.com/Pranavk098/context-fabric cfx
 | `set brief\|carry\|fold\|fold_read\|bound\|coach on\|off` | feature flags (brief and carry on; fold, fold_read, bound and coach off) |
 | `set coach on\|off` | experimental: one plain line at a natural break once a session reaches ~150K tokens and 30 turns, with its cache-read cost and the checkpoint workflow; off by default, saving unproven |
 | `stop` | stop the daemon (the next session starts it again) |
+| `evals/plugin_ab` (repo checkout only, not a `cfxd` command) | experimental and unproven: the v2 session-length-stratified A/B chains (`python -m evals.plugin_ab.runner --tasks evals/plugin_ab/tasks_v2.json --stratum long --pilot`); it spends model budget unless `PLUGIN_AB_CLAUDE` points at the fake stand-in |
 
 `audit`, `replay`, `stats` and `week` print counts and sizes only: no paths, commands, prompts or text.
 

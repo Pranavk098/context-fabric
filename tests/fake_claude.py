@@ -101,6 +101,13 @@ def _apply_solution(cwd: str) -> None:
     apply_patch(Path(cwd), patch)
 
 
+def _write_answers(cwd: str) -> None:
+    source = os.environ.get("PLUGIN_AB_FAKE_ANSWERS")
+    if not source:
+        return
+    Path(cwd, "answers.json").write_text(Path(source).read_text(encoding="utf-8"), encoding="utf-8")
+
+
 def _write_subagent(project_dir: Path, session_id: str) -> None:
     sub_dir = project_dir / session_id / "subagents"
     sub_dir.mkdir(parents=True, exist_ok=True)
@@ -123,6 +130,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if step in ("run", "implement"):
         _apply_solution(cwd)
+        _write_answers(cwd)
 
     prompt = str(args["prompt"] or "")
     _write(parent, _user_text(prompt))

@@ -1,0 +1,912 @@
+[
+  {
+    "id": "plain-fix-discount",
+    "kind": "plain",
+    "prompt": "The bulk-discount rule in the shop is wrong: it only gives the 5% discount when the subtotal reaches $1000 instead of $100. Find the bug in `shop/discounts.py` and fix it so that `tests/test_discounts.py` passes.",
+    "setup_patch": {
+      "shop/discounts.py": [
+        {
+          "old": "if subtotal >= Decimal(\"100\"):",
+          "new": "if subtotal >= Decimal(\"1000\"):"
+        }
+      ]
+    },
+    "oracle": "tests/test_discounts.py",
+    "reference_patch": {
+      "shop/discounts.py": [
+        {
+          "old": "if subtotal >= Decimal(\"1000\"):",
+          "new": "if subtotal >= Decimal(\"100\"):"
+        }
+      ]
+    },
+    "needs_read_files": [
+      "shop/discounts.py",
+      "shop/orders.py",
+      "tests/test_discounts.py"
+    ],
+    "stratum": "short",
+    "fixture": "fixture"
+  },
+  {
+    "id": "plain-implement-tax",
+    "kind": "plain",
+    "prompt": "Implement `compute_tax` in `shop/pricing.py` according to its docstring: it should return `subtotal * rate` rounded to cents. The function is currently stubbed with `raise NotImplementedError`. Make `tests/test_pricing.py` pass.",
+    "setup_patch": {
+      "shop/pricing.py": [
+        {
+          "old": "    return round(subtotal * rate, 2)",
+          "new": "    raise NotImplementedError"
+        }
+      ]
+    },
+    "oracle": "tests/test_pricing.py",
+    "reference_patch": {
+      "shop/pricing.py": [
+        {
+          "old": "    raise NotImplementedError",
+          "new": "    return round(subtotal * rate, 2)"
+        }
+      ]
+    },
+    "needs_read_files": [
+      "shop/pricing.py",
+      "tests/test_pricing.py"
+    ],
+    "stratum": "short",
+    "fixture": "fixture"
+  },
+  {
+    "id": "plain-rename-format-currency",
+    "kind": "plain",
+    "prompt": "Rename the money formatter `format_money` to `format_currency` across the shop. It is defined in `shop/formatting.py` and used in `shop/orders.py`, `shop/pricing.py`, and inside `format_receipt`. A new test `tests/test_rename.py` expects `format_currency` to exist. Make that test pass.",
+    "setup_patch": {
+      "tests/test_rename.py": [
+        {
+          "create": "\"\"\"Rename oracle: the currency formatter must be named ``format_currency``.\"\"\"\nfrom decimal import Decimal\n\nfrom shop.formatting import format_currency\n\n\ndef test_format_currency() -> None:\n    assert format_currency(Decimal(\"12.3\")) == \"$12.30\"\n    assert format_currency(Decimal(\"5\")) == \"$5.00\"\n"
+        }
+      ]
+    },
+    "oracle": "tests/test_rename.py",
+    "reference_patch": {
+      "shop/formatting.py": [
+        {
+          "old": "format_money",
+          "new": "format_currency",
+          "all": true
+        }
+      ],
+      "shop/orders.py": [
+        {
+          "old": "format_money",
+          "new": "format_currency",
+          "all": true
+        }
+      ],
+      "shop/pricing.py": [
+        {
+          "old": "format_money",
+          "new": "format_currency",
+          "all": true
+        }
+      ],
+      "tests/test_formatting.py": [
+        {
+          "old": "format_money",
+          "new": "format_currency",
+          "all": true
+        }
+      ]
+    },
+    "needs_read_files": [
+      "shop/formatting.py",
+      "shop/orders.py",
+      "shop/pricing.py"
+    ],
+    "stratum": "short",
+    "fixture": "fixture"
+  },
+  {
+    "id": "plain-add-empty-order-validation",
+    "kind": "plain",
+    "prompt": "Add a validation rule to `shop/validators.py`: an order with no line items should report the error `order is empty`. A new test in `tests/test_validators.py` expects this. Make `tests/test_validators.py` pass.",
+    "setup_patch": {
+      "tests/test_validators.py": [
+        {
+          "append": "\n\ndef test_empty_order_rejected() -> None:\n    assert validate_order(Order()) == [\"order is empty\"]\n"
+        }
+      ]
+    },
+    "oracle": "tests/test_validators.py",
+    "reference_patch": {
+      "shop/validators.py": [
+        {
+          "old": "    errors: list[str] = []",
+          "new": "    errors: list[str] = []\n    if not order.lines:\n        errors.append(\"order is empty\")"
+        }
+      ]
+    },
+    "needs_read_files": [
+      "shop/validators.py",
+      "shop/orders.py",
+      "tests/test_validators.py"
+    ],
+    "stratum": "short",
+    "fixture": "fixture"
+  },
+  {
+    "id": "medium-tax",
+    "kind": "chain",
+    "stratum": "medium",
+    "fixture": "fixture_v2",
+    "setup_patch": {},
+    "steps": [
+      {
+        "id": "money",
+        "prompt": "Create `shop/money.py` with a `round_cents(amount)` helper that rounds a `Decimal` to cents using `ROUND_HALF_UP` (half away from zero). Make `tests/test_money.py` pass.",
+        "oracle": "tests/test_money.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/money.py": [
+            {
+              "old": "    raise NotImplementedError",
+              "new": "    return amount.quantize(Decimal(\"0.01\"), rounding=ROUND_HALF_UP)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "tax",
+        "prompt": "Implement `compute_tax` in `shop/pricing.py`: return `subtotal * rate` rounded to cents, using the same half-up convention as `shop/money.py`. Make `tests/test_tax.py` pass.",
+        "oracle": "tests/test_tax.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/pricing.py": [
+            {
+              "old": "    \"\"\"Return the sales tax on ``subtotal`` at ``rate`` (e.g. 0.0825), rounded to cents.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return the sales tax on ``subtotal`` at ``rate`` (e.g. 0.0825), rounded to cents.\"\"\"\n    return round(subtotal * rate, 2)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "total",
+        "prompt": "Implement `total_price` in `shop/pricing.py`: subtract the discount, add tax computed by `compute_tax`, and round to cents. Make `tests/test_total.py` pass.",
+        "oracle": "tests/test_total.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/pricing.py": [
+            {
+              "old": "    \"\"\"Return the final total: discount applied, then tax, rounded to cents.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return the final total: discount applied, then tax, rounded to cents.\"\"\"\n    discounted = subtotal - discount\n    return round(discounted + compute_tax(discounted, tax_rate), 2)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "report-build",
+        "prompt": "Implement `build_report` in `shop/report.py`: apply the discount, compute tax with `compute_tax`, and return subtotal, discount, tax and total rounded with `round_cents`. Make `tests/test_report_build.py` pass.",
+        "oracle": "tests/test_report_build.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/report.py": [
+            {
+              "old": "from decimal import Decimal",
+              "new": "from decimal import Decimal\n\nfrom shop.money import round_cents\nfrom shop.pricing import compute_tax"
+            },
+            {
+              "old": "    \"\"\"Return subtotal, discount, tax and total for a checkout.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return subtotal, discount, tax and total for a checkout.\"\"\"\n    discounted = subtotal - discount\n    tax = compute_tax(discounted, tax_rate)\n    return {\n        \"subtotal\": round_cents(subtotal),\n        \"discount\": round_cents(discount),\n        \"tax\": tax,\n        \"total\": round_cents(discounted + tax),\n    }"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "medium-coupons",
+    "kind": "chain",
+    "stratum": "medium",
+    "fixture": "fixture_v2",
+    "setup_patch": {},
+    "steps": [
+      {
+        "id": "money",
+        "prompt": "Create `shop/money.py` with a `round_cents(amount)` helper that rounds a `Decimal` to cents using `ROUND_HALF_UP` (half away from zero). Make `tests/test_money.py` pass.",
+        "oracle": "tests/test_money.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/money.py": [
+            {
+              "old": "    raise NotImplementedError",
+              "new": "    return amount.quantize(Decimal(\"0.01\"), rounding=ROUND_HALF_UP)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "coupon-model",
+        "prompt": "In `shop/coupons.py`, create a `CouponError(ValueError)` class and implement `normalize_code` to strip whitespace and upper-case the code. Keep the existing `Coupon` dataclass. Make `tests/test_coupon_model.py` pass.",
+        "oracle": "tests/test_coupon_model.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/coupons.py": [
+            {
+              "old": "# CouponError is created in the coupon-model step.",
+              "new": "class CouponError(ValueError):\n    \"\"\"Raised when a coupon is invalid, expired, or does not apply.\"\"\""
+            },
+            {
+              "old": "    \"\"\"Return the coupon code stripped and upper-cased.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return the coupon code stripped and upper-cased.\"\"\"\n    return code.strip().upper()"
+            }
+          ]
+        }
+      },
+      {
+        "id": "coupon-apply",
+        "prompt": "Implement `apply_coupon` in `shop/coupons.py`: reject an empty code, a percent outside 0-100, and a subtotal below `min_subtotal` with `CouponError`; otherwise return the percentage discount rounded with `round_cents`. Make `tests/test_coupon_apply.py` pass.",
+        "oracle": "tests/test_coupon_apply.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/coupons.py": [
+            {
+              "old": "from decimal import Decimal",
+              "new": "from decimal import Decimal\n\nfrom shop.money import round_cents"
+            },
+            {
+              "old": "    \"\"\"Return the discount for ``coupon`` on ``subtotal``, or raise CouponError.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return the discount for ``coupon`` on ``subtotal``, or raise CouponError.\"\"\"\n    if not coupon.code.strip():\n        raise CouponError(\"coupon code is empty\")\n    if coupon.percent <= 0 or coupon.percent > 100:\n        raise CouponError(\"coupon percent out of range\")\n    if subtotal < coupon.min_subtotal:\n        raise CouponError(\"coupon minimum not met\")\n    return round_cents(subtotal * coupon.percent / Decimal(\"100\"))"
+            }
+          ]
+        }
+      },
+      {
+        "id": "coupon-expiry",
+        "prompt": "Implement `validate_coupon` in `shop/coupons.py`: raise `CouponError` when `days_since_issue` is greater than `expires_in_days` (a coupon is valid on its last day). Make `tests/test_coupon_expiry.py` pass.",
+        "oracle": "tests/test_coupon_expiry.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/coupons.py": [
+            {
+              "old": "    \"\"\"Raise CouponError when ``coupon`` has expired.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Raise CouponError when ``coupon`` has expired.\"\"\"\n    if coupon.expires_in_days is not None and days_since_issue > coupon.expires_in_days:\n        raise CouponError(\"coupon expired\")"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "medium-refunds",
+    "kind": "chain",
+    "stratum": "medium",
+    "fixture": "fixture_v2",
+    "setup_patch": {},
+    "steps": [
+      {
+        "id": "money",
+        "prompt": "Create `shop/money.py` with a `round_cents(amount)` helper that rounds a `Decimal` to cents using `ROUND_HALF_UP` (half away from zero). Make `tests/test_money.py` pass.",
+        "oracle": "tests/test_money.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/money.py": [
+            {
+              "old": "    raise NotImplementedError",
+              "new": "    return amount.quantize(Decimal(\"0.01\"), rounding=ROUND_HALF_UP)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "refund-amount",
+        "prompt": "In `shop/refunds.py`, create a `RefundError(ValueError)` class and implement `refund_amount`: reject a returned total outside 0..order_total and a restocking percent outside 0-100 with `RefundError`; otherwise subtract the rounded restocking fee. Make `tests/test_refund_amount.py` pass.",
+        "oracle": "tests/test_refund_amount.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/refunds.py": [
+            {
+              "old": "# RefundError is created in the refund-amount step.",
+              "new": "class RefundError(ValueError):\n    \"\"\"Raised when a refund is invalid.\"\"\""
+            },
+            {
+              "old": "from decimal import Decimal",
+              "new": "from decimal import Decimal\n\nfrom shop.money import round_cents"
+            },
+            {
+              "old": "    \"\"\"Return the refund for ``returned_total`` after a restocking fee, or raise RefundError.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return the refund for ``returned_total`` after a restocking fee, or raise RefundError.\"\"\"\n    if returned_total < 0 or returned_total > order_total:\n        raise RefundError(\"returned total out of range\")\n    if restocking_percent < 0 or restocking_percent > 100:\n        raise RefundError(\"restocking percent out of range\")\n    fee = round_cents(returned_total * restocking_percent / Decimal(\"100\"))\n    return round_cents(returned_total - fee)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "refund-cap",
+        "prompt": "Implement `capped_refund` in `shop/refunds.py`: reject negative amounts or caps with `RefundError`, otherwise return the smaller of the two. Make `tests/test_refund_cap.py` pass.",
+        "oracle": "tests/test_refund_cap.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/refunds.py": [
+            {
+              "old": "    \"\"\"Return ``amount`` capped at ``cap``, or raise RefundError.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return ``amount`` capped at ``cap``, or raise RefundError.\"\"\"\n    if amount < 0:\n        raise RefundError(\"refund amount is negative\")\n    if cap < 0:\n        raise RefundError(\"refund cap is negative\")\n    return min(amount, cap)"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "medium-report",
+    "kind": "chain",
+    "stratum": "medium",
+    "fixture": "fixture_v2",
+    "setup_patch": {},
+    "steps": [
+      {
+        "id": "money",
+        "prompt": "Create `shop/money.py` with a `round_cents(amount)` helper that rounds a `Decimal` to cents using `ROUND_HALF_UP` (half away from zero). Make `tests/test_money.py` pass.",
+        "oracle": "tests/test_money.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/money.py": [
+            {
+              "old": "    raise NotImplementedError",
+              "new": "    return amount.quantize(Decimal(\"0.01\"), rounding=ROUND_HALF_UP)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "tax",
+        "prompt": "Implement `compute_tax` in `shop/pricing.py`: return `subtotal * rate` rounded to cents, using the same half-up convention as `shop/money.py`. Make `tests/test_tax.py` pass.",
+        "oracle": "tests/test_tax.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/pricing.py": [
+            {
+              "old": "    \"\"\"Return the sales tax on ``subtotal`` at ``rate`` (e.g. 0.0825), rounded to cents.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return the sales tax on ``subtotal`` at ``rate`` (e.g. 0.0825), rounded to cents.\"\"\"\n    return round(subtotal * rate, 2)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "report-build",
+        "prompt": "Implement `build_report` in `shop/report.py`: apply the discount, compute tax with `compute_tax`, and return subtotal, discount, tax and total rounded with `round_cents`. Make `tests/test_report_build.py` pass.",
+        "oracle": "tests/test_report_build.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/report.py": [
+            {
+              "old": "from decimal import Decimal",
+              "new": "from decimal import Decimal\n\nfrom shop.money import round_cents\nfrom shop.pricing import compute_tax"
+            },
+            {
+              "old": "    \"\"\"Return subtotal, discount, tax and total for a checkout.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return subtotal, discount, tax and total for a checkout.\"\"\"\n    discounted = subtotal - discount\n    tax = compute_tax(discounted, tax_rate)\n    return {\n        \"subtotal\": round_cents(subtotal),\n        \"discount\": round_cents(discount),\n        \"tax\": tax,\n        \"total\": round_cents(discounted + tax),\n    }"
+            }
+          ]
+        }
+      },
+      {
+        "id": "report-format",
+        "prompt": "Implement `format_report` in `shop/report.py` to return one line like `Total: $94.50 (tax $4.50)`. Make `tests/test_report_format.py` pass.",
+        "oracle": "tests/test_report_format.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/report.py": [
+            {
+              "old": "    \"\"\"Return a one-line report like ``Total: $12.34 (tax $1.02)``.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return a one-line report like ``Total: $12.34 (tax $1.02)``.\"\"\"\n    return f\"Total: ${report['total']:.2f} (tax ${report['tax']:.2f})\""
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "long-checkout",
+    "kind": "chain",
+    "stratum": "long",
+    "fixture": "fixture_v2",
+    "setup_patch": {},
+    "steps": [
+      {
+        "id": "money",
+        "prompt": "Create `shop/money.py` with a `round_cents(amount)` helper that rounds a `Decimal` to cents using `ROUND_HALF_UP` (half away from zero). Make `tests/test_money.py` pass.",
+        "oracle": "tests/test_money.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/money.py": [
+            {
+              "old": "    raise NotImplementedError",
+              "new": "    return amount.quantize(Decimal(\"0.01\"), rounding=ROUND_HALF_UP)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "tax",
+        "prompt": "Implement `compute_tax` in `shop/pricing.py`: return `subtotal * rate` rounded to cents, using the same half-up convention as `shop/money.py`. Make `tests/test_tax.py` pass.",
+        "oracle": "tests/test_tax.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/pricing.py": [
+            {
+              "old": "    \"\"\"Return the sales tax on ``subtotal`` at ``rate`` (e.g. 0.0825), rounded to cents.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return the sales tax on ``subtotal`` at ``rate`` (e.g. 0.0825), rounded to cents.\"\"\"\n    return round(subtotal * rate, 2)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "total",
+        "prompt": "Implement `total_price` in `shop/pricing.py`: subtract the discount, add tax computed by `compute_tax`, and round to cents. Make `tests/test_total.py` pass.",
+        "oracle": "tests/test_total.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/pricing.py": [
+            {
+              "old": "    \"\"\"Return the final total: discount applied, then tax, rounded to cents.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return the final total: discount applied, then tax, rounded to cents.\"\"\"\n    discounted = subtotal - discount\n    return round(discounted + compute_tax(discounted, tax_rate), 2)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "discount-percent",
+        "prompt": "Implement `percent_discount` in `shop/discounts.py`: validate that `percent` is between 0 and 100, then return that percent of the subtotal rounded with `round_cents`. Make `tests/test_discount_percent.py` pass.",
+        "oracle": "tests/test_discount_percent.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/discounts.py": [
+            {
+              "old": "from decimal import Decimal",
+              "new": "from decimal import Decimal\n\nfrom shop.money import round_cents"
+            },
+            {
+              "old": "    \"\"\"Return ``percent`` of ``subtotal`` rounded to cents; percent is 0-100.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return ``percent`` of ``subtotal`` rounded to cents; percent is 0-100.\"\"\"\n    if percent < Decimal(\"0\") or percent > Decimal(\"100\"):\n        raise ValueError(\"percent must be between 0 and 100\")\n    return round_cents(subtotal * percent / Decimal(\"100\"))"
+            }
+          ]
+        }
+      },
+      {
+        "id": "discount-bulk",
+        "prompt": "Restore `bulk_discount` in `shop/discounts.py`: 5% of the subtotal when it is at least $100, otherwise zero, using `apply_discount`. Make `tests/test_discount_bulk.py` pass.",
+        "oracle": "tests/test_discount_bulk.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/discounts.py": [
+            {
+              "old": "    \"\"\"Return 5% of ``subtotal`` when it is at least $100, otherwise zero.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return 5% of ``subtotal`` when it is at least $100, otherwise zero.\"\"\"\n    if subtotal >= Decimal(\"100\"):\n        return apply_discount(subtotal, Decimal(\"0.05\"))\n    return Decimal(\"0\")"
+            }
+          ]
+        }
+      },
+      {
+        "id": "coupon-model",
+        "prompt": "In `shop/coupons.py`, create a `CouponError(ValueError)` class and implement `normalize_code` to strip whitespace and upper-case the code. Keep the existing `Coupon` dataclass. Make `tests/test_coupon_model.py` pass.",
+        "oracle": "tests/test_coupon_model.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/coupons.py": [
+            {
+              "old": "# CouponError is created in the coupon-model step.",
+              "new": "class CouponError(ValueError):\n    \"\"\"Raised when a coupon is invalid, expired, or does not apply.\"\"\""
+            },
+            {
+              "old": "    \"\"\"Return the coupon code stripped and upper-cased.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return the coupon code stripped and upper-cased.\"\"\"\n    return code.strip().upper()"
+            }
+          ]
+        }
+      },
+      {
+        "id": "coupon-apply",
+        "prompt": "Implement `apply_coupon` in `shop/coupons.py`: reject an empty code, a percent outside 0-100, and a subtotal below `min_subtotal` with `CouponError`; otherwise return the percentage discount rounded with `round_cents`. Make `tests/test_coupon_apply.py` pass.",
+        "oracle": "tests/test_coupon_apply.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/coupons.py": [
+            {
+              "old": "from decimal import Decimal",
+              "new": "from decimal import Decimal\n\nfrom shop.money import round_cents"
+            },
+            {
+              "old": "    \"\"\"Return the discount for ``coupon`` on ``subtotal``, or raise CouponError.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return the discount for ``coupon`` on ``subtotal``, or raise CouponError.\"\"\"\n    if not coupon.code.strip():\n        raise CouponError(\"coupon code is empty\")\n    if coupon.percent <= 0 or coupon.percent > 100:\n        raise CouponError(\"coupon percent out of range\")\n    if subtotal < coupon.min_subtotal:\n        raise CouponError(\"coupon minimum not met\")\n    return round_cents(subtotal * coupon.percent / Decimal(\"100\"))"
+            }
+          ]
+        }
+      },
+      {
+        "id": "coupon-expiry",
+        "prompt": "Implement `validate_coupon` in `shop/coupons.py`: raise `CouponError` when `days_since_issue` is greater than `expires_in_days` (a coupon is valid on its last day). Make `tests/test_coupon_expiry.py` pass.",
+        "oracle": "tests/test_coupon_expiry.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/coupons.py": [
+            {
+              "old": "    \"\"\"Raise CouponError when ``coupon`` has expired.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Raise CouponError when ``coupon`` has expired.\"\"\"\n    if coupon.expires_in_days is not None and days_since_issue > coupon.expires_in_days:\n        raise CouponError(\"coupon expired\")"
+            }
+          ]
+        }
+      },
+      {
+        "id": "refund-amount",
+        "prompt": "In `shop/refunds.py`, create a `RefundError(ValueError)` class and implement `refund_amount`: reject a returned total outside 0..order_total and a restocking percent outside 0-100 with `RefundError`; otherwise subtract the rounded restocking fee. Make `tests/test_refund_amount.py` pass.",
+        "oracle": "tests/test_refund_amount.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/refunds.py": [
+            {
+              "old": "# RefundError is created in the refund-amount step.",
+              "new": "class RefundError(ValueError):\n    \"\"\"Raised when a refund is invalid.\"\"\""
+            },
+            {
+              "old": "from decimal import Decimal",
+              "new": "from decimal import Decimal\n\nfrom shop.money import round_cents"
+            },
+            {
+              "old": "    \"\"\"Return the refund for ``returned_total`` after a restocking fee, or raise RefundError.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return the refund for ``returned_total`` after a restocking fee, or raise RefundError.\"\"\"\n    if returned_total < 0 or returned_total > order_total:\n        raise RefundError(\"returned total out of range\")\n    if restocking_percent < 0 or restocking_percent > 100:\n        raise RefundError(\"restocking percent out of range\")\n    fee = round_cents(returned_total * restocking_percent / Decimal(\"100\"))\n    return round_cents(returned_total - fee)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "report-build",
+        "prompt": "Implement `build_report` in `shop/report.py`: apply the discount, compute tax with `compute_tax`, and return subtotal, discount, tax and total rounded with `round_cents`. Make `tests/test_report_build.py` pass.",
+        "oracle": "tests/test_report_build.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/report.py": [
+            {
+              "old": "from decimal import Decimal",
+              "new": "from decimal import Decimal\n\nfrom shop.money import round_cents\nfrom shop.pricing import compute_tax"
+            },
+            {
+              "old": "    \"\"\"Return subtotal, discount, tax and total for a checkout.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return subtotal, discount, tax and total for a checkout.\"\"\"\n    discounted = subtotal - discount\n    tax = compute_tax(discounted, tax_rate)\n    return {\n        \"subtotal\": round_cents(subtotal),\n        \"discount\": round_cents(discount),\n        \"tax\": tax,\n        \"total\": round_cents(discounted + tax),\n    }"
+            }
+          ]
+        }
+      },
+      {
+        "id": "report-format",
+        "prompt": "Implement `format_report` in `shop/report.py` to return one line like `Total: $94.50 (tax $4.50)`. Make `tests/test_report_format.py` pass.",
+        "oracle": "tests/test_report_format.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/report.py": [
+            {
+              "old": "    \"\"\"Return a one-line report like ``Total: $12.34 (tax $1.02)``.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return a one-line report like ``Total: $12.34 (tax $1.02)``.\"\"\"\n    return f\"Total: ${report['total']:.2f} (tax ${report['tax']:.2f})\""
+            }
+          ]
+        }
+      },
+      {
+        "id": "recall",
+        "prompt": "Write `answers.json` in the working directory with three facts from earlier in this session: `rounding` (the rounding rule), `error_class` (the coupon error class), and `report_format` (the one-line report shape). Make `oracles/recall_checkout.py` score all three.",
+        "oracle": "oracles/recall_checkout.py",
+        "timeout": 120,
+        "reference_patch": {},
+        "fake_answers": {
+          "rounding": "half-up (ROUND_HALF_UP)",
+          "error_class": "CouponError",
+          "report_format": "Total: $<amount> (tax $<amount>)"
+        }
+      }
+    ]
+  },
+  {
+    "id": "long-refunds",
+    "kind": "chain",
+    "stratum": "long",
+    "fixture": "fixture_v2",
+    "setup_patch": {},
+    "steps": [
+      {
+        "id": "money",
+        "prompt": "Create `shop/money.py` with a `round_cents(amount)` helper that rounds a `Decimal` to cents using `ROUND_HALF_UP` (half away from zero). Make `tests/test_money.py` pass.",
+        "oracle": "tests/test_money.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/money.py": [
+            {
+              "old": "    raise NotImplementedError",
+              "new": "    return amount.quantize(Decimal(\"0.01\"), rounding=ROUND_HALF_UP)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "tax",
+        "prompt": "Implement `compute_tax` in `shop/pricing.py`: return `subtotal * rate` rounded to cents, using the same half-up convention as `shop/money.py`. Make `tests/test_tax.py` pass.",
+        "oracle": "tests/test_tax.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/pricing.py": [
+            {
+              "old": "    \"\"\"Return the sales tax on ``subtotal`` at ``rate`` (e.g. 0.0825), rounded to cents.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return the sales tax on ``subtotal`` at ``rate`` (e.g. 0.0825), rounded to cents.\"\"\"\n    return round(subtotal * rate, 2)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "total",
+        "prompt": "Implement `total_price` in `shop/pricing.py`: subtract the discount, add tax computed by `compute_tax`, and round to cents. Make `tests/test_total.py` pass.",
+        "oracle": "tests/test_total.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/pricing.py": [
+            {
+              "old": "    \"\"\"Return the final total: discount applied, then tax, rounded to cents.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return the final total: discount applied, then tax, rounded to cents.\"\"\"\n    discounted = subtotal - discount\n    return round(discounted + compute_tax(discounted, tax_rate), 2)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "discount-percent",
+        "prompt": "Implement `percent_discount` in `shop/discounts.py`: validate that `percent` is between 0 and 100, then return that percent of the subtotal rounded with `round_cents`. Make `tests/test_discount_percent.py` pass.",
+        "oracle": "tests/test_discount_percent.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/discounts.py": [
+            {
+              "old": "from decimal import Decimal",
+              "new": "from decimal import Decimal\n\nfrom shop.money import round_cents"
+            },
+            {
+              "old": "    \"\"\"Return ``percent`` of ``subtotal`` rounded to cents; percent is 0-100.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return ``percent`` of ``subtotal`` rounded to cents; percent is 0-100.\"\"\"\n    if percent < Decimal(\"0\") or percent > Decimal(\"100\"):\n        raise ValueError(\"percent must be between 0 and 100\")\n    return round_cents(subtotal * percent / Decimal(\"100\"))"
+            }
+          ]
+        }
+      },
+      {
+        "id": "coupon-model",
+        "prompt": "In `shop/coupons.py`, create a `CouponError(ValueError)` class and implement `normalize_code` to strip whitespace and upper-case the code. Keep the existing `Coupon` dataclass. Make `tests/test_coupon_model.py` pass.",
+        "oracle": "tests/test_coupon_model.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/coupons.py": [
+            {
+              "old": "# CouponError is created in the coupon-model step.",
+              "new": "class CouponError(ValueError):\n    \"\"\"Raised when a coupon is invalid, expired, or does not apply.\"\"\""
+            },
+            {
+              "old": "    \"\"\"Return the coupon code stripped and upper-cased.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return the coupon code stripped and upper-cased.\"\"\"\n    return code.strip().upper()"
+            }
+          ]
+        }
+      },
+      {
+        "id": "coupon-apply",
+        "prompt": "Implement `apply_coupon` in `shop/coupons.py`: reject an empty code, a percent outside 0-100, and a subtotal below `min_subtotal` with `CouponError`; otherwise return the percentage discount rounded with `round_cents`. Make `tests/test_coupon_apply.py` pass.",
+        "oracle": "tests/test_coupon_apply.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/coupons.py": [
+            {
+              "old": "from decimal import Decimal",
+              "new": "from decimal import Decimal\n\nfrom shop.money import round_cents"
+            },
+            {
+              "old": "    \"\"\"Return the discount for ``coupon`` on ``subtotal``, or raise CouponError.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return the discount for ``coupon`` on ``subtotal``, or raise CouponError.\"\"\"\n    if not coupon.code.strip():\n        raise CouponError(\"coupon code is empty\")\n    if coupon.percent <= 0 or coupon.percent > 100:\n        raise CouponError(\"coupon percent out of range\")\n    if subtotal < coupon.min_subtotal:\n        raise CouponError(\"coupon minimum not met\")\n    return round_cents(subtotal * coupon.percent / Decimal(\"100\"))"
+            }
+          ]
+        }
+      },
+      {
+        "id": "refund-amount",
+        "prompt": "In `shop/refunds.py`, create a `RefundError(ValueError)` class and implement `refund_amount`: reject a returned total outside 0..order_total and a restocking percent outside 0-100 with `RefundError`; otherwise subtract the rounded restocking fee. Make `tests/test_refund_amount.py` pass.",
+        "oracle": "tests/test_refund_amount.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/refunds.py": [
+            {
+              "old": "# RefundError is created in the refund-amount step.",
+              "new": "class RefundError(ValueError):\n    \"\"\"Raised when a refund is invalid.\"\"\""
+            },
+            {
+              "old": "from decimal import Decimal",
+              "new": "from decimal import Decimal\n\nfrom shop.money import round_cents"
+            },
+            {
+              "old": "    \"\"\"Return the refund for ``returned_total`` after a restocking fee, or raise RefundError.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return the refund for ``returned_total`` after a restocking fee, or raise RefundError.\"\"\"\n    if returned_total < 0 or returned_total > order_total:\n        raise RefundError(\"returned total out of range\")\n    if restocking_percent < 0 or restocking_percent > 100:\n        raise RefundError(\"restocking percent out of range\")\n    fee = round_cents(returned_total * restocking_percent / Decimal(\"100\"))\n    return round_cents(returned_total - fee)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "refund-cap",
+        "prompt": "Implement `capped_refund` in `shop/refunds.py`: reject negative amounts or caps with `RefundError`, otherwise return the smaller of the two. Make `tests/test_refund_cap.py` pass.",
+        "oracle": "tests/test_refund_cap.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/refunds.py": [
+            {
+              "old": "    \"\"\"Return ``amount`` capped at ``cap``, or raise RefundError.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return ``amount`` capped at ``cap``, or raise RefundError.\"\"\"\n    if amount < 0:\n        raise RefundError(\"refund amount is negative\")\n    if cap < 0:\n        raise RefundError(\"refund cap is negative\")\n    return min(amount, cap)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "report-build",
+        "prompt": "Implement `build_report` in `shop/report.py`: apply the discount, compute tax with `compute_tax`, and return subtotal, discount, tax and total rounded with `round_cents`. Make `tests/test_report_build.py` pass.",
+        "oracle": "tests/test_report_build.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/report.py": [
+            {
+              "old": "from decimal import Decimal",
+              "new": "from decimal import Decimal\n\nfrom shop.money import round_cents\nfrom shop.pricing import compute_tax"
+            },
+            {
+              "old": "    \"\"\"Return subtotal, discount, tax and total for a checkout.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return subtotal, discount, tax and total for a checkout.\"\"\"\n    discounted = subtotal - discount\n    tax = compute_tax(discounted, tax_rate)\n    return {\n        \"subtotal\": round_cents(subtotal),\n        \"discount\": round_cents(discount),\n        \"tax\": tax,\n        \"total\": round_cents(discounted + tax),\n    }"
+            }
+          ]
+        }
+      },
+      {
+        "id": "recall",
+        "prompt": "Write `answers.json` in the working directory with three facts from earlier in this session: `rounding` (the rounding rule), `coupon_error_class`, and `refund_error_class`. Make `oracles/recall_refunds.py` score all three.",
+        "oracle": "oracles/recall_refunds.py",
+        "timeout": 120,
+        "reference_patch": {},
+        "fake_answers": {
+          "rounding": "half-up (ROUND_HALF_UP)",
+          "coupon_error_class": "CouponError",
+          "refund_error_class": "RefundError"
+        }
+      }
+    ]
+  },
+  {
+    "id": "long-coupons",
+    "kind": "chain",
+    "stratum": "long",
+    "fixture": "fixture_v2",
+    "setup_patch": {},
+    "steps": [
+      {
+        "id": "money",
+        "prompt": "Create `shop/money.py` with a `round_cents(amount)` helper that rounds a `Decimal` to cents using `ROUND_HALF_UP` (half away from zero). Make `tests/test_money.py` pass.",
+        "oracle": "tests/test_money.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/money.py": [
+            {
+              "old": "    raise NotImplementedError",
+              "new": "    return amount.quantize(Decimal(\"0.01\"), rounding=ROUND_HALF_UP)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "tax",
+        "prompt": "Implement `compute_tax` in `shop/pricing.py`: return `subtotal * rate` rounded to cents, using the same half-up convention as `shop/money.py`. Make `tests/test_tax.py` pass.",
+        "oracle": "tests/test_tax.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/pricing.py": [
+            {
+              "old": "    \"\"\"Return the sales tax on ``subtotal`` at ``rate`` (e.g. 0.0825), rounded to cents.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return the sales tax on ``subtotal`` at ``rate`` (e.g. 0.0825), rounded to cents.\"\"\"\n    return round(subtotal * rate, 2)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "discount-percent",
+        "prompt": "Implement `percent_discount` in `shop/discounts.py`: validate that `percent` is between 0 and 100, then return that percent of the subtotal rounded with `round_cents`. Make `tests/test_discount_percent.py` pass.",
+        "oracle": "tests/test_discount_percent.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/discounts.py": [
+            {
+              "old": "from decimal import Decimal",
+              "new": "from decimal import Decimal\n\nfrom shop.money import round_cents"
+            },
+            {
+              "old": "    \"\"\"Return ``percent`` of ``subtotal`` rounded to cents; percent is 0-100.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return ``percent`` of ``subtotal`` rounded to cents; percent is 0-100.\"\"\"\n    if percent < Decimal(\"0\") or percent > Decimal(\"100\"):\n        raise ValueError(\"percent must be between 0 and 100\")\n    return round_cents(subtotal * percent / Decimal(\"100\"))"
+            }
+          ]
+        }
+      },
+      {
+        "id": "coupon-model",
+        "prompt": "In `shop/coupons.py`, create a `CouponError(ValueError)` class and implement `normalize_code` to strip whitespace and upper-case the code. Keep the existing `Coupon` dataclass. Make `tests/test_coupon_model.py` pass.",
+        "oracle": "tests/test_coupon_model.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/coupons.py": [
+            {
+              "old": "# CouponError is created in the coupon-model step.",
+              "new": "class CouponError(ValueError):\n    \"\"\"Raised when a coupon is invalid, expired, or does not apply.\"\"\""
+            },
+            {
+              "old": "    \"\"\"Return the coupon code stripped and upper-cased.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return the coupon code stripped and upper-cased.\"\"\"\n    return code.strip().upper()"
+            }
+          ]
+        }
+      },
+      {
+        "id": "coupon-apply",
+        "prompt": "Implement `apply_coupon` in `shop/coupons.py`: reject an empty code, a percent outside 0-100, and a subtotal below `min_subtotal` with `CouponError`; otherwise return the percentage discount rounded with `round_cents`. Make `tests/test_coupon_apply.py` pass.",
+        "oracle": "tests/test_coupon_apply.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/coupons.py": [
+            {
+              "old": "from decimal import Decimal",
+              "new": "from decimal import Decimal\n\nfrom shop.money import round_cents"
+            },
+            {
+              "old": "    \"\"\"Return the discount for ``coupon`` on ``subtotal``, or raise CouponError.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return the discount for ``coupon`` on ``subtotal``, or raise CouponError.\"\"\"\n    if not coupon.code.strip():\n        raise CouponError(\"coupon code is empty\")\n    if coupon.percent <= 0 or coupon.percent > 100:\n        raise CouponError(\"coupon percent out of range\")\n    if subtotal < coupon.min_subtotal:\n        raise CouponError(\"coupon minimum not met\")\n    return round_cents(subtotal * coupon.percent / Decimal(\"100\"))"
+            }
+          ]
+        }
+      },
+      {
+        "id": "coupon-expiry",
+        "prompt": "Implement `validate_coupon` in `shop/coupons.py`: raise `CouponError` when `days_since_issue` is greater than `expires_in_days` (a coupon is valid on its last day). Make `tests/test_coupon_expiry.py` pass.",
+        "oracle": "tests/test_coupon_expiry.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/coupons.py": [
+            {
+              "old": "    \"\"\"Raise CouponError when ``coupon`` has expired.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Raise CouponError when ``coupon`` has expired.\"\"\"\n    if coupon.expires_in_days is not None and days_since_issue > coupon.expires_in_days:\n        raise CouponError(\"coupon expired\")"
+            }
+          ]
+        }
+      },
+      {
+        "id": "report-build",
+        "prompt": "Implement `build_report` in `shop/report.py`: apply the discount, compute tax with `compute_tax`, and return subtotal, discount, tax and total rounded with `round_cents`. Make `tests/test_report_build.py` pass.",
+        "oracle": "tests/test_report_build.py",
+        "timeout": 300,
+        "reference_patch": {
+          "shop/report.py": [
+            {
+              "old": "from decimal import Decimal",
+              "new": "from decimal import Decimal\n\nfrom shop.money import round_cents\nfrom shop.pricing import compute_tax"
+            },
+            {
+              "old": "    \"\"\"Return subtotal, discount, tax and total for a checkout.\"\"\"\n    raise NotImplementedError",
+              "new": "    \"\"\"Return subtotal, discount, tax and total for a checkout.\"\"\"\n    discounted = subtotal - discount\n    tax = compute_tax(discounted, tax_rate)\n    return {\n        \"subtotal\": round_cents(subtotal),\n        \"discount\": round_cents(discount),\n        \"tax\": tax,\n        \"total\": round_cents(discounted + tax),\n    }"
+            }
+          ]
+        }
+      },
+      {
+        "id": "recall",
+        "prompt": "Write `answers.json` in the working directory with three facts from earlier in this session: `rounding` (the rounding rule), `error_class` (the coupon error class), and `coupon_normalization` (how coupon codes are normalized). Make `oracles/recall_coupons.py` score all three.",
+        "oracle": "oracles/recall_coupons.py",
+        "timeout": 120,
+        "reference_patch": {},
+        "fake_answers": {
+          "rounding": "half-up (ROUND_HALF_UP)",
+          "error_class": "CouponError",
+          "coupon_normalization": "uppercase"
+        }
+      }
+    ]
+  }
+]

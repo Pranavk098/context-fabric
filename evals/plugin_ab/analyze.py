@@ -186,6 +186,292 @@ def analyze(
     }
 
 
+STRATA = ("short", "medium", "long")
+V2_ARMS = ("off", "shipped", "diet", "checkpoint", "combo")
+V2_THRESHOLDS: dict[str, dict[str, Any]] = {
+    # short: shipped must not regress; medium: a real saving with a CI clear of 1;
+    # long: a larger saving, no success loss beyond one run, and recall kept.
+    "short": {"ratio": 1.05, "ci": False, "fail_margin": None, "recall_drop": None},
+    "medium": {"ratio": 0.85, "ci": True, "fail_margin": None, "recall_drop": None},
+    "long": {"ratio": 0.80, "ci": True, "fail_margin": 1, "recall_drop": 1},
+}
+
+
+def _v2_measured(
+    records: list[dict[str, Any]], stratum: str, task: str, arm: str
+) -> list[dict[str, Any]]:
+    return [
+        r
+        for r in records
+        if r.get("stratum") == stratum
+        and r.get("task") == task
+        and r.get("arm") == arm
+        and not r.get("warm_up")
+        and not r.get("infra_failure")
+    ]
+
+
+def _v2_runs(records: list[dict[str, Any]], stratum: str, arm: str) -> list[dict[str, Any]]:
+    return [
+        r
+        for r in records
+        if r.get("stratum") == stratum
+        and r.get("arm") == arm
+        and not r.get("warm_up")
+        and not r.get("infra_failure")
+    ]
+
+
+def _v2_mean_dollars(
+    records: list[dict[str, Any]], stratum: str, task: str, arm: str
+) -> float | None:
+    vals = _dollars(_v2_measured(records, stratum, task, arm))
+    if not vals:
+        return None
+    return sum(vals) / len(vals)
+
+
+def _hierarchical_ci(
+    records: list[dict[str, Any]], stratum: str, arm: str, seed: int, resamples: int
+) -> tuple[float, float] | None:
+    """Resample tasks, then repetitions within each task (hierarchical bootstrap)."""
+    tasks = sorted({r["task"] for r in records if r.get("stratum") == stratum})
+    pairs: dict[str, tuple[list[float], list[float]]] = {}
+    for task in tasks:
+        off = _dollars(_v2_measured(records, stratum, task, "off"))
+        treat = _dollars(_v2_measured(records, stratum, task, arm))
+        if off and treat:
+            pairs[task] = (off, treat)
+    if not pairs:
+        return None
+    rng = random.Random(seed)
+    keys = list(pairs)
+    logs: list[float] = []
+    for _ in range(resamples):
+        picked = [keys[rng.randrange(len(keys))] for _ in keys]
+        vals: list[float] = []
+        for task in picked:
+            off, treat = pairs[task]
+            o = sum(off[rng.randrange(len(off))] for _ in range(len(off))) / len(off)
+            t = sum(treat[rng.randrange(len(treat))] for _ in range(len(treat))) / len(treat)
+            if o > 0 and t > 0:
+                vals.append(math.log(t / o))
+        if vals:
+            logs.append(sum(vals) / len(vals))
+    if not logs:
+        return None
+    logs.sort()
+    lo = math.exp(logs[int(0.025 * (len(logs) - 1))])
+    hi = math.exp(logs[int(0.975 * (len(logs) - 1))])
+    return (lo, hi)
+
+
+def _step_stats(records: list[dict[str, Any]], stratum: str, arm: str) -> dict[str, Any]:
+    passed = total = 0
+    for run in _v2_runs(records, stratum, arm):
+        steps = run.get("steps")
+        if isinstance(steps, list) and steps:
+            passed += sum(1 for step in steps if step.get("resolved"))
+            total += len(steps)
+        else:
+            passed += 1 if run.get("resolved") else 0
+            total += 1
+    return {
+        "passed": passed,
+        "total": total,
+        "rate": round(passed / total, 4) if total else None,
+    }
+
+
+def _recall_stats(records: list[dict[str, Any]], stratum: str, arm: str) -> dict[str, Any]:
+    runs = [
+        r
+        for r in _v2_runs(records, stratum, arm)
+        if isinstance(r.get("recall_score"), (int, float))
+        and not isinstance(r.get("recall_score"), bool)
+    ]
+    if not runs:
+        return {"probes": 0, "passed": 0, "mean_score": None, "mean_of": None}
+    passed = sum(1 for r in runs if r.get("recall_score") == r.get("recall_of"))
+    scores = sum(int(r["recall_score"]) for r in runs)
+    of = sum(int(r.get("recall_of") or 0) for r in runs)
+    return {
+        "probes": len(runs),
+        "passed": passed,
+        "mean_score": round(scores / len(runs), 3),
+        "mean_of": round(of / len(runs), 3) if of else None,
+    }
+
+
+def _failed_runs(records: list[dict[str, Any]], stratum: str, arm: str) -> int:
+    return sum(
+        1 for r in _v2_runs(records, stratum, arm) if not r.get("resolved") or r.get("cap_hit")
+    )
+
+
+def _extra_turns(record: dict[str, Any]) -> int | None:
+    steps = record.get("steps")
+    if not isinstance(steps, list):
+        return None
+    for index, step in enumerate(steps):
+        if step.get("checkpoint") or str(step.get("id", "")).startswith("checkpoint"):
+            return sum(int(s.get("turns", 0) or 0) for s in steps[index + 1 :])
+    return None
+
+
+def _extra_turns_mean(records: list[dict[str, Any]], stratum: str, arm: str) -> float | None:
+    values = [
+        value for run in _v2_runs(records, stratum, arm) if (value := _extra_turns(run)) is not None
+    ]
+    return round(sum(values) / len(values), 3) if values else None
+
+
+def analyze_v2(
+    records: list[dict[str, Any]],
+    *,
+    seed: int = BOOTSTRAP_SEED,
+    resamples: int = BOOTSTRAP_RESAMPLES,
+) -> dict[str, Any]:
+    """Per-stratum report: each arm versus off, with claim-threshold pass/fail columns."""
+    infra_excluded = sum(1 for r in records if r.get("infra_failure"))
+    records = [r for r in records if not r.get("infra_failure")]
+    present = {str(r.get("arm")) for r in records}
+    arms = [a for a in V2_ARMS if a in present] + sorted(present - set(V2_ARMS))
+    result: dict[str, Any] = {
+        "arms": arms,
+        "infra_excluded": infra_excluded,
+        "thresholds": V2_THRESHOLDS,
+        "strata": {},
+    }
+    for stratum in STRATA:
+        tasks = sorted({r["task"] for r in records if r.get("stratum") == stratum})
+        if not tasks:
+            continue
+        arm_entries: dict[str, Any] = {}
+        for arm in arms:
+            if arm == "off":
+                continue
+            per_task: dict[str, Any] = {}
+            log_ratios: list[float] = []
+            for task in tasks:
+                off = _v2_mean_dollars(records, stratum, task, "off")
+                treat = _v2_mean_dollars(records, stratum, task, arm)
+                ratio = treat / off if (off is not None and treat is not None and off > 0) else None
+                per_task[task] = {
+                    "off_mean_dollars": round(off, 8) if off is not None else None,
+                    "arm_mean_dollars": round(treat, 8) if treat is not None else None,
+                    "ratio": round(ratio, 4) if ratio is not None else None,
+                }
+                if ratio is not None and ratio > 0:
+                    log_ratios.append(math.log(ratio))
+            geo = math.exp(sum(log_ratios) / len(log_ratios)) if log_ratios else None
+            ci = _hierarchical_ci(records, stratum, arm, seed, resamples)
+            step_stats = _step_stats(records, stratum, arm)
+            off_step_stats = _step_stats(records, stratum, "off")
+            recall = _recall_stats(records, stratum, arm)
+            off_recall = _recall_stats(records, stratum, "off")
+            failed = _failed_runs(records, stratum, arm)
+            off_failed = _failed_runs(records, stratum, "off")
+            threshold = V2_THRESHOLDS[stratum]
+            ratio_pass = geo is not None and geo <= float(threshold["ratio"])
+            ci_pass = None if not threshold["ci"] else (ci is not None and ci[1] < 1.0)
+            success_pass = (
+                None
+                if threshold["fail_margin"] is None
+                else (failed - off_failed <= int(threshold["fail_margin"]))
+            )
+            recall_drop = off_recall["passed"] - recall["passed"]
+            recall_pass = (
+                None
+                if threshold["recall_drop"] is None
+                else (recall_drop <= int(threshold["recall_drop"]))
+            )
+            claim_met = all(
+                value is True
+                for value in (ratio_pass, ci_pass, success_pass, recall_pass)
+                if value is not None
+            )
+            arm_entries[arm] = {
+                "geometric_mean_ratio": round(geo, 4) if geo is not None else None,
+                "bootstrap_95ci": ([round(ci[0], 4), round(ci[1], 4)] if ci is not None else None),
+                "ratio_threshold": threshold["ratio"],
+                "ratio_pass": ratio_pass,
+                "ci_pass": ci_pass,
+                "success_pass": success_pass,
+                "recall_pass": recall_pass,
+                "claim_met": claim_met,
+                "step_pass_rate": step_stats["rate"],
+                "step_passed": step_stats["passed"],
+                "step_total": step_stats["total"],
+                "off_step_pass_rate": off_step_stats["rate"],
+                "recall": recall,
+                "off_recall": off_recall,
+                "recall_drop_probes": recall_drop,
+                "failed_runs": failed,
+                "off_failed_runs": off_failed,
+                "extra_turns_after_checkpoint": _extra_turns_mean(records, stratum, arm),
+                "per_task": per_task,
+            }
+        result["strata"][stratum] = {"tasks": tasks, "arms": arm_entries}
+    return result
+
+
+def format_markdown_v2(result: dict[str, Any]) -> str:
+    lines = ["# Plugin A/B v2 by stratum (DRAFT, not evidence)", ""]
+    if result.get("infra_excluded"):
+        lines.append(f"Excluded as infrastructure failures: {result['infra_excluded']} run(s)")
+        lines.append("")
+    for stratum in STRATA:
+        block = result["strata"].get(stratum)
+        if not block:
+            continue
+        lines.append(f"## {stratum} ({len(block['tasks'])} tasks)")
+        lines.append("")
+        lines.append(
+            "| arm | ratio vs off | 95% CI | step pass | recall | extra turns after checkpoint "
+            "| ratio | CI | success | recall | claim |"
+        )
+        lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+        for arm, entry in block["arms"].items():
+            ratio = (
+                f"{entry['geometric_mean_ratio']:.3f}"
+                if entry["geometric_mean_ratio"] is not None
+                else "n/a"
+            )
+            ci = (
+                f"{entry['bootstrap_95ci'][0]:.3f}-{entry['bootstrap_95ci'][1]:.3f}"
+                if entry["bootstrap_95ci"]
+                else "n/a"
+            )
+            step = (
+                f"{entry['step_pass_rate']:.3f}" if entry["step_pass_rate"] is not None else "n/a"
+            )
+            recall = entry["recall"]
+            recall_text = (
+                f"{recall['mean_score']}/{recall['mean_of']} "
+                f"({recall['passed']}/{recall['probes']})"
+                if recall["probes"]
+                else "n/a"
+            )
+            extra = (
+                f"{entry['extra_turns_after_checkpoint']:.1f}"
+                if entry["extra_turns_after_checkpoint"] is not None
+                else "n/a"
+            )
+
+            def mark(value: bool | None) -> str:
+                return "n/a" if value is None else ("pass" if value else "FAIL")
+
+            lines.append(
+                f"| {arm} | {ratio} | {ci} | {step} | {recall_text} | {extra} "
+                f"| {mark(entry['ratio_pass'])} | {mark(entry['ci_pass'])} "
+                f"| {mark(entry['success_pass'])} | {mark(entry['recall_pass'])} "
+                f"| {'MET' if entry['claim_met'] else 'not met'} |"
+            )
+        lines.append("")
+    return "\n".join(lines)
+
+
 def format_markdown(result: dict[str, Any]) -> str:
     label = "PILOT (not evidence)" if result["pilot"] else "confirmatory"
     lines = [f"# Plugin A/B {label}", ""]
@@ -273,9 +559,26 @@ def main(argv: list[str] | None = None) -> int:
         default=str(Path(__file__).resolve().parent.parents[1] / "evals" / "reports" / "plugin_ab"),
     )
     p.add_argument("--json", action="store_true")
+    p.add_argument(
+        "--v2",
+        action="store_true",
+        help="per-stratum report for tasks_v2 chains (writes analysis_v2.*)",
+    )
     args = p.parse_args(sys.argv[1:] if argv is None else argv)
     report_dir = Path(args.report_dir)
     records = load_records(report_dir)
+    if args.v2:
+        result = analyze_v2(records)
+        if args.json:
+            print(json.dumps(result, indent=2))
+        else:
+            markdown = format_markdown_v2(result)
+            print(markdown)
+            (report_dir / "analysis_v2.md").write_text(markdown + "\n", encoding="utf-8")
+            (report_dir / "analysis_v2.json").write_text(
+                json.dumps(result, indent=2), encoding="utf-8"
+            )
+        return 0
     result = analyze(records)
     if args.json:
         print(json.dumps(result, indent=2))
