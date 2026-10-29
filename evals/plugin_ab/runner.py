@@ -25,7 +25,7 @@ import sys
 import tempfile
 import time
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -49,6 +49,16 @@ _ALLOWED_TOOLS = "Read,Edit,Write,Grep,Glob,Agent,Bash(python -m pytest:*)"
 
 
 @dataclass(frozen=True)
+class Step:
+    id: str
+    prompt: str
+    oracle: str
+    timeout: int
+    reference_patch: dict[str, Any] = field(default_factory=dict)
+    fake_answers: dict[str, Any] | None = None
+
+
+@dataclass(frozen=True)
 class Task:
     id: str
     kind: str
@@ -57,6 +67,9 @@ class Task:
     oracle: str
     reference_patch: dict[str, Any]
     needs_read_files: list[str]
+    stratum: str = ""
+    steps: tuple[Step, ...] = ()
+    fixture: str = "fixture"
 
 
 @dataclass(frozen=True)
@@ -76,15 +89,29 @@ def load_tasks(path: Path = DEFAULT_TASKS) -> list[Task]:
     for item in obj:
         if not isinstance(item, dict):
             raise ValueError("each task must be an object")
+        steps = tuple(
+            Step(
+                id=str(step["id"]),
+                prompt=str(step["prompt"]),
+                oracle=str(step["oracle"]),
+                timeout=int(step.get("timeout", ORACLE_TIMEOUT_S)),
+                reference_patch=step.get("reference_patch") or {},
+                fake_answers=step.get("fake_answers"),
+            )
+            for step in item.get("steps", [])
+        )
         tasks.append(
             Task(
                 id=str(item["id"]),
                 kind=str(item["kind"]),
-                prompt=str(item["prompt"]),
-                setup_patch=item["setup_patch"],
-                oracle=str(item["oracle"]),
-                reference_patch=item["reference_patch"],
-                needs_read_files=[str(p) for p in item["needs_read_files"]],
+                prompt=str(item.get("prompt", "")),
+                setup_patch=item.get("setup_patch") or {},
+                oracle=str(item.get("oracle", "")),
+                reference_patch=item.get("reference_patch") or {},
+                needs_read_files=[str(p) for p in item.get("needs_read_files", [])],
+                stratum=str(item.get("stratum", "")),
+                steps=steps,
+                fixture=str(item.get("fixture", "fixture")),
             )
         )
     return tasks
@@ -178,6 +205,7 @@ def _infra_record(task: Task, spec: RunSpec, session_id: str, reason: str) -> di
     return {
         "task": task.id,
         "kind": task.kind,
+        "stratum": task.stratum,
         "arm": spec.arm,
         "rep": spec.rep,
         "order_index": spec.order_index,
@@ -231,6 +259,22 @@ def _steps_for(task: Task) -> tuple[list[str], list[str]]:
 
 def _copy_fixture(fixture: Path, dest: Path) -> None:
     shutil.copytree(fixture, dest, ignore=shutil.ignore_patterns("__pycache__", ".pytest_cache"))
+
+
+def _task_fixture(task: Task, default: Path) -> Path:
+    """A v2 task may name its own fixture directory next to the default one."""
+    if task.fixture not in ("", "fixture"):
+        return default.parent / task.fixture
+    return default
+
+
+def _write_arm_config(arm: str, cfx_home: Path) -> None:
+    """Only ``on_fold`` needs a config override; every other plugin arm uses defaults."""
+    if arm == "on_fold":
+        (cfx_home / "config.json").write_text(
+            json.dumps({"brief": True, "carry": True, "fold": True, "fold_read": True}),
+            encoding="utf-8",
+        )
 
 
 def find_parent_transcript(config_dir: Path, session_id: str) -> Path | None:
@@ -319,14 +363,14 @@ def collect_session_usage(
     return parent, subs, total, len(sub_paths)
 
 
-def run_oracle(python: str, work: Path, oracle: str) -> bool:
+def run_oracle(python: str, work: Path, oracle: str, timeout: int = ORACLE_TIMEOUT_S) -> bool:
     purge_pycache(work)
     env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
     proc = subprocess.run(
         [python, "-m", "pytest", "-q", oracle],
         cwd=work,
         capture_output=True,
-        timeout=ORACLE_TIMEOUT_S,
+        timeout=timeout,
         env=env,
     )
     return proc.returncode == 0
@@ -338,6 +382,215 @@ def purge_pycache(root: Path) -> None:
     for path in root.rglob("__pycache__"):
         if path.is_dir():
             shutil.rmtree(path, ignore_errors=True)
+
+
+def _prepare_run(
+    task: Task,
+    spec: RunSpec,
+    *,
+    fixture: Path,
+    isolation: Path,
+    fake: bool,
+) -> tuple[str, Path, Path, Path, Path, bool, int]:
+    session_id = _new_session_id()
+    run_dir = isolation / f"{task.id}__{spec.arm}__{spec.rep}"
+    work = run_dir / "work"
+    cfx_home = run_dir / "cfx"
+    config_dir, override_config = _claude_home(fake=fake, run_dir=run_dir)
+    _copy_fixture(_task_fixture(task, fixture), work)
+    apply_patch(work, task.setup_patch)
+    cfx_home.mkdir(parents=True, exist_ok=True)
+    if override_config:
+        config_dir.mkdir(parents=True, exist_ok=True)
+    port = free_port()
+    _write_arm_config(spec.arm, cfx_home)
+    return session_id, run_dir, work, cfx_home, config_dir, override_config, port
+
+
+def _delta_usage(before: ScanResult, after: ScanResult) -> ScanResult:
+    delta = ScanResult()
+    delta.input_tokens = after.input_tokens - before.input_tokens
+    delta.output_tokens = after.output_tokens - before.output_tokens
+    delta.cache_creation_input_tokens = (
+        after.cache_creation_input_tokens - before.cache_creation_input_tokens
+    )
+    delta.cache_read_input_tokens = after.cache_read_input_tokens - before.cache_read_input_tokens
+    delta.turns = after.turns - before.turns
+    if after.dollars is not None and before.dollars is not None:
+        delta.dollars = after.dollars - before.dollars
+    else:
+        delta.dollars = None
+    delta.unpriced_models = after.unpriced_models | before.unpriced_models
+    return delta
+
+
+def run_step_oracle(
+    python: str, work: Path, oracle: str, timeout: int
+) -> tuple[bool, int | None, int | None] | None:
+    """Return ``(resolved, recall_score, recall_of)``; ``None`` means the oracle could not run."""
+    if oracle.startswith("oracles/") and oracle.endswith(".py"):
+        path = work / oracle
+        if not path.is_file():
+            return None
+        try:
+            proc = subprocess.run(
+                [python, oracle],
+                cwd=work,
+                capture_output=True,
+                timeout=timeout,
+                env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+            )
+        except subprocess.TimeoutExpired:
+            return None
+        if proc.returncode != 0:
+            return None
+        lines = proc.stdout.decode("utf-8", "replace").strip().splitlines()
+        if not lines:
+            return None
+        try:
+            obj = json.loads(lines[-1])
+            score = int(obj["score"])
+            of = int(obj["of"])
+        except (ValueError, KeyError, TypeError):
+            return None
+        return (score == of, score, of)
+    return (run_oracle(python, work, oracle, timeout=timeout), None, None)
+
+
+def _run_chain(
+    task: Task,
+    spec: RunSpec,
+    *,
+    model: str,
+    claude_bin: str,
+    plugin_root: Path,
+    fixture: Path,
+    isolation: Path,
+    prices: dict[str, Any],
+    python: str,
+    fake: bool,
+) -> dict[str, Any]:
+    session_id, run_dir, work, cfx_home, config_dir, override_config, port = _prepare_run(
+        task, spec, fixture=fixture, isolation=isolation, fake=fake
+    )
+    cap_usd = float(os.environ.get("EVALS_MAX_RUN_USD", "0.60"))
+    step_records: list[dict[str, Any]] = []
+    previous_parent = ScanResult()
+    previous_subs = ScanResult()
+    previous_total = ScanResult()
+    duration = 0.0
+    cap_hit = False
+
+    for index, step in enumerate(task.steps):
+        cmd = build_command(
+            claude_bin,
+            prompt=step.prompt,
+            model=model,
+            session_id=session_id,
+            arm=spec.arm,
+            plugin_root=plugin_root,
+            resume=index > 0,
+        )
+        env = os.environ.copy()
+        env["CFX_HOME"] = str(cfx_home)
+        env["CFX_PORT"] = str(port)
+        if override_config:
+            env["CLAUDE_CONFIG_DIR"] = str(config_dir)
+        if fake:
+            env["PLUGIN_AB_FAKE_STEP"] = "run"
+            solution_path = run_dir / f"solution_{index}.json"
+            solution_path.write_text(json.dumps(step.reference_patch), encoding="utf-8")
+            env["PLUGIN_AB_SOLUTION"] = str(solution_path)
+            if step.fake_answers is not None:
+                answers_path = run_dir / f"answers_{index}.json"
+                answers_path.write_text(json.dumps(step.fake_answers), encoding="utf-8")
+                env["PLUGIN_AB_FAKE_ANSWERS"] = str(answers_path)
+        start = time.perf_counter()
+        try:
+            proc = subprocess.run(
+                cmd, cwd=work, env=env, capture_output=True, timeout=CLAUDE_TIMEOUT_S
+            )
+        except subprocess.TimeoutExpired:
+            return _infra_record(task, spec, session_id, "claude call timed out")
+        step_duration = time.perf_counter() - start
+        duration += step_duration
+        failure = _claude_failure(proc)
+        if failure is not None:
+            return _infra_record(task, spec, session_id, failure)
+
+        oracle_result = run_step_oracle(python, work, step.oracle, step.timeout)
+        if oracle_result is None:
+            return _infra_record(task, spec, session_id, "step oracle could not execute")
+        resolved, recall_score, recall_of = oracle_result
+
+        try:
+            parent, subs, total, sub_count = collect_session_usage(config_dir, session_id, prices)
+        except RuntimeError:
+            return _infra_record(task, spec, session_id, "no transcript found for the session")
+        dparent = _delta_usage(previous_parent, parent)
+        dsubs = _delta_usage(previous_subs, subs)
+        dtotal = _delta_usage(previous_total, total)
+        previous_parent, previous_subs, previous_total = parent, subs, total
+
+        step_records.append(
+            {
+                "id": step.id,
+                "resolved": resolved,
+                "recall_score": recall_score,
+                "recall_of": recall_of,
+                "turns": dtotal.turns,
+                "dollars": round(dtotal.dollars, 8) if dtotal.dollars is not None else None,
+                "usage": {
+                    "parent": _usage_dict(dparent),
+                    "subagents": _usage_dict(dsubs),
+                    "subagent_sessions": sub_count,
+                },
+                "duration_s": round(step_duration, 3),
+            }
+        )
+        if total.dollars is not None and total.dollars > cap_usd:
+            cap_hit = True
+            break
+
+    resolved_all = len(step_records) == len(task.steps) and all(s["resolved"] for s in step_records)
+    recall_scores = [s["recall_score"] for s in step_records if s["recall_score"] is not None]
+    record: dict[str, Any] = {
+        "task": task.id,
+        "kind": task.kind,
+        "stratum": task.stratum,
+        "arm": spec.arm,
+        "rep": spec.rep,
+        "order_index": spec.order_index,
+        "warm_up": spec.warm_up,
+        "resolved": resolved_all,
+        "cap_hit": cap_hit,
+        "cap_usd": cap_usd,
+        "steps": step_records,
+        "recall_score": sum(recall_scores) if recall_scores else None,
+        "recall_of": sum(s["recall_of"] or 0 for s in step_records if s["recall_of"] is not None)
+        if recall_scores
+        else None,
+        "turns": previous_total.turns,
+        "usage": {
+            "parent": _usage_dict(previous_parent),
+            "subagents": _usage_dict(previous_subs),
+            "subagent_sessions": step_records[-1]["usage"]["subagent_sessions"]
+            if step_records
+            else 0,
+        },
+        "weighted_tokens": round(previous_total.weighted(), 3),
+        "dollars": (
+            round(previous_total.dollars, 8) if previous_total.dollars is not None else None
+        ),
+        "unpriced_models": sorted(previous_total.unpriced_models),
+        "duration_s": round(duration, 3),
+        "session_id": session_id,
+    }
+    if spec.arm != "off":
+        record["brief_fired"] = detect_brief(cfx_home)
+        record["carry_fired"] = detect_carry(cfx_home)
+        record["overhead"] = collect_overhead(cfx_home)
+    return record
 
 
 def run_one(
@@ -353,23 +606,23 @@ def run_one(
     python: str,
     fake: bool,
 ) -> dict[str, Any]:
-    session_id = _new_session_id()
-    run_dir = isolation / f"{task.id}__{spec.arm}__{spec.rep}"
-    work = run_dir / "work"
-    cfx_home = run_dir / "cfx"
-    config_dir, override_config = _claude_home(fake=fake, run_dir=run_dir)
-    _copy_fixture(fixture, work)
-    apply_patch(work, task.setup_patch)
-    cfx_home.mkdir(parents=True, exist_ok=True)
-    if override_config:
-        config_dir.mkdir(parents=True, exist_ok=True)
-    port = free_port()
-
-    if spec.arm == "on_fold":
-        (cfx_home / "config.json").write_text(
-            json.dumps({"brief": True, "carry": True, "fold": True, "fold_read": True}),
-            encoding="utf-8",
+    if task.steps:
+        return _run_chain(
+            task,
+            spec,
+            model=model,
+            claude_bin=claude_bin,
+            plugin_root=plugin_root,
+            fixture=fixture,
+            isolation=isolation,
+            prices=prices,
+            python=python,
+            fake=fake,
         )
+
+    session_id, run_dir, work, cfx_home, config_dir, override_config, port = _prepare_run(
+        task, spec, fixture=fixture, isolation=isolation, fake=fake
+    )
 
     solution_path: Path | None = None
     if fake:
@@ -420,6 +673,7 @@ def run_one(
     record: dict[str, Any] = {
         "task": task.id,
         "kind": task.kind,
+        "stratum": task.stratum,
         "arm": spec.arm,
         "rep": spec.rep,
         "order_index": spec.order_index,
@@ -462,7 +716,10 @@ def run_experiment(
     report_dir: Path,
     isolation: Path,
     max_runs: int | None = None,
+    stratum: str | None = None,
 ) -> dict[str, Any]:
+    if stratum:
+        tasks = [t for t in tasks if t.stratum == stratum]
     specs = plan_runs(tasks, arms, reps, seed)
     if max_runs is not None:
         specs = specs[:max_runs]
@@ -495,6 +752,8 @@ def run_experiment(
         "repetitions": reps,
         "arms": list(arms),
         "model": model,
+        "stratum": stratum,
+        "max_run_usd": float(os.environ.get("EVALS_MAX_RUN_USD", "0.60")),
         "prices_as_of": prices.get("as_of"),
         "prereg_sha256": prereg.stored_hash(),
         "started_at": datetime.now(UTC).isoformat(),
@@ -528,6 +787,18 @@ def _parser() -> argparse.ArgumentParser:
         "--pilot", action="store_true", help="bypass the prereg gate; capped at 8 runs; PILOT label"
     )
     p.add_argument("--with-fold", action="store_true", help="add a third on_fold arm")
+    p.add_argument(
+        "--arms",
+        default="off,on",
+        help="comma-separated arm labels; every arm except off loads the plugin (v2: "
+        "off,shipped,diet,checkpoint,combo)",
+    )
+    p.add_argument(
+        "--stratum",
+        choices=("short", "medium", "long"),
+        default=None,
+        help="only run tasks in this v2 stratum",
+    )
     p.add_argument("--keep", action="store_true", help="do not delete the isolation temp dir")
     return p
 
@@ -546,8 +817,16 @@ def main(argv: list[str] | None = None) -> int:
 
     claude_bin = args.claude or os.environ.get("PLUGIN_AB_CLAUDE", "claude")
     fake = bool(os.environ.get("PLUGIN_AB_CLAUDE"))
-    arms = ARMS_OFF_ON + (("on_fold",) if args.with_fold else ())
+    arms = tuple(a.strip() for a in args.arms.split(",") if a.strip())
+    if args.with_fold and "on_fold" not in arms:
+        arms += ("on_fold",)
     tasks = load_tasks(Path(args.tasks))
+    if any(t.stratum for t in tasks) and not pilot:
+        print(
+            "refusing to start: the v2 protocol is a DRAFT and is not registered; use --pilot",
+            file=sys.stderr,
+        )
+        return 2
     run_id = args.run_id or datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     max_runs = 8 if pilot else None
     isolation = Path(tempfile.mkdtemp(prefix="plugin_ab_"))
@@ -569,6 +848,7 @@ def main(argv: list[str] | None = None) -> int:
             report_dir=Path(args.report_dir),
             isolation=isolation,
             max_runs=max_runs,
+            stratum=args.stratum,
         )
     finally:
         if not args.keep:

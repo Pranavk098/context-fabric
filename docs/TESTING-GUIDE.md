@@ -68,6 +68,9 @@ Work as you always do. Two things make the data more useful, if they fit your wo
 - Optional, experimental (`/checkpoint`): do a normal task for a while, run `/checkpoint`, then `/clear`. The new session should start with a
   `context-fabric-carry` block saved minutes earlier, and `cfxd checkpoint show` prints the same block. Whether this saves tokens is not yet
   proven; if the block looks wrong or stale, run `cfxd checkpoint clear`.
+- Optional, experimental (plugin A/B v2, repo checkout only): `uv run --python 3.12 python -m pytest -q tests/test_plugin_ab_v2.py`
+  checks the chain runner with a fake `claude` and spends nothing; the paid path is
+  `python -m evals.plugin_ab.runner --tasks evals/plugin_ab/tasks_v2.json --stratum long --pilot`. The chain benchmark is experimental and its saving is unproven.
 
 You do not need to do anything special. Please do not turn it off to "help".
 
