@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from cfxd.fidelity import fidelity, format_fidelity
+from cfxd.fidelity import _path_tokens, fidelity, format_fidelity
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -69,6 +69,25 @@ def _reads(*paths: str) -> list[dict]:
 
 def _two_reads(summary_text: str) -> list[dict]:
     return [*_reads("/repo/a.py", "/repo/b.py"), _summary(summary_text)]
+
+
+def _edits(*paths: str) -> list[dict]:
+    lines: list[dict] = []
+    for i, path in enumerate(paths):
+        lines.append(
+            _assistant(_tool_use(f"e{i}", "Edit", {"file_path": path}), usage=_usage(1000))
+        )
+        lines.append(_user(_tool_result(f"e{i}", "ok")))
+    return lines
+
+
+def _bash(tool_id: str, command: str, result: str, is_error: bool = False) -> list[dict]:
+    block = _tool_result(tool_id, result)
+    block["is_error"] = is_error
+    return [
+        _assistant(_tool_use(tool_id, "Bash", {"command": command}), usage=_usage(1000)),
+        _user(block),
+    ]
 
 
 def test_summary_naming_all_held_files(tmp_path: Path) -> None:
@@ -222,6 +241,118 @@ def test_trigger_split(tmp_path: Path) -> None:
     assert report["by_trigger"]["auto"]["recall_median"] == 1.0
 
 
+@pytest.mark.parametrize(
+    ("raw", "norm"),
+    [
+        ("/repo/a.py", "/repo/a.py"),
+        ("~/notes.md", "~/notes.md"),
+        ("./x.py", "./x.py"),
+        ("../y.json", "../y.json"),
+        ("C:\\repo\\a.py", "c:/repo/a.py"),
+        ("D:/x.ts", "d:/x.ts"),
+        ("src/main.go", "src/main.go"),
+        ("app.py", "app.py"),
+        ("app.YAML", "app.yaml"),
+    ],
+)
+def test_strict_token_accepts(raw: str, norm: str) -> None:
+    assert _path_tokens(f"Read `{raw}`.") == [norm]
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "and/or",
+        "e.g",
+        "w/",
+        "claude.ai",
+        "https://example.com/a.py",
+        "a@b.com",
+        "1.2.3",
+        "v1.2",
+        "src/main",
+        "a.py",
+        "...",
+    ],
+)
+def test_strict_token_rejects(raw: str) -> None:
+    assert _path_tokens(f"Read {raw}.") == []
+
+
+def test_fixture_killed_test_makes_pass_claim_unsupported(tmp_path: Path) -> None:
+    lines = [
+        *_reads("/repo/a.py"),
+        *_bash("t0", "pytest -q", "Command timed out after 2m0s", is_error=True),
+        _summary("Read /repo/a.py. Tests pass."),
+    ]
+    _session(tmp_path, "proj", "s1", lines)
+    report = fidelity(tmp_path, "all")
+
+    assert report["frozen_metrics"]["M3"] == {
+        "events_with_pass_claim": 1,
+        "unsupported": 1,
+    }
+    assert report["frozen_metrics"]["M1"]["unsupported"] == 0
+    assert report["frozen_metrics"]["M2"]["events_excluded"] == 1
+    assert "Frozen metrics v1" in format_fidelity(report, tmp_path.name)
+
+
+def test_fixture_outside_edit_is_unsupported_path(tmp_path: Path) -> None:
+    lines = [
+        *_reads("/repo/a.py"),
+        _summary("Read /repo/a.py and /repo/outside.py."),
+    ]
+    _session(tmp_path, "proj", "s1", lines)
+    report = fidelity(tmp_path, "all")
+
+    m1 = report["frozen_metrics"]["M1"]
+    assert m1["mentions"] == 2
+    assert m1["unsupported"] == 1
+    assert m1["rate"] == 0.5
+    assert report["frozen_metrics"]["M2"] == {
+        "edited_files": 0,
+        "dropped": 0,
+        "rate": 0.0,
+        "events_with_edits": 0,
+        "events_excluded": 1,
+    }
+
+
+def test_fixture_revert_keeps_edit_named(tmp_path: Path) -> None:
+    lines = [
+        *_reads("/repo/a.py"),
+        *_edits("/repo/a.py", "/repo/a.py"),
+        _summary("Edited /repo/a.py."),
+    ]
+    _session(tmp_path, "proj", "s1", lines)
+    report = fidelity(tmp_path, "all")
+
+    m2 = report["frozen_metrics"]["M2"]
+    assert m2["edited_files"] == 1
+    assert m2["dropped"] == 0
+    assert m2["rate"] == 0.0
+    assert report["frozen_metrics"]["M1"]["unsupported"] == 0
+
+
+def test_fixture_rename_drops_old_edit_and_new_name_is_unsupported(tmp_path: Path) -> None:
+    lines = [
+        *_reads("/repo/a.py"),
+        *_edits("/repo/old.py"),
+        _summary("Renamed to /repo/new.py."),
+    ]
+    _session(tmp_path, "proj", "s1", lines)
+    report = fidelity(tmp_path, "all")
+
+    m2 = report["frozen_metrics"]["M2"]
+    assert m2["edited_files"] == 1
+    assert m2["dropped"] == 1
+    assert m2["rate"] == 1.0
+    m1 = report["frozen_metrics"]["M1"]
+    assert m1["mentions"] == 1
+    assert m1["unsupported"] == 1
+    assert m1["rate"] == 1.0
+
+
 def test_canary_strings_never_leak_and_cli_shape(tmp_path: Path) -> None:
     summary_canary = "CANARYSUMMARY-abcd1234"
     path_canary = "CANARYPATH-efgh5678"
@@ -268,6 +399,10 @@ def test_canary_strings_never_leak_and_cli_shape(tmp_path: Path) -> None:
         "recall_recent20",
         "precision",
         "unseen_mentions",
+        "edited_files",
+        "dropped_edits",
+        "pass_claim",
+        "unsupported_pass_claim",
         "checkpoint_recall_bound",
         "checkpoint_precision",
     }
@@ -281,6 +416,7 @@ def test_canary_strings_never_leak_and_cli_shape(tmp_path: Path) -> None:
     )
     assert human.returncode == 0, human.stderr
     assert "What this means:" in human.stdout
+    assert "Frozen metrics v1" in human.stdout
     assert "Checkpoint comparison" in human.stdout
     assert "counts and numbers only" in human.stdout
 

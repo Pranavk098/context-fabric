@@ -21,13 +21,31 @@ from pathlib import Path
 from typing import Any
 
 from cfxd.audit import _SINCE_DELTAS, _SINCE_LABELS, _discover, _iter_objects, _texts
+from cfxd.bound import test_key_any
 from cfxd.daemon import percentile
 from cfxd.refetch import _FILE_TOOLS, _ctx, _trigger
 
 _MAX_TOKEN = 200
 _RECENT = 20
 _STRIP = "\"'`()[]{}<>,;:!?"
-_EXT_RE = re.compile(r"\.[A-Za-z]{1,6}$")
+# Frozen v1 (docs/FIDELITY-METRICS.md): one allowlist, one definition.
+_EXTENSIONS = frozenset(
+    "py js jsx ts tsx json md toml yaml yml sh go rs java kt c cc cpp h hpp css "
+    "scss html sql txt cfg ini lock xml ipynb rb php cs swift".split()
+)
+_PATH_PREFIXES = ("/", "~/", "./", "../")
+_DRIVE_RE = re.compile(r"^[A-Za-z]:[\\/]")
+_PASS_CLAIMS = (
+    "tests pass",
+    "tests passed",
+    "all tests pass",
+    "tests passing",
+    "all passing",
+    "all green",
+    "0 failed",
+    "no failures",
+)
+_EDIT_TOOLS = _FILE_TOOLS - {"Read"}
 _TRIGGERS = ("manual", "auto", "unknown")
 _SKIP_REASONS = ("no_summary_text", "no_held_files")
 
@@ -51,15 +69,33 @@ def _suffixes(path: str) -> list[str]:
     return ["/".join(parts[i:]) for i in range(len(parts)) if parts[i]]
 
 
+def _ext(token: str) -> str:
+    """Lower-case extension of the token's last segment ("" when absent)."""
+    last = re.split(r"[\\/]", token)[-1]
+    stem, _, ext = last.rpartition(".")
+    return ext.lower() if stem else ""
+
+
+def _is_path(token: str) -> bool:
+    """Frozen v1 strict path mention: anchored path, separator+extension, or bare file."""
+    if "://" in token or "@" in token or not re.search(r"[A-Za-z]", token):
+        return False
+    if token.startswith(_PATH_PREFIXES) or _DRIVE_RE.match(token):
+        return True
+    if _ext(token) not in _EXTENSIONS:
+        return False
+    if "/" in token or "\\" in token:
+        return True
+    return len(token.rsplit(".", 1)[0]) >= 3
+
+
 def _path_tokens(text: str) -> list[str]:
-    """Normalised path-like tokens: a separator or a 1-6 letter extension."""
+    """Normalised strict path tokens (see docs/FIDELITY-METRICS.md)."""
     out: list[str] = []
     for raw in text.split():
         token = raw.strip(_STRIP).rstrip(".")
         token = token.strip(_STRIP)
-        if not token or len(token) > _MAX_TOKEN:
-            continue
-        if "/" not in token and "\\" not in token and not _EXT_RE.search(token):
+        if not token or len(token) > _MAX_TOKEN or not _is_path(token):
             continue
         norm = _norm(token)
         if norm:
@@ -136,8 +172,26 @@ def _matches(path: str, full: set[str], base: set[str]) -> bool:
     return _hash(_base(path)) in base
 
 
+def _test_failed(block: dict[str, Any], texts: list[str]) -> bool:
+    """True when a test-runner result shows a non-zero exit, error, interrupt or timeout."""
+    if block.get("is_error"):
+        return True
+    joined = " ".join(texts).strip()
+    lower = joined.lower()
+    if lower.startswith(("interrupted", "timed out", "command timed out")):
+        return True
+    match = re.match(r"exit code (\d+)", joined, re.I)
+    return bool(match and int(match.group(1)) != 0)
+
+
 def _event(
-    text: str, held: list[str], recent: list[str], seen: _Seen, trigger: str
+    text: str,
+    held: list[str],
+    recent: list[str],
+    seen: _Seen,
+    trigger: str,
+    edited: set[str],
+    test_ok: bool | None,
 ) -> dict[str, Any]:
     mentions = sorted(set(_path_tokens(text)))
     full = {_hash(mention) for mention in mentions}
@@ -145,6 +199,8 @@ def _event(
     matched = sum(1 for path in held if _matches(path, full, base))
     recent_matched = sum(1 for path in recent if _matches(path, full, base))
     unseen = sum(1 for mention in mentions if not seen.matches(mention))
+    dropped = sum(1 for path in edited if not _matches(path, full, base))
+    claim = any(phrase in text.lower() for phrase in _PASS_CLAIMS)
     n = len(held)
     return {
         "trigger": trigger,
@@ -155,6 +211,10 @@ def _event(
         "recall_recent20": round(recent_matched / len(recent), 4),
         "precision": round((len(mentions) - unseen) / len(mentions), 4) if mentions else 1.0,
         "unseen_mentions": unseen,
+        "edited_files": len(edited),
+        "dropped_edits": dropped,
+        "pass_claim": claim,
+        "unsupported_pass_claim": claim and test_ok is not True,
         "checkpoint_recall_bound": round(min(_RECENT, n) / n, 4),
         "checkpoint_precision": 1.0,
     }
@@ -165,6 +225,9 @@ def _scan(path: Path) -> tuple[list[dict[str, Any]], dict[str, int]]:
     skipped = {reason: 0 for reason in _SKIP_REASONS}
     held = _Held()
     seen = _Seen()
+    edited: set[str] = set()
+    pending_tests: set[str] = set()
+    test_ok: bool | None = None
     pending_trigger = "unknown"
 
     for obj in _iter_objects(path):
@@ -187,7 +250,7 @@ def _scan(path: Path) -> tuple[list[dict[str, Any]], dict[str, int]]:
             if not paths:
                 skipped["no_held_files"] += 1
                 continue
-            events.append(_event(text, paths, held.recent(), seen, trigger))
+            events.append(_event(text, paths, held.recent(), seen, trigger, edited, test_ok))
             continue
 
         msg = obj.get("message")
@@ -205,17 +268,34 @@ def _scan(path: Path) -> tuple[list[dict[str, Any]], dict[str, int]]:
                     continue
                 for text in _strings(inp):
                     seen.add(text)
-                if not has_usage:
-                    continue
                 name = block.get("name")
                 file_path = inp.get("file_path")
+                if name in _EDIT_TOOLS and isinstance(file_path, str):
+                    norm = _norm(file_path)
+                    if norm:
+                        edited.add(norm)
+                command = inp.get("command")
+                if name == "Bash" and isinstance(command, str):
+                    test_id = block.get("id")
+                    if test_key_any(command) is not None and isinstance(test_id, str):
+                        # Unfinished or failed until its result says otherwise.
+                        pending_tests.add(test_id)
+                        test_ok = False
+                if not has_usage:
+                    continue
                 if name in _FILE_TOOLS and isinstance(file_path, str):
                     held.add(file_path)
 
         for block in blocks:
-            if block.get("type") == "tool_result":
-                for text in _texts(block.get("content")):
-                    seen.add(text)
+            if block.get("type") != "tool_result":
+                continue
+            texts = _texts(block.get("content"))
+            for text in texts:
+                seen.add(text)
+            test_id = block.get("tool_use_id")
+            if isinstance(test_id, str) and test_id in pending_tests:
+                pending_tests.discard(test_id)
+                test_ok = not _test_failed(block, texts)
 
     return events, skipped
 
@@ -226,6 +306,36 @@ def _dist(values: list[float], digits: int = 4) -> dict[str, float]:
         "p25": round(percentile(values, 25), digits),
         "p75": round(percentile(values, 75), digits),
         "mean": round(sum(values) / len(values), digits) if values else 0.0,
+    }
+
+
+def _frozen(events: list[dict[str, Any]]) -> dict[str, Any]:
+    """Frozen metrics v1 (docs/FIDELITY-METRICS.md); counts and rates only."""
+    mentions = sum(e["mentions"] for e in events)
+    unsupported = sum(e["unseen_mentions"] for e in events)
+    with_edits = [e for e in events if e["edited_files"]]
+    edited = sum(e["edited_files"] for e in with_edits)
+    dropped = sum(e["dropped_edits"] for e in with_edits)
+    claims = [e for e in events if e["pass_claim"]]
+    return {
+        "version": 1,
+        "M1": {
+            "mentions": mentions,
+            "unsupported": unsupported,
+            "rate": round(unsupported / mentions, 4) if mentions else 0.0,
+            "per_event": _dist([float(e["unseen_mentions"]) for e in events]),
+        },
+        "M2": {
+            "edited_files": edited,
+            "dropped": dropped,
+            "rate": round(dropped / edited, 4) if edited else 0.0,
+            "events_with_edits": len(with_edits),
+            "events_excluded": len(events) - len(with_edits),
+        },
+        "M3": {
+            "events_with_pass_claim": len(claims),
+            "unsupported": sum(1 for e in claims if e["unsupported_pass_claim"]),
+        },
     }
 
 
@@ -309,6 +419,7 @@ def fidelity(root: Path, since: str = "30d", now: datetime | None = None) -> dic
         "events_with_unseen_mentions": with_unseen,
         "share_with_unseen_mentions": round(with_unseen / len(events), 4) if events else 0.0,
         "events_with_no_mentions": sum(1 for e in events if e["mentions"] == 0),
+        "frozen_metrics": _frozen(events),
         "checkpoint": {
             "recall_bound": _dist([float(e["checkpoint_recall_bound"]) for e in events]),
             "precision": 1.0,
@@ -343,6 +454,10 @@ def format_fidelity(report: dict[str, Any], dir_name: str = ".") -> str:
     label = _SINCE_LABELS.get(str(report["since"]), str(report["since"]))
     skipped = report["events_skipped"]
     n = report["events_analyzed"]
+    frozen = report["frozen_metrics"]
+    m1 = frozen["M1"]
+    m2 = frozen["M2"]
+    m3 = frozen["M3"]
     lines = [
         f"Claude Code compaction-summary fidelity, {label}",
         f"Sessions scanned: {sessions['parents']:,} parents, "
@@ -351,6 +466,15 @@ def format_fidelity(report: dict[str, Any], dir_name: str = ".") -> str:
         f"{skipped['no_summary_text'] + skipped['no_held_files']:,} "
         f"(no summary text {skipped['no_summary_text']:,}, "
         f"no held files {skipped['no_held_files']:,})",
+        "Frozen metrics v1",
+        f"  M1 unsupported path rate: {m1['rate']:.4f} "
+        f"({m1['unsupported']:,} of {m1['mentions']:,} mentions; "
+        f"per event median {m1['per_event']['median']:.1f})",
+        f"  M2 dropped edit rate: {m2['rate']:.4f} "
+        f"({m2['dropped']:,} of {m2['edited_files']:,} edited files; "
+        f"{m2['events_excluded']:,} events with no edits excluded)",
+        f"  M3 unsupported pass claims: {m3['unsupported']:,} of "
+        f"{m3['events_with_pass_claim']:,} events with a pass claim",
         _line("Summary size (tokens)", report["summary_tokens"], 1),
         _line("Recall of held files", report["recall"]),
         _line("Recall of the 20 most recent files", report["recall_recent20"]),

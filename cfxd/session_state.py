@@ -16,7 +16,7 @@ from collections import OrderedDict, deque
 from dataclasses import dataclass
 from typing import Any
 
-from cfxd.bound import test_key
+from cfxd.bound import test_key_any
 
 MAX_SESSIONS = 64
 MAX_FILES = 200
@@ -134,7 +134,7 @@ def _observe(payload: dict[str, Any]) -> None:
 
 
 def _test_fact(command: str, response: Any, now: float) -> TestFact | None:
-    key = test_key(command)
+    key = test_key_any(command)
     if key is None:
         return None
     return TestFact(key=key, ok=_exit_ok(response), at=now)
