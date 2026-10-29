@@ -15,6 +15,8 @@ import random
 from pathlib import Path
 from typing import Any
 
+from evals.plugin_ab import prices as _prices
+
 CLAIM_CHEAPER = 0.15  # at least 15% cheaper
 CLAIM_NON_INFERIOR_TASKS = 1  # on may fail to resolve at most 1 more task than off
 BOOTSTRAP_RESAMPLES = 10_000
@@ -187,14 +189,77 @@ def analyze(
 
 
 STRATA = ("short", "medium", "long")
-V2_ARMS = ("off", "shipped", "diet", "checkpoint", "combo")
+V2_ARMS = ("off", "shipped", "checkpoint")
+V2_REPRICE_MODELS = ("claude-opus-5-5", "claude-sonnet-5-5")
 V2_THRESHOLDS: dict[str, dict[str, Any]] = {
-    # short: shipped must not regress; medium: a real saving with a CI clear of 1;
-    # long: a larger saving, no success loss beyond one run, and recall kept.
+    # short: shipped must not regress; medium/long: a real saving with a CI clear
+    # of 1, no success loss beyond one run, and recall kept.
     "short": {"ratio": 1.05, "ci": False, "fail_margin": None, "recall_drop": None},
-    "medium": {"ratio": 0.85, "ci": True, "fail_margin": None, "recall_drop": None},
+    "medium": {"ratio": 0.85, "ci": True, "fail_margin": 1, "recall_drop": 1},
     "long": {"ratio": 0.80, "ci": True, "fail_margin": 1, "recall_drop": 1},
 }
+
+
+def _is_slice0(record: dict[str, Any]) -> bool:
+    return record.get("slice") == "slice0" or record.get("mode") == "slice0"
+
+
+def _token_cost(block: Any, prices: dict[str, Any], model: str) -> float | None:
+    if not isinstance(block, dict):
+        return None
+    cost, unpriced = _prices.dollar_cost(
+        prices,
+        model,
+        input_tokens=int(block.get("input_tokens", 0) or 0),
+        cache_creation_5m=int(block.get("cache_creation_input_tokens", 0) or 0),
+        cache_creation_1h=0,
+        cache_read=int(block.get("cache_read_input_tokens", 0) or 0),
+        output_tokens=int(block.get("output_tokens", 0) or 0),
+    )
+    return None if unpriced is not None else cost
+
+
+def _repriced_dollars(record: dict[str, Any], prices: dict[str, Any], model: str) -> float | None:
+    """Re-price the record's token counts with another model's table."""
+    steps = record.get("steps")
+    blocks: list[Any] = []
+    if isinstance(steps, list) and steps:
+        for step in steps:
+            usage = step.get("usage") if isinstance(step, dict) else None
+            if not isinstance(usage, dict):
+                return None
+            blocks.extend((usage.get("parent"), usage.get("subagents")))
+    else:
+        usage = record.get("usage")
+        if not isinstance(usage, dict):
+            return None
+        blocks.extend((usage.get("parent"), usage.get("subagents")))
+    total = 0.0
+    found = False
+    for block in blocks:
+        if block is None:
+            continue
+        cost = _token_cost(block, prices, model)
+        if cost is None:
+            return None
+        total += cost
+        found = True
+    return total if found else None
+
+
+def _record_cost(
+    record: dict[str, Any], prices: dict[str, Any] | None, model: str | None
+) -> float | None:
+    if prices is not None and model is not None:
+        value = _repriced_dollars(record, prices, model)
+        if value is not None:
+            return value
+    dollars = record.get("dollars")
+    return (
+        float(dollars)
+        if isinstance(dollars, (int, float)) and not isinstance(dollars, bool)
+        else None
+    )
 
 
 def _v2_measured(
@@ -208,6 +273,7 @@ def _v2_measured(
         and r.get("arm") == arm
         and not r.get("warm_up")
         and not r.get("infra_failure")
+        and not _is_slice0(r)
     ]
 
 
@@ -219,27 +285,58 @@ def _v2_runs(records: list[dict[str, Any]], stratum: str, arm: str) -> list[dict
         and r.get("arm") == arm
         and not r.get("warm_up")
         and not r.get("infra_failure")
+        and not _is_slice0(r)
     ]
 
 
+def _v2_values(
+    records: list[dict[str, Any]],
+    stratum: str,
+    task: str,
+    arm: str,
+    prices: dict[str, Any] | None,
+    model: str | None,
+) -> list[float]:
+    values: list[float] = []
+    for record in _v2_measured(records, stratum, task, arm):
+        cost = _record_cost(record, prices, model)
+        if cost is not None:
+            values.append(cost)
+    return values
+
+
 def _v2_mean_dollars(
-    records: list[dict[str, Any]], stratum: str, task: str, arm: str
+    records: list[dict[str, Any]],
+    stratum: str,
+    task: str,
+    arm: str,
+    prices: dict[str, Any] | None = None,
+    model: str | None = None,
 ) -> float | None:
-    vals = _dollars(_v2_measured(records, stratum, task, arm))
+    vals = _v2_values(records, stratum, task, arm, prices, model)
     if not vals:
         return None
     return sum(vals) / len(vals)
 
 
-def _hierarchical_ci(
-    records: list[dict[str, Any]], stratum: str, arm: str, seed: int, resamples: int
-) -> tuple[float, float] | None:
-    """Resample tasks, then repetitions within each task (hierarchical bootstrap)."""
+def _hierarchical_bootstrap(
+    records: list[dict[str, Any]],
+    stratum: str,
+    arm: str,
+    seed: int,
+    resamples: int,
+    prices: dict[str, Any] | None,
+    model: str | None,
+) -> tuple[float, float, float] | None:
+    """Resample tasks, then repetitions within each task (hierarchical bootstrap).
+
+    Returns ``(ci_lo, ci_hi, two_sided_p)``; the p-value feeds the Holm correction.
+    """
     tasks = sorted({r["task"] for r in records if r.get("stratum") == stratum})
     pairs: dict[str, tuple[list[float], list[float]]] = {}
     for task in tasks:
-        off = _dollars(_v2_measured(records, stratum, task, "off"))
-        treat = _dollars(_v2_measured(records, stratum, task, arm))
+        off = _v2_values(records, stratum, task, "off", prices, model)
+        treat = _v2_values(records, stratum, task, arm, prices, model)
         if off and treat:
             pairs[task] = (off, treat)
     if not pairs:
@@ -260,10 +357,25 @@ def _hierarchical_ci(
             logs.append(sum(vals) / len(vals))
     if not logs:
         return None
+    below = sum(1 for value in logs if value < 0)
+    above = sum(1 for value in logs if value > 0)
+    p_value = min(1.0, 2.0 * min(below, above) / len(logs))
     logs.sort()
     lo = math.exp(logs[int(0.025 * (len(logs) - 1))])
     hi = math.exp(logs[int(0.975 * (len(logs) - 1))])
-    return (lo, hi)
+    return (lo, hi, p_value)
+
+
+def _holm(p_values: dict[str, float]) -> dict[str, float]:
+    """Holm step-down correction across the non-off arms within one stratum."""
+    ordered = sorted(p_values.items(), key=lambda item: item[1])
+    adjusted: dict[str, float] = {}
+    running = 0.0
+    total = len(ordered)
+    for index, (arm, value) in enumerate(ordered):
+        running = max(running, min(1.0, (total - index) * value))
+        adjusted[arm] = running
+    return adjusted
 
 
 def _step_stats(records: list[dict[str, Any]], stratum: str, arm: str) -> dict[str, Any]:
@@ -326,100 +438,151 @@ def _extra_turns_mean(records: list[dict[str, Any]], stratum: str, arm: str) -> 
     return round(sum(values) / len(values), 3) if values else None
 
 
+def _geo_ratio(
+    records: list[dict[str, Any]],
+    tasks: list[str],
+    stratum: str,
+    arm: str,
+    prices: dict[str, Any],
+    model: str,
+) -> tuple[float | None, dict[str, Any]]:
+    per_task: dict[str, Any] = {}
+    log_ratios: list[float] = []
+    for task in tasks:
+        off = _v2_mean_dollars(records, stratum, task, "off", prices, model)
+        treat = _v2_mean_dollars(records, stratum, task, arm, prices, model)
+        ratio = treat / off if (off is not None and treat is not None and off > 0) else None
+        per_task[task] = {
+            "off_mean_dollars": round(off, 8) if off is not None else None,
+            "arm_mean_dollars": round(treat, 8) if treat is not None else None,
+            "ratio": round(ratio, 4) if ratio is not None else None,
+        }
+        if ratio is not None and ratio > 0:
+            log_ratios.append(math.log(ratio))
+    geo = math.exp(sum(log_ratios) / len(log_ratios)) if log_ratios else None
+    return geo, per_task
+
+
 def analyze_v2(
     records: list[dict[str, Any]],
     *,
     seed: int = BOOTSTRAP_SEED,
     resamples: int = BOOTSTRAP_RESAMPLES,
 ) -> dict[str, Any]:
-    """Per-stratum report: each arm versus off, with claim-threshold pass/fail columns."""
+    """Per-stratum report: each registered arm versus off, with claim pass/fail columns.
+
+    Claims use the same token counts re-priced at the Opus 5.5 table (the Sonnet
+    5.5 ratio is reported alongside); Haiku's 5x-cheaper sub-100K tier would
+    otherwise flatter compaction savings. Records without usage fall back to the
+    recorded dollars so harness-validation data stays analyzable.
+    """
     infra_excluded = sum(1 for r in records if r.get("infra_failure"))
+    slice0_excluded = sum(1 for r in records if _is_slice0(r))
     records = [r for r in records if not r.get("infra_failure")]
     present = {str(r.get("arm")) for r in records}
-    arms = [a for a in V2_ARMS if a in present] + sorted(present - set(V2_ARMS))
+    arms = [a for a in V2_ARMS if a in present]
+    prices = _prices.load_prices()
+    claim_model = V2_REPRICE_MODELS[0]
     result: dict[str, Any] = {
         "arms": arms,
         "infra_excluded": infra_excluded,
+        "slice0_excluded": slice0_excluded,
+        "priced_as": claim_model,
         "thresholds": V2_THRESHOLDS,
         "strata": {},
     }
     for stratum in STRATA:
-        tasks = sorted({r["task"] for r in records if r.get("stratum") == stratum})
+        tasks = sorted(
+            {r["task"] for r in records if r.get("stratum") == stratum and not _is_slice0(r)}
+        )
         if not tasks:
             continue
         arm_entries: dict[str, Any] = {}
+        raw_p: dict[str, float] = {}
+        pending: dict[str, dict[str, Any]] = {}
         for arm in arms:
             if arm == "off":
                 continue
-            per_task: dict[str, Any] = {}
-            log_ratios: list[float] = []
-            for task in tasks:
-                off = _v2_mean_dollars(records, stratum, task, "off")
-                treat = _v2_mean_dollars(records, stratum, task, arm)
-                ratio = treat / off if (off is not None and treat is not None and off > 0) else None
-                per_task[task] = {
-                    "off_mean_dollars": round(off, 8) if off is not None else None,
-                    "arm_mean_dollars": round(treat, 8) if treat is not None else None,
-                    "ratio": round(ratio, 4) if ratio is not None else None,
-                }
-                if ratio is not None and ratio > 0:
-                    log_ratios.append(math.log(ratio))
-            geo = math.exp(sum(log_ratios) / len(log_ratios)) if log_ratios else None
-            ci = _hierarchical_ci(records, stratum, arm, seed, resamples)
+            geo, per_task = _geo_ratio(records, tasks, stratum, arm, prices, claim_model)
+            sonnet_geo, _ = _geo_ratio(records, tasks, stratum, arm, prices, V2_REPRICE_MODELS[1])
+            ci = _hierarchical_bootstrap(
+                records, stratum, arm, seed, resamples, prices, claim_model
+            )
             step_stats = _step_stats(records, stratum, arm)
             off_step_stats = _step_stats(records, stratum, "off")
             recall = _recall_stats(records, stratum, arm)
             off_recall = _recall_stats(records, stratum, "off")
             failed = _failed_runs(records, stratum, arm)
             off_failed = _failed_runs(records, stratum, "off")
-            threshold = V2_THRESHOLDS[stratum]
-            ratio_pass = geo is not None and geo <= float(threshold["ratio"])
-            ci_pass = None if not threshold["ci"] else (ci is not None and ci[1] < 1.0)
-            success_pass = (
-                None
-                if threshold["fail_margin"] is None
-                else (failed - off_failed <= int(threshold["fail_margin"]))
-            )
-            recall_drop = off_recall["passed"] - recall["passed"]
-            recall_pass = (
-                None
-                if threshold["recall_drop"] is None
-                else (recall_drop <= int(threshold["recall_drop"]))
-            )
-            claim_met = all(
-                value is True
-                for value in (ratio_pass, ci_pass, success_pass, recall_pass)
-                if value is not None
-            )
-            arm_entries[arm] = {
+            raw_p[arm] = ci[2] if ci is not None else 1.0
+            pending[arm] = {
                 "geometric_mean_ratio": round(geo, 4) if geo is not None else None,
                 "bootstrap_95ci": ([round(ci[0], 4), round(ci[1], 4)] if ci is not None else None),
-                "ratio_threshold": threshold["ratio"],
-                "ratio_pass": ratio_pass,
-                "ci_pass": ci_pass,
-                "success_pass": success_pass,
-                "recall_pass": recall_pass,
-                "claim_met": claim_met,
+                "raw_p": round(raw_p[arm], 6),
+                "repriced": {
+                    "opus-5.5": round(geo, 4) if geo is not None else None,
+                    "sonnet-5.5": round(sonnet_geo, 4) if sonnet_geo is not None else None,
+                },
                 "step_pass_rate": step_stats["rate"],
                 "step_passed": step_stats["passed"],
                 "step_total": step_stats["total"],
                 "off_step_pass_rate": off_step_stats["rate"],
                 "recall": recall,
                 "off_recall": off_recall,
-                "recall_drop_probes": recall_drop,
+                "recall_drop_probes": off_recall["passed"] - recall["passed"],
                 "failed_runs": failed,
                 "off_failed_runs": off_failed,
                 "extra_turns_after_checkpoint": _extra_turns_mean(records, stratum, arm),
                 "per_task": per_task,
             }
+        for arm, entry in pending.items():
+            threshold = V2_THRESHOLDS[stratum]
+            geo = entry["geometric_mean_ratio"]
+            ci = entry["bootstrap_95ci"]
+            holm_p = _holm(raw_p)[arm]
+            entry["holm_p"] = round(holm_p, 6)
+            entry["ratio_threshold"] = threshold["ratio"]
+            entry["ratio_pass"] = geo is not None and geo <= float(threshold["ratio"])
+            entry["ci_pass"] = None if not threshold["ci"] else (ci is not None and ci[1] < 1.0)
+            entry["holm_pass"] = None if not threshold["ci"] else holm_p < 0.05
+            entry["success_pass"] = (
+                None
+                if threshold["fail_margin"] is None
+                else (
+                    entry["failed_runs"] - entry["off_failed_runs"] <= int(threshold["fail_margin"])
+                )
+            )
+            entry["recall_pass"] = (
+                None
+                if threshold["recall_drop"] is None
+                else (entry["recall_drop_probes"] <= int(threshold["recall_drop"]))
+            )
+            entry["claim_met"] = all(
+                value is True
+                for value in (
+                    entry["ratio_pass"],
+                    entry["ci_pass"],
+                    entry["holm_pass"],
+                    entry["success_pass"],
+                    entry["recall_pass"],
+                )
+                if value is not None
+            )
+            arm_entries[arm] = entry
         result["strata"][stratum] = {"tasks": tasks, "arms": arm_entries}
     return result
 
 
 def format_markdown_v2(result: dict[str, Any]) -> str:
-    lines = ["# Plugin A/B v2 by stratum (DRAFT, not evidence)", ""]
+    lines = [
+        "# Plugin A/B v2 by stratum (registered design; claims priced as Opus 5.5)",
+        "",
+    ]
     if result.get("infra_excluded"):
         lines.append(f"Excluded as infrastructure failures: {result['infra_excluded']} run(s)")
+        lines.append("")
+    if result.get("slice0_excluded"):
+        lines.append(f"Excluded harness-validation slice runs: {result['slice0_excluded']}")
         lines.append("")
     for stratum in STRATA:
         block = result["strata"].get(stratum)
@@ -429,9 +592,9 @@ def format_markdown_v2(result: dict[str, Any]) -> str:
         lines.append("")
         lines.append(
             "| arm | ratio vs off | 95% CI | step pass | recall | extra turns after checkpoint "
-            "| ratio | CI | success | recall | claim |"
+            "| ratio | CI | Holm | success | recall | claim |"
         )
-        lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+        lines.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
         for arm, entry in block["arms"].items():
             ratio = (
                 f"{entry['geometric_mean_ratio']:.3f}"
@@ -465,7 +628,8 @@ def format_markdown_v2(result: dict[str, Any]) -> str:
             lines.append(
                 f"| {arm} | {ratio} | {ci} | {step} | {recall_text} | {extra} "
                 f"| {mark(entry['ratio_pass'])} | {mark(entry['ci_pass'])} "
-                f"| {mark(entry['success_pass'])} | {mark(entry['recall_pass'])} "
+                f"| {mark(entry['holm_pass'])} | {mark(entry['success_pass'])} "
+                f"| {mark(entry['recall_pass'])} "
                 f"| {'MET' if entry['claim_met'] else 'not met'} |"
             )
         lines.append("")
@@ -540,6 +704,8 @@ def load_records(report_dir: Path) -> list[dict[str, Any]]:
                 if isinstance(r, dict):
                     r = dict(r)
                     r["mode"] = obj.get("mode", "confirmatory")
+                    if obj.get("slice") is not None:
+                        r["slice"] = obj["slice"]
                     records.append(r)
     return records
 

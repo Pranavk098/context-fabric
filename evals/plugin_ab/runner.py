@@ -39,9 +39,15 @@ _PKG = Path(__file__).resolve().parent
 _REPO_ROOT = _PKG.parents[1]
 DEFAULT_FIXTURE = _PKG / "fixture"
 DEFAULT_TASKS = _PKG / "tasks.json"
+TASKS_V2 = _PKG / "tasks_v2.json"
 DEFAULT_REPORT_DIR = _REPO_ROOT / "evals" / "reports" / "plugin_ab"
 
 ARMS_OFF_ON = ("off", "on")
+V2_ARMS = ("off", "shipped", "checkpoint")
+V2_REJECTED_ARMS = ("diet", "combo")
+# The checkpoint arm saves after these 1-based step numbers and continues in a new session.
+CHECKPOINT_BOUNDARIES: dict[str, tuple[int, ...]] = {"long": (4, 8), "medium": (2,), "short": ()}
+SLICE0_MODEL = "claude-haiku-5-5"
 CLAUDE_TIMEOUT_S = 1800
 ORACLE_TIMEOUT_S = 300
 
@@ -137,6 +143,21 @@ def plan_runs(tasks: list[Task], arms: tuple[str, ...], reps: int, seed: int) ->
             for arm in pair:
                 specs.append(RunSpec(task.id, arm, rep, False, idx))
                 idx += 1
+    return specs
+
+
+def is_v2(tasks: list[Task]) -> bool:
+    return any(t.stratum for t in tasks)
+
+
+def plan_slice0(tasks: list[Task]) -> list[RunSpec]:
+    """Harness-validation slice: first long task in registered order, 1 off warm-up,
+    then ABBA of off/checkpoint (2 measured reps each)."""
+    task = next(t for t in tasks if t.stratum == "long")
+    specs = [RunSpec(task.id, "off", -1, True, 0)]
+    order = ("off", "checkpoint", "checkpoint", "off")
+    for index, arm in enumerate(order):
+        specs.append(RunSpec(task.id, arm, (0, 0, 1, 1)[index], False, index + 1))
     return specs
 
 
@@ -317,6 +338,54 @@ def detect_carry(cfx_home: Path) -> bool:
     return _log_has_decision(cfx_home / "carry.jsonl", "rendered")
 
 
+def _last_receipt(cfx_home: Path, event: str) -> dict[str, Any] | None:
+    path = cfx_home / "checkpoint.jsonl"
+    last: dict[str, Any] | None = None
+    if not path.is_file():
+        return None
+    for line in path.read_text(encoding="utf-8").splitlines():
+        try:
+            obj = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(obj, dict) and obj.get("event") == event:
+            last = obj
+    return last
+
+
+def save_checkpoint(python: str, work: Path, cfx_home: Path, port: int) -> int:
+    """Save through the ``/context-fabric:checkpoint`` code path; return the byte count."""
+    env = os.environ.copy()
+    env["CFX_HOME"] = str(cfx_home)
+    env["CFX_PORT"] = str(port)
+    # The run cwd is the fixture copy, so put the repo on the import path for cfxd.
+    env["PYTHONPATH"] = str(_REPO_ROOT) + (
+        os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else ""
+    )
+    try:
+        subprocess.run(
+            [python, "-m", "cfxd", "checkpoint", "save"],
+            cwd=work,
+            env=env,
+            capture_output=True,
+            timeout=120,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return 0
+    receipt = _last_receipt(cfx_home, "checkpoint_save")
+    if receipt is None or receipt.get("outcome") != "saved":
+        return 0
+    size = receipt.get("bytes")
+    return int(size) if isinstance(size, int) and not isinstance(size, bool) else 0
+
+
+def restore_outcome(cfx_home: Path) -> str:
+    """The daemon receipt's outcome for the last checkpoint restore (counts only)."""
+    receipt = _last_receipt(cfx_home, "checkpoint_restore")
+    outcome = receipt.get("outcome") if receipt is not None else None
+    return outcome if isinstance(outcome, str) else "none"
+
+
 def collect_overhead(cfx_home: Path) -> dict[str, float]:
     path = cfx_home / "events.jsonl"
     calls = 0
@@ -480,8 +549,20 @@ def _run_chain(
     previous_total = ScanResult()
     duration = 0.0
     cap_hit = False
+    boundaries = (
+        set(CHECKPOINT_BOUNDARIES.get(task.stratum, ())) if spec.arm == "checkpoint" else set()
+    )
+    checkpoints: list[dict[str, Any]] = []
+    fresh_session = False
 
     for index, step in enumerate(task.steps):
+        if index in boundaries and index < len(task.steps):
+            saved = save_checkpoint(python, work, cfx_home, port)
+            session_id = _new_session_id()
+            fresh_session = True
+            checkpoints.append(
+                {"after_step": index, "saved_bytes": saved, "restore_outcome": "none"}
+            )
         cmd = build_command(
             claude_bin,
             prompt=step.prompt,
@@ -489,11 +570,13 @@ def _run_chain(
             session_id=session_id,
             arm=spec.arm,
             plugin_root=plugin_root,
-            resume=index > 0,
+            resume=index > 0 and not fresh_session,
         )
         env = os.environ.copy()
         env["CFX_HOME"] = str(cfx_home)
         env["CFX_PORT"] = str(port)
+        if fresh_session:
+            env["CFX_RESTORE_ON_STARTUP"] = "1"
         if override_config:
             env["CLAUDE_CONFIG_DIR"] = str(config_dir)
         if fake:
@@ -517,6 +600,9 @@ def _run_chain(
         failure = _claude_failure(proc)
         if failure is not None:
             return _infra_record(task, spec, session_id, failure)
+        if fresh_session:
+            checkpoints[-1]["restore_outcome"] = restore_outcome(cfx_home)
+            fresh_session = False
 
         oracle_result = run_step_oracle(python, work, step.oracle, step.timeout)
         if oracle_result is None:
@@ -586,6 +672,11 @@ def _run_chain(
         "duration_s": round(duration, 3),
         "session_id": session_id,
     }
+    if checkpoints:
+        record["checkpoints"] = checkpoints
+        record["boundaries_taken"] = [c["after_step"] for c in checkpoints]
+        record["checkpoint_saved_bytes"] = sum(int(c["saved_bytes"]) for c in checkpoints)
+        record["checkpoint_restore_outcome"] = checkpoints[-1]["restore_outcome"]
     if spec.arm != "off":
         record["brief_fired"] = detect_brief(cfx_home)
         record["carry_fired"] = detect_carry(cfx_home)
@@ -717,10 +808,11 @@ def run_experiment(
     isolation: Path,
     max_runs: int | None = None,
     stratum: str | None = None,
+    slice_name: str | None = None,
 ) -> dict[str, Any]:
     if stratum:
         tasks = [t for t in tasks if t.stratum == stratum]
-    specs = plan_runs(tasks, arms, reps, seed)
+    specs = plan_slice0(tasks) if slice_name == "slice0" else plan_runs(tasks, arms, reps, seed)
     if max_runs is not None:
         specs = specs[:max_runs]
     records: list[dict[str, Any]] = []
@@ -755,10 +847,12 @@ def run_experiment(
         "stratum": stratum,
         "max_run_usd": float(os.environ.get("EVALS_MAX_RUN_USD", "0.60")),
         "prices_as_of": prices.get("as_of"),
-        "prereg_sha256": prereg.stored_hash(),
+        "prereg_sha256": (prereg.stored_hash_v2() if is_v2(tasks) else prereg.stored_hash()),
         "started_at": datetime.now(UTC).isoformat(),
         "runs": records,
     }
+    if slice_name is not None:
+        report["slice"] = slice_name
     if aborted is not None:
         report["aborted"] = aborted
     report_dir.mkdir(parents=True, exist_ok=True)
@@ -777,7 +871,7 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("--tasks", default=str(DEFAULT_TASKS))
     p.add_argument("--repetitions", type=int, default=3)
     p.add_argument("--seed", type=int, default=0)
-    p.add_argument("--model", default="haiku")
+    p.add_argument("--model", default=None, help="default: haiku (v1), claude-haiku-5-5 (v2)")
     p.add_argument(
         "--claude", default=None, help="claude binary (default: PLUGIN_AB_CLAUDE or 'claude')"
     )
@@ -789,9 +883,14 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("--with-fold", action="store_true", help="add a third on_fold arm")
     p.add_argument(
         "--arms",
-        default="off,on",
-        help="comma-separated arm labels; every arm except off loads the plugin (v2: "
-        "off,shipped,diet,checkpoint,combo)",
+        default=None,
+        help="comma-separated arm labels; every arm except off loads the plugin "
+        "(v1 default: off,on; v2 default: off,shipped,checkpoint)",
+    )
+    p.add_argument(
+        "--slice0",
+        action="store_true",
+        help="harness-validation slice: first long task, 1 off warm-up + ABBA off/checkpoint",
     )
     p.add_argument(
         "--stratum",
@@ -810,23 +909,46 @@ def main(argv: list[str] | None = None) -> int:
             reconfigure(encoding="utf-8", errors="replace")
     args = _parser().parse_args(sys.argv[1:] if argv is None else argv)
     pilot = bool(args.pilot)
-    ok, message = prereg.gate_ok(_PKG, pilot)
+    tasks = load_tasks(Path(args.tasks))
+    v2 = is_v2(tasks)
+    ok, message = (prereg.gate_ok_v2 if v2 else prereg.gate_ok)(_PKG, pilot)
     if not ok:
         print(f"refusing to start: {message}", file=sys.stderr)
         return 2
 
     claude_bin = args.claude or os.environ.get("PLUGIN_AB_CLAUDE", "claude")
     fake = bool(os.environ.get("PLUGIN_AB_CLAUDE"))
-    arms = tuple(a.strip() for a in args.arms.split(",") if a.strip())
+    if args.arms is not None:
+        arms = tuple(a.strip() for a in args.arms.split(",") if a.strip())
+    else:
+        arms = V2_ARMS if v2 else ARMS_OFF_ON
+    if v2:
+        rejected = [a for a in arms if a in V2_REJECTED_ARMS]
+        if rejected:
+            print(
+                f"refusing to start: arm(s) {', '.join(rejected)} were cut from v2; "
+                "registered arms are off,shipped,checkpoint",
+                file=sys.stderr,
+            )
+            return 2
+        unknown = [a for a in arms if a not in V2_ARMS]
+        if unknown:
+            print(
+                f"refusing to start: unknown v2 arm(s) {', '.join(unknown)}; "
+                "registered arms are off,shipped,checkpoint",
+                file=sys.stderr,
+            )
+            return 2
     if args.with_fold and "on_fold" not in arms:
         arms += ("on_fold",)
-    tasks = load_tasks(Path(args.tasks))
-    if any(t.stratum for t in tasks) and not pilot:
-        print(
-            "refusing to start: the v2 protocol is a DRAFT and is not registered; use --pilot",
-            file=sys.stderr,
-        )
-        return 2
+    if args.slice0:
+        if not v2:
+            print("refusing to start: --slice0 is a v2 slice", file=sys.stderr)
+            return 2
+        arms = ("off", "checkpoint")
+    model = SLICE0_MODEL if (v2 or args.slice0) else "haiku"
+    if args.model is not None and not args.slice0:
+        model = args.model
     run_id = args.run_id or datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     max_runs = 8 if pilot else None
     isolation = Path(tempfile.mkdtemp(prefix="plugin_ab_"))
@@ -836,7 +958,7 @@ def main(argv: list[str] | None = None) -> int:
             arms=arms,
             reps=args.repetitions,
             seed=args.seed,
-            model=args.model,
+            model=model,
             claude_bin=claude_bin,
             plugin_root=_REPO_ROOT,
             fixture=Path(args.fixture),
@@ -849,6 +971,7 @@ def main(argv: list[str] | None = None) -> int:
             isolation=isolation,
             max_runs=max_runs,
             stratum=args.stratum,
+            slice_name="slice0" if args.slice0 else None,
         )
     finally:
         if not args.keep:
