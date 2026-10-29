@@ -28,6 +28,22 @@ example files are in [`vectors/`](vectors/). Check a file with
 Do not infer anything: every line comes from a hook event, a fold record, the
 save request, or the user's note. Never copy `tool_response` text into a packet.
 
+## Handoff between agents (experimental)
+
+A packet may be built from another agent's session log instead of a live Claude
+Code session: `cfxd packet build --agent claude|codex|opencode` reads only
+observed tool calls (file paths, masked commands, todos where that agent records
+them, and the last recognised test run) through one per-agent tool-name table;
+unknown tool names are ignored, never guessed into another class. The optional
+`source` field records which agent and which tool mapping produced the packet.
+`cfxd checkpoint import FILE` runs the same checks as `cfxd packet validate`,
+rewrites `cwd`, re-arms the packet and writes it as a checkpoint, so the next
+`/clear` uses the shipped renderer and caps. `cfxd packet render` and
+`cfxd packet install-agents-md` produce a ≤3,000-byte handoff block, or write
+only the marked block in `AGENTS.md` (read by Codex and OpenCode; no other agent
+is claimed). This path is experimental and has been tested on hand-built logs
+only, not end to end with live Codex or OpenCode.
+
 ## What NOT to claim
 
 - Not a protocol, not a standard, not interoperable until a second
@@ -37,8 +53,9 @@ save request, or the user's note. Never copy `tool_response` text into a packet.
 - Not a secret store. Masking is pattern-based and incomplete; commands are the
   riskiest field. The packet is not encrypted and lives under the user's state
   directory.
-- No cross-agent, cross-machine or model-switch guarantee. One local session,
-  one working directory.
+- No cross-machine or model-switch guarantee inside a live session. The
+  cross-agent `packet build` / `checkpoint import` path is experimental, tested
+  on hand-built logs only, and is not a protocol.
 
 ## Conformance checklist → validator check
 

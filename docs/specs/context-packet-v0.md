@@ -39,8 +39,9 @@ note. The brief uses live facts and ranks files by prompt mention, edit status,
 then recency. Carry and checkpoint persist a snapshot and rebuild it at load
 (carry falls back to live facts if its file is missing).
 
-Not implemented: model-to-model hand-off, agent-to-agent hand-off, and any
-packet crossing a process other than the local daemon.
+Not implemented: model-to-model hand-off inside a live session. Agent-to-agent
+hand-off exists only as the experimental `cfxd packet build` /
+`cfxd checkpoint import` path, which was tested on hand-built logs only.
 
 ## 3. Packet fields
 
@@ -63,6 +64,7 @@ inside the packet too.
 | `commands[]` | Masked command strings | `PostToolUse` for `Bash` | Oldest first; last 20 kept, de-duplicated; 5 rendered, newest first |
 | `todos[]` | `s`, `t` | `PostToolUse` for `TodoWrite` | Only `pending` / `in_progress`; last 20 in memory; 8 in packet |
 | `note` | Optional goal, written by the user | text after `/checkpoint` | Whitespace collapsed, sanitized, at most 300 characters |
+| `source` | Optional provenance for a packet built from another agent's log | `cfxd packet build` | Agent name and the tool-name mapping used, e.g. `agent=codex; tools: apply_patch=edit, ...` |
 | `test` | `key`, `ok`, `at` | `PostToolUse` for a recognised Bash test command | Checkpoint only; `ok` is `true`, `false`, or `null` |
 
 - `files[].path` is absolute. `lines` is the count the tool call returned
@@ -206,8 +208,9 @@ modes; on Windows this is best effort. Nothing is sent off the machine.
 - Masking is pattern-based and incomplete; commands are the riskiest field.
 - The 16 KB save cap can drop folds, commands, or todos silently; the receipt
   counts are the only trace.
-- Model-switch and cross-agent use are untested. v0 assumes one local session
-  and one working directory.
+- Model-switch and cross-agent use are experimental. Packets built from Codex,
+  OpenCode or Claude Code logs were tested on hand-built logs only, never end
+  to end with live Codex or OpenCode. v0 still assumes one working directory.
 - There is no signing or authentication of the stored packet.
 - Fidelity has no shipped checker. `cfxd fidelity` is the intended tool for
   verifying a packet against a transcript; its pass criteria must be frozen

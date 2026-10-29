@@ -83,6 +83,9 @@ experimental until a paired test shows they pay.
 | `cfxd diet --apply` / `--undo` | Disables fully unused local plugins through Claude Code's own command, with an exact undo | experimental |
 | Checkpoint (`/context-fabric:checkpoint`, `cfxd checkpoint show`, then `/clear`) | Saves a short note of files, commands, todos and an optional goal, and restores it once in the next session | experimental |
 | `cfxd packet validate` | Checks a saved packet against the DRAFT v0 schema and conformance rules: shape, caps, 3,000-byte render, provenance, masking, control characters, and staleness with `--cwd` | experimental |
+| `cfxd packet build --agent claude\|codex\|opencode` | Builds a v0 packet from a session log using observed tool calls only: files read or edited, masked commands, todos, last test run; records the agent and tool mapping in `source` | experimental, tested on logs only |
+| `cfxd checkpoint import FILE` | Validates a packet, rewrites its cwd and arms it, so the next `/clear` in Claude Code restores it like a native checkpoint; refuses packets older than 24 hours without `--force` | experimental |
+| `cfxd packet render` / `install-agents-md` | Prints a packet as a compact block (at most 3,000 bytes), or writes/removes only its marked block in `AGENTS.md`; Codex and OpenCode both read `AGENTS.md` | experimental, tested on logs only |
 | Bound (`cfxd set bound on`) | Keeps only the last 150 lines of simple test and log commands | experimental, off by default |
 | Coach, idle notice (`cfxd set coach on`, `idle_notice on`) | One plain line when a session gets long, or when a resume finds the cache expired | experimental, off by default |
 | Brief | Gives a sub-agent the files and saved outputs the parent already touched; fires only when a sub-agent runs | experimental |
