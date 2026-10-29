@@ -103,7 +103,8 @@ removed under `dropped`.
 ## 5. Provenance rule
 
 Every rendered line MUST be derivable from an observed event: a `PostToolUse`
-payload, a fold record, the save request, or the user's note. Nothing is
+payload, a fold record, the save request, or the user's note; observed events are
+hook events, completed from the session transcript at save time. Nothing is
 inferred, summarized, or filled in. The exception is fixed text: markers, the
 prologue, section headers, and the `(saved at HH:MM by /checkpoint)` stamp.
 

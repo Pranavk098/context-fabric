@@ -100,7 +100,7 @@ one is optional and experimental; none has a proven saving.
 - **What it does:** experimental; saving not proven. Saves the working state and an optional goal note, then restores it once after `/clear`.
 - **Turn on:** after a normal task, run `/checkpoint [note]` (optional, up to 300 characters), then `/clear`; if the short name is not found, use `/context-fabric:checkpoint [note]`.
 - **What to do:** start the next task in the new session.
-- **What to look for:** a `context-fabric-carry` block with your note, the last test result and files marked `[changed since checkpoint]` or `[missing]`.
+- **What to look for:** a `context-fabric-carry` block with your note, the last test result and files marked `[changed since checkpoint]` or `[missing]`; when hook events were dropped the save fills in from the session transcript (`cfxd stats` shows how often).
 - **Turn off / undo:** the restore happens once; `uvx --from git+https://github.com/Pranavk098/context-fabric cfxd checkpoint show` previews the block and `uvx --from git+https://github.com/Pranavk098/context-fabric cfxd checkpoint clear` deletes a saved checkpoint.
 - **What to report:** whether the block matched what you were doing, and any stale or wrong marks.
 
