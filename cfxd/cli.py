@@ -36,6 +36,8 @@ from cfxd.daemon import (
 from cfxd.diet import _anonymize, diet
 from cfxd.diet import format_human as format_diet
 from cfxd.dietapply import apply_report, undo_records
+from cfxd.fidelity import fidelity
+from cfxd.fidelity import format_fidelity as format_fidelity_report
 from cfxd.refetch import format_refetch, refetch
 from cfxd.replay import format_replay, replay
 from cfxd.routing import format_human as format_routing
@@ -215,6 +217,21 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     refetchp.add_argument("--json", action="store_true", help="emit a single JSON object")
     refetchp.set_defaults(func=_cmd_refetch)
+
+    fidelityp = subparsers.add_parser(
+        "fidelity", help="how faithful a compaction summary is to the session"
+    )
+    fidelityp.add_argument(
+        "--root", default=None, help=f"transcripts root (default: {DEFAULT_ROOT})"
+    )
+    fidelityp.add_argument(
+        "--since",
+        choices=("7d", "30d", "all"),
+        default="30d",
+        help="time window by file mtime (default: 30d)",
+    )
+    fidelityp.add_argument("--json", action="store_true", help="emit a single JSON object")
+    fidelityp.set_defaults(func=_cmd_fidelity)
 
     wastep = subparsers.add_parser(
         "waste", help="loop, retry and rediscovery waste in Claude Code transcripts"
@@ -590,6 +607,16 @@ def _cmd_refetch(args: argparse.Namespace) -> int:
         print(json.dumps(report))
     else:
         print(format_refetch(report, root.name))
+    return 0
+
+
+def _cmd_fidelity(args: argparse.Namespace) -> int:
+    root = Path(args.root) if args.root else DEFAULT_ROOT
+    report = fidelity(root, args.since)
+    if args.json:
+        print(json.dumps(report))
+    else:
+        print(format_fidelity_report(report, root.name))
     return 0
 
 

@@ -83,13 +83,14 @@ Each command is `uvx --from git+https://github.com/Pranavk098/context-fabric cfx
 | `week [--root DIR] [--days 7] [--share] [--json]` | experimental, saving unproven: one weekly summary — sessions, length buckets with each bucket's dollar share, cache-read share, first-turn context, compactions and `/clear` restarts, model switches and premium, refetch f, unused skills/connectors, plugin receipts; `--share` prints a version line and counts, sizes and model ids only, so it can be pasted |
 | `agent-audit --agent codex\|opencode [--since all]` | counts-only breakdown of Codex or OpenCode session logs (Codex needs the optional `zstandard` decoder) |
 | `replay [--since 30d] [--json]` | simulated saving from shrinking old tool output, with cache effects |
+| `fidelity [--root DIR] [--since 7d\|30d\|all] [--json]` | experimental measurement: how many files a compaction summary names back (recall), how many named paths never appeared before it (possible invention), and the same comparison for a 20-file checkpoint; counts only |
 | `set brief\|carry\|fold\|fold_read\|bound\|coach on\|off` | feature flags (brief and carry on; fold, fold_read, bound and coach off) |
 | `set coach on\|off` | experimental: one plain line at a natural break once a session reaches ~150K tokens and 30 turns, with its cache-read cost and the checkpoint workflow; off by default, saving unproven |
 | `set idle_notice on\|off` | experimental: on a resume after the prompt cache expired, one user-visible line gives the API-equivalent re-read cost and notes that `/clear` starts cheap; off by default, effect unproven |
 | `stop` | stop the daemon (the next session starts it again) |
 | `evals/plugin_ab` (repo checkout only, not a `cfxd` command) | experimental and unproven: the v2 session-length-stratified A/B chains (`python -m evals.plugin_ab.runner --tasks evals/plugin_ab/tasks_v2.json --stratum long --pilot`); it spends model budget unless `PLUGIN_AB_CLAUDE` points at the fake stand-in |
 
-`audit`, `replay`, `stats` and `week` print counts and sizes only: no paths, commands, prompts or text.
+`audit`, `refetch`, `fidelity`, `replay`, `stats` and `week` print counts and sizes only: no paths, commands, prompts or text.
 
 ## 5. What it stores
 
