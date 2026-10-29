@@ -7,9 +7,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 
-def build_report(
-    subtotal: Decimal, tax_rate: Decimal, discount: Decimal
-) -> dict[str, Decimal]:
+def build_report(subtotal: Decimal, tax_rate: Decimal, discount: Decimal) -> dict[str, Decimal]:
     """Return subtotal, discount, tax and total for a checkout."""
     raise NotImplementedError
 
