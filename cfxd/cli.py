@@ -12,7 +12,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from cfxd import checkpoint
+from cfxd import checkpoint, packet
 from cfxd.agents import READERS, build_report, default_root, since_cutoff
 from cfxd.agents import format_human as format_agent_report
 from cfxd.agents.opencode import OpenCodeDBError
@@ -307,6 +307,18 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_state_dir(checkpoint_parser)
     checkpoint_parser.set_defaults(func=_cmd_checkpoint)
 
+    packet_parser = subparsers.add_parser(
+        "packet", help="experimental: validate a Context Packet v0 file"
+    )
+    packet_sub = packet_parser.add_subparsers(dest="action", required=True)
+    packet_validate = packet_sub.add_parser("validate", help="check a packet against the v0 rules")
+    packet_validate.add_argument("file", help="packet JSON file")
+    packet_validate.add_argument(
+        "--cwd", default=None, help="also stat listed files against this directory"
+    )
+    packet_validate.add_argument("--json", action="store_true", help="emit a single JSON object")
+    packet_validate.set_defaults(func=_cmd_packet)
+
     setp = subparsers.add_parser(
         "set", help="toggle brief, carry, fold, fold_read, bound, coach or idle_notice on/off"
     )
@@ -423,6 +435,26 @@ def _cmd_checkpoint(args: argparse.Namespace) -> int:
         return 1
     print(summary)
     return 0
+
+
+def _cmd_packet(args: argparse.Namespace) -> int:
+    try:
+        obj = packet.load(Path(args.file))
+    except (OSError, ValueError) as exc:
+        print(f"cfxd packet validate: cannot read {args.file}: {exc}", file=sys.stderr)
+        return 2
+    checks = packet.validate(obj, args.cwd)
+    ok = packet.passed(checks)
+    if args.json:
+        print(
+            json.dumps(
+                {"file": args.file, "ok": ok, "checks": [check.as_dict() for check in checks]}
+            )
+        )
+    else:
+        for check in checks:
+            print(f"{check.status} {check.name}: {check.reason}")
+    return 0 if ok else 1
 
 
 def _measure_shim(state_dir: Path, runs: int) -> tuple[list[float], int]:

@@ -1,5 +1,10 @@
 Status: DRAFT v0, experimental; not a protocol
 
+Machine-checkable form: [`context-packet-v0.schema.json`](context-packet-v0.schema.json)
+(JSON Schema draft 2020-12), [`vectors/`](vectors/) (valid and invalid files),
+and [`IMPLEMENTERS.md`](IMPLEMENTERS.md) (writer, renderer, reader, conformance
+checklist). Check a packet with `cfxd packet validate FILE [--cwd DIR]`.
+
 # Context Packet v0
 
 A context packet is a small set of observed session facts, saved at a boundary

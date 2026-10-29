@@ -1,0 +1,37 @@
+{
+  "v": 0,
+  "sid": "sess-vector",
+  "created": "2026-10-29T10:00:00+00:00",
+  "trigger": "checkpoint",
+  "cwd": "/work/project",
+  "saved_at": "2026-10-29T10:00:05+00:00",
+  "armed": true,
+  "files": [
+    {
+      "path": "/work/project/a.py",
+      "lines": 42,
+      "edited": true,
+      "t": 1761732000.0
+    }
+  ],
+  "folds": [],
+  "commands": [
+    "uv run pytest -q"
+  ],
+  "todos": [
+    {
+      "s": "in_progress",
+      "t": "open the packet spec"
+    },
+    {
+      "s": "pending",
+      "t": "write the schema"
+    }
+  ],
+  "note": "ship the packet format as a draft",
+  "test": {
+    "key": "pytest",
+    "ok": true,
+    "at": 1761732002.0
+  }
+}

@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://context-fabric.dev/specs/context-packet-v0.schema.json",
+  "title": "Context Packet v0 (checkpoint)",
+  "description": "DRAFT, experimental. The JSON object cfxd/checkpoint.py writes to checkpoint/<cwd-hash>.json. Machine-checkable companion to docs/specs/context-packet-v0.md; validate with `cfxd packet validate FILE`. Arrays are stored oldest-first. Caps are the writer's constants; JSON Schema cannot express byte caps, so todo text uses maxLength as the closest character limit.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "sid", "created", "trigger", "files", "folds", "commands", "todos", "cwd", "saved_at", "armed"],
+  "properties": {
+    "v": {
+      "const": 0,
+      "description": "Format version. Any other value means no packet."
+    },
+    "sid": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Session id as recorded at save time."
+    },
+    "created": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Snapshot time, ISO 8601 UTC. Informational only."
+    },
+    "trigger": {
+      "const": "checkpoint",
+      "description": "The save path. /compact packets use auto or manual and are not this schema."
+    },
+    "cwd": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Normalized absolute working directory; must match at restore."
+    },
+    "saved_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Save time, ISO 8601 UTC. Drives the 60-minute TTL and staleness cutoff."
+    },
+    "armed": {
+      "type": "boolean",
+      "description": "One-shot marker; set false before the block is returned."
+    },
+    "files": {
+      "type": "array",
+      "maxItems": 200,
+      "items": {
+        "$ref": "#/$defs/file"
+      }
+    },
+    "folds": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "$ref": "#/$defs/fold"
+      }
+    },
+    "commands": {
+      "type": "array",
+      "maxItems": 20,
+      "description": "Masked command strings, oldest first, de-duplicated.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "todos": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/todo"
+      }
+    },
+    "note": {
+      "type": "string",
+      "maxLength": 300,
+      "description": "Optional goal, written by the user at save time."
+    },
+    "test": {
+      "$ref": "#/$defs/test"
+    }
+  },
+  "$defs": {
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "lines", "edited", "t"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Absolute path as the tool call gave it."
+        },
+        "lines": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "Line count the tool call returned; null when unknown."
+        },
+        "edited": {
+          "type": "boolean",
+          "description": "Status: true for Edit, Write, MultiEdit and NotebookEdit; false for Read."
+        },
+        "t": {
+          "type": "number",
+          "description": "Unix time of the last event touching the file; order is oldest first."
+        }
+      }
+    },
+    "fold": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "tool", "src", "bytes", "kind"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{16}$",
+          "description": "First 16 hex characters of the SHA-256 of the saved content."
+        },
+        "tool": {
+          "type": "string"
+        },
+        "src": {
+          "type": "string",
+          "description": "File path, masked command, URL without query and fragment, or Grep."
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Size before folding."
+        },
+        "kind": {
+          "enum": ["code", "test", "other"]
+        }
+      }
+    },
+    "todo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["s", "t"],
+      "properties": {
+        "s": {
+          "enum": ["pending", "in_progress"],
+          "description": "Only open todos are stored."
+        },
+        "t": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Todo text; the writer caps it at 120 UTF-8 bytes."
+        }
+      }
+    },
+    "test": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "ok", "at"],
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Recognised runner key, e.g. pytest, npm test, go test."
+        },
+        "ok": {
+          "type": ["boolean", "null"],
+          "description": "null means the tool response carried no exit status."
+        },
+        "at": {
+          "type": "number",
+          "description": "Unix time of the test event."
+        }
+      }
+    }
+  }
+}
