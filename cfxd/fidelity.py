@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from cfxd.audit import _SINCE_DELTAS, _SINCE_LABELS, _discover, _iter_objects, _texts
-from cfxd.bound import test_key
+from cfxd.bound import test_key_any
 from cfxd.daemon import percentile
 from cfxd.refetch import _FILE_TOOLS, _ctx, _trigger
 
@@ -39,7 +39,8 @@ _PASS_CLAIMS = (
     "tests pass",
     "tests passed",
     "all tests pass",
-    "passing",
+    "tests passing",
+    "all passing",
     "all green",
     "0 failed",
     "no failures",
@@ -276,7 +277,7 @@ def _scan(path: Path) -> tuple[list[dict[str, Any]], dict[str, int]]:
                 command = inp.get("command")
                 if name == "Bash" and isinstance(command, str):
                     test_id = block.get("id")
-                    if test_key(command) is not None and isinstance(test_id, str):
+                    if test_key_any(command) is not None and isinstance(test_id, str):
                         # Unfinished or failed until its result says otherwise.
                         pending_tests.add(test_id)
                         test_ok = False

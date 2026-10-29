@@ -156,6 +156,54 @@ def test_key(command: str) -> str | None:
     return None
 
 
+_SEGMENT_SPLIT = re.compile(r"&&|[|][|]|[;|]")
+_REDIRECT = re.compile(r"[ ]\d*>&?\S*")
+
+
+_WRAPPERS = {
+    "uv",
+    "run",
+    "python",
+    "python3",
+    "py",
+    "-m",
+    "npx",
+    "poetry",
+    "pipenv",
+    "env",
+    "time",
+    "nohup",
+    "sudo",
+}
+
+
+def _is_wrapper(word: str) -> bool:
+    lower = word.lower()
+    return lower in _WRAPPERS or lower.startswith("-") or lower.replace(".", "").isdigit()
+
+
+def test_key_any(command: str) -> str | None:
+    """Like ``test_key`` but finds a test runner in any segment of a compound command.
+
+    Real sessions rarely run a bare ``pytest``: they write ``cd x && uv run pytest 2>&1``.
+    Only used to *recognise* test runs (fidelity, checkpoint facts), never to rewrite one.
+    """
+    if not isinstance(command, str):
+        return None
+    try:
+        for segment in _SEGMENT_SPLIT.split(command.replace(chr(10), ";")):
+            words = _REDIRECT.sub("", " " + segment).split()
+            for skip in range(min(8, len(words))):
+                if skip and not _is_wrapper(words[skip - 1]):
+                    break
+                key = test_key(" ".join(words[skip:]))
+                if key is not None:
+                    return key
+    except Exception:
+        return None
+    return None
+
+
 def _receipt(state_dir: Path, key: str, command_len: int, session_id: str | None) -> None:
     entry = {
         "ts": datetime.now(UTC).isoformat(),

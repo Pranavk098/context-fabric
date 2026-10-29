@@ -280,3 +280,17 @@ def test_register_after_keeps_existing_handler(tmp_path: Path) -> None:
     register("PreToolUse", lambda payload: {})
     register_after("PreToolUse", lambda payload: {"second": True})
     assert dispatch("PreToolUse", {}) == {"second": True}
+
+
+def test_test_key_any_finds_runners_in_compound_commands() -> None:
+    from cfxd.bound import test_key_any
+
+    assert (
+        test_key_any("cd x && uv run --python 3.12 python -m pytest -q tests 2>&1 | tail -3")
+        == "pytest"
+    )
+    assert test_key_any("git status; npm test") == "npm test"
+    assert test_key_any("cd y && go test ./...") == "go test"
+    assert test_key_any("ls | grep pytest") is None
+    assert test_key_any("echo pytest is great") is None
+    assert test_key_any(42) is None  # type: ignore[arg-type]
