@@ -1,0 +1,28 @@
+{
+  "v": 0,
+  "sid": "sess-vector",
+  "created": "2026-10-29T10:00:00+00:00",
+  "trigger": "checkpoint",
+  "cwd": "/work/project",
+  "saved_at": "2026-10-29T10:00:05+00:00",
+  "armed": true,
+  "files": [],
+  "folds": [
+    {
+      "id": "0123456789abcdef",
+      "tool": "Bash",
+      "src": "uv run pytest -q",
+      "bytes": 48122,
+      "kind": "test"
+    },
+    {
+      "id": "fedcba9876543210",
+      "tool": "Read",
+      "src": "/work/project/a.py",
+      "bytes": 2048,
+      "kind": "code"
+    }
+  ],
+  "commands": [],
+  "todos": []
+}

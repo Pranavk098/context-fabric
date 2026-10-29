@@ -72,6 +72,7 @@ Each command is `uvx --from git+https://github.com/Pranavk098/context-fabric cfx
 | :--- | :--- |
 | `/checkpoint [note]` (inside Claude Code) | experimental, saving unproven: saves the current session's working state plus an optional goal note (up to 300 characters), the last test result, then tells you to run `/clear`; the next session restores it once and marks listed files missing or changed since the save |
 | `checkpoint save [--note TEXT]\|show\|clear [--cwd DIR]` | `save` asks the running helper for a checkpoint (fails if it is not running); `show` prints exactly what the next session would receive (local only); `clear` deletes it |
+| `packet validate FILE [--cwd DIR] [--json]` | experimental, DRAFT v0: checks a saved packet against the [schema](specs/context-packet-v0.schema.json) and conformance rules — shape, caps, the 3,000-byte render, provenance, masking, control characters, and file staleness with `--cwd` |
 | `doctor` | health, daemon identity, feature flags, hook latency |
 | `status` | running or not, pid, port, version |
 | `stats [--since 7d] [--session ID] [--json]` | folds and hook timings from the daemon's logs |

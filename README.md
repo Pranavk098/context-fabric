@@ -82,6 +82,7 @@ experimental until a paired test shows they pay.
 | `cfxd refetch` | Measures how much of the context dropped by a compaction or `/clear` the agent reads again | working |
 | `cfxd diet --apply` / `--undo` | Disables fully unused local plugins through Claude Code's own command, with an exact undo | experimental |
 | Checkpoint (`/context-fabric:checkpoint`, `cfxd checkpoint show`, then `/clear`) | Saves a short note of files, commands, todos and an optional goal, and restores it once in the next session | experimental |
+| `cfxd packet validate` | Checks a saved packet against the DRAFT v0 schema and conformance rules: shape, caps, 3,000-byte render, provenance, masking, control characters, and staleness with `--cwd` | experimental |
 | Bound (`cfxd set bound on`) | Keeps only the last 150 lines of simple test and log commands | experimental, off by default |
 | Coach, idle notice (`cfxd set coach on`, `idle_notice on`) | One plain line when a session gets long, or when a resume finds the cache expired | experimental, off by default |
 | Brief | Gives a sub-agent the files and saved outputs the parent already touched; fires only when a sub-agent runs | experimental |
