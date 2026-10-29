@@ -8,16 +8,22 @@ long-session pattern saves tokens is still unproven.
 
 from __future__ import annotations
 
+import statistics
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 from cfxd import __version__
 from cfxd.audit import _SINCE_DELTAS, _discover, _scan, coverage
+from cfxd.checkpoint import CHECKPOINT_LOG
+from cfxd.config import read_config
 from cfxd.diet import diet
+from cfxd.dietapply import _read_records, _write_record
+from cfxd.fsutil import ensure_dir
 from cfxd.refetch import refetch
+from cfxd.replay import _parse_ts
 from cfxd.routing import _DEFAULT_PRICES, _load_prices, _scan_turns, _turn_dollars, routing
-from cfxd.stats import collect_stats
+from cfxd.stats import _read_objects, collect_stats
 
 _BUCKETS = (("2-10", 2, 10), ("11-30", 11, 30), ("31+", 31, None))
 _SAFE = "Safe to paste: counts, sizes and model ids only."
@@ -197,6 +203,11 @@ def week(
         "sessions": len(parents),
         "sessions_under_2_turns": sum(1 for turns, _d in per_session if turns < 2),
         "dollars_total": total_dollars,
+        "median_dollars_per_session": (
+            round(statistics.median(d for _t, d in per_session), 4)
+            if priced and per_session
+            else None
+        ),
         "buckets": buckets,
         "cache_read_share_tokens": cache_read_share,
         "first_turn_context_median": first_turn,
@@ -217,6 +228,92 @@ def week(
     }
     report["meaning"] = _meaning(report)
     return report
+
+
+def _history_dir(state_dir: Path) -> Path:
+    return state_dir / "history"
+
+
+def _previous_snapshot(state_dir: Path, target: Path) -> Path | None:
+    """Newest snapshot file other than the one about to be written (same-day overwrite)."""
+    try:
+        candidates = [p for p in _history_dir(state_dir).glob("week-*.json") if p != target]
+    except OSError:
+        return None
+    return max(candidates, key=lambda p: p.stat().st_mtime_ns) if candidates else None
+
+
+def _features_on(state_dir: Path, since: datetime | None) -> dict[str, Any]:
+    """Switches from config, plus diet applies and checkpoint saves since the last snapshot."""
+    config = read_config(state_dir)
+    diet_applied = sum(
+        1
+        for _path, record in _read_records()
+        if not record.get("undone_at")
+        and any(
+            entry.get("applied") is True
+            for entry in (record.get("plugins") or [])
+            if isinstance(entry, dict)
+        )
+    )
+    checkpoint_saves = 0
+    for entry in _read_objects(state_dir / CHECKPOINT_LOG):
+        if entry.get("event") != "checkpoint_save" or entry.get("outcome") != "saved":
+            continue
+        ts = _parse_ts(entry.get("ts"))
+        if ts is None:
+            continue
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=UTC)
+        if since is not None and ts <= since:
+            continue
+        checkpoint_saves += 1
+    return {
+        "bound": config["bound"],
+        "coach": config["coach"],
+        "idle_notice": config["idle_notice"],
+        "diet_applied": diet_applied,
+        "checkpoint_saves": checkpoint_saves,
+    }
+
+
+def snapshot(
+    state_dir: Path, report: dict[str, Any], now: datetime | None = None
+) -> dict[str, Any]:
+    """The numbers-only snapshot written by ``cfxd week --save``."""
+    if now is None:
+        now = datetime.now(UTC)
+    target = _history_dir(state_dir) / f"week-{now.date().isoformat()}.json"
+    previous = _previous_snapshot(state_dir, target)
+    since = datetime.fromtimestamp(previous.stat().st_mtime, UTC) if previous is not None else None
+    receipts = report["receipts"]
+    delivery: float | None = None
+    if receipts["hook_calls"]:
+        delivered = receipts["hook_calls"] - receipts["hook_errors"] - receipts["hook_rejected"]
+        delivery = round(delivered / receipts["hook_calls"], 4)
+    return {
+        "sessions": report["sessions"],
+        "sessions_under_2_turns": report["sessions_under_2_turns"],
+        "dollars_total": report["dollars_total"],
+        "median_dollars_per_session": report["median_dollars_per_session"],
+        "buckets": report["buckets"],
+        "cache_read_share_tokens": report["cache_read_share_tokens"],
+        "first_turn_context_median": report["first_turn_context_median"],
+        "compactions": report["compactions"],
+        "clear_restarts": report["clear_restarts"],
+        "hook_delivery_rate": delivery,
+        "features_on": _features_on(state_dir, since),
+    }
+
+
+def save_snapshot(state_dir: Path, report: dict[str, Any], now: datetime | None = None) -> Path:
+    """Write one 0600 snapshot per day, atomically, overwriting the same day's file."""
+    if now is None:
+        now = datetime.now(UTC)
+    path = _history_dir(state_dir) / f"week-{now.date().isoformat()}.json"
+    ensure_dir(path.parent)
+    _write_record(path, snapshot(state_dir, report, now))
+    return path
 
 
 def _plural(count: int, word: str) -> str:

@@ -65,6 +65,7 @@ def _apply_record(home: Path, created_at: str, undone_at: str | None = None) -> 
                 "enabled_before": True,
                 "enabled_after": False,
                 "applied": True,
+                "est_tokens_per_turn": 600.0,
                 "disabled_at": created_at,
             }
         ],
@@ -101,6 +102,8 @@ def test_diet_before_after_medians(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     text = format_ledger(report)
     assert "10,000 tokens before (n=3)" in text
     assert "4,000 tokens after (n=3), delta -6,000 tokens" in text
+    assert "(OBSERVED)" in text
+    assert "ESTIMATED ~600 tokens/turn removed at apply" in text
     assert "Other changes also move this number; it is not a counterfactual." in text
 
 

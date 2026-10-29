@@ -125,8 +125,9 @@ def _step_next() -> list[str]:
         "  3. /context-fabric:checkpoint then /clear - saves a local note and restores it once "
         "in the next session. Look for a restored context-fabric-carry block that matches what "
         "you were doing; clear it with cfxd checkpoint clear.",
-        "  4. cfxd week --share - a weekly summary of counts and sizes. Look for the trend it "
-        "shows and paste it if useful; it is one-shot, so there is nothing to turn off.",
+        "  4. cfxd week --save once a week, then cfxd trend - a weekly summary of counts and "
+        "sizes, then week-over-week snapshots. Every change is labelled OBSERVED, not a "
+        "counterfactual; nothing is scheduled for you. Paste cfxd week --share if useful.",
         'Feedback: section "6. Send results" in docs/TESTING-GUIDE.md says where to post it. '
         "Nothing leaves your machine.",
     ]

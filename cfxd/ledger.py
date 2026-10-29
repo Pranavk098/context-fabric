@@ -78,7 +78,20 @@ def _applied_records() -> list[dict[str, Any]]:
         at = _parse_ts(record.get("created_at"))
         if at is None:
             continue
-        applies.append({"at": at, "plugins": len(entries)})
+        estimates = [
+            e["est_tokens_per_turn"]
+            for e in entries
+            if isinstance(e.get("est_tokens_per_turn"), (int, float))
+        ]
+        applies.append(
+            {
+                "at": at,
+                "plugins": len(entries),
+                "est_tokens_per_turn": (
+                    round(sum(float(v) for v in estimates), 1) if estimates else None
+                ),
+            }
+        )
     return applies
 
 
@@ -92,6 +105,7 @@ def _diet(sessions: list[dict[str, Any]]) -> dict[str, Any]:
         entry: dict[str, Any] = {
             "at": at.isoformat(),
             "plugins": record["plugins"],
+            "est_tokens_per_turn": record["est_tokens_per_turn"],
             "before_n": len(before),
             "after_n": len(after),
             "before_median": _median(before),
@@ -312,7 +326,16 @@ def _diet_lines(report: dict[str, Any]) -> list[str]:
             lines.append(
                 f"  first-turn context median: {_tokens(entry['before_median'])} tokens "
                 f"before (n={entry['before_n']}), {_tokens(entry['after_median'])} tokens "
-                f"after (n={entry['after_n']}), delta {float(entry['delta']):+,.0f} tokens"
+                f"after (n={entry['after_n']}), delta {float(entry['delta']):+,.0f} tokens "
+                "(OBSERVED)"
+            )
+        estimate = entry["est_tokens_per_turn"]
+        if estimate is None:
+            lines.append("  ESTIMATED tokens/turn removed: n/a (record has no per-plugin estimate)")
+        else:
+            lines.append(
+                f"  ESTIMATED ~{float(estimate):,.0f} tokens/turn removed at apply "
+                "(sum of the record's per-plugin estimates)"
             )
         lines.append(f"  {_NOT_COUNTERFACTUAL}")
     return lines

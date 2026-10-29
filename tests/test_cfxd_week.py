@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 from cfxd import __version__
-from cfxd.week import week
+from cfxd.week import save_snapshot, week
 
 ROOT = Path(__file__).resolve().parents[1]
 _MODEL = "claude-sonnet-4-5-20250929"
@@ -278,3 +278,134 @@ def test_cli_rejects_bad_days(tmp_path: Path) -> None:
     )
     assert result.returncode == 2
     assert "--days must be at least 1" in result.stderr
+
+
+def _snapshot_fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, Path]:
+    _session(tmp_path / "root", "proj", "short", _turns(2))
+    _session(tmp_path / "root", "proj", "medium", _turns(11))
+    _session(tmp_path / "root", "proj", "long", _turns(31))
+    state = tmp_path / "state"
+    state.mkdir()
+    (state / "config.json").write_text('{"bound": true, "coach": false}', encoding="utf-8")
+    _write_log(
+        state / "checkpoint.jsonl",
+        [
+            {"ts": "2026-01-19T10:00:00Z", "event": "checkpoint_save", "outcome": "saved"},
+            {"ts": "2026-01-19T11:00:00Z", "event": "checkpoint_save", "outcome": "saved"},
+            {"ts": "2026-01-19T12:00:00Z", "event": "checkpoint_save", "outcome": "failed"},
+        ],
+    )
+    _write_log(
+        state / "events.jsonl",
+        [
+            {"session_id": "s", "latency_ms": 5.0, "outcome": "ok"},
+            {"session_id": "s", "latency_ms": 6.0, "outcome": "ok"},
+            {"session_id": "s", "latency_ms": 7.0, "outcome": "error"},
+        ],
+    )
+    home = tmp_path / "home"
+    record = home / "diet" / "applied-20260110T090000000000Z.json"
+    record.parent.mkdir(parents=True)
+    record.write_text(
+        json.dumps(
+            {
+                "created_at": "2026-01-10T09:00:00Z",
+                "undone_at": None,
+                "plugins": [
+                    {"id": "alpha@marketplace", "applied": True, "est_tokens_per_turn": 600.0}
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("CFX_HOME", str(home))
+    return tmp_path / "root", state
+
+
+def test_save_snapshot_exact_numbers_only_content(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root, state = _snapshot_fixture(tmp_path, monkeypatch)
+    now = datetime(2026, 1, 20, 12, 0, tzinfo=UTC)
+
+    report = week(root, 7, state, now=now)
+    path = save_snapshot(state, report, now)
+
+    assert path == state / "history" / "week-2026-01-20.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    assert data == {
+        "sessions": 3,
+        "sessions_under_2_turns": 0,
+        "dollars_total": 0.198,
+        "median_dollars_per_session": 0.0495,
+        "buckets": {
+            "2-10": {"sessions": 1, "dollars": 0.009, "share": 0.0455},
+            "11-30": {"sessions": 1, "dollars": 0.0495, "share": 0.25},
+            "31+": {"sessions": 1, "dollars": 0.1395, "share": 0.7045},
+        },
+        "cache_read_share_tokens": 0.0,
+        "first_turn_context_median": 1000,
+        "compactions": 0,
+        "clear_restarts": 0,
+        "hook_delivery_rate": 0.6667,
+        "features_on": {
+            "bound": True,
+            "coach": False,
+            "idle_notice": False,
+            "diet_applied": 1,
+            "checkpoint_saves": 2,
+        },
+    }
+    assert "proj" not in path.read_text(encoding="utf-8")
+
+
+def test_save_snapshot_overwrites_same_day(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root, state = _snapshot_fixture(tmp_path, monkeypatch)
+    now = datetime(2026, 1, 20, 12, 0, tzinfo=UTC)
+    save_snapshot(state, week(root, 7, state, now=now), now)
+
+    _session(root, "proj", "extra", _turns(2))
+    save_snapshot(state, week(root, 7, state, now=now), now)
+
+    files = list((state / "history").glob("week-*.json"))
+    assert len(files) == 1
+    assert json.loads(files[0].read_text(encoding="utf-8"))["sessions"] == 4
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX file modes only")
+def test_save_snapshot_mode_is_0600(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root, state = _snapshot_fixture(tmp_path, monkeypatch)
+    now = datetime(2026, 1, 20, 12, 0, tzinfo=UTC)
+
+    path = save_snapshot(state, week(root, 7, state, now=now), now)
+
+    assert (path.stat().st_mode & 0o777) == 0o600
+
+
+def test_week_save_cli_writes_history(tmp_path: Path) -> None:
+    root = tmp_path / "root"
+    _session(root, "proj", "s1", _turns(2))
+    state = tmp_path / "state"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "cfxd",
+            "week",
+            "--root",
+            str(root),
+            "--state-dir",
+            str(state),
+            "--save",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+
+    assert result.returncode == 0, result.stderr
+    snapshots = list((state / "history").glob("week-*.json"))
+    assert len(snapshots) == 1
+    assert "proj" not in snapshots[0].read_text(encoding="utf-8")

@@ -46,8 +46,9 @@ from cfxd.routing import format_human as format_routing
 from cfxd.routing import routing
 from cfxd.stats import collect_stats, format_human
 from cfxd.tour import run as run_tour
+from cfxd.trend import format_trend, trend
 from cfxd.waste import format_waste, waste
-from cfxd.week import format_week, week
+from cfxd.week import format_week, save_snapshot, week
 
 _SHIM_PATH = Path(__file__).with_name("shim.py")
 _IS_WINDOWS = os.name == "nt"
@@ -291,8 +292,26 @@ def _build_parser() -> argparse.ArgumentParser:
         "--share", action="store_true", help="append the version and the safe-to-paste line"
     )
     weekp.add_argument("--json", action="store_true", help="emit a single JSON object")
+    weekp.add_argument(
+        "--save",
+        action="store_true",
+        help="also write one numbers-only snapshot per day for cfxd trend",
+    )
     _add_state_dir(weekp)
     weekp.set_defaults(func=_cmd_week)
+
+    trendp = subparsers.add_parser(
+        "trend", help="experimental: week-over-week snapshots, always labelled OBSERVED"
+    )
+    trendp.add_argument(
+        "--weeks", type=int, default=8, help="how many snapshots to read (default: 8)"
+    )
+    trendp.add_argument(
+        "--share", action="store_true", help="append the safe-to-paste line (numbers only)"
+    )
+    trendp.add_argument("--json", action="store_true", help="emit a single JSON object")
+    _add_state_dir(trendp)
+    trendp.set_defaults(func=_cmd_trend)
 
     ledgerp = subparsers.add_parser(
         "ledger", help="experimental: what the plugin did and what changed, with evidence tiers"
@@ -711,8 +730,20 @@ def _cmd_week(args: argparse.Namespace) -> int:
         print("cfxd week: --days must be at least 1", file=sys.stderr)
         return 2
     root = Path(args.root) if args.root else DEFAULT_ROOT
-    report = week(root, args.days, resolve_state_dir(args.state_dir), share=args.share)
+    state_dir = resolve_state_dir(args.state_dir)
+    report = week(root, args.days, state_dir, share=args.share)
     print(json.dumps(report) if args.json else format_week(report, args.share))
+    if args.save:
+        save_snapshot(state_dir, report)
+    return 0
+
+
+def _cmd_trend(args: argparse.Namespace) -> int:
+    if args.weeks < 1:
+        print("cfxd trend: --weeks must be at least 1", file=sys.stderr)
+        return 2
+    report = trend(resolve_state_dir(args.state_dir), args.weeks, share=args.share)
+    print(json.dumps(report) if args.json else format_trend(report, args.share))
     return 0
 
 
