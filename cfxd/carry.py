@@ -225,18 +225,44 @@ def _counts_facts(facts: SessionFacts) -> dict[str, int]:
     }
 
 
-def _write_snapshot(state_dir: Path, sid: str, data: bytes) -> None:
-    carry_dir = state_dir / CARRY_DIR
-    ensure_dir(carry_dir)
-    path = carry_dir / f"{sid}.json"
-    fd, tmp = tempfile.mkstemp(dir=str(carry_dir), prefix=".carry.", suffix=".tmp")
+def write_state_file(state_dir: Path, subdir: str, name: str, data: bytes) -> None:
+    """Atomically write ``<state_dir>/<subdir>/<name>`` as 0600 (best effort)."""
+    directory = state_dir / subdir
+    ensure_dir(directory)
+    path = directory / name
+    fd, tmp = tempfile.mkstemp(dir=str(directory), prefix=f".{subdir}.", suffix=".tmp")
     try:
         with os.fdopen(fd, "wb") as fh:
             fh.write(data)
+        try:
+            os.chmod(tmp, 0o600)
+        except OSError:
+            pass
         os.replace(tmp, path)
     finally:
         if os.path.exists(tmp):
             os.unlink(tmp)
+
+
+def _write_snapshot(state_dir: Path, sid: str, data: bytes) -> None:
+    write_state_file(state_dir, CARRY_DIR, f"{sid}.json", data)
+
+
+def snapshot_object(facts: SessionFacts, trigger: str) -> dict[str, Any]:
+    """Bounded, content-free snapshot dict for ``facts`` (the on-disk carry format)."""
+    return _cap_snapshot(_to_snapshot(facts, trigger))
+
+
+def facts_from_snapshot(obj: dict[str, Any], state_dir: Path) -> SessionFacts | None:
+    """Rebuild facts from a snapshot dict; ``None`` if any field is malformed."""
+    return _snapshot_to_facts(obj, state_dir)
+
+
+def render_facts(
+    facts: SessionFacts, state_dir: Path, trigger: str, note: str | None = None
+) -> str:
+    """Render the carry block; ``note`` is one extra line under the prologue."""
+    return _render(facts, state_dir, trigger, note=note)
 
 
 def _load_snapshot(state_dir: Path, sid: str) -> tuple[SessionFacts, str] | None:
@@ -334,7 +360,7 @@ def _as_list(value: Any) -> list[Any]:
     return value if isinstance(value, list) else []
 
 
-def _render(facts: SessionFacts, state_dir: Path, trigger: str) -> str:
+def _render(facts: SessionFacts, state_dir: Path, trigger: str, note: str | None = None) -> str:
     files = [_file_line(f) for f in sorted(facts.files, key=lambda f: -f.last_seen)[:MAX_FILES]]
     folds = [
         _fold_line(f) for f in list(reversed(facts.folds)) if _obs_exists(state_dir, f.obs_id)
@@ -353,6 +379,8 @@ def _render(facts: SessionFacts, state_dir: Path, trigger: str) -> str:
         sections.append([_TODOS_HEADER, *todos])
 
     header = [f'<context-fabric-carry v="0" trigger="{trigger}">', _PROLOGUE]
+    if note is not None:
+        header.append(note)
     # Drop whole sections bottom-up (todos, then commands, folds, files) to fit.
     while sections:
         lines = [*header, *(line for section in sections for line in section), _CLOSE]

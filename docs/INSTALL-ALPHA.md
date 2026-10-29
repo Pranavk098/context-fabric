@@ -70,6 +70,8 @@ Each command is `uvx --from git+https://github.com/Pranavk098/context-fabric cfx
 
 | Command | Output |
 | :--- | :--- |
+| `/checkpoint` (inside Claude Code) | experimental: saves the current session's working state, then tells you to run `/clear`; the next session restores it once |
+| `checkpoint save\|show\|clear [--cwd DIR]` | `save` asks the running helper for a checkpoint (fails if it is not running); `show` prints exactly what the next session would receive (local only); `clear` deletes it |
 | `doctor` | health, daemon identity, feature flags, hook latency |
 | `status` | running or not, pid, port, version |
 | `stats [--since 7d] [--session ID] [--json]` | folds and hook timings from the daemon's logs |
@@ -92,6 +94,7 @@ All under `~/.cfx/daemon/` (Windows: `C:\Users\<you>\.cfx\daemon\`). Nothing is 
 | :--- | :--- | :--- |
 | `events.jsonl`, `briefs.jsonl`, `carry.jsonl`, `folds.jsonl`, `bound.jsonl` | event names, sizes, counts, hashes, latencies | rotated by size |
 | `carry/<session>.json` | one note per compacted session: file paths, line counts, recent commands with obvious secrets masked, to-do text | 7 days |
+| `checkpoint/<cwd-hash>.json` | experimental `/checkpoint` package for one directory, same fields as a carry note plus a saved time and an armed flag | 7 days |
 | `obs/` | full copies of folded output (**only if you turn fold on**; may contain code or command output) | 7 days |
 | `token` | per-install secret that authenticates hook calls (readable only by you) | until deleted |
 | `config.json`, `state.json`, `daemon.log` | flags, pid and port, daemon messages | until deleted |
