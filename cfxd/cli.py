@@ -41,6 +41,7 @@ from cfxd.replay import format_replay, replay
 from cfxd.routing import format_human as format_routing
 from cfxd.routing import routing
 from cfxd.stats import collect_stats, format_human
+from cfxd.tour import run as run_tour
 from cfxd.waste import format_waste, waste
 from cfxd.week import format_week, week
 
@@ -103,6 +104,14 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     auditp.add_argument("--json", action="store_true", help="emit a single JSON object")
     auditp.set_defaults(func=_cmd_audit)
+
+    tourp = subparsers.add_parser(
+        "tour", help="guided first run: five steps over your own transcripts"
+    )
+    tourp.add_argument("--root", default=None, help=f"transcripts root (default: {DEFAULT_ROOT})")
+    tourp.add_argument("--yes", action="store_true", help="print every step without pausing")
+    _add_state_dir(tourp)
+    tourp.set_defaults(func=_cmd_tour)
 
     agentp = subparsers.add_parser(
         "agent-audit", help="counts-only analysis of non-Claude agent transcripts"
@@ -497,6 +506,11 @@ def _cmd_audit(args: argparse.Namespace) -> int:
     else:
         print(format_audit(report, root.name))
     return 0
+
+
+def _cmd_tour(args: argparse.Namespace) -> int:
+    root = Path(args.root) if args.root else DEFAULT_ROOT
+    return run_tour(root, args.yes, args.state_dir)
 
 
 def _cmd_agent_audit(args: argparse.Namespace) -> int:
