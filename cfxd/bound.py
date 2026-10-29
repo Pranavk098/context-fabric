@@ -47,6 +47,22 @@ _PATTERNS: tuple[tuple[str, tuple[str, ...]], ...] = (
 )
 _STOP = {"head", "tail", "grep", "-q", "--quiet"}
 _COUNT_FLAG = re.compile(r"^-n\d*$|^-\d+$|^--max-count(=.*)?$")
+# Test runners only: the checkpoint observer reuses these keys, not the log keys.
+_TEST_KEYS = frozenset(
+    {
+        "pytest",
+        "npm run test",
+        "npm test",
+        "yarn test",
+        "pnpm test",
+        "go test",
+        "cargo test",
+        "dotnet test",
+        "mvn test",
+        "gradle test",
+        "make test",
+    }
+)
 
 _receipt_lock = threading.Lock()
 
@@ -114,6 +130,29 @@ def _command_key(command: str) -> str | None:
         if key == "git log" and any(_COUNT_FLAG.match(token) for token in words[2:]):
             return None
         return key
+    return None
+
+
+def test_key(command: str) -> str | None:
+    """The test-runner key whose words start ``command``, or ``None``. Never raises."""
+    if not isinstance(command, str):
+        return None
+    try:
+        tokens = shlex.split(command)
+    except ValueError:
+        return None
+    lower = [token.lower() for token in tokens]
+    if not lower:
+        return None
+    start = 0
+    for prefix in _PREFIXES:
+        if tuple(lower[: len(prefix)]) == prefix:
+            start = len(prefix)
+            break
+    words = lower[start:]
+    for key, pattern in _PATTERNS:
+        if key in _TEST_KEYS and tuple(words[: len(pattern)]) == pattern:
+            return key
     return None
 
 

@@ -203,7 +203,33 @@ def _forward(event: str) -> int:
     return 0
 
 
-def _checkpoint_save() -> int:
+def _checkpoint_note(args: list[str]) -> str | None:
+    """Read ``--note`` or ``--note-file`` from argv; the file is deleted after reading."""
+    note: str | None = None
+    index = 0
+    while index < len(args):
+        if args[index] == "--note" and index + 1 < len(args):
+            note = args[index + 1]
+            index += 2
+        elif args[index] == "--note-file" and index + 1 < len(args):
+            path = Path(args[index + 1])
+            try:
+                if path.stat().st_size <= 4096:
+                    note = path.read_text(encoding="utf-8")
+            except (OSError, UnicodeDecodeError):
+                note = None
+            finally:
+                try:
+                    path.unlink(missing_ok=True)
+                except OSError:
+                    pass
+            index += 2
+        else:
+            index += 1
+    return note
+
+
+def _checkpoint_save(args: list[str] | None = None) -> int:
     """Ask the daemon to save a checkpoint for this cwd; print one human line."""
     state_dir = resolve_state_dir()
     port = _port()
@@ -211,10 +237,14 @@ def _checkpoint_save() -> int:
     if token is None or not verify_identity(state_dir, port):
         print("Checkpoint not saved: the local helper is not running.")
         return 0
-    payload = json.dumps({"cwd": os.getcwd()}).encode("utf-8")
+    body: dict[str, object] = {"cwd": os.getcwd()}
+    note = _checkpoint_note(args or [])
+    if note is not None:
+        body["note"] = note
+    payload = json.dumps(body).encode("utf-8")
     try:
-        status, body = post_hook(port, "checkpoint-save", payload, 2.0, token=token)
-        obj = json.loads(body) if status == 200 else {}
+        status, response = post_hook(port, "checkpoint-save", payload, 2.0, token=token)
+        obj = json.loads(response) if status == 200 else {}
     except Exception:
         obj = {}
     summary = obj.get("summary") if isinstance(obj, dict) else None
@@ -253,7 +283,7 @@ def _dispatch(args: list[str]) -> int:
     if len(args) >= 2 and args[0] == "forward":
         return _forward(args[1])
     if args and args[0] == "checkpoint-save":
-        return _checkpoint_save()
+        return _checkpoint_save(args[1:])
     if args and args[0] == "ensure":
         return _ensure()
     print("{}")

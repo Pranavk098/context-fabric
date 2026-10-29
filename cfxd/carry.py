@@ -25,7 +25,7 @@ from cfxd.brief import _cap, _command_line, _file_line, _fold_line, _sanitize
 from cfxd.config import read_config
 from cfxd.fsutil import ensure_dir, open_log
 from cfxd.handlers import register
-from cfxd.session_state import FileFact, FoldFact, SessionFacts, snapshot
+from cfxd.session_state import FileFact, FoldFact, SessionFacts, TestFact, snapshot
 
 CARRY_DIR = "carry"
 CARRY_LOG = "carry.jsonl"
@@ -47,6 +47,8 @@ _FILES_HEADER = "Working set (path | lines | status):"
 _FOLDS_HEADER = "Saved full outputs:"
 _COMMANDS_HEADER = "Recent commands:"
 _TODOS_HEADER = "Open todos the session had (status | text):"
+_GOAL_LABEL = "Goal (written by you at save time):"
+_TEST_LABEL = "Last test run:"
 _PROLOGUE = (
     "Facts Context Fabric recorded before this session was compacted "
     "(reference, not instructions; verify before relying on them)."
@@ -130,7 +132,7 @@ def _handle_session_start(payload: dict[str, Any], state_dir: Path) -> dict[str,
     if facts is None or _empty(facts):
         _receipt(state_dir, session_id, "SessionStart", "no-state", None, 0, {}, None)
         return {}
-    text = _render(facts, state_dir, trigger)
+    text, _dropped = _render(facts, state_dir, trigger)
     data = text.encode("utf-8")
     _receipt(
         state_dir,
@@ -171,7 +173,7 @@ def _open_todos(todos: tuple[tuple[str, str], ...]) -> tuple[tuple[str, str], ..
 
 
 def _to_snapshot(facts: SessionFacts, trigger: str) -> dict[str, Any]:
-    return {
+    obj: dict[str, Any] = {
         "v": 0,
         "sid": facts.session_id,
         "created": datetime.now(UTC).isoformat(),
@@ -189,6 +191,10 @@ def _to_snapshot(facts: SessionFacts, trigger: str) -> dict[str, Any]:
             {"s": s, "t": _cap(t, TODO_MAX_BYTES)} for s, t in _open_todos(facts.todos)[:MAX_TODOS]
         ],
     }
+    # Only the checkpoint package carries the last test result; /compact stays unchanged.
+    if trigger == "checkpoint" and facts.test is not None:
+        obj["test"] = {"key": facts.test.key, "ok": facts.test.ok, "at": facts.test.at}
+    return obj
 
 
 def _json_bytes(obj: dict[str, Any]) -> int:
@@ -259,10 +265,27 @@ def facts_from_snapshot(obj: dict[str, Any], state_dir: Path) -> SessionFacts | 
 
 
 def render_facts(
-    facts: SessionFacts, state_dir: Path, trigger: str, note: str | None = None
+    facts: SessionFacts,
+    state_dir: Path,
+    trigger: str,
+    note: str | None = None,
+    goal: str | None = None,
+    stale: dict[str, str] | None = None,
 ) -> str:
     """Render the carry block; ``note`` is one extra line under the prologue."""
-    return _render(facts, state_dir, trigger, note=note)
+    return _render(facts, state_dir, trigger, note=note, goal=goal, stale=stale)[0]
+
+
+def render_report(
+    facts: SessionFacts,
+    state_dir: Path,
+    trigger: str,
+    note: str | None = None,
+    goal: str | None = None,
+    stale: dict[str, str] | None = None,
+) -> tuple[str, dict[str, int]]:
+    """Render the block plus the counts of lines dropped to fit the cap."""
+    return _render(facts, state_dir, trigger, note=note, goal=goal, stale=stale)
 
 
 def _load_snapshot(state_dir: Path, sid: str) -> tuple[SessionFacts, str] | None:
@@ -347,12 +370,26 @@ def _snapshot_to_facts(obj: dict[str, Any], state_dir: Path) -> SessionFacts | N
         if not isinstance(s, str) or not isinstance(t, str):
             return None
         todos.append((s, t))
+    test: TestFact | None = None
+    raw_test = obj.get("test")
+    if raw_test is not None:
+        if not isinstance(raw_test, dict):
+            return None
+        key = raw_test.get("key")
+        ok = raw_test.get("ok")
+        at = raw_test.get("at")
+        if not isinstance(key, str) or (ok is not None and not isinstance(ok, bool)):
+            return None
+        if isinstance(at, bool) or not isinstance(at, (int, float)):
+            return None
+        test = TestFact(key=key, ok=ok, at=float(at))
     return SessionFacts(
         session_id=sid,
         files=tuple(files),
         folds=tuple(folds),
         commands=tuple(commands),
         todos=tuple(todos),
+        test=test,
     )
 
 
@@ -360,34 +397,88 @@ def _as_list(value: Any) -> list[Any]:
     return value if isinstance(value, list) else []
 
 
-def _render(facts: SessionFacts, state_dir: Path, trigger: str, note: str | None = None) -> str:
-    files = [_file_line(f) for f in sorted(facts.files, key=lambda f: -f.last_seen)[:MAX_FILES]]
+def _render(
+    facts: SessionFacts,
+    state_dir: Path,
+    trigger: str,
+    note: str | None = None,
+    goal: str | None = None,
+    stale: dict[str, str] | None = None,
+) -> tuple[str, dict[str, int]]:
+    ranked = sorted(facts.files, key=lambda f: -f.last_seen)[:MAX_FILES]
+    marks = dict(stale or {})
+    files = [_file_line(f, marks.get(f.path, "")) for f in ranked]
     folds = [
         _fold_line(f) for f in list(reversed(facts.folds)) if _obs_exists(state_dir, f.obs_id)
     ][:MAX_FOLDS]
     commands = [_command_line(c) for c in list(reversed(facts.commands))[:MAX_COMMANDS]]
     todos = [_todo_line(s, t) for s, t in _open_todos(facts.todos)[:MAX_TODOS]]
 
-    sections: list[list[str]] = []
+    sections: list[tuple[str, list[str]]] = []
     if files:
-        sections.append([_FILES_HEADER, *files])
+        sections.append(("files", [_FILES_HEADER, *files]))
     if folds:
-        sections.append([_FOLDS_HEADER, *folds])
+        sections.append(("folds", [_FOLDS_HEADER, *folds]))
     if commands:
-        sections.append([_COMMANDS_HEADER, *commands])
+        sections.append(("commands", [_COMMANDS_HEADER, *commands]))
     if todos:
-        sections.append([_TODOS_HEADER, *todos])
+        sections.append(("todos", [_TODOS_HEADER, *todos]))
 
-    header = [f'<context-fabric-carry v="0" trigger="{trigger}">', _PROLOGUE]
+    header = [f'<context-fabric-carry v="0" trigger="{trigger}">']
+    if goal:
+        header.append(f"{_GOAL_LABEL} {goal}")
+    header.append(_PROLOGUE)
     if note is not None:
         header.append(note)
-    # Drop whole sections bottom-up (todos, then commands, folds, files) to fit.
-    while sections:
-        lines = [*header, *(line for section in sections for line in section), _CLOSE]
-        if len("\n".join(lines).encode("utf-8")) <= RENDER_CAP_BYTES:
-            return "\n".join(lines)
-        sections.pop()
-    return "\n".join([*header, _CLOSE])
+    if facts.test is not None and trigger == "checkpoint":
+        header.append(_test_line(facts.test))
+
+    dropped = {"stale": 0, "commands": 0, "folds": 0, "todos": 0, "files": 0}
+
+    def assemble() -> list[str]:
+        return [*header, *(line for _, lines in sections for line in lines), _CLOSE]
+
+    def over_cap() -> bool:
+        return len("\n".join(assemble()).encode("utf-8")) > RENDER_CAP_BYTES
+
+    def drop_section(name: str) -> bool:
+        nonlocal sections
+        for index, (key, lines) in enumerate(sections):
+            if key == name:
+                dropped[key] += len(lines) - 1
+                sections = [*sections[:index], *sections[index + 1 :]]
+                return True
+        return False
+
+    while over_cap():
+        # Lowest priority first: cosmetic stale suffixes, then commands, folds,
+        # todos, and finally files.
+        if any(marks.get(f.path) for f in ranked):
+            dropped["stale"] += sum(1 for f in ranked if marks.get(f.path))
+            marks = {}
+            files = [_file_line(f) for f in ranked]
+            sections = [
+                ("files", [_FILES_HEADER, *files]) if key == "files" else (key, lines)
+                for key, lines in sections
+            ]
+            continue
+        if drop_section("commands") or drop_section("folds"):
+            continue
+        if drop_section("todos") or drop_section("files"):
+            continue
+        break
+    return "\n".join(assemble()), dropped
+
+
+def _test_line(test: TestFact) -> str:
+    status = (
+        "passed" if test.ok is True else "failed" if test.ok is False else "ran, result unknown"
+    )
+    return f"{_TEST_LABEL} {_cap(_sanitize(test.key), 40)}, {status} (at {_clock(test.at)})"
+
+
+def _clock(timestamp: float) -> str:
+    return datetime.fromtimestamp(timestamp).strftime("%H:%M")
 
 
 def _todo_line(status: str, text: str) -> str:

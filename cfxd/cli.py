@@ -270,6 +270,9 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     checkpoint_parser.add_argument("action", choices=["save", "show", "clear"])
     checkpoint_parser.add_argument("--cwd", default=None, help="directory (default: current)")
+    checkpoint_parser.add_argument(
+        "--note", default=None, help="optional goal note (up to 300 characters)"
+    )
     _add_state_dir(checkpoint_parser)
     checkpoint_parser.set_defaults(func=_cmd_checkpoint)
 
@@ -381,7 +384,7 @@ def _cmd_checkpoint(args: argparse.Namespace) -> int:
     if not isinstance(port, int) or state is None or not daemon_alive(state) or token is None:
         print("cfxd checkpoint: the local helper is not running; start Claude Code first.")
         return 1
-    payload = json.dumps({"cwd": cwd}).encode("utf-8")
+    payload = json.dumps({"cwd": cwd, "note": args.note}).encode("utf-8")
     try:
         status, body = post_hook(port, "checkpoint-save", payload, 5.0, token=token)
         obj = json.loads(body) if status == 200 else {}

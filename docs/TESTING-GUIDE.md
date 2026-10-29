@@ -75,9 +75,11 @@ Work as you always do. Two things make the data more useful, if they fit your wo
   `cfxd set coach off` stops it.
 - Optional, experimental (`cfxd set idle_notice on`): on a resumed session whose prompt cache expired, one line shows the API-equivalent
   re-read cost and notes that `/clear` starts cheap; `cfxd set idle_notice off` stops it. Whether this changes anything is unproven.
-- Optional, experimental (`/checkpoint`): do a normal task for a while, run `/checkpoint`, then `/clear`. The new session should start with a
-  `context-fabric-carry` block saved minutes earlier, and `cfxd checkpoint show` prints the same block. Whether this saves tokens is not yet
-  proven; if the block looks wrong or stale, run `cfxd checkpoint clear`.
+- Optional, experimental (`/checkpoint [note]`): do a normal task for a while, run `/checkpoint` (optionally with a short goal
+  note, up to 300 characters), then `/clear`. The new session should start with a `context-fabric-carry` block saved minutes
+  earlier: your goal note, the last allowlisted test run and its result, and listed files marked `[changed since checkpoint]`
+  or `[missing]`. `cfxd checkpoint show` prints the same block. Whether this saves tokens is not yet proven; saving is unproven
+  and the marks come from one `stat` per file (no reads). If the block looks wrong or stale, run `cfxd checkpoint clear`.
 - Optional, experimental (plugin A/B v2, repo checkout only): `uv run --python 3.12 python -m pytest -q tests/test_plugin_ab_v2.py`
   checks the chain runner with a fake `claude` and spends nothing; the paid path is
   `python -m evals.plugin_ab.runner --tasks evals/plugin_ab/tasks_v2.json --stratum long --pilot`. The chain benchmark is experimental and its saving is unproven.

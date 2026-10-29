@@ -16,6 +16,8 @@ from collections import OrderedDict, deque
 from dataclasses import dataclass
 from typing import Any
 
+from cfxd.bound import test_key
+
 MAX_SESSIONS = 64
 MAX_FILES = 200
 MAX_FOLDS = 50
@@ -47,12 +49,20 @@ class FoldFact:
 
 
 @dataclass(frozen=True)
+class TestFact:
+    key: str
+    ok: bool | None
+    at: float
+
+
+@dataclass(frozen=True)
 class SessionFacts:
     session_id: str
     files: tuple[FileFact, ...]
     folds: tuple[FoldFact, ...]
     commands: tuple[str, ...]
     todos: tuple[tuple[str, str], ...]
+    test: TestFact | None = None
 
 
 class _Session:
@@ -62,6 +72,7 @@ class _Session:
         self.folds: OrderedDict[str, FoldFact] = OrderedDict()
         self.commands: deque[str] = deque()
         self.todos: list[tuple[str, str]] = []
+        self.test: TestFact | None = None
         self.last_seen = time.time()
 
 
@@ -94,10 +105,13 @@ def _observe(payload: dict[str, Any]) -> None:
         if not isinstance(command, str) or not command.strip():
             return
         redacted = redact_command(command)
+        test = _test_fact(command, payload.get("tool_response"), now)
         with _LOCK:
             sess = _session(session_id)
             sess.last_seen = now
             _record_command(sess, redacted)
+            if test is not None:
+                sess.test = test
         return
     if tool_name == "TodoWrite":
         todos = tool_input.get("todos")
@@ -117,6 +131,26 @@ def _observe(payload: dict[str, Any]) -> None:
             sess = _session(session_id)
             sess.last_seen = now
             _record_file(sess, path, lines, edited=tool_name != "Read", now=now)
+
+
+def _test_fact(command: str, response: Any, now: float) -> TestFact | None:
+    key = test_key(command)
+    if key is None:
+        return None
+    return TestFact(key=key, ok=_exit_ok(response), at=now)
+
+
+def _exit_ok(response: Any) -> bool | None:
+    """Exit status from the tool response, or ``None`` when the payload has none."""
+    if not isinstance(response, dict):
+        return None
+    if response.get("interrupted") is True:
+        return False
+    for field in ("exit_code", "exitCode", "returncode"):
+        value = response.get(field)
+        if isinstance(value, int) and not isinstance(value, bool):
+            return value == 0
+    return None
 
 
 def record_fold(
@@ -239,6 +273,7 @@ def snapshot(session_id: str) -> SessionFacts | None:
             folds=tuple(sess.folds.values()),
             commands=tuple(sess.commands),
             todos=tuple(sess.todos),
+            test=sess.test,
         )
 
 
@@ -263,6 +298,11 @@ def to_json(facts: SessionFacts) -> dict[str, Any]:
         ],
         "commands": list(facts.commands),
         "todos": [{"status": s, "text": t} for s, t in facts.todos],
+        "test": (
+            None
+            if facts.test is None
+            else {"key": facts.test.key, "ok": facts.test.ok, "at": facts.test.at}
+        ),
     }
 
 
@@ -299,11 +339,24 @@ def from_json(obj: dict[str, Any]) -> SessionFacts | None:
             (_require_str(t, "status"), _require_str(t, "text"))
             for t in _require_list(obj.get("todos"))
         )
+        test = _parse_test(obj.get("test"))
     except (TypeError, ValueError, KeyError):
         return None
     return SessionFacts(
-        session_id=session_id, files=files, folds=folds, commands=commands, todos=todos
+        session_id=session_id, files=files, folds=folds, commands=commands, todos=todos, test=test
     )
+
+
+def _parse_test(value: Any) -> TestFact | None:
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise TypeError("expected test object")
+    key = _require_str(value, "key")
+    ok = value.get("ok")
+    if ok is not None and not isinstance(ok, bool):
+        raise TypeError("expected bool or None")
+    return TestFact(key=key, ok=ok, at=_require_float(value.get("at")))
 
 
 def _require_list(value: Any) -> list[Any]:

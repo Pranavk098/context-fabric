@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from cfxd import carry
+from cfxd.brief import _sanitize
 from cfxd.fsutil import ensure_dir, open_log
 from cfxd.handlers import add_observer, register, register_after
 from cfxd.session_state import SessionFacts, snapshot
@@ -29,6 +30,8 @@ CHECKPOINT_DIR = "checkpoint"
 CHECKPOINT_LOG = "checkpoint.jsonl"
 RESTORE_TTL_SECONDS = 60 * 60
 MAX_FILE_BYTES = carry.MAX_SNAPSHOT_FILE_BYTES
+NOTE_MAX_CHARS = 300
+MAX_STALE_STATS = 50
 _PRUNE_TTL_SECONDS = 7 * 24 * 3600
 _TRIGGER = "checkpoint"
 
@@ -123,11 +126,54 @@ def _save(payload: dict[str, Any], state_dir: Path) -> dict[str, Any]:
     obj["cwd"] = _norm(cwd)
     obj["saved_at"] = datetime.now(UTC).isoformat()
     obj["armed"] = True
+    note = _clean_note(payload.get("note"))
+    if note is not None:
+        obj["note"] = note
     data = json.dumps(obj).encode("utf-8")
     carry.write_state_file(state_dir, CHECKPOINT_DIR, checkpoint_path(state_dir, cwd).name, data)
     counts = _counts(obj)
-    _receipt(state_dir, session_id, "checkpoint_save", "saved", counts, len(data), 0)
+    _receipt(
+        state_dir,
+        session_id,
+        "checkpoint_save",
+        "saved",
+        counts,
+        len(data),
+        0,
+        note_chars=len(note) if note is not None else 0,
+    )
     return {"summary": _summary(counts)}
+
+
+def _clean_note(value: Any) -> str | None:
+    """User-written goal: collapse whitespace, sanitise, cap at 300 characters."""
+    if not isinstance(value, str):
+        return None
+    text = " ".join(_sanitize(" ".join(value.split())).split())[:NOTE_MAX_CHARS]
+    return text or None
+
+
+def _stale_marks(obj: dict[str, Any], saved: datetime | None) -> dict[str, str]:
+    """Stat (never read) up to 50 listed files; mark missing or changed since save."""
+    files = obj.get("files")
+    if saved is None or not isinstance(files, list):
+        return {}
+    cutoff = saved.timestamp()
+    marks: dict[str, str] = {}
+    for item in files[:MAX_STALE_STATS]:
+        if not isinstance(item, dict):
+            continue
+        path = item.get("path")
+        if not isinstance(path, str):
+            continue
+        try:
+            mtime = os.stat(path).st_mtime
+        except OSError:
+            marks[path] = " [missing]"
+            continue
+        if mtime > cutoff:
+            marks[path] = " [changed since checkpoint]"
+    return marks
 
 
 def _summary(counts: dict[str, int]) -> str:
@@ -201,7 +247,15 @@ def _restore_locked(state_dir: Path, session_id: str | None, cwd: str) -> dict[s
     if facts is None:
         _receipt(state_dir, session_id, "checkpoint_restore", "missing", {}, 0, 0)
         return {}
-    text = carry.render_facts(facts, state_dir, _TRIGGER, note=_note(saved))
+    goal = _clean_note(obj.get("note"))
+    text, dropped = carry.render_report(
+        facts,
+        state_dir,
+        _TRIGGER,
+        note=_note(saved),
+        goal=goal,
+        stale=_stale_marks(obj, saved),
+    )
     # Consume once: disarm before handing the block back, atomically.
     obj["armed"] = False
     carry.write_state_file(state_dir, CHECKPOINT_DIR, path.name, json.dumps(obj).encode("utf-8"))
@@ -214,6 +268,8 @@ def _restore_locked(state_dir: Path, session_id: str | None, cwd: str) -> dict[s
         _counts(obj),
         len(data),
         int(age),
+        note_chars=len(goal) if isinstance(goal, str) else 0,
+        dropped=dropped,
     )
     return {
         "hookSpecificOutput": {
@@ -231,8 +287,14 @@ def show_text(state_dir: Path, cwd: str) -> str | None:
     facts = carry.facts_from_snapshot(obj, state_dir)
     if facts is None:
         return None
+    saved = _saved_at(obj.get("saved_at"))
     return carry.render_facts(
-        facts, state_dir, _TRIGGER, note=_note(_saved_at(obj.get("saved_at")))
+        facts,
+        state_dir,
+        _TRIGGER,
+        note=_note(saved),
+        goal=_clean_note(obj.get("note")),
+        stale=_stale_marks(obj, saved),
     )
 
 
@@ -283,6 +345,8 @@ def _receipt(
     counts: dict[str, int],
     size: int,
     age: int,
+    note_chars: int = 0,
+    dropped: dict[str, int] | None = None,
 ) -> None:
     """One content-free line: counts, byte sizes and age only — no paths or text."""
     try:
@@ -294,6 +358,8 @@ def _receipt(
             "bytes": size,
             "age_s": age,
             "counts": counts,
+            "note_chars": note_chars,
+            "dropped": dropped or {},
         }
         ensure_dir(state_dir)
         with _receipt_lock:
