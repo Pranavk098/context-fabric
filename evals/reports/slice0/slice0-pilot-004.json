@@ -1,0 +1,1952 @@
+{
+  "arms": [
+    "off",
+    "checkpoint"
+  ],
+  "max_run_usd": 0.6,
+  "mode": "pilot",
+  "model": "claude-haiku-5-5",
+  "prereg_sha256": null,
+  "prices_as_of": "2026-10-24",
+  "repetitions": 3,
+  "run_id": "slice0-pilot-004",
+  "runs": [
+    {
+      "arm": "off",
+      "cap_hit": false,
+      "cap_usd": 0.6,
+      "dollars": 0.43087419,
+      "duration_s": 215.3,
+      "kind": "chain",
+      "order_index": 0,
+      "recall_of": 3,
+      "recall_score": 3,
+      "rep": -1,
+      "resolved": true,
+      "session_id": "00252102-462b-4392-abc0-53ff19fe2ac4",
+      "steps": [
+        {
+          "dollars": 0.0151895,
+          "duration_s": 19.33,
+          "id": "money",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 9,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 51762,
+              "cache_read_input_tokens": 303780,
+              "input_tokens": 18,
+              "output_tokens": 3595,
+              "turns": 9,
+              "weighted_tokens": 113073.5
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.01037841,
+          "duration_s": 16.572,
+          "id": "tax",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 6,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 30471,
+              "cache_read_input_tokens": 267801,
+              "input_tokens": 12,
+              "output_tokens": 3210,
+              "turns": 6,
+              "weighted_tokens": 80930.85
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.01070629,
+          "duration_s": 17.912,
+          "id": "total",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 6,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 29570,
+              "cache_read_input_tokens": 321459,
+              "input_tokens": 12,
+              "output_tokens": 3153,
+              "turns": 6,
+              "weighted_tokens": 84885.4
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.01469871,
+          "duration_s": 17.37,
+          "id": "discount-percent",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 7,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 39237,
+              "cache_read_input_tokens": 436041,
+              "input_tokens": 14,
+              "output_tokens": 4979,
+              "turns": 7,
+              "weighted_tokens": 117559.35
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.01355545,
+          "duration_s": 18.752,
+          "id": "discount-bulk",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 7,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 31941,
+              "cache_read_input_tokens": 501885,
+              "input_tokens": 14,
+              "output_tokens": 4294,
+              "turns": 7,
+              "weighted_tokens": 111598.75
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.01586642,
+          "duration_s": 16.852,
+          "id": "coupon-model",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 7,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 40018,
+              "cache_read_input_tokens": 568292,
+              "input_tokens": 14,
+              "output_tokens": 4357,
+              "turns": 7,
+              "weighted_tokens": 128650.7
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.01475495,
+          "duration_s": 18.238,
+          "id": "coupon-apply",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 7,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 31096,
+              "cache_read_input_tokens": 634335,
+              "input_tokens": 14,
+              "output_tokens": 4382,
+              "turns": 7,
+              "weighted_tokens": 124227.5
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.01843666,
+          "duration_s": 15.441,
+          "id": "coupon-expiry",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 5,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 10889,
+              "cache_read_input_tokens": 491554,
+              "input_tokens": 10,
+              "output_tokens": 2496,
+              "turns": 5,
+              "weighted_tokens": 75256.65
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.0753165,
+          "duration_s": 19.065,
+          "id": "refund-amount",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 6,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 31054,
+              "cache_read_input_tokens": 648830,
+              "input_tokens": 12,
+              "output_tokens": 4726,
+              "turns": 6,
+              "weighted_tokens": 127342.5
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.0773012,
+          "duration_s": 19.435,
+          "id": "report-build",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 6,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 30558,
+              "cache_read_input_tokens": 705544,
+              "input_tokens": 12,
+              "output_tokens": 4584,
+              "turns": 6,
+              "weighted_tokens": 131683.9
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.0604914,
+          "duration_s": 15.21,
+          "id": "report-format",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 6,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 11832,
+              "cache_read_input_tokens": 750568,
+              "input_tokens": 12,
+              "output_tokens": 4450,
+              "turns": 6,
+              "weighted_tokens": 112108.8
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.1041787,
+          "duration_s": 21.124,
+          "id": "recall",
+          "recall_of": 3,
+          "recall_score": 3,
+          "resolved": true,
+          "turns": 8,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 36156,
+              "cache_read_input_tokens": 1087594,
+              "input_tokens": 16,
+              "output_tokens": 5454,
+              "turns": 8,
+              "weighted_tokens": 181240.4
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        }
+      ],
+      "stratum": "long",
+      "task": "long-checkout",
+      "turns": 80,
+      "unpriced_models": [],
+      "usage": {
+        "parent": {
+          "cache_creation_input_tokens": 374584,
+          "cache_read_input_tokens": 6717683,
+          "input_tokens": 160,
+          "output_tokens": 49680,
+          "turns": 80,
+          "weighted_tokens": 1388558.3
+        },
+        "subagent_sessions": 0,
+        "subagents": {
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "turns": 0,
+          "weighted_tokens": 0.0
+        }
+      },
+      "warm_up": true,
+      "weighted_tokens": 1388558.3
+    },
+    {
+      "arm": "off",
+      "cap_hit": false,
+      "cap_usd": 0.6,
+      "dollars": 0.51095694,
+      "duration_s": 221.585,
+      "kind": "chain",
+      "order_index": 1,
+      "recall_of": 3,
+      "recall_score": 3,
+      "rep": 0,
+      "resolved": true,
+      "session_id": "cd7ecb98-1066-465f-a6d9-34e3c8529bde",
+      "steps": [
+        {
+          "dollars": 0.01507538,
+          "duration_s": 21.43,
+          "id": "money",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 9,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 51399,
+              "cache_read_input_tokens": 303628,
+              "input_tokens": 18,
+              "output_tokens": 3515,
+              "turns": 9,
+              "weighted_tokens": 112204.55
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.01043303,
+          "duration_s": 17.539,
+          "id": "tax",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 6,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 30766,
+              "cache_read_input_tokens": 267513,
+              "input_tokens": 12,
+              "output_tokens": 3207,
+              "turns": 6,
+              "weighted_tokens": 81255.8
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.01429138,
+          "duration_s": 20.27,
+          "id": "total",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 7,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 38527,
+              "cache_read_input_tokens": 374408,
+              "input_tokens": 14,
+              "output_tokens": 5681,
+              "turns": 7,
+              "weighted_tokens": 114018.55
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.01442686,
+          "duration_s": 18.649,
+          "id": "discount-percent",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 7,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 37870,
+              "cache_read_input_tokens": 441246,
+              "input_tokens": 14,
+              "output_tokens": 4878,
+              "turns": 7,
+              "weighted_tokens": 115866.1
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.01219248,
+          "duration_s": 17.071,
+          "id": "discount-bulk",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 6,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 31586,
+              "cache_read_input_tokens": 435258,
+              "input_tokens": 12,
+              "output_tokens": 3043,
+              "turns": 6,
+              "weighted_tokens": 98235.3
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.01586076,
+          "duration_s": 17.755,
+          "id": "coupon-model",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 7,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 40353,
+              "cache_read_input_tokens": 571426,
+              "input_tokens": 14,
+              "output_tokens": 4149,
+              "turns": 7,
+              "weighted_tokens": 128342.85
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.0170582,
+          "duration_s": 19.144,
+          "id": "coupon-apply",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 7,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 39072,
+              "cache_read_input_tokens": 638890,
+              "input_tokens": 14,
+              "output_tokens": 5707,
+              "turns": 7,
+              "weighted_tokens": 141278.0
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.06751975,
+          "duration_s": 17.17,
+          "id": "coupon-expiry",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 6,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 30414,
+              "cache_read_input_tokens": 606545,
+              "input_tokens": 12,
+              "output_tokens": 2709,
+              "turns": 6,
+              "weighted_tokens": 112229.0
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.07600955,
+          "duration_s": 18.22,
+          "id": "refund-amount",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 6,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 31754,
+              "cache_read_input_tokens": 660191,
+              "input_tokens": 12,
+              "output_tokens": 4496,
+              "turns": 6,
+              "weighted_tokens": 128203.6
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.07870995,
+          "duration_s": 19.097,
+          "id": "report-build",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 6,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 30508,
+              "cache_read_input_tokens": 717219,
+              "input_tokens": 12,
+              "output_tokens": 4934,
+              "turns": 6,
+              "weighted_tokens": 134538.9
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.0926962,
+          "duration_s": 16.986,
+          "id": "report-format",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 7,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 38072,
+              "cache_read_input_tokens": 900994,
+              "input_tokens": 14,
+              "output_tokens": 3827,
+              "turns": 7,
+              "weighted_tokens": 156838.4
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.0966834,
+          "duration_s": 18.254,
+          "id": "recall",
+          "recall_of": 3,
+          "recall_score": 3,
+          "resolved": true,
+          "turns": 8,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 32070,
+              "cache_read_input_tokens": 1107908,
+              "input_tokens": 16,
+              "output_tokens": 3684,
+              "turns": 8,
+              "weighted_tokens": 169314.3
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        }
+      ],
+      "stratum": "long",
+      "task": "long-checkout",
+      "turns": 82,
+      "unpriced_models": [],
+      "usage": {
+        "parent": {
+          "cache_creation_input_tokens": 432391,
+          "cache_read_input_tokens": 7025226,
+          "input_tokens": 164,
+          "output_tokens": 49830,
+          "turns": 82,
+          "weighted_tokens": 1492325.35
+        },
+        "subagent_sessions": 0,
+        "subagents": {
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "turns": 0,
+          "weighted_tokens": 0.0
+        }
+      },
+      "warm_up": false,
+      "weighted_tokens": 1492325.35
+    },
+    {
+      "arm": "checkpoint",
+      "boundaries_taken": [
+        4,
+        8
+      ],
+      "brief_fired": false,
+      "cap_hit": false,
+      "cap_usd": 0.6,
+      "carry_fired": false,
+      "checkpoint_restore_outcome": "injected",
+      "checkpoint_saved_bytes": 4386,
+      "checkpoints": [
+        {
+          "after_step": 4,
+          "restore_outcome": "injected",
+          "saved_bytes": 2136
+        },
+        {
+          "after_step": 8,
+          "restore_outcome": "injected",
+          "saved_bytes": 2250
+        }
+      ],
+      "dollars": 0.03453829,
+      "duration_s": 244.566,
+      "kind": "chain",
+      "order_index": 2,
+      "overhead": {
+        "hook_calls": 59,
+        "latency_ms_total": 105.159
+      },
+      "recall_of": 3,
+      "recall_score": 3,
+      "rep": 0,
+      "resolved": true,
+      "session_id": "d268b938-73c5-4840-88e8-447939fc93e5",
+      "steps": [
+        {
+          "dollars": 0.02684003,
+          "duration_s": 23.928,
+          "id": "money",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 16,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 91663,
+              "cache_read_input_tokens": 590873,
+              "input_tokens": 32,
+              "output_tokens": 5191,
+              "turns": 16,
+              "weighted_tokens": 199653.05
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.00473175,
+          "duration_s": 16.362,
+          "id": "tax",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 6,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 3706,
+              "cache_read_input_tokens": 271135,
+              "input_tokens": 12,
+              "output_tokens": 2556,
+              "turns": 6,
+              "weighted_tokens": 44538.0
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.00582894,
+          "duration_s": 17.329,
+          "id": "total",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 6,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 8037,
+              "cache_read_input_tokens": 285334,
+              "input_tokens": 12,
+              "output_tokens": 2734,
+              "turns": 6,
+              "weighted_tokens": 52261.65
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.0068258,
+          "duration_s": 17.185,
+          "id": "discount-percent",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 7,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 6505,
+              "cache_read_input_tokens": 352040,
+              "input_tokens": 14,
+              "output_tokens": 4006,
+              "turns": 7,
+              "weighted_tokens": 63379.25
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": -0.02278068,
+          "duration_s": 23.944,
+          "id": "discount-bulk",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": -24,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": -30393,
+              "cache_read_input_tokens": -1118878,
+              "input_tokens": -48,
+              "output_tokens": -11017,
+              "turns": -24,
+              "weighted_tokens": -205012.05
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.00489487,
+          "duration_s": 18.783,
+          "id": "coupon-model",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 6,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 4919,
+              "cache_read_input_tokens": 270637,
+              "input_tokens": 12,
+              "output_tokens": 2407,
+              "turns": 6,
+              "weighted_tokens": 45259.45
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.00729022,
+          "duration_s": 20.565,
+          "id": "coupon-apply",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 9,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 4586,
+              "cache_read_input_tokens": 428772,
+              "input_tokens": 18,
+              "output_tokens": 4167,
+              "turns": 9,
+              "weighted_tokens": 69462.7
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.00387783,
+          "duration_s": 17.557,
+          "id": "coupon-expiry",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 5,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 2477,
+              "cache_read_input_tokens": 249493,
+              "input_tokens": 10,
+              "output_tokens": 1773,
+              "turns": 5,
+              "weighted_tokens": 36920.55
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": -0.02088809,
+          "duration_s": 26.305,
+          "id": "refund-amount",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": -23,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": -34237,
+              "cache_read_input_tokens": -1046009,
+              "input_tokens": -46,
+              "output_tokens": -7152,
+              "turns": -23,
+              "weighted_tokens": -183203.15
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.00519848,
+          "duration_s": 20.823,
+          "id": "report-build",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 5,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 6761,
+              "cache_read_input_tokens": 226378,
+              "input_tokens": 10,
+              "output_tokens": 3163,
+              "turns": 5,
+              "weighted_tokens": 46914.05
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.00529396,
+          "duration_s": 19.825,
+          "id": "report-format",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 6,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 4208,
+              "cache_read_input_tokens": 290416,
+              "input_tokens": 12,
+              "output_tokens": 3094,
+              "turns": 6,
+              "weighted_tokens": 49783.6
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.00742518,
+          "duration_s": 21.961,
+          "id": "recall",
+          "recall_of": 3,
+          "recall_score": 3,
+          "resolved": true,
+          "turns": 7,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 9870,
+              "cache_read_input_tokens": 358128,
+              "input_tokens": 14,
+              "output_tokens": 3737,
+              "turns": 7,
+              "weighted_tokens": 66849.3
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        }
+      ],
+      "stratum": "long",
+      "task": "long-checkout",
+      "turns": 26,
+      "unpriced_models": [],
+      "usage": {
+        "parent": {
+          "cache_creation_input_tokens": 78102,
+          "cache_read_input_tokens": 1158319,
+          "input_tokens": 52,
+          "output_tokens": 14659,
+          "turns": 26,
+          "weighted_tokens": 286806.4
+        },
+        "subagent_sessions": 0,
+        "subagents": {
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "turns": 0,
+          "weighted_tokens": 0.0
+        }
+      },
+      "warm_up": false,
+      "weighted_tokens": 286806.4
+    },
+    {
+      "arm": "checkpoint",
+      "boundaries_taken": [
+        4,
+        8
+      ],
+      "brief_fired": false,
+      "cap_hit": false,
+      "cap_usd": 0.6,
+      "carry_fired": false,
+      "checkpoint_restore_outcome": "injected",
+      "checkpoint_saved_bytes": 5843,
+      "checkpoints": [
+        {
+          "after_step": 4,
+          "restore_outcome": "injected",
+          "saved_bytes": 3160
+        },
+        {
+          "after_step": 8,
+          "restore_outcome": "injected",
+          "saved_bytes": 2683
+        }
+      ],
+      "dollars": 0.04432469,
+      "duration_s": 251.852,
+      "kind": "chain",
+      "order_index": 3,
+      "overhead": {
+        "hook_calls": 65,
+        "latency_ms_total": 104.694
+      },
+      "recall_of": 3,
+      "recall_score": 3,
+      "rep": 1,
+      "resolved": true,
+      "session_id": "fe510536-d4b7-4d28-ba46-33a6ec1c0759",
+      "steps": [
+        {
+          "dollars": 0.02647585,
+          "duration_s": 31.501,
+          "id": "money",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 22,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 68515,
+              "cache_read_input_tokens": 889495,
+              "input_tokens": 44,
+              "output_tokens": 7747,
+              "turns": 22,
+              "weighted_tokens": 213372.25
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.00560823,
+          "duration_s": 16.704,
+          "id": "tax",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 7,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 4916,
+              "cache_read_input_tokens": 324263,
+              "input_tokens": 14,
+              "output_tokens": 2762,
+              "turns": 7,
+              "weighted_tokens": 52395.3
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.00565525,
+          "duration_s": 17.867,
+          "id": "total",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 7,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 4577,
+              "cache_read_input_tokens": 337845,
+              "input_tokens": 14,
+              "output_tokens": 2720,
+              "turns": 7,
+              "weighted_tokens": 53119.75
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.00740927,
+          "duration_s": 17.388,
+          "id": "discount-percent",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 8,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 6084,
+              "cache_read_input_tokens": 401587,
+              "input_tokens": 16,
+              "output_tokens": 4350,
+              "turns": 8,
+              "weighted_tokens": 69529.7
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": -0.0209968,
+          "duration_s": 18.73,
+          "id": "discount-bulk",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": -36,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 15468,
+              "cache_read_input_tokens": -1722870,
+              "input_tokens": -72,
+              "output_tokens": -13709,
+              "turns": -36,
+              "weighted_tokens": -221569.0
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.00583029,
+          "duration_s": 17.675,
+          "id": "coupon-model",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 7,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 5721,
+              "cache_read_input_tokens": 301719,
+              "input_tokens": 14,
+              "output_tokens": 3335,
+              "turns": 7,
+              "weighted_tokens": 54012.15
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.00624648,
+          "duration_s": 18.45,
+          "id": "coupon-apply",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 7,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 4949,
+              "cache_read_input_tokens": 318278,
+              "input_tokens": 14,
+              "output_tokens": 4145,
+              "turns": 7,
+              "weighted_tokens": 58753.05
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.00379899,
+          "duration_s": 17.875,
+          "id": "coupon-expiry",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 5,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 2405,
+              "cache_read_input_tokens": 238949,
+              "input_tokens": 10,
+              "output_tokens": 1855,
+              "turns": 5,
+              "weighted_tokens": 36186.15
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": -0.02019737,
+          "duration_s": 27.692,
+          "id": "refund-amount",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": -17,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": -50021,
+              "cache_read_input_tokens": -720627,
+              "input_tokens": -34,
+              "output_tokens": -5967,
+              "turns": -17,
+              "weighted_tokens": -164457.95
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.00530838,
+          "duration_s": 21.078,
+          "id": "report-build",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 5,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 7313,
+              "cache_read_input_tokens": 230828,
+              "input_tokens": 10,
+              "output_tokens": 3073,
+              "turns": 5,
+              "weighted_tokens": 47599.05
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.00733646,
+          "duration_s": 19.799,
+          "id": "report-format",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 8,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 6280,
+              "cache_read_input_tokens": 395136,
+              "input_tokens": 16,
+              "output_tokens": 4255,
+              "turns": 8,
+              "weighted_tokens": 68654.6
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.01184966,
+          "duration_s": 27.091,
+          "id": "recall",
+          "recall_of": 3,
+          "recall_score": 3,
+          "resolved": true,
+          "turns": 13,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 11685,
+              "cache_read_input_tokens": 689206,
+              "input_tokens": 26,
+              "output_tokens": 5236,
+              "turns": 13,
+              "weighted_tokens": 109732.85
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        }
+      ],
+      "stratum": "long",
+      "task": "long-checkout",
+      "turns": 36,
+      "unpriced_models": [],
+      "usage": {
+        "parent": {
+          "cache_creation_input_tokens": 87892,
+          "cache_read_input_tokens": 1683809,
+          "input_tokens": 72,
+          "output_tokens": 19802,
+          "turns": 36,
+          "weighted_tokens": 377327.9
+        },
+        "subagent_sessions": 0,
+        "subagents": {
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "turns": 0,
+          "weighted_tokens": 0.0
+        }
+      },
+      "warm_up": false,
+      "weighted_tokens": 377327.9
+    },
+    {
+      "arm": "off",
+      "cap_hit": false,
+      "cap_usd": 0.6,
+      "dollars": 0.55265961,
+      "duration_s": 215.076,
+      "kind": "chain",
+      "order_index": 4,
+      "recall_of": 3,
+      "recall_score": 3,
+      "rep": 1,
+      "resolved": true,
+      "session_id": "44dfbb4c-d287-406a-a94e-5e73ae1d3fe7",
+      "steps": [
+        {
+          "dollars": 0.01746304,
+          "duration_s": 22.72,
+          "id": "money",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 11,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 55265,
+              "cache_read_input_tokens": 391234,
+              "input_tokens": 22,
+              "output_tokens": 4991,
+              "turns": 11,
+              "weighted_tokens": 133181.65
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.01089597,
+          "duration_s": 16.59,
+          "id": "tax",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 6,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 32848,
+              "cache_read_input_tokens": 276317,
+              "input_tokens": 12,
+              "output_tokens": 3124,
+              "turns": 6,
+              "weighted_tokens": 84323.7
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.01115993,
+          "duration_s": 16.91,
+          "id": "total",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 6,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 31535,
+              "cache_read_input_tokens": 333273,
+              "input_tokens": 12,
+              "output_tokens": 3038,
+              "turns": 6,
+              "weighted_tokens": 87948.05
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.01465646,
+          "duration_s": 16.948,
+          "id": "discount-percent",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 7,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 39326,
+              "cache_read_input_tokens": 452236,
+              "input_tokens": 14,
+              "output_tokens": 4535,
+              "turns": 7,
+              "weighted_tokens": 117070.1
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.01262776,
+          "duration_s": 17.421,
+          "id": "discount-bulk",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 6,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 31911,
+              "cache_read_input_tokens": 445536,
+              "input_tokens": 12,
+              "output_tokens": 3578,
+              "turns": 6,
+              "weighted_tokens": 102344.35
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.01646872,
+          "duration_s": 17.156,
+          "id": "coupon-model",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 7,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 43223,
+              "cache_read_input_tokens": 585922,
+              "input_tokens": 14,
+              "output_tokens": 3927,
+              "turns": 7,
+              "weighted_tokens": 132269.95
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.08170483,
+          "duration_s": 18.06,
+          "id": "coupon-apply",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 7,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 40928,
+              "cache_read_input_tokens": 656741,
+              "input_tokens": 14,
+              "output_tokens": 5097,
+              "turns": 7,
+              "weighted_tokens": 142333.1
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.06769735,
+          "duration_s": 16.672,
+          "id": "coupon-expiry",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 6,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 30151,
+              "cache_read_input_tokens": 623057,
+              "input_tokens": 12,
+              "output_tokens": 2555,
+              "turns": 6,
+              "weighted_tokens": 112781.45
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.08075295,
+          "duration_s": 20.135,
+          "id": "refund-amount",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 6,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 35004,
+              "cache_read_input_tokens": 676959,
+              "input_tokens": 12,
+              "output_tokens": 4758,
+              "turns": 6,
+              "weighted_tokens": 135252.9
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.07970625,
+          "duration_s": 19.18,
+          "id": "report-build",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 6,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 32467,
+              "cache_read_input_tokens": 738865,
+              "input_tokens": 12,
+              "output_tokens": 4116,
+              "turns": 6,
+              "weighted_tokens": 135062.25
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.06027055,
+          "duration_s": 15.171,
+          "id": "report-format",
+          "recall_of": null,
+          "recall_score": null,
+          "resolved": true,
+          "turns": 6,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 11412,
+              "cache_read_input_tokens": 785651,
+              "input_tokens": 12,
+              "output_tokens": 3828,
+              "turns": 6,
+              "weighted_tokens": 111982.1
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        },
+        {
+          "dollars": 0.0992558,
+          "duration_s": 18.113,
+          "id": "recall",
+          "recall_of": 3,
+          "recall_score": 3,
+          "resolved": true,
+          "turns": 8,
+          "usage": {
+            "parent": {
+              "cache_creation_input_tokens": 33578,
+              "cache_read_input_tokens": 1131696,
+              "input_tokens": 16,
+              "output_tokens": 3634,
+              "turns": 8,
+              "weighted_tokens": 173328.1
+            },
+            "subagent_sessions": 0,
+            "subagents": {
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "turns": 0,
+              "weighted_tokens": 0.0
+            }
+          }
+        }
+      ],
+      "stratum": "long",
+      "task": "long-checkout",
+      "turns": 82,
+      "unpriced_models": [],
+      "usage": {
+        "parent": {
+          "cache_creation_input_tokens": 417648,
+          "cache_read_input_tokens": 7097487,
+          "input_tokens": 164,
+          "output_tokens": 47181,
+          "turns": 82,
+          "weighted_tokens": 1467877.7
+        },
+        "subagent_sessions": 0,
+        "subagents": {
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "turns": 0,
+          "weighted_tokens": 0.0
+        }
+      },
+      "warm_up": false,
+      "weighted_tokens": 1467877.7
+    }
+  ],
+  "seed": 0,
+  "slice": "slice0",
+  "started_at": "2026-10-29T20:54:03.105491+00:00",
+  "stratum": null
+}
