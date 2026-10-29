@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 from datetime import UTC, datetime
@@ -69,6 +70,16 @@ def _name(plugin: dict[str, Any]) -> str | None:
 
 
 LOCAL_SCOPES = ("user", "project", "local")
+_PLUGIN_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*@[A-Za-z0-9._-]+")
+
+
+def _valid_target(plugin_id: Any, scope: Any) -> bool:
+    """True when ``plugin_id@marketplace`` and a local scope are safe to pass as argv."""
+    return (
+        isinstance(plugin_id, str)
+        and _PLUGIN_ID.fullmatch(plugin_id) is not None
+        and scope in LOCAL_SCOPES
+    )
 
 
 def _by_name(plugins: list[dict[str, Any]], enabled_only: bool) -> dict[str, dict[str, Any]]:
@@ -281,9 +292,12 @@ def apply_report(report: dict[str, Any], yes: bool = False) -> int:
 
     failures: list[tuple[str, str]] = []
     for entry in record["plugins"]:
-        args = ["plugin", "disable", str(entry["id"])]
-        if entry.get("scope"):
-            args += ["--scope", str(entry["scope"])]
+        pid = str(entry["id"])
+        if not _valid_target(pid, entry.get("scope")):
+            entry["applied"] = False
+            failures.append((pid, "not applied (invalid id)"))
+            continue
+        args = ["plugin", "disable", pid, "--scope", str(entry["scope"])]
         code, out = _run(exe, args)
         entry["applied"] = code == 0
         entry["disabled_at"] = _now() if code == 0 else None
@@ -346,12 +360,13 @@ def undo_records(all_records: bool = False) -> int:
             pid = str(entry.get("id"))
             if not entry.get("applied"):
                 continue
+            if not _valid_target(pid, entry.get("scope")):
+                print(f"  {pid}: not applied (invalid id)")
+                continue
             if pid not in state:
                 print(f"  {pid}: no longer installed; skipped")
                 continue
-            args = ["plugin", "enable", pid]
-            if entry.get("scope"):
-                args += ["--scope", str(entry["scope"])]
+            args = ["plugin", "enable", pid, "--scope", str(entry["scope"])]
             code, out = _run(exe, args)
             if code != 0:
                 reason = out.strip().splitlines()[-1][:300] if out.strip() else "failed"

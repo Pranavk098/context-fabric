@@ -262,9 +262,14 @@ def test_v1_checkpoint_without_new_fields_restores(tmp_path: Path) -> None:
     assert "Working set (path | lines | status):" in body
 
 
-def test_launcher_reads_note_without_shell_interpolation(tmp_path: Path) -> None:
+def test_launcher_reads_note_without_shell_interpolation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     hostile = "quotes ' \" backtick ` $(touch pwned) \nsecond line"
-    note_file = tmp_path / "note.txt"
+    data = tmp_path / "plugin-data"
+    data.mkdir()
+    monkeypatch.setenv("CLAUDE_PLUGIN_DATA", str(data))
+    note_file = data / "checkpoint-note-abc.txt"
     note_file.write_text(hostile, encoding="utf-8")
     assert launch._checkpoint_note(["--note-file", str(note_file)]) == hostile
     assert not note_file.exists()

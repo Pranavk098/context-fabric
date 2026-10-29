@@ -49,6 +49,7 @@ from cfxd.waste import format_waste, waste
 from cfxd.week import format_week, week
 
 _SHIM_PATH = Path(__file__).with_name("shim.py")
+_IS_WINDOWS = os.name == "nt"
 
 
 def _add_state_dir(parser: argparse.ArgumentParser) -> None:
@@ -338,18 +339,14 @@ def _cmd_stop(args: argparse.Namespace) -> int:
         return 0
     port = state.get("port")
     pid = state.get("pid")
-    if not isinstance(port, int) or not isinstance(pid, int):
-        path.unlink(missing_ok=True)
-        print("cfxd stop: stale state (removed)")
-        return 0
     confirmed = False
-    try:
-        status, body = get_health(port)
-        health = json.loads(body)
-        confirmed = status == 200 and isinstance(health, dict) and health.get("pid") == pid
-    except (OSError, ValueError):
-        confirmed = False
-    if confirmed and pid != os.getpid():
+    if (
+        isinstance(port, int)
+        and isinstance(pid, int)
+        and pid != os.getpid()
+        and verify_identity(state_dir, port)
+    ):
+        confirmed = True
         try:
             os.kill(pid, signal.SIGTERM)
         except OSError:
@@ -453,8 +450,25 @@ def _measure_shim(state_dir: Path, runs: int) -> tuple[list[float], int]:
     return samples, failures
 
 
+def _warn_outside_profile(state_dir: Path) -> None:
+    """On Windows, warn once when the state dir (and its token) is not under the user profile."""
+    if not _IS_WINDOWS:
+        return
+    profile = os.environ.get("USERPROFILE")
+    if not profile:
+        return
+    try:
+        state_dir.resolve().relative_to(Path(profile).resolve())
+    except (OSError, ValueError):
+        print(
+            "cfxd doctor: warning: state directory is outside your user profile; "
+            "on Windows other users may be able to read its token. Move CFX_HOME inside it."
+        )
+
+
 def _cmd_doctor(args: argparse.Namespace) -> int:
     state_dir = resolve_state_dir(args.state_dir)
+    _warn_outside_profile(state_dir)
     state_file = state_dir / STATE_FILE
     state = read_state(state_file)
     if state is None:

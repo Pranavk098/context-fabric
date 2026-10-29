@@ -1,6 +1,6 @@
 ---
 description: Save this session's working state, then start fresh with /clear (experimental)
-allowed-tools: Write, Bash(sh "${CLAUDE_PLUGIN_ROOT}/cfxd/launch.sh" checkpoint-save), Bash(sh "${CLAUDE_PLUGIN_ROOT}/cfxd/launch.sh" checkpoint-save --note-file *)
+allowed-tools: Write, Bash(sh "${CLAUDE_PLUGIN_ROOT}/cfxd/launch.sh" checkpoint-save), Bash(sh "${CLAUDE_PLUGIN_ROOT}/cfxd/launch.sh" checkpoint-save --note-file ${CLAUDE_PLUGIN_DATA}/checkpoint-note-*)
 disable-model-invocation: true
 ---
 
@@ -10,6 +10,8 @@ $ARGUMENTS
 
 1. If that text is not empty, use the Write tool to write it verbatim to
    `${CLAUDE_PLUGIN_DATA}/checkpoint-note-${CLAUDE_SESSION_ID}.txt`. Do not add or change anything.
+   (The launcher accepts only `checkpoint-note-[A-Za-z0-9_-]+\.txt` files directly inside
+   `${CLAUDE_PLUGIN_DATA}`; any other `--note-file` path is ignored, not read, not deleted.)
 2. Run exactly this with the Bash tool:
    `sh "${CLAUDE_PLUGIN_ROOT}/cfxd/launch.sh" checkpoint-save --note-file "${CLAUDE_PLUGIN_DATA}/checkpoint-note-${CLAUDE_SESSION_ID}.txt"`
    If the note was empty, run instead:

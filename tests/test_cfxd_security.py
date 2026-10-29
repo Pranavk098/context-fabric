@@ -198,8 +198,7 @@ def test_rejection_happens_before_body_read(daemon: Daemon) -> None:
         assert resp.status == 403
     finally:
         conn.close()
-    text = daemon.events_path.read_text(encoding="utf-8")
-    assert "rejected" in text
+    assert not daemon.events_path.exists()
 
 
 def test_concurrent_connection_cap(tmp_path: Path) -> None:
