@@ -14,17 +14,30 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import threading
 import time
+from collections import deque
+from collections.abc import Iterator
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from cfxd import carry
+from cfxd.bound import test_key_any
 from cfxd.brief import _sanitize
 from cfxd.fsutil import ensure_dir, open_log
 from cfxd.handlers import add_observer, register, register_after
-from cfxd.session_state import SessionFacts, snapshot
+from cfxd.session_state import (
+    MAX_COMMANDS,
+    MAX_FILES,
+    MAX_TODOS,
+    FileFact,
+    SessionFacts,
+    TestFact,
+    redact_command,
+    snapshot,
+)
 
 CHECKPOINT_DIR = "checkpoint"
 CHECKPOINT_LOG = "checkpoint.jsonl"
@@ -32,6 +45,8 @@ RESTORE_TTL_SECONDS = 60 * 60
 MAX_FILE_BYTES = carry.MAX_SNAPSHOT_FILE_BYTES
 NOTE_MAX_CHARS = 300
 MAX_STALE_STATS = 50
+TRANSCRIPT_TAIL_BYTES = 4 * 1024 * 1024
+TRANSCRIPT_MAX_AGE_S = 6 * 3600
 _PRUNE_TTL_SECONDS = 7 * 24 * 3600
 _TRIGGER = "checkpoint"
 
@@ -100,6 +115,250 @@ def _session_for_cwd(cwd: str) -> str | None:
     return entry[1] if entry is not None else None
 
 
+# --- transcript fallback -------------------------------------------------
+# PostToolUse hooks can be dropped under load; the transcript records the same
+# events, so save-time facts are rebuilt from its tail when the daemon is thin.
+
+_SESSION_ID_RE = re.compile(r"[A-Za-z0-9_-]{1,128}")
+_EXIT_CODE_RE = re.compile(r"^\s*Exit code\s+(-?\d+)", re.IGNORECASE)
+
+_FILE_TOOLS = frozenset({"Read", "Edit", "Write", "MultiEdit", "NotebookEdit"})
+
+
+def _transcript_root() -> Path:
+    configured = os.environ.get("CLAUDE_CONFIG_DIR")
+    if configured:
+        return Path(configured) / "projects"
+    return Path.home() / ".claude" / "projects"
+
+
+def _project_dir_name(cwd: str) -> str:
+    """Claude Code's project directory: the cwd with non-alphanumerics as ``-``."""
+    return re.sub(r"[^A-Za-z0-9]", "-", cwd)
+
+
+def _transcript_path(cwd: str, session_id: str | None) -> Path | None:
+    """The session transcript, else the newest one for this project within 6 hours."""
+    try:
+        project = _transcript_root() / _project_dir_name(cwd)
+        if not project.is_dir():
+            return None
+        if session_id is not None and _SESSION_ID_RE.fullmatch(session_id) is not None:
+            candidate = project / f"{session_id}.jsonl"
+            return candidate if candidate.is_file() else None
+        cutoff = time.time() - TRANSCRIPT_MAX_AGE_S
+        newest: Path | None = None
+        newest_mtime = 0.0
+        for path in project.iterdir():
+            try:
+                if not path.is_file() or path.suffix != ".jsonl":
+                    continue
+                mtime = path.stat().st_mtime
+            except OSError:
+                continue
+            if mtime >= cutoff and mtime > newest_mtime:
+                newest, newest_mtime = path, mtime
+        return newest
+    except OSError:
+        return None
+
+
+def _iter_tail(path: Path) -> Iterator[dict[str, Any]]:
+    """Read at most the last 4 MB of a transcript, skipping a partial first line."""
+    try:
+        size = path.stat().st_size
+        with open(path, "rb") as fh:
+            start = max(0, size - TRANSCRIPT_TAIL_BYTES)
+            fh.seek(start)
+            data = fh.read()
+    except OSError:
+        return
+    if start:
+        _, _, data = data.partition(b"\n")
+    for raw in data.splitlines():
+        try:
+            obj = json.loads(raw.decode("utf-8", "replace"))
+        except ValueError:
+            continue
+        if isinstance(obj, dict):
+            yield obj
+
+
+def _object_ts(obj: dict[str, Any], msg: Any, fallback: float) -> float:
+    for value in (obj.get("timestamp"), msg.get("timestamp") if isinstance(msg, dict) else None):
+        if not isinstance(value, str):
+            continue
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=UTC)
+        return parsed.timestamp()
+    return fallback
+
+
+def _result_texts(content: Any) -> list[str]:
+    if isinstance(content, str):
+        return [content]
+    if isinstance(content, list):
+        return [
+            block["text"]
+            for block in content
+            if isinstance(block, dict) and isinstance(block.get("text"), str)
+        ]
+    return []
+
+
+def _result_ok(block: dict[str, Any]) -> bool:
+    """A matching ``tool_result`` is a pass unless it is flagged as a failure."""
+    if block.get("is_error") is True:
+        return False
+    for text in _result_texts(block.get("content")):
+        match = _EXIT_CODE_RE.match(text)
+        if match is not None:
+            return int(match.group(1)) == 0
+    return True
+
+
+def _parse_todos(raw: list[Any]) -> tuple[tuple[str, str], ...]:
+    parsed: list[tuple[str, str]] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        text = item.get("content")
+        status = item.get("status")
+        if isinstance(text, str) and isinstance(status, str):
+            parsed.append((status, text))
+    return tuple(parsed[:MAX_TODOS])
+
+
+def facts_from_transcript(path: Path) -> SessionFacts | None:
+    """Rebuild the daemon's fact shapes from a transcript tail; ``None`` if unreadable."""
+    try:
+        fallback = path.stat().st_mtime
+    except OSError:
+        return None
+    files: dict[str, FileFact] = {}
+    commands: deque[str] = deque()
+    todos: tuple[tuple[str, str], ...] = ()
+    test: TestFact | None = None
+    test_id: str | None = None
+    seq = 0
+
+    for obj in _iter_tail(path):
+        msg = obj.get("message")
+        content = msg.get("content") if isinstance(msg, dict) else None
+        blocks = [b for b in content if isinstance(b, dict)] if isinstance(content, list) else []
+        ts = _object_ts(obj, msg, fallback + seq * 1e-6)
+        seq += 1
+
+        for block in blocks:
+            kind = block.get("type")
+            if kind == "tool_use":
+                name = block.get("name")
+                tool_input = block.get("input")
+                if not isinstance(name, str) or not isinstance(tool_input, dict):
+                    continue
+                bid = block.get("id")
+                if name in _FILE_TOOLS:
+                    key = "notebook_path" if name == "NotebookEdit" else "file_path"
+                    file_path = tool_input.get(key)
+                    if not isinstance(file_path, str) or not file_path.strip():
+                        continue
+                    norm = os.path.normcase(os.path.abspath(file_path))
+                    existing = files.pop(norm, None)
+                    files[norm] = FileFact(
+                        path=os.path.abspath(file_path),
+                        lines=existing.lines if existing is not None else None,
+                        edited=(existing.edited if existing is not None else False)
+                        or name != "Read",
+                        last_seen=ts,
+                    )
+                    while len(files) > MAX_FILES:
+                        files.pop(next(iter(files)))
+                elif name == "Bash":
+                    command = tool_input.get("command")
+                    if not isinstance(command, str) or not command.strip():
+                        continue
+                    redacted = redact_command(command)
+                    try:
+                        commands.remove(redacted)
+                    except ValueError:
+                        pass
+                    commands.append(redacted)
+                    while len(commands) > MAX_COMMANDS:
+                        commands.popleft()
+                    test_key = test_key_any(command)
+                    if test_key is not None:
+                        test = TestFact(key=test_key, ok=None, at=ts)
+                        test_id = bid if isinstance(bid, str) else None
+                elif name == "TodoWrite":
+                    raw = tool_input.get("todos")
+                    if isinstance(raw, list):
+                        todos = _parse_todos(raw)
+            elif kind == "tool_result":
+                tid = block.get("tool_use_id")
+                if tid is not None and tid == test_id and test is not None:
+                    test = TestFact(key=test.key, ok=_result_ok(block), at=test.at)
+
+    return SessionFacts(
+        session_id=path.stem,
+        files=tuple(files.values()),
+        folds=(),
+        commands=tuple(commands),
+        todos=todos,
+        test=test,
+    )
+
+
+def _merge_facts(
+    daemon: SessionFacts | None, transcript: SessionFacts | None
+) -> tuple[SessionFacts | None, str]:
+    """Union the two fact sets (daemon wins) and report which source supplied them."""
+    daemon_empty = daemon is None or _empty(daemon)
+    transcript_empty = transcript is None or _empty(transcript)
+    if daemon_empty:
+        return (None if transcript_empty else transcript), "transcript"
+    assert daemon is not None
+    if transcript_empty:
+        return daemon, "daemon"
+    assert transcript is not None
+
+    files: dict[str, FileFact] = {}
+    for fact in daemon.files:
+        files[os.path.normcase(os.path.abspath(fact.path))] = fact
+    added_file = False
+    for fact in transcript.files:
+        key = os.path.normcase(os.path.abspath(fact.path))
+        if key not in files:
+            files[key] = fact
+            added_file = True
+    merged_files = tuple(sorted(files.values(), key=lambda f: f.last_seen)[-MAX_FILES:])
+
+    commands = deque(daemon.commands)
+    added_command = False
+    for command in transcript.commands:
+        if command not in commands:
+            commands.append(command)
+            added_command = True
+    while len(commands) > MAX_COMMANDS:
+        commands.popleft()
+
+    added_todos = not daemon.todos and bool(transcript.todos)
+    added_test = daemon.test is None and transcript.test is not None
+    merged = SessionFacts(
+        session_id=daemon.session_id,
+        files=merged_files,
+        folds=daemon.folds,
+        commands=tuple(commands),
+        todos=daemon.todos or transcript.todos,
+        test=daemon.test or transcript.test,
+    )
+    added = added_file or added_command or added_todos or added_test
+    return merged, "merged" if added else "daemon"
+
+
 def handle_checkpoint_save(payload: dict[str, Any], state_dir: Path) -> dict[str, Any]:
     """Save the session's facts as a checkpoint. Never raises."""
     try:
@@ -118,10 +377,20 @@ def _save(payload: dict[str, Any], state_dir: Path) -> dict[str, Any]:
         session_id = _session_for_cwd(cwd)
     else:
         _remember(cwd, session_id)
-    facts = snapshot(session_id) if session_id is not None else None
-    if facts is None or _empty(facts):
+    daemon = snapshot(session_id) if session_id is not None else None
+    transcript = None
+    try:
+        transcript_path = _transcript_path(cwd, session_id)
+        if transcript_path is not None:
+            transcript = facts_from_transcript(transcript_path)
+    except Exception:
+        transcript = None
+    facts, source = _merge_facts(daemon, transcript)
+    if facts is None:
         _receipt(state_dir, session_id, "checkpoint_save", "missing", {}, 0, 0)
         return {"summary": _NO_SESSION}
+    if session_id is None:
+        session_id = facts.session_id
     obj = carry.snapshot_object(facts, _TRIGGER)
     obj["cwd"] = _norm(cwd)
     obj["saved_at"] = datetime.now(UTC).isoformat()
@@ -141,6 +410,12 @@ def _save(payload: dict[str, Any], state_dir: Path) -> dict[str, Any]:
         len(data),
         0,
         note_chars=len(note) if note is not None else 0,
+        source_info={
+            "daemon_files": len(daemon.files) if daemon is not None else 0,
+            "transcript_files": len(transcript.files) if transcript is not None else 0,
+            "merged_files": len(facts.files),
+            "source": source,
+        },
     )
     return {"summary": _summary(counts)}
 
@@ -347,6 +622,7 @@ def _receipt(
     age: int,
     note_chars: int = 0,
     dropped: dict[str, int] | None = None,
+    source_info: dict[str, Any] | None = None,
 ) -> None:
     """One content-free line: counts, byte sizes and age only — no paths or text."""
     try:
@@ -361,6 +637,8 @@ def _receipt(
             "note_chars": note_chars,
             "dropped": dropped or {},
         }
+        if source_info is not None:
+            entry.update(source_info)
         ensure_dir(state_dir)
         with _receipt_lock:
             with open_log(state_dir / CHECKPOINT_LOG) as fh:

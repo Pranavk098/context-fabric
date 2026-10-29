@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from cfxd.bound import BOUND_LOG, TAIL_LINES
+from cfxd.checkpoint import CHECKPOINT_LOG
 from cfxd.coach import COACH_LOG
 from cfxd.daemon import EVENTS_FILE, percentile
 from cfxd.fold import FOLDS_LOG
@@ -154,6 +155,26 @@ def collect_stats(
             continue
         nudges += 1
 
+    checkpoint_saves = 0
+    checkpoint_daemon_only = 0
+    checkpoint_added = 0
+    checkpoint_transcript_only = 0
+    for entry in _read_objects(state_dir / CHECKPOINT_LOG):
+        if entry.get("event") != "checkpoint_save" or entry.get("outcome") != "saved":
+            continue
+        if not _match_session(entry.get("session_id"), session):
+            continue
+        if not _in_window(entry.get("ts"), cutoff):
+            continue
+        checkpoint_saves += 1
+        checkpoint_source = entry.get("source")
+        if checkpoint_source == "daemon":
+            checkpoint_daemon_only += 1
+        elif checkpoint_source == "merged":
+            checkpoint_added += 1
+        elif checkpoint_source == "transcript":
+            checkpoint_transcript_only += 1
+
     cold_count = 0
     cold_usd = 0.0
     resume_receipts = 0
@@ -202,6 +223,12 @@ def collect_stats(
             "usd": round(cold_usd, 2),
             "receipts": resume_receipts,
         },
+        "checkpoints": {
+            "saves": checkpoint_saves,
+            "daemon_only": checkpoint_daemon_only,
+            "transcript_added": checkpoint_added,
+            "transcript_only": checkpoint_transcript_only,
+        },
     }
 
 
@@ -212,6 +239,7 @@ def format_human(stats: dict[str, Any]) -> str:
         and not stats["bounded"]
         and not stats["nudges"]
         and not stats["cold_resumes"]["receipts"]
+        and not stats["checkpoints"]["saves"]
     ):
         return "No folds yet."
     label = _SINCE_LABELS.get(str(stats["since"]), "all time")
@@ -241,4 +269,10 @@ def format_human(stats: dict[str, Any]) -> str:
             f"   rejected {hooks['rejected']}"
         ),
     ]
+    ckpt = stats["checkpoints"]
+    lines.append(
+        f"checkpoint saves: {ckpt['saves']:,} (daemon only {ckpt['daemon_only']:,}, "
+        f"transcript added {ckpt['transcript_added']:,}, "
+        f"transcript only {ckpt['transcript_only']:,})"
+    )
     return "\n".join(lines)
