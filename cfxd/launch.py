@@ -225,13 +225,20 @@ def _accepted_note_file(value: str) -> Path | None:
 
 
 def _checkpoint_note(args: list[str]) -> str | None:
-    """Read ``--note`` or ``--note-file``; an accepted note file is deleted after reading."""
+    """Read ``--note``, ``--note-stdin`` or ``--note-file`` (an accepted file is then deleted)."""
     note: str | None = None
     index = 0
     while index < len(args):
         if args[index] == "--note" and index + 1 < len(args):
             note = args[index + 1]
             index += 2
+        elif args[index] == "--note-stdin":
+            try:
+                raw = sys.stdin.buffer.read(4097)
+                note = raw[:4096].decode("utf-8", errors="replace").strip() or None
+            except (OSError, ValueError):
+                note = None
+            index += 1
         elif args[index] == "--note-file" and index + 1 < len(args):
             path = _accepted_note_file(args[index + 1])
             read_ok = False

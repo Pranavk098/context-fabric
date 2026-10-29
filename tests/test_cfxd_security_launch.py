@@ -362,3 +362,31 @@ def test_opencode_opens_real_db_with_special_chars(tmp_path: Path) -> None:
         assert con.execute("SELECT 1").fetchone() == (1,)
     finally:
         con.close()
+
+
+def test_note_stdin_is_read_and_capped(monkeypatch: pytest.MonkeyPatch) -> None:
+    import io
+    import sys
+
+    class _Stdin:
+        buffer = io.BytesIO(b"  finish the parser tests  \n")
+
+    monkeypatch.setattr(sys, "stdin", _Stdin())
+    assert launch._checkpoint_note(["--note-stdin"]) == "finish the parser tests"
+
+    class _Big:
+        buffer = io.BytesIO(b"a" * 9000)
+
+    monkeypatch.setattr(sys, "stdin", _Big())
+    note = launch._checkpoint_note(["--note-stdin"])
+    assert note is not None and len(note) == 4096
+
+
+def test_checkpoint_command_has_no_write_tool_and_no_wildcard_preapproval() -> None:
+    text = (Path(__file__).resolve().parent.parent / "commands" / "checkpoint.md").read_text(
+        encoding="utf-8"
+    )
+    header = text.split("---")[1]
+    assert "Write" not in header
+    assert "--note-file" not in text
+    assert "<<'CFX_NOTE_END'" in text
