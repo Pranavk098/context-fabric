@@ -69,6 +69,7 @@ experimental until a paired test shows they pay.
 | Part | What it does | State |
 | :--- | :--- | :--- |
 | `cfxd audit` | Counts-only breakdown of your transcripts: starting prefix by item, tool results, repeated reads, sub-agents, compactions | working |
+| `cfxd coverage` | Compares transcript tool calls with the PostToolUse events the helper logged, reporting hook delivery rates; counts only | experimental |
 | `cfxd diet` | Lists your starting-prefix items (skills, connectors, memory, hooks), which you never used in 30 days, and what each costs every turn | working |
 | `cfxd waste` | Measures how much cost sits in loops, retry streaks, the most expensive sessions and repeated discovery | working |
 | `cfxd routing` | Splits your sessions' tokens and API-equivalent dollars by model and by main conversation versus sub-agents, and shows what a cheaper sub-agent tier would change (price only, quality unmeasured) | working |

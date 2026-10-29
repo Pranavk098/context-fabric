@@ -58,6 +58,8 @@ What each number means:
 - **Refetch after compaction:** how much of the dropped context was read again afterwards.
 - **Diet:** skills and connectors you never used and their estimated cost per turn.
 
+**Step 3 (optional): measure hook delivery.** `uvx --from git+https://github.com/Pranavk098/context-fabric cfxd coverage` compares the tool calls in your transcripts with the PostToolUse events the helper logged over 7 days and prints counts only. A rate well below 100% means some hook events were dropped under load; `/checkpoint` still completes from the transcript.
+
 **What to send back:** paste the whole `week --share` output into the template at
 [`FEEDBACK-TEMPLATE.md`](FEEDBACK-TEMPLATE.md), fill in the rest, and send it as described in [section 6](#6-send-results).
 

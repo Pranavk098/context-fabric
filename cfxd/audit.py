@@ -16,7 +16,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from cfxd.daemon import percentile
+from cfxd.daemon import EVENTS_FILE, percentile
 from cfxd.fsutil import iter_json_lines
 
 DEFAULT_ROOT = Path.home() / ".claude" / "projects"
@@ -676,6 +676,162 @@ def audit(root: Path, since: str = "30d", now: datetime | None = None) -> dict[s
         },
         "composition": {"parents": parents_group, "subagents": subagents_group},
     }
+
+
+def _tool_call_count(path: Path) -> int:
+    """Assistant ``tool_use`` blocks the daemon should have seen one PostToolUse for."""
+    count = 0
+    for obj in _iter_objects(path):
+        if obj.get("type") != "assistant":
+            continue
+        msg = obj.get("message")
+        content = msg.get("content") if isinstance(msg, dict) else None
+        if not isinstance(content, list):
+            continue
+        for block in content:
+            if (
+                isinstance(block, dict)
+                and block.get("type") == "tool_use"
+                and isinstance(block.get("name"), str)
+                and isinstance(block.get("id"), str)
+            ):
+                count += 1
+    return count
+
+
+def _ts_in_window(value: Any, cutoff: datetime) -> bool:
+    if not isinstance(value, str):
+        return False
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return False
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed >= cutoff
+
+
+def _read_events(
+    state_dir: Path | None, cutoff: datetime
+) -> tuple[dict[str, int], dict[str, int], int]:
+    """Per-session row counts and PostToolUse counts from ``events.jsonl``.
+
+    Returns ``(rows_by_session, posts_by_session, unattributed)``. PostToolUse
+    rows without a session id are counted, never guessed onto a session.
+    """
+    rows: dict[str, int] = {}
+    posts: dict[str, int] = {}
+    unattributed = 0
+    if state_dir is None:
+        return rows, posts, unattributed
+    try:
+        fh = open(state_dir / EVENTS_FILE, "rb")
+    except OSError:
+        return rows, posts, unattributed
+    with fh:
+        for text in iter_json_lines(fh, _MAX_LINE_BYTES):
+            try:
+                entry = json.loads(text)
+            except (ValueError, RecursionError, MemoryError):
+                continue
+            if not isinstance(entry, dict) or not _ts_in_window(entry.get("ts"), cutoff):
+                continue
+            sid = entry.get("session_id")
+            is_post = entry.get("event") == "PostToolUse"
+            if not isinstance(sid, str) or not sid:
+                # Only the compared rows matter: a PreToolUse row from an older
+                # plugin without a session id cannot affect delivery counts.
+                if is_post:
+                    unattributed += 1
+                continue
+            rows[sid] = rows.get(sid, 0) + 1
+            if is_post:
+                posts[sid] = posts.get(sid, 0) + 1
+    return rows, posts, unattributed
+
+
+def coverage(
+    root: Path, state_dir: Path | None, days: int = 7, now: datetime | None = None
+) -> dict[str, Any]:
+    """Compare transcript tool calls with PostToolUse events; counts only."""
+    if now is None:
+        now = datetime.now(UTC)
+    cutoff = now - timedelta(days=days)
+    parents, _subs = _discover(root, cutoff)
+    rows, posts, unattributed = _read_events(state_dir, cutoff)
+
+    rates: list[float] = []
+    tool_calls = 0
+    events_received = 0
+    without_events = 0
+    for path in parents:
+        sid = path.stem
+        if sid not in rows:
+            without_events += 1
+            continue
+        calls = _tool_call_count(path)
+        if calls <= 0:
+            continue
+        got = posts.get(sid, 0)
+        tool_calls += calls
+        events_received += got
+        rates.append(min(1.0, got / calls))
+
+    delivery: dict[str, float] | None = None
+    below_half: float | None = None
+    na_reason: str | None = None
+    if unattributed:
+        na_reason = "events log rows without a session id"
+    elif not rates:
+        na_reason = "no sessions with hook events to compare"
+    else:
+        overall = min(1.0, events_received / tool_calls)
+        delivery = {
+            "median": round(percentile(rates, 50), 4),
+            "p25": round(percentile(rates, 25), 4),
+            "p75": round(percentile(rates, 75), 4),
+            "overall": round(overall, 4),
+        }
+        below_half = round(sum(1 for rate in rates if rate < 0.5) / len(rates), 4)
+
+    return {
+        "days": days,
+        "sessions_compared": len(rates),
+        "sessions_without_events": without_events,
+        "tool_calls": tool_calls,
+        "events_received": events_received,
+        "delivery": delivery,
+        "below_half_share": below_half,
+        "unattributed_events": unattributed,
+        "na_reason": na_reason,
+    }
+
+
+def format_coverage(report: dict[str, Any]) -> str:
+    """Render the coverage report as short plain text (counts only)."""
+    lines = [
+        f"Hook delivery, last {report['days']} days:",
+        f"  sessions compared: {report['sessions_compared']:,}",
+        f"  sessions with no hook events (excluded): {report['sessions_without_events']:,}",
+        f"  tool calls: {report['tool_calls']:,}, "
+        f"PostToolUse events: {report['events_received']:,}",
+    ]
+    delivery = report["delivery"]
+    if delivery is None:
+        lines.append(f"  delivery: n/a ({report['na_reason']})")
+    else:
+        lines.append(
+            f"  delivery: overall {delivery['overall'] * 100:.0f}%, "
+            f"median {delivery['median'] * 100:.0f}%, "
+            f"p25 {delivery['p25'] * 100:.0f}%, p75 {delivery['p75'] * 100:.0f}%"
+        )
+        lines.append(f"  sessions below 50% delivery: {report['below_half_share'] * 100:.0f}%")
+    if report["unattributed_events"]:
+        lines.append(
+            f"  {report['unattributed_events']:,} event rows had no session id (not guessed)"
+        )
+    lines.append("This report contains counts only; no paths, commands or session ids.")
+    return "\n".join(lines)
 
 
 def _comp_group_lines(label: str, group: dict[str, Any]) -> list[str]:

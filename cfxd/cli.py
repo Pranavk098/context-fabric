@@ -16,7 +16,8 @@ from cfxd import checkpoint
 from cfxd.agents import READERS, build_report, default_root, since_cutoff
 from cfxd.agents import format_human as format_agent_report
 from cfxd.agents.opencode import OpenCodeDBError
-from cfxd.audit import DEFAULT_ROOT, audit
+from cfxd.audit import DEFAULT_ROOT, audit, coverage
+from cfxd.audit import format_coverage as format_coverage_report
 from cfxd.audit import format_human as format_audit
 from cfxd.config import read_config, set_flag
 from cfxd.console import ensure_utf8_output
@@ -108,6 +109,15 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     auditp.add_argument("--json", action="store_true", help="emit a single JSON object")
     auditp.set_defaults(func=_cmd_audit)
+
+    covp = subparsers.add_parser(
+        "coverage", help="experimental: how many tool calls the hooks observed"
+    )
+    covp.add_argument("--root", default=None, help=f"transcripts root (default: {DEFAULT_ROOT})")
+    covp.add_argument("--days", type=int, default=7, help="time window in days (default: 7)")
+    covp.add_argument("--json", action="store_true", help="emit a single JSON object")
+    _add_state_dir(covp)
+    covp.set_defaults(func=_cmd_coverage)
 
     tourp = subparsers.add_parser(
         "tour", help="guided first run: five steps over your own transcripts"
@@ -466,6 +476,18 @@ def _warn_outside_profile(state_dir: Path) -> None:
         )
 
 
+def _hook_delivery_warning(report: dict[str, Any], threshold: float = 0.70) -> str | None:
+    """Warning when the helper saw too few tool calls; counts only, no paths."""
+    delivery = report["delivery"]
+    if delivery is None or delivery["overall"] >= threshold:
+        return None
+    return (
+        f"cfxd doctor: warning: the helper saw {delivery['overall'] * 100:.0f}% of tool calls "
+        f"in the last {report['days']} days ({report['sessions_compared']} sessions); "
+        "checkpoints are completed from the transcript. Close heavy processes to reduce load."
+    )
+
+
 def _cmd_doctor(args: argparse.Namespace) -> int:
     state_dir = resolve_state_dir(args.state_dir)
     _warn_outside_profile(state_dir)
@@ -533,6 +555,9 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
         print("cfxd doctor: unhealthy")
         return 1
     print("cfxd doctor: healthy")
+    warning = _hook_delivery_warning(coverage(DEFAULT_ROOT, state_dir, 7))
+    if warning is not None:
+        print(warning)
     return 0
 
 
@@ -552,6 +577,19 @@ def _cmd_audit(args: argparse.Namespace) -> int:
         print(json.dumps(report))
     else:
         print(format_audit(report, root.name))
+    return 0
+
+
+def _cmd_coverage(args: argparse.Namespace) -> int:
+    if args.days < 1:
+        print("cfxd coverage: --days must be at least 1", file=sys.stderr)
+        return 2
+    root = Path(args.root) if args.root else DEFAULT_ROOT
+    report = coverage(root, resolve_state_dir(args.state_dir), args.days)
+    if args.json:
+        print(json.dumps(report))
+    else:
+        print(format_coverage_report(report))
     return 0
 
 
