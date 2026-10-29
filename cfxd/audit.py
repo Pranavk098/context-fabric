@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from cfxd.daemon import percentile
+from cfxd.fsutil import iter_json_lines
 
 DEFAULT_ROOT = Path.home() / ".claude" / "projects"
 
@@ -170,12 +171,11 @@ def _iter_objects(path: Path) -> Iterator[dict[str, Any]]:
     except OSError:
         return
     with fh:
-        for raw in fh:
-            if len(raw) > _MAX_LINE_BYTES:
-                continue
+        for text in iter_json_lines(fh, _MAX_LINE_BYTES):
             try:
-                obj = json.loads(raw.decode("utf-8", "replace"))
-            except ValueError:
+                obj = json.loads(text)
+            except (ValueError, RecursionError, MemoryError):
+                # Deep nesting raises RecursionError, not ValueError; never crash the report.
                 continue
             if isinstance(obj, dict):
                 yield obj

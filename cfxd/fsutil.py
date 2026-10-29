@@ -8,8 +8,9 @@ best-effort no-op; callers still get the same directory/file semantics.
 from __future__ import annotations
 
 import os
+from collections.abc import Iterator
 from pathlib import Path
-from typing import IO
+from typing import IO, Any
 
 
 def ensure_dir(path: Path) -> None:
@@ -29,6 +30,30 @@ def open_log(path: Path) -> IO[str]:
     except OSError:
         pass
     return os.fdopen(fd, "a", encoding="utf-8")
+
+
+def iter_json_lines(fh: IO[Any], max_bytes: int, max_total: int | None = None) -> Iterator[str]:
+    """Yield decoded lines, skipping over-long ones without buffering them whole.
+
+    ``readline`` is capped at ``max_bytes + 1``, so an over-long line (a planted
+    multi-GB JSONL line) is drained in bounded chunks instead of being read into
+    memory. ``max_total`` stops after that many units read (bytes for binary
+    streams, characters for the decompressed text streams of ``.zst`` files).
+    """
+    total = 0
+    while True:
+        raw = fh.readline(max_bytes + 1)
+        if not raw:
+            return
+        total += len(raw)
+        if max_total is not None and total > max_total:
+            return
+        newline: Any = b"\n" if isinstance(raw, bytes) else "\n"
+        if len(raw) > max_bytes:
+            while raw and not raw.endswith(newline):
+                raw = fh.readline(max_bytes)
+            continue
+        yield raw.decode("utf-8", "replace") if isinstance(raw, bytes) else raw
 
 
 def rotate(path: Path, max_bytes: int) -> None:

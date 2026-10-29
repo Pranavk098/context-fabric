@@ -25,8 +25,9 @@ from cfxd.handlers import register_after
 TAIL_LINES = 150
 BOUND_LOG = "bound.jsonl"
 
-# ">" also covers ">>" and "2>&1"; "&" covers "&&" and "&".
-_META = re.compile(r"[|;&<>`\n]|\$\(")
+# ">" also covers ">>" and "2>&1"; "&" covers "&&" and "&". "#" would comment out
+# the closing paren of the wrapper, and a stray "(" or ")" breaks its syntax.
+_META = re.compile(r"[|;&<>`\n\r#()]|\$\(")
 _PREFIXES = (("uv", "run"), ("python", "-m"), ("npx",))
 _PATTERNS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("pytest", ("pytest",)),
@@ -46,6 +47,9 @@ _PATTERNS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("journalctl", ("journalctl",)),
 )
 _STOP = {"head", "tail", "grep", "-q", "--quiet"}
+# Follow mode never ends, so `tail -n 150` would buffer forever with no output.
+_LOG_KEYS = frozenset({"docker logs", "kubectl logs", "journalctl"})
+_FOLLOW = frozenset({"-f", "--follow"})  # tokens are lower-cased, so this covers -F
 _COUNT_FLAG = re.compile(r"^-n\d*$|^-\d+$|^--max-count(=.*)?$")
 # Test runners only: the checkpoint observer reuses these keys, not the log keys.
 _TEST_KEYS = frozenset(
@@ -128,6 +132,8 @@ def _command_key(command: str) -> str | None:
         if tuple(words[: len(pattern)]) != pattern:
             continue
         if key == "git log" and any(_COUNT_FLAG.match(token) for token in words[2:]):
+            return None
+        if key in _LOG_KEYS and _FOLLOW.intersection(words[len(pattern) :]):
             return None
         return key
     return None

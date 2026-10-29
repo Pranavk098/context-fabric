@@ -21,8 +21,12 @@ from pathlib import Path
 from typing import Any
 
 from cfxd.agents.model import Session, ToolResult, Turn, Usage, sanitize_tool_name
+from cfxd.fsutil import iter_json_lines
 
 _MAX_LINE_BYTES = 20 * 1024 * 1024
+# Total decompressed-size cap for .zst input: a small archive must not expand
+# without limit (decompression bomb).
+_MAX_ZSTD_BYTES = 256 * 1024 * 1024
 
 # Usage fields on a Codex token_count event, in the cumulative form stored.
 _USAGE_FIELDS = (
@@ -179,13 +183,12 @@ def _iter_lines(path: Path, is_zst: bool, zmod: Any) -> Iterator[dict[str, Any]]
             return
     with fh:
         try:
-            for raw in fh:
-                if len(raw) > _MAX_LINE_BYTES:
-                    continue
-                text = raw.decode("utf-8", "replace") if isinstance(raw, bytes) else raw
+            total_cap = _MAX_ZSTD_BYTES if is_zst else None
+            for text in iter_json_lines(fh, _MAX_LINE_BYTES, total_cap):
                 try:
                     obj = json.loads(text)
-                except ValueError:
+                except (ValueError, RecursionError, MemoryError):
+                    # Deep nesting raises RecursionError, not ValueError.
                     continue
                 if isinstance(obj, dict):
                     yield obj

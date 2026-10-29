@@ -20,8 +20,16 @@ jobs:
       attestations: write   # store the attestation
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0      # full history so the tag-as-ancestor check can run
+      - name: Verify the tag is on main
+        run: |
+          git fetch origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
       - name: Install uv
         uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
+        with:
+          version: "0.11.3"
       - name: Build sdist and wheel
         run: uv build
       - name: Checksums
@@ -38,6 +46,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
         run: |
+          printf '%s' "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?$' \
+            || { echo "release: invalid tag '$TAG'" >&2; exit 1; }
           notes="docs/release-notes/${TAG}.md"
           [ -f "$notes" ] || { printf 'Release %s. See CHANGELOG.md.\n' "$TAG" > "$notes"; }
           flags=""
