@@ -42,6 +42,11 @@ if [ "$1" = "forward" ]; then
         exit 0
     fi
 
+    # With coach off there is no nudge to print, so skip Python on every turn end.
+    if [ "$2" = "Stop" ] && [ ! -f "$state_dir/coach.on" ]; then
+        exit 0
+    fi
+
     py_file="$state_dir/python"
     if [ -f "$py_file" ]; then
         read -r py < "$py_file"
