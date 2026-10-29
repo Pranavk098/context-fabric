@@ -7,6 +7,13 @@ name: release
 on:
   push:
     tags: ["v*"]
+  # Manual dry run: build, checksum and inspect the artifacts; never publishes.
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Build and check only (manual runs never publish)"
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -23,6 +30,7 @@ jobs:
         with:
           fetch-depth: 0      # full history so the tag-as-ancestor check can run
       - name: Verify the tag is on main
+        if: github.event_name == 'push'
         run: |
           git fetch origin main
           git merge-base --is-ancestor "$GITHUB_SHA" origin/main
@@ -38,10 +46,12 @@ jobs:
           sha256sum * > SHA256SUMS
           cat SHA256SUMS
       - name: Attest build provenance
+        if: github.event_name == 'push'
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: dist/*
       - name: Create the release
+        if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}

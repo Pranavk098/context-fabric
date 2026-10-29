@@ -9,7 +9,7 @@ Copy this into an issue or an email and fill in what you can. Short answers are 
 (`claude --version`)
 
 **cfxd version:**
-(the first line of `cfxd week --share`, for example `cfxd week 0.1.0a1`)
+(the first line of `cfxd week --share`, for example `cfxd week 0.1.1a1`)
 
 **Which experiments did you run?**
 - [ ] diet --apply / --undo
