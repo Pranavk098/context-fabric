@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from evals.plugin_ab import analyze, prices, runner
+from evals.plugin_ab import analyze, prereg, prices, runner
 from evals.plugin_ab.patch import apply_patch
 
 REPO = Path(__file__).resolve().parents[1]
@@ -223,34 +223,13 @@ def _rec(
 def test_analyzer_v2_exact_ratios_and_claim_columns() -> None:
     records: list[dict[str, object]] = []
     plan = {
-        "short": (
-            "s",
-            {"off": 100.0, "shipped": 105.0, "diet": 104.0, "checkpoint": 103.0, "combo": 102.0},
-        ),
-        "medium": (
-            "m",
-            {"off": 100.0, "shipped": 85.0, "diet": 84.0, "checkpoint": 83.0, "combo": 82.0},
-        ),
-        "long": (
-            "l",
-            {"off": 100.0, "shipped": 80.0, "diet": 95.0, "checkpoint": 78.0, "combo": 77.0},
-        ),
+        "short": ("s", {"off": 100.0, "shipped": 105.0, "checkpoint": 103.0}),
+        "medium": ("m", {"off": 100.0, "shipped": 85.0, "checkpoint": 83.0}),
+        "long": ("l", {"off": 100.0, "shipped": 80.0, "checkpoint": 78.0}),
     }
     for stratum, (task, dollars) in plan.items():
         for arm, value in dollars.items():
-            records.append(
-                _rec(
-                    task,
-                    stratum,
-                    arm,
-                    value,
-                    recall=3 if arm != "diet" else 1,
-                    checkpoint=stratum == "long",
-                )
-            )
-    # A second long task makes a two-probe recall drop visible.
-    records.append(_rec("l2", "long", "off", 100.0, recall=3, checkpoint=True))
-    records.append(_rec("l2", "long", "diet", 95.0, recall=0, checkpoint=True))
+            records.append(_rec(task, stratum, arm, value, recall=3, checkpoint=stratum == "long"))
     result = analyze.analyze_v2(records)
     short = result["strata"]["short"]["arms"]["shipped"]
     medium = result["strata"]["medium"]["arms"]["shipped"]
@@ -261,6 +240,7 @@ def test_analyzer_v2_exact_ratios_and_claim_columns() -> None:
     assert short["claim_met"] is True
     assert medium["geometric_mean_ratio"] == pytest.approx(0.85)
     assert medium["bootstrap_95ci"] == pytest.approx([0.85, 0.85])
+    assert medium["holm_pass"] is True
     assert medium["claim_met"] is True
     assert long["geometric_mean_ratio"] == pytest.approx(0.80)
     assert long["bootstrap_95ci"] == pytest.approx([0.80, 0.80])
@@ -270,20 +250,175 @@ def test_analyzer_v2_exact_ratios_and_claim_columns() -> None:
     assert long["success_pass"] is True
     assert long["recall_pass"] is True
     assert long["claim_met"] is True
-    diet = result["strata"]["long"]["arms"]["diet"]
-    assert diet["geometric_mean_ratio"] == pytest.approx(0.95)
-    assert diet["ratio_pass"] is False
-    assert diet["recall_drop_probes"] == 2
-    assert diet["recall_pass"] is False
-    assert diet["claim_met"] is False
+    assert set(result["strata"]["long"]["arms"]) == {"shipped", "checkpoint"}
+    assert result["arms"] == ["off", "shipped", "checkpoint"]
     markdown = analyze.format_markdown_v2(result)
-    assert "## long (2 tasks)" in markdown
+    assert "## long (1 tasks)" in markdown
+    assert "diet" not in markdown and "combo" not in markdown
     assert "claim" in markdown
 
 
-def test_v2_refuses_a_non_pilot_run(capsys: pytest.CaptureFixture[str]) -> None:
+def test_analyzer_v2_excludes_slice0_records() -> None:
+    record = _rec("l", "long", "off", 100.0, checkpoint=True)
+    record["slice"] = "slice0"
+    result = analyze.analyze_v2([record, {**record, "arm": "checkpoint"}])
+    assert result["slice0_excluded"] == 2
+    assert result["strata"] == {}
+
+
+def test_v2_prereg_gate_refuses_without_hash_or_on_mismatch(tmp_path: Path) -> None:
+    (tmp_path / "PROTOCOL_V2.md").write_text("p", encoding="utf-8")
+    (tmp_path / "tasks_v2.json").write_text("t", encoding="utf-8")
+    (tmp_path / "prices.json").write_text("$", encoding="utf-8")
+    ok, message = prereg.gate_ok_v2(tmp_path, pilot=False)
+    assert ok is False and "missing prereg_v2.sha256" in message
+    prereg.write_hash_v2(tmp_path)
+    assert prereg.gate_ok_v2(tmp_path, pilot=False)[0] is True
+    (tmp_path / "PROTOCOL_V2.md").write_text("changed", encoding="utf-8")
+    ok, message = prereg.gate_ok_v2(tmp_path, pilot=False)
+    assert ok is False and "does not match" in message
+    assert prereg.gate_ok_v2(tmp_path, pilot=True)[0] is True
+    # The v1 gate and hash file are untouched.
+    assert prereg.gate_ok(tmp_path, pilot=False) == (False, "missing prereg.sha256")
+
+
+def test_v2_runner_refuses_a_non_pilot_run(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    runner.prereg.gate_ok_v2 = lambda directory, pilot: (False, "missing prereg_v2.sha256")  # type: ignore[assignment]
     assert runner.main(["--tasks", str(TASKS_V2), "--stratum", "medium"]) == 2
-    assert "DRAFT" in capsys.readouterr().err
+    assert "missing prereg_v2.sha256" in capsys.readouterr().err
+
+
+def test_v2_runner_accepts_a_matching_hash(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_run(tasks: list[runner.Task], **kwargs: object) -> dict[str, object]:
+        captured.update(kwargs)
+        return {}
+
+    monkeypatch.setattr(runner.prereg, "gate_ok_v2", lambda directory, pilot: (True, "ok"))
+    monkeypatch.setattr(runner, "run_experiment", fake_run)
+    code = runner.main(
+        ["--tasks", str(TASKS_V2), "--stratum", "medium", "--report-dir", str(tmp_path)]
+    )
+    assert code == 0
+    assert captured["arms"] == runner.V2_ARMS
+
+
+def test_v2_rejects_diet_and_combo(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(runner.prereg, "gate_ok_v2", lambda directory, pilot: (True, "ok"))
+    for arm in ("diet", "combo"):
+        assert runner.main(["--tasks", str(TASKS_V2), "--arms", arm]) == 2
+        assert "registered arms are off,shipped,checkpoint" in capsys.readouterr().err
+
+
+def test_checkpoint_arm_saves_and_restarts_the_session(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    commands: list[list[str]] = []
+    fresh_envs: list[list[str]] = []
+    original = runner.build_command
+
+    def spy_build(*args: object, **kwargs: object) -> list[str]:
+        cmd = original(*args, **kwargs)  # type: ignore[arg-type]
+        commands.append(cmd)
+        return cmd
+
+    original_run = runner.subprocess.run
+
+    def spy_run(cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[bytes]:
+        env = kwargs.get("env")
+        if isinstance(env, dict) and env.get("CFX_RESTORE_ON_STARTUP") == "1":
+            fresh_envs.append(cmd)
+        return original_run(cmd, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(runner, "build_command", spy_build)
+    monkeypatch.setattr(runner.subprocess, "run", spy_run)
+    monkeypatch.setattr(runner, "save_checkpoint", lambda python, work, cfx_home, port: 321)
+    monkeypatch.setattr(runner, "restore_outcome", lambda cfx_home: "restored")
+
+    task = next(t for t in _tasks() if t.id == "long-checkout")
+    report = _run([task], tmp_path, arms=("checkpoint",), reps=0)
+    record = report["runs"][0]
+    assert record["boundaries_taken"] == [4, 8]
+    assert record["checkpoint_saved_bytes"] == 642
+    assert record["checkpoint_restore_outcome"] == "restored"
+    assert len(record["checkpoints"]) == 2
+    assert all(c["restore_outcome"] == "restored" for c in record["checkpoints"])
+    assert len(fresh_envs) == 2
+
+    sessions = [
+        cmd[cmd.index("--session-id") + 1]
+        if "--session-id" in cmd
+        else cmd[cmd.index("--resume") + 1]
+        for cmd in commands
+    ]
+    assert sessions[0] == sessions[1] == sessions[2] == sessions[3]
+    assert sessions[4] != sessions[0]
+    assert "--resume" not in commands[4]
+    assert sessions[5] == sessions[6] == sessions[7] == sessions[4]
+    assert sessions[8] != sessions[4]
+    assert "--resume" not in commands[8]
+    assert sessions[9] == sessions[10] == sessions[11] == sessions[8]
+
+
+def test_off_and_shipped_do_not_take_checkpoints(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    commands: list[list[str]] = []
+    original = runner.build_command
+
+    def spy_build(*args: object, **kwargs: object) -> list[str]:
+        cmd = original(*args, **kwargs)  # type: ignore[arg-type]
+        commands.append(cmd)
+        return cmd
+
+    monkeypatch.setattr(runner, "build_command", spy_build)
+    monkeypatch.setattr(
+        runner,
+        "save_checkpoint",
+        lambda *args: pytest.fail("off/shipped must not save checkpoints"),
+    )
+    task = next(t for t in _tasks() if t.id == "medium-refunds")
+    report = _run([task], tmp_path, arms=("off", "shipped"), reps=0)
+    assert all("checkpoints" not in record for record in report["runs"])
+    assert all("--resume" in cmd for cmd in commands[1::3])  # steps 2-3 of each run
+    assert len(commands) == 6
+
+
+def test_slice0_plan_is_five_runs_in_order() -> None:
+    specs = runner.plan_slice0(_tasks())
+    assert len(specs) == 5
+    assert specs[0].task_id == "long-checkout"
+    assert specs[0].warm_up is True and specs[0].arm == "off"
+    assert [(s.arm, s.rep) for s in specs[1:]] == [
+        ("off", 0),
+        ("checkpoint", 0),
+        ("checkpoint", 1),
+        ("off", 1),
+    ]
+    assert not any(s.warm_up for s in specs[1:])
+
+
+def test_slice0_cli_pins_model_and_labels_the_report(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_run(tasks: list[runner.Task], **kwargs: object) -> dict[str, object]:
+        captured.update(kwargs)
+        return {}
+
+    monkeypatch.setattr(runner.prereg, "gate_ok_v2", lambda directory, pilot: (True, "ok"))
+    monkeypatch.setattr(runner, "run_experiment", fake_run)
+    code = runner.main(["--tasks", str(TASKS_V2), "--slice0", "--report-dir", str(tmp_path)])
+    assert code == 0
+    assert captured["slice_name"] == "slice0"
+    assert captured["arms"] == ("off", "checkpoint")
+    assert captured["model"] == "claude-haiku-5-5"
 
 
 def test_stratum_filters_tasks(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
