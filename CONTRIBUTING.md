@@ -35,6 +35,15 @@ uv run pytest -q
 
 CI runs the same gates on every push (`.github/workflows/ci.yml`).
 
+## Keeping the README current
+
+The README is the product's public record, so it changes in the same commit as the code:
+
+- A new or renamed `cfxd` command goes in the README table and `docs/INSTALL-ALPHA.md` (`tests/test_readme_up_to_date.py` fails otherwise).
+- A measured number goes in `docs/engineering/NUMBERS.md` with its artifact, then in the README (`scripts/check_docs_numbers.py` fails on drift).
+- A mechanism's state (`working`, `experimental`, `off by default`) is updated when its evidence changes; nothing is called a saving until a paired test shows it.
+- The M8ven badge line in the README is one intact line: it carries the ownership proof.
+
 ## Conventions
 
 - **Deterministic core:** no learned components; no network in `protocol/`.

@@ -346,7 +346,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "id": "recall_top1_delta",
       "claim": "recall bench: BM25 top-1 minus old lexical top-1",
       "baseline": "old lexical recall baseline (pre-BM25)",
-      "display": "0.00 → 0.85",
+      "display": "0.00 \u2192 0.85",
       "kind": "strict",
       "artifact": "evals/reports/recall_bench_20261018T061752Z.json",
       "recompute": {
@@ -364,7 +364,7 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "id": "recall_top1_delta_compact",
       "claim": "recall bench: same top-1 delta, CHANGELOG renders it without spaces",
       "baseline": "old lexical recall baseline (pre-BM25)",
-      "display": "0.00→0.85",
+      "display": "0.00\u21920.85",
       "kind": "strict",
       "artifact": "evals/reports/recall_bench_20261018T061752Z.json",
       "recompute": {
@@ -661,6 +661,46 @@ docs that explicitly quote superseded runs are exempt via `historical_ok`):
       "display": "14K",
       "kind": "display-only",
       "artifact": "evals/reports/plugin_alpha_20261024/exploratory_results.json",
+      "must_appear_in": [
+        "README.md"
+      ]
+    },
+    {
+      "id": "refetch_events",
+      "claim": "Compaction and /clear events analysed by cfxd refetch (30 days, one machine)",
+      "display": "45 compactions",
+      "kind": "display-only",
+      "artifact": "evals/reports/plugin_alpha_20261029/exploratory_results.json",
+      "must_appear_in": [
+        "README.md"
+      ]
+    },
+    {
+      "id": "fidelity_unsupported_paths",
+      "claim": "Path mentions in compaction summaries never seen earlier in the session (cfxd fidelity, M1)",
+      "display": "87 of 841",
+      "kind": "display-only",
+      "artifact": "evals/reports/plugin_alpha_20261029/exploratory_results.json",
+      "must_appear_in": [
+        "README.md"
+      ]
+    },
+    {
+      "id": "fidelity_dropped_edits",
+      "claim": "Edited files not named in the compaction summary (cfxd fidelity, M2)",
+      "display": "460 of 614",
+      "kind": "display-only",
+      "artifact": "evals/reports/plugin_alpha_20261029/exploratory_results.json",
+      "must_appear_in": [
+        "README.md"
+      ]
+    },
+    {
+      "id": "fidelity_events",
+      "claim": "Compactions analysed by cfxd fidelity (30 days, one machine)",
+      "display": "28 compactions",
+      "kind": "display-only",
+      "artifact": "evals/reports/plugin_alpha_20261029/exploratory_results.json",
       "must_appear_in": [
         "README.md"
       ]

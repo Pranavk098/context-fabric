@@ -62,6 +62,12 @@ _TOOLS: list[dict[str, Any]] = [
             "lifecycle_status, and score. Quarantined draft blocks are excluded unless "
             "include_quarantined is true."
         ),
+        "annotations": {
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -92,6 +98,12 @@ _TOOLS: list[dict[str, Any]] = [
             "on failure, `reason`. The out-of-band Ed25519 public key is read from the "
             "server's CF_RECEIPT_PUBKEY environment variable (hex)."
         ),
+        "annotations": {
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -111,6 +123,12 @@ _TOOLS: list[dict[str, Any]] = [
             "policy gate until promoted. Disabled when the server runs with --readonly. "
             "Returns block_id and lifecycle_status."
         ),
+        "annotations": {
+            "readOnlyHint": False,
+            "destructiveHint": False,
+            "idempotentHint": False,
+            "openWorldHint": False,
+        },
         "inputSchema": {
             "type": "object",
             "properties": {

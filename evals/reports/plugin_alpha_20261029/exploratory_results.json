@@ -1,0 +1,22 @@
+{
+  "note": "Exploratory, one machine, counts only. Source: cfxd refetch / cfxd fidelity --since 30d on 2026-10-29.",
+  "refetch": {
+    "events": 45,
+    "f_median": 0.0,
+    "f_p75": 0.0092,
+    "saving_at_median_f_overall_pct": 58.2,
+    "k": 40,
+    "summary_tokens": 2000
+  },
+  "fidelity": {
+    "events": 28,
+    "recall_held_files_median": 0.2111,
+    "m1_unsupported_paths": 87,
+    "m1_mentions": 841,
+    "m2_dropped_edits": 460,
+    "m2_edited_files": 614,
+    "m3_pass_claims": 4,
+    "m3_unsupported": 1,
+    "checkpoint_recall_bound_median": 0.6667
+  }
+}

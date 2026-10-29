@@ -8,6 +8,7 @@
 ![python](https://img.shields.io/badge/python-3.12%2B-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
 ![status](https://img.shields.io/badge/status-alpha-orange)
+[![M8ven Score](https://m8ven.ai/badge/mcp/pranavk098-context-fabric-zq90jg?v=62bef69216a5efa3e45c9c7e321571b3)](https://m8ven.ai/mcp/pranavk098-context-fabric-zq90jg?s=readme)
 
 </div>
 
@@ -19,7 +20,7 @@ OpenCode logs can be measured too.
 effect as a receipt you can re-run on your own data, so a saving is checked rather than believed.
 
 **Status:** alpha, Claude Code first. The measurement tools work. The mechanisms that act on context (brief, carry)
-are experimental and have no measured token effect yet; fold is off. **No saving is proven.**
+are experimental and have no measured token effect yet; fold is off. **No saving is proven.** The paired benchmark that can show one (short, medium and long sessions) is pre-registered; the full run has not been done.
 [Evidence](#evidence-so-far) lists what we measured, including what did not work.
 
 ## Principles
@@ -73,10 +74,12 @@ experimental until a paired test shows they pay.
 | `cfxd routing` | Splits your sessions' tokens and API-equivalent dollars by model and by main conversation versus sub-agents, and shows what a cheaper sub-agent tier would change (price only, quality unmeasured) | working |
 | `cfxd agent-audit` | The same counts-only breakdown for Codex and OpenCode session logs | working |
 | `cfxd replay` | Simulates shrinking old tool output on your sessions, with prompt-cache effects, and reports the bound | working |
-| `cfxd tour`, `week --share` | A guided first run, and a one-command weekly summary of counts that is safe to paste | working |
+| `cfxd tour` | A guided five-step first run over your own transcripts | working |
+| `cfxd week --share` | A one-command weekly summary of counts that is safe to paste | working |
+| `cfxd ledger` | What the plugin did or changed, each line labelled OBSERVED, ESTIMATED or PROVEN (none proven yet) | experimental |
 | `cfxd refetch` | Measures how much of the context dropped by a compaction or `/clear` the agent reads again | working |
 | `cfxd diet --apply` / `--undo` | Disables fully unused local plugins through Claude Code's own command, with an exact undo | experimental |
-| Checkpoint (`/context-fabric:checkpoint`, then `/clear`) | Saves a short note of files, commands, todos and an optional goal, and restores it once in the next session | experimental |
+| Checkpoint (`/context-fabric:checkpoint`, `cfxd checkpoint show`, then `/clear`) | Saves a short note of files, commands, todos and an optional goal, and restores it once in the next session | experimental |
 | Bound (`cfxd set bound on`) | Keeps only the last 150 lines of simple test and log commands | experimental, off by default |
 | Coach, idle notice (`cfxd set coach on`, `idle_notice on`) | One plain line when a session gets long, or when a resume finds the cache expired | experimental, off by default |
 | Brief | Gives a sub-agent the files and saved outputs the parent already touched; fires only when a sub-agent runs | experimental |
@@ -164,6 +167,8 @@ in [`docs/engineering/NUMBERS.md`](docs/engineering/NUMBERS.md).
 | Shrinking old tool results (852 sessions and sub-agent runs replayed) | At most about **7%** weighted cost, as an optimistic bound | no proxy built for it |
 | Starting prefix | Median **62K** tokens in context before the first prompt; about 14K from the user's own setup | `diet` reports it |
 | Loops and retries | 1.4% of weighted cost on the same sessions; the top 10% of sessions carry 80% of cost | loop guard not worth building here |
+| After a compaction or `/clear`, how much of the dropped context the agent reads again (`cfxd refetch`, 45 compactions) | Median **0%**, 75th percentile under 1%. An offline restart model bounds the saving on long sessions at about 55-58% if the handoff loses nothing | checkpoint built; paired test registered |
+| What Claude Code's own compaction summary keeps (`cfxd fidelity`, 28 compactions) | Names a median 21% of the files held; **87 of 841** named paths never appeared earlier in the session; **460 of 614** edited files are not named | measurement only; needs other people's logs |
 | Brief, carry | Function end to end; token effect not yet measured | measuring |
 
 ## Roadmap
