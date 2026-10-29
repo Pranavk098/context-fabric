@@ -127,7 +127,7 @@ def _step_next() -> list[str]:
         "you were doing; clear it with cfxd checkpoint clear.",
         "  4. cfxd week --share - a weekly summary of counts and sizes. Look for the trend it "
         "shows and paste it if useful; it is one-shot, so there is nothing to turn off.",
-        'Feedback: section "3. Send results" in docs/TESTING-GUIDE.md says where to post it. '
+        'Feedback: section "6. Send results" in docs/TESTING-GUIDE.md says where to post it. '
         "Nothing leaves your machine.",
     ]
 
