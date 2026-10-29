@@ -61,6 +61,8 @@ What each number means:
 **What to send back:** paste the whole `week --share` output into the template at
 [`FEEDBACK-TEMPLATE.md`](FEEDBACK-TEMPLATE.md), fill in the rest, and send it as described in [section 6](#6-send-results).
 
+**Optional:** `uvx --from git+https://github.com/Pranavk098/context-fabric cfxd fidelity --since 30d` is an experimental measurement of how many files each compaction summary names back and how many named paths never appeared before it; it prints counts only.
+
 ## 4. The one-week path
 
 Use Claude Code as you normally do for 3 to 7 days. Run one experiment at a time so you can tell what changed. Each
