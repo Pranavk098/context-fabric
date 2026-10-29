@@ -221,7 +221,7 @@ def _parse_todos(todos: list[Any]) -> list[tuple[str, str]]:
         text = item.get("content")
         status = item.get("status")
         if isinstance(text, str) and isinstance(status, str):
-            parsed.append((status, text))
+            parsed.append((status, redact_command(text)))
     return parsed[:MAX_TODOS]
 
 
@@ -412,14 +412,30 @@ _FLAG_SECRET_RE = re.compile(
 )
 _BEARER_RE = re.compile(r"(?i)\bBearer\s+[^\s'\"]+")
 _HEADER_SECRET_RE = re.compile(
-    r"(?i)\b(authorization|proxy-authorization|x-api-key|cookie|set-cookie)"
+    r"(?i)\b([A-Za-z0-9-]*(?:token|auth|key|secret)[A-Za-z0-9-]*|cookie|set-cookie)"
     r"\s*:\s*(?!\s)(?!Bearer\b)[^\"'\r\n]+"
 )
+_AUTH_BEARER_RE = re.compile(r"(?i)((?:proxy-)?authorization\s*:\s*bearer\s*\\?\s*)([^\s'\"]+)")
+_JSON_SECRET_RE = re.compile(
+    r"(?i)(\"(?:password|passwd|secret|token|api[-_]?key|authorization)\"\s*:\s*\")([^\"]*)(\")"
+)
+_SET_SECRET_RE = re.compile(
+    r"(?i)\b((?:aws\s+configure\s+set|(?:npm|yarn|pnpm)\s+config\s+set)\s+"
+    r"\S*(?:token|secret|key|password|auth)\S*\s+)"
+    r"(?:\"[^\"]*\"|'[^']*'|[^\s'\"]+)"
+)
+_DOCKER_LOGIN_P_RE = re.compile(r"(?i)(\bdocker\s+login\b[^\n]*?\s-p\s+)(\S+)")
+_PSQL_W_RE = re.compile(r"(?i)(\bpsql\b[^\n]*?\s-W\s+)(\S+)")
+_OPENSSL_K_RE = re.compile(r"(?i)(\bopenssl\b[^\n]*?\s-k\s+)(\S+)")
+_PASS_ARG_RE = re.compile(r"(?i)(\s-pass(?:in)?\s+pass:)(\S+)")
 _USER_FLAG_RE = re.compile(r"(?i)(-u|--user)(\s*=\s*|\s+)([^\s'\"]+):([^\s'\"]+)")
-_URL_USERPASS_RE = re.compile(r"([A-Za-z][A-Za-z0-9+.-]*://[^/\s@:]+):([^/\s@]+)@")
+# Greedy to the last "@" before the path so multi-@ passwords leave no tail.
+_URL_USERPASS_RE = re.compile(r"([A-Za-z][A-Za-z0-9+.-]*://[^/\s@:]+:)([^/\s]*@)")
 _URL_USER_RE = re.compile(r"([A-Za-z][A-Za-z0-9+.-]*://)[^/\s@:]+@")
 _BARE_TOKEN_RE = re.compile(
-    r"(ghp_\w+|github_pat_\w+|sk-[\w-]{16,}|xox[abprs]-[\w-]+|"
+    r"(glpat-[\w-]{20,}|hf_[A-Za-z0-9]{20,}|npm_[A-Za-z0-9]{20,}|"
+    r"sk_(?:live|test)_[A-Za-z0-9]{10,}|pypi-[A-Za-z0-9_-]{20,}|"
+    r"ghp_\w+|gho_\w+|github_pat_\w+|sk-[\w-]{16,}|xox[abprs]-[\w-]+|"
     r"AKIA[0-9A-Z]{16}|eyJ[\w-]+\.[\w-]+\.[\w-]+)"
 )
 _P_COMMANDS = frozenset({"mysql", "mysqldump", "sshpass"})
@@ -448,10 +464,17 @@ def redact_command(cmd: str) -> str:
         return ""
     cmd = _ASSIGN_SECRET_RE.sub(r"\1=***", cmd)
     cmd = _FLAG_SECRET_RE.sub(r"\1\2***", cmd)
+    cmd = _JSON_SECRET_RE.sub(r"\1***\3", cmd)
+    cmd = _SET_SECRET_RE.sub(r"\1***", cmd)
+    cmd = _DOCKER_LOGIN_P_RE.sub(r"\1***", cmd)
+    cmd = _PSQL_W_RE.sub(r"\1***", cmd)
+    cmd = _OPENSSL_K_RE.sub(r"\1***", cmd)
+    cmd = _PASS_ARG_RE.sub(r"\1***", cmd)
     cmd = _BEARER_RE.sub("Bearer ***", cmd)
+    cmd = _AUTH_BEARER_RE.sub(r"\1***", cmd)
     cmd = _HEADER_SECRET_RE.sub(r"\1: ***", cmd)
     cmd = _USER_FLAG_RE.sub(r"\1\2\3:***", cmd)
-    cmd = _URL_USERPASS_RE.sub(r"\1:***@", cmd)
+    cmd = _URL_USERPASS_RE.sub(r"\1***@", cmd)
     cmd = _URL_USER_RE.sub(r"\1***@", cmd)
     cmd = _BARE_TOKEN_RE.sub("***", cmd)
     return _redact_p(cmd)

@@ -2,13 +2,12 @@
 
 Reads only attachment *names* and sizes, and tool-call names, from local Claude
 Code transcripts. The default report prints real skill/plugin/connector/file names
-because it is for the user's own screen; ``--share`` swaps every name for a stable
-short hash label so a tester can paste the result.
+because it is for the user's own screen; ``--share`` swaps every name for a
+numbered label (``skill-1``, ``connector-3``) so a tester can paste the result.
 """
 
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 from datetime import UTC, datetime
@@ -39,10 +38,6 @@ _LABEL_PREFIX = {
 def _norm(name: str) -> str:
     """Lowercase, alphanumeric-only key for joining server names across formats."""
     return re.sub(r"[^a-z0-9]", "", name.lower())
-
-
-def _label(name: str, kind: str) -> str:
-    return f"{_LABEL_PREFIX[kind]}-{hashlib.sha1(name.encode('utf-8')).hexdigest()[:4]}"
 
 
 def _plugin(name: str) -> str:
@@ -468,18 +463,28 @@ def diet(root: Path, since: str = "30d", now: datetime | None = None) -> dict[st
 
 
 def _anonymize(report: dict[str, Any]) -> dict[str, Any]:
-    """Deep-copy ``report`` with every name replaced by a stable hash label."""
+    """Deep-copy ``report`` with every name replaced by a per-report ordinal label."""
     r: dict[str, Any] = json.loads(json.dumps(report))
+    counters: dict[str, int] = {}
+    labels: dict[tuple[str, str], str] = {}
+
+    def label(name: str, kind: str) -> str:
+        key = (kind, name)
+        if key not in labels:
+            counters[kind] = counters.get(kind, 0) + 1
+            labels[key] = f"{_LABEL_PREFIX[kind]}-{counters[kind]}"
+        return labels[key]
+
     for item in r["items"]:
-        item["name"] = _label(item["name"], item["kind"])
-        item["group"] = _label(item["group"], "plugin") if item["kind"] == "skill" else item["name"]
-    r["subagent_types"] = [_label(s, "subagent") for s in r["subagent_types"]]
+        item["name"] = label(item["name"], item["kind"])
+        item["group"] = label(item["group"], "plugin") if item["kind"] == "skill" else item["name"]
+    r["subagent_types"] = [label(s, "subagent") for s in r["subagent_types"]]
     for section in ("never_used", "used"):
         for g in r[section]["plugins"]:
-            g["plugin"] = _label(g["plugin"], "plugin")
-            g["skills"] = [_label(s, "skill") for s in g["skills"]]
+            g["plugin"] = label(g["plugin"], "plugin")
+            g["skills"] = [label(s, "skill") for s in g["skills"]]
         for c in r[section]["connectors"]:
-            c["name"] = _label(c["name"], "connector")
+            c["name"] = label(c["name"], "connector")
     return r
 
 

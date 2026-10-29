@@ -279,7 +279,30 @@ SECRET_CASES: list[tuple[str, str, str]] = [
     ("git clone https://user:hunter2@example.com/repo.git", "hunter2", "user:***@"),
     ("git clone https://ghp_TOKEN@github.com/foo", "ghp_TOKEN", "***@github.com"),
     ("npm config set //registry.npmjs.org/:_authToken=npm_xyz", "npm_xyz", "_authToken=***"),
+    ("curl -H 'X-Auth-Token: s3cr3t' u", "s3cr3t", "X-Auth-Token: ***"),
+    ("curl -H 'X-Session-Key: s3cr3t' u", "s3cr3t", "X-Session-Key: ***"),
+    ("aws configure set aws_secret_access_key s3cr3t", "s3cr3t", "aws_secret_access_key ***"),
+    ("docker login -u me -p s3cr3t", "s3cr3t", "-p ***"),
+    ("docker login -u me --password s3cr3t", "s3cr3t", "--password ***"),
+    ("npm config set //r.org/:_authToken s3cr3t", "s3cr3t", "_authToken ***"),
+    ('curl -d \'{"password":"s3cr3t"}\' u', "s3cr3t", '"password":"***"'),
+    ('curl -d \'{"api_key": "s3cr3t"}\' u', "s3cr3t", '"api_key": "***"'),
+    ("psql -W s3cr3t db", "s3cr3t", "-W ***"),
+    ("openssl enc -k s3cr3t", "s3cr3t", "-k ***"),
+    ("openssl enc -pass pass:s3cr3t", "s3cr3t", "pass:***"),
+    ("curl -H 'Authorization:Bearer\\ s3cr3t' u", "s3cr3t", "***"),
+    ("curl -H 'Authorization:Bearers3cr3t' u", "s3cr3t", "***"),
+    ("echo glpat-abcdefghijklmnopqrst", "glpat-abcdefghijklmnopqrst", "***"),
+    (
+        "echo hf_abcdefghijklmnopqrstuvwxyz0123456789",
+        "hf_abcdefghijklmnopqrstuvwxyz0123456789",
+        "***",
+    ),
+    ("echo npm_abcdefghijklmnopqrstuvwx", "npm_abcdefghijklmnopqrstuvwx", "***"),
+    ("echo sk_live_abcdefghijklmnop", "sk_live_abcdefghijklmnop", "***"),
+    ("echo pypi-AgEIcHlwaS5vcmcabcdefghijklmnop", "pypi-AgEIcHlwaS5vcmcabcdefghijklmnop", "***"),
     ("echo ghp_1234567890abcdef", "ghp_1234567890abcdef", "***"),
+    ("echo gho_1234567890abcdef", "gho_1234567890abcdef", "***"),
     ("echo github_pat_11ABCDEFG", "github_pat_11ABCDEFG", "***"),
     ("echo sk-ant-api03-abcdefghijklmnop", "sk-ant-api03-abcdefghijklmnop", "***"),
     ("echo xoxb-1234567890-abcdef", "xoxb-1234567890-abcdef", "***"),
@@ -307,6 +330,9 @@ BENIGN_CASES = [
     'echo "short sk-abcd"',
     "export FOO=bar",
     "mysql -p",
+    "git log --oneline",
+    "pytest -k tokenizer",
+    "ls hf_models_dir",
 ]
 
 
@@ -320,6 +346,28 @@ def test_redact_secret_cases(cmd: str, secret: str, marker: str) -> None:
 @pytest.mark.parametrize("cmd", BENIGN_CASES)
 def test_redact_benign_cases(cmd: str) -> None:
     assert ss.redact_command(cmd) == cmd
+
+
+def test_redact_url_multi_at_password() -> None:
+    out = ss.redact_command("psql 'postgresql://u:p@ss@db/x'")
+    assert "ss@db" not in out, out
+    assert "u:***@db" in out, out
+
+
+def test_parse_todos_redacts_secrets() -> None:
+    parsed = ss._parse_todos([{"status": "pending", "content": "export API_KEY=s3cr3t"}])
+    assert parsed == [("pending", "export API_KEY=***")]
+
+
+def test_fold_source_webfetch_drops_userinfo_and_deep_path() -> None:
+    src = fold_mod._fold_source("WebFetch", {"url": "https://u:pw@h.com/hooks/T0/B0/SECRET?x=1"})
+    assert src == "https://h.com/hooks/T0", src
+    assert "pw" not in src
+    assert "SECRET" not in src
+
+
+def test_fold_source_read_path_unchanged() -> None:
+    assert fold_mod._fold_source("Read", {"file_path": "/a/b.py"}) == "/a/b.py"
 
 
 # --------------------------------------------------------------------------- D
