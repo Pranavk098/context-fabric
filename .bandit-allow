@@ -1,0 +1,107 @@
+{
+  "_comment": "Documented bandit allowlist (a bandit baseline). Each entry is a confirmed benign finding; anything not listed fails the security workflow. Entries are duplicated with / and backslash so the same file works on Linux and Windows. Refresh on Linux with `uvx bandit -r cfxd -ll -f json -o .bandit-allow`, then duplicate each result with the other path separator (or remap after a Windows refresh).",
+  "results": [
+    {
+      "code": "52     try:\n53         row = con.execute(f'SELECT COUNT(*) FROM \"{table}\"').fetchone()\n54         return int(row[0]) if row is not None else 0\n",
+      "col_offset": 28,
+      "end_col_offset": 50,
+      "filename": "cfxd/agents/opencode.py",
+      "issue_confidence": "MEDIUM",
+      "issue_cwe": {
+        "id": 89,
+        "link": "https://cwe.mitre.org/data/definitions/89.html"
+      },
+      "issue_severity": "MEDIUM",
+      "issue_text": "Possible SQL injection vector through string-based query construction.",
+      "line_number": 53,
+      "line_range": [
+        53
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.9.4/plugins/b608_hardcoded_sql_expressions.html",
+      "test_id": "B608",
+      "test_name": "hardcoded_sql_expressions",
+      "_why": "table name comes from sqlite_master (a closed set), never from user input"
+    },
+    {
+      "code": "52     try:\n53         row = con.execute(f'SELECT COUNT(*) FROM \"{table}\"').fetchone()\n54         return int(row[0]) if row is not None else 0\n",
+      "col_offset": 28,
+      "end_col_offset": 50,
+      "filename": "cfxd\\agents\\opencode.py",
+      "issue_confidence": "MEDIUM",
+      "issue_cwe": {
+        "id": 89,
+        "link": "https://cwe.mitre.org/data/definitions/89.html"
+      },
+      "issue_severity": "MEDIUM",
+      "issue_text": "Possible SQL injection vector through string-based query construction.",
+      "line_number": 53,
+      "line_range": [
+        53
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.9.4/plugins/b608_hardcoded_sql_expressions.html",
+      "test_id": "B608",
+      "test_name": "hardcoded_sql_expressions",
+      "_why": "table name comes from sqlite_master (a closed set), never from user input"
+    },
+    {
+      "code": "149     sql = (\n150         \"SELECT \"\n151         \"COALESCE(json_extract(data, '$.tokens.input'), 0), \"\n152         \"COALESCE(json_extract(data, '$.tokens.cache.read'), 0), \"\n153         \"COALESCE(json_extract(data, '$.tokens.cache.write'), 0), \"\n154         \"COALESCE(json_extract(data, '$.tokens.output'), 0), \"\n155         \"COALESCE(json_extract(data, '$.tokens.reasoning'), 0), \"\n156         f\"{ts_expr} \"\n157         'FROM \"message\" '\n158         \"WHERE session_id = ? AND json_extract(data, '$.role') = 'assistant' \"\n159         \"AND json_type(data, '$.tokens') = 'object'\"\n160     )\n",
+      "col_offset": 8,
+      "end_col_offset": 65,
+      "filename": "cfxd/agents/opencode.py",
+      "issue_confidence": "LOW",
+      "issue_cwe": {
+        "id": 89,
+        "link": "https://cwe.mitre.org/data/definitions/89.html"
+      },
+      "issue_severity": "MEDIUM",
+      "issue_text": "Possible SQL injection vector through string-based query construction.",
+      "line_number": 150,
+      "line_range": [
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.9.4/plugins/b608_hardcoded_sql_expressions.html",
+      "test_id": "B608",
+      "test_name": "hardcoded_sql_expressions",
+      "_why": "ts_expr is one of two static epoch expressions, never from user input"
+    },
+    {
+      "code": "149     sql = (\n150         \"SELECT \"\n151         \"COALESCE(json_extract(data, '$.tokens.input'), 0), \"\n152         \"COALESCE(json_extract(data, '$.tokens.cache.read'), 0), \"\n153         \"COALESCE(json_extract(data, '$.tokens.cache.write'), 0), \"\n154         \"COALESCE(json_extract(data, '$.tokens.output'), 0), \"\n155         \"COALESCE(json_extract(data, '$.tokens.reasoning'), 0), \"\n156         f\"{ts_expr} \"\n157         'FROM \"message\" '\n158         \"WHERE session_id = ? AND json_extract(data, '$.role') = 'assistant' \"\n159         \"AND json_type(data, '$.tokens') = 'object'\"\n160     )\n",
+      "col_offset": 8,
+      "end_col_offset": 65,
+      "filename": "cfxd\\agents\\opencode.py",
+      "issue_confidence": "LOW",
+      "issue_cwe": {
+        "id": 89,
+        "link": "https://cwe.mitre.org/data/definitions/89.html"
+      },
+      "issue_severity": "MEDIUM",
+      "issue_text": "Possible SQL injection vector through string-based query construction.",
+      "line_number": 150,
+      "line_range": [
+        150,
+        151,
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.9.4/plugins/b608_hardcoded_sql_expressions.html",
+      "test_id": "B608",
+      "test_name": "hardcoded_sql_expressions",
+      "_why": "ts_expr is one of two static epoch expressions, never from user input"
+    }
+  ]
+}

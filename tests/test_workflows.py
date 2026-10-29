@@ -43,3 +43,27 @@ def test_release_has_a_manual_dry_run() -> None:
     assert "workflow_dispatch:" in text
     assert "dry_run:" in text
     assert "github.event_name == 'push'" in text
+
+
+def test_security_scan_is_weekly_and_read_only() -> None:
+    text = (WORKFLOWS / "security.yml").read_text(encoding="utf-8")
+    assert "cron:" in text
+    assert "workflow_dispatch:" in text
+    assert "pull_request_target" not in text
+    permissions = text.split("permissions:", 1)[1].split("jobs:", 1)[0]
+    assert "contents: read" in permissions
+    assert "write" not in permissions
+    assert "uvx bandit -r cfxd -ll -q -b .bandit-allow" in text
+    assert "uv export --locked --no-hashes" in text
+    assert "uvx pip-audit -r" in text
+
+
+def test_bandit_allowlist_is_documented_and_narrow() -> None:
+    import json
+
+    allow = json.loads(
+        (Path(__file__).resolve().parents[1] / ".bandit-allow").read_text(encoding="utf-8")
+    )
+    assert allow["results"]
+    assert all(item["test_id"] == "B608" for item in allow["results"])
+    assert all(item["_why"] for item in allow["results"])

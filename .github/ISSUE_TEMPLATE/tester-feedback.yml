@@ -1,0 +1,72 @@
+name: Alpha feedback
+description: Tried the Claude Code plugin? Tell us what happened (counts only, please)
+labels: ["alpha-feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Copy answers from [`docs/FEEDBACK-TEMPLATE.md`](../docs/FEEDBACK-TEMPLATE.md) or fill
+        the fields below. Short answers are fine.
+  - type: input
+    id: os
+    attributes:
+      label: OS and version
+      placeholder: macOS 15.2, Ubuntu 24.04, Windows 11
+    validations:
+      required: true
+  - type: input
+    id: claude-version
+    attributes:
+      label: Claude Code version
+      description: The output of `claude --version`.
+    validations:
+      required: true
+  - type: input
+    id: cfxd-version
+    attributes:
+      label: cfxd version
+      description: The first line of `cfxd week --share`, for example `cfxd week 0.1.0a1`.
+  - type: checkboxes
+    id: experiments
+    attributes:
+      label: Which experiments did you run?
+      options:
+        - label: diet --apply / --undo
+        - label: bound
+        - label: coach
+        - label: checkpoint then /clear
+        - label: idle notice
+        - label: none, measurement only
+  - type: textarea
+    id: share-output
+    attributes:
+      label: cfxd week --share output
+      description: Paste the whole block. It contains counts, sizes and model ids only.
+      render: text
+  - type: textarea
+    id: surprised
+    attributes:
+      label: What surprised you?
+  - type: textarea
+    id: broke
+    attributes:
+      label: What broke, errored or felt slower?
+  - type: textarea
+    id: keep-using
+    attributes:
+      label: Would you keep using it?
+      description: "yes / no / why"
+  - type: checkboxes
+    id: quote
+    attributes:
+      label: May we quote you in public?
+      options:
+        - label: No (default)
+        - label: "Yes"
+  - type: checkboxes
+    id: safe-output
+    attributes:
+      label: Safe to share
+      options:
+        - label: I pasted only `--share` output or counts, no prompts, paths or commands
+          required: true

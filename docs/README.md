@@ -4,6 +4,7 @@
 
 - [`INSTALL-ALPHA.md`](INSTALL-ALPHA.md) — install, what is stored on disk, uninstall.
 - [`TESTING-GUIDE.md`](TESTING-GUIDE.md) — what test users do, in order, and what to send back.
+- [`OPERATIONS.md`](OPERATIONS.md) — weekly security scan, drift checks, and builder cost rules.
 - [`decisions/`](decisions/) — architecture decisions (ADR-0006 hook transport, ADR-0007 fold, ADR-0008 brief and carry).
 - [`specs/context-packet-v0.md`](specs/context-packet-v0.md) — DRAFT v0: the packet `/checkpoint` saves and restores, field by field.
 - [`specs/IMPLEMENTERS.md`](specs/IMPLEMENTERS.md) — DRAFT v0 implementer notes: writer, renderer, reader, what not to claim, conformance checklist, known gaps; plus the [schema](specs/context-packet-v0.schema.json) and [test vectors](specs/vectors/).
