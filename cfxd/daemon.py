@@ -45,6 +45,7 @@ from cfxd.hookclient import (  # noqa: F401  # client-side helpers, re-exported 
     resolve_state_dir,
     verify_identity,
 )
+from cfxd.idle import install as idle_install
 
 # Re-exported so `from cfxd.daemon import ...` keeps working under mypy's
 # --no-implicit-reexport (part of --strict).
@@ -188,6 +189,7 @@ class Daemon:
         carry_install(self.state_dir)
         checkpoint_install(self.state_dir)
         coach_install(self.state_dir)
+        idle_install(self.state_dir)
         add_observer("PostToolUse", session_state.observe_post_tool_use)
         httpd = _CfxdServer(("127.0.0.1", self._port), _Handler)
         httpd.daemon = self

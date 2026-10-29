@@ -85,6 +85,7 @@ Each command is `uvx --from git+https://github.com/Pranavk098/context-fabric cfx
 | `replay [--since 30d] [--json]` | simulated saving from shrinking old tool output, with cache effects |
 | `set brief\|carry\|fold\|fold_read\|bound\|coach on\|off` | feature flags (brief and carry on; fold, fold_read, bound and coach off) |
 | `set coach on\|off` | experimental: one plain line at a natural break once a session reaches ~150K tokens and 30 turns, with its cache-read cost and the checkpoint workflow; off by default, saving unproven |
+| `set idle_notice on\|off` | experimental: on a resume after the prompt cache expired, one user-visible line gives the API-equivalent re-read cost and notes that `/clear` starts cheap; off by default, effect unproven |
 | `stop` | stop the daemon (the next session starts it again) |
 
 `audit`, `replay`, `stats` and `week` print counts and sizes only: no paths, commands, prompts or text.
@@ -95,7 +96,7 @@ All under `~/.cfx/daemon/` (Windows: `C:\Users\<you>\.cfx\daemon\`). Nothing is 
 
 | Path | Content | Kept |
 | :--- | :--- | :--- |
-| `events.jsonl`, `briefs.jsonl`, `carry.jsonl`, `folds.jsonl`, `bound.jsonl`, `coach.jsonl` | event names, sizes, counts, hashes, latencies | rotated by size |
+| `events.jsonl`, `briefs.jsonl`, `carry.jsonl`, `folds.jsonl`, `bound.jsonl`, `coach.jsonl`, `resume.jsonl` | event names, sizes, counts, hashes, latencies | rotated by size |
 | `carry/<session>.json` | one note per compacted session: file paths, line counts, recent commands with obvious secrets masked, to-do text | 7 days |
 | `checkpoint/<cwd-hash>.json` | experimental `/checkpoint` package for one directory, same fields as a carry note plus a saved time and an armed flag | 7 days |
 | `obs/` | full copies of folded output (**only if you turn fold on**; may contain code or command output) | 7 days |

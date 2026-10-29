@@ -168,7 +168,15 @@ def week(
         notes["refetch"] = "no compaction events"
 
     receipts: dict[str, Any] = dict.fromkeys(
-        ("folds", "bound_rewrites", "hook_calls", "hook_errors", "hook_rejected", "checkpoints")
+        (
+            "folds",
+            "bound_rewrites",
+            "hook_calls",
+            "hook_errors",
+            "hook_rejected",
+            "checkpoints",
+            "cold_resumes",
+        )
     )
     if state_dir is not None:
         stats = collect_stats(state_dir, "all", now=now)
@@ -177,6 +185,7 @@ def week(
         receipts["hook_calls"] = stats["hooks"]["count"]
         receipts["hook_errors"] = stats["hooks"]["errors"]
         receipts["hook_rejected"] = stats["hooks"]["rejected"]
+        receipts["cold_resumes"] = stats["cold_resumes"]
     else:
         notes["receipts"] = "no state directory"
     notes["checkpoints"] = "not recorded by cfxd stats"
@@ -289,11 +298,22 @@ def _receipt_lines(report: dict[str, Any]) -> list[str]:
     r = report["receipts"]
     notes = report["notes"]
     if r["folds"] is None:
-        return [f"Plugin receipts (cfxd stats): n/a ({notes.get('receipts', '')})"]
-    checkpoints = _value(None, notes["checkpoints"], ",.0f")
-    return [
-        f"Plugin receipts (cfxd stats, all time): {r['folds']:,} fold rewrites, "
-        f"{r['bound_rewrites']:,} bound rewrites, {r['hook_calls']:,} hook calls "
-        f"({r['hook_errors']:,} errors, {r['hook_rejected']:,} rejected), "
-        f"checkpoints {checkpoints}"
-    ]
+        lines = [f"Plugin receipts (cfxd stats): n/a ({notes.get('receipts', '')})"]
+    else:
+        checkpoints = _value(None, notes["checkpoints"], ",.0f")
+        lines = [
+            f"Plugin receipts (cfxd stats, all time): {r['folds']:,} fold rewrites, "
+            f"{r['bound_rewrites']:,} bound rewrites, {r['hook_calls']:,} hook calls "
+            f"({r['hook_errors']:,} errors, {r['hook_rejected']:,} rejected), "
+            f"checkpoints {checkpoints}"
+        ]
+    cold = r["cold_resumes"]
+    if cold is None:
+        lines.append(
+            f"Cold resumes (from receipts): n/a ({notes.get('receipts', 'no state directory')})"
+        )
+    elif not cold["receipts"]:
+        lines.append("Cold resumes (from receipts): n/a (no resume receipts)")
+    else:
+        lines.append(f"Cold resumes (from receipts): {cold['count']:,}, about ${cold['usd']:,.2f}")
+    return lines
