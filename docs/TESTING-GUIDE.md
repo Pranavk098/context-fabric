@@ -54,6 +54,11 @@ uvx --from git+https://github.com/Pranavk098/context-fabric cfxd doctor
 
 You should see `healthy` and `identity: verified`. If not, see [Troubleshooting](#troubleshooting).
 
+**First run, guided (terminal):** `uvx --from git+https://github.com/Pranavk098/context-fabric cfxd tour`
+walks through five steps on your own transcripts: doctor, where your tokens go, long sessions, your starting
+context, and what to try next. It prints every step without pausing; add `--yes` to skip the Enter prompts. The
+switches it suggests are experimental and whether they save tokens is unproven.
+
 Optional one-command check (macOS, Linux, or Git Bash on Windows): download the repo's
 [`scripts/smoke_plugin.sh`](../scripts/smoke_plugin.sh) and run `sh smoke_plugin.sh`. It runs a tiny Claude Code session
 with the plugin and prints `PASS` or `FAIL` with the reason; it changes none of your settings.

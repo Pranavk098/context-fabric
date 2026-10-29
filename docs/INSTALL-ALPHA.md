@@ -75,6 +75,7 @@ Each command is `uvx --from git+https://github.com/Pranavk098/context-fabric cfx
 | `doctor` | health, daemon identity, feature flags, hook latency |
 | `status` | running or not, pid, port, version |
 | `stats [--since 7d] [--session ID] [--json]` | folds and hook timings from the daemon's logs |
+| `tour [--root DIR] [--yes]` | guided first run: five steps over your own transcripts (doctor, token cost, long sessions, starting context, what to try next); every switch it suggests is experimental and its saving unproven |
 | `audit [--since 7d\|30d\|all] [--json]` | where your sessions' tokens go (reads local transcripts; works without the plugin) |
 | `diet [--since 30d] [--share] [--json] [--apply [--yes] \| --undo [--all]]` | your starting-prefix items, which were never used, per-turn cost; `--share` hashes all names so it can be pasted; `--apply` disables fully-unused local plugins (dry run unless `--yes`), `--undo` restores them |
 | `waste [--since 30d] [--json]` | cost share of loops, retry streaks, tail sessions and repeated discovery |
