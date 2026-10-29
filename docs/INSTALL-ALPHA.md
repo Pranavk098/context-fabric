@@ -79,13 +79,14 @@ Each command is `uvx --from git+https://github.com/Pranavk098/context-fabric cfx
 | `diet [--since 30d] [--share] [--json] [--apply [--yes] \| --undo [--all]]` | your starting-prefix items, which were never used, per-turn cost; `--share` hashes all names so it can be pasted; `--apply` disables fully-unused local plugins (dry run unless `--yes`), `--undo` restores them |
 | `waste [--since 30d] [--json]` | cost share of loops, retry streaks, tail sessions and repeated discovery |
 | `routing [--since 30d] [--prices FILE] [--json]` | tokens and API-equivalent dollars by model and role; what-if for cheaper sub-agent tiers (price only) |
+| `week [--root DIR] [--days 7] [--share] [--json]` | experimental, saving unproven: one weekly summary — sessions, length buckets with each bucket's dollar share, cache-read share, first-turn context, compactions and `/clear` restarts, model switches and premium, refetch f, unused skills/connectors, plugin receipts; `--share` prints a version line and counts, sizes and model ids only, so it can be pasted |
 | `agent-audit --agent codex\|opencode [--since all]` | counts-only breakdown of Codex or OpenCode session logs (Codex needs the optional `zstandard` decoder) |
 | `replay [--since 30d] [--json]` | simulated saving from shrinking old tool output, with cache effects |
 | `set brief\|carry\|fold\|fold_read\|bound\|coach on\|off` | feature flags (brief and carry on; fold, fold_read, bound and coach off) |
 | `set coach on\|off` | experimental: one plain line at a natural break once a session reaches ~150K tokens and 30 turns, with its cache-read cost and the checkpoint workflow; off by default, saving unproven |
 | `stop` | stop the daemon (the next session starts it again) |
 
-`audit`, `replay` and `stats` print counts and sizes only: no paths, commands, prompts or text.
+`audit`, `replay`, `stats` and `week` print counts and sizes only: no paths, commands, prompts or text.
 
 ## 5. What it stores
 

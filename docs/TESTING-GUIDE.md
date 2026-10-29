@@ -95,6 +95,10 @@ paste it, or send it to the person who gave you this link. (`diet` without `--sh
 skills and connectors for your own eyes; do not paste that version.) `audit` works even if you only want to look at your own
 history and skip the plugin: it needs no install.
 
+Or send one command instead: `uvx --from git+https://github.com/Pranavk098/context-fabric cfxd week --share`.
+It is experimental and whether its suggestions save anything is unproven; it prints a short weekly summary with a
+version line, counts, sizes and model ids only, ending with "Safe to paste: counts, sizes and model ids only."
+
 ## 4. Questions we want answered
 
 1. Did anything break, error or feel slower?
