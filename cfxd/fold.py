@@ -20,6 +20,7 @@ import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from cfxd import session_state
 from cfxd.config import read_config
@@ -250,13 +251,25 @@ def _fold_source(tool_name: str, tool_input: dict[str, Any]) -> str:
         return session_state.redact_command(command) if isinstance(command, str) else ""
     if tool_name == "WebFetch":
         url = tool_input.get("url")
-        if isinstance(url, str):
-            return url.split("?", 1)[0].split("#", 1)[0]
-        return ""
+        if not isinstance(url, str):
+            return ""
+        return session_state.redact_command(_web_url(url))
     if tool_name == "Read":
         file_path = tool_input.get("file_path")
         return file_path if isinstance(file_path, str) else ""
     return "Grep"
+
+
+def _web_url(url: str) -> str:
+    """Scheme + host plus at most two path segments; no userinfo, query or fragment."""
+    try:
+        parts = urlsplit(url)
+    except ValueError:
+        return ""
+    host = parts.hostname or ""
+    segments = [s for s in parts.path.split("/") if s][:2]
+    path = "/" + "/".join(segments) if segments else ""
+    return f"{parts.scheme}://{host}{path}" if parts.scheme else host + path
 
 
 def _replacement(

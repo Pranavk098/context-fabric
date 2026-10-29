@@ -90,7 +90,7 @@ experimental until a paired test shows they pay.
 <img src="docs/assets/diet-example.svg" alt="Example output of cfxd diet --share: first-turn context, itemized setup, never-used items and the estimated effect" width="100%">
 
 Real output of `cfxd diet --share` on one developer's last 30 days, with skill, plugin and connector names replaced by
-hashes. Without `--share` it prints the real names, for your own screen only.
+numbered labels. Without `--share` it prints the real names, for your own screen only.
 
 ## Try it
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -11,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from cfxd.diet import _label, _norm, _skill_entry_bytes, diet, format_human
+from cfxd.diet import _anonymize, _norm, _skill_entry_bytes, diet, format_human
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -303,10 +304,50 @@ def test_share_hides_canaries_keeps_counts(tmp_path: Path) -> None:
     assert memory["name"].startswith("file-")
 
 
-def test_share_labels_are_stable(tmp_path: Path) -> None:
-    assert _label("some-skill", "skill") == _label("some-skill", "skill")
-    assert _label("some-skill", "skill") != _label("other-skill", "skill")
-    assert _label("x", "skill").startswith("skill-")
+def _share_report(names: list[str]) -> dict:
+    return {
+        "items": [{"kind": "skill", "name": n, "group": "acme"} for n in names]
+        + [{"kind": "connector", "name": n, "group": ""} for n in names],
+        "subagent_types": ["explore"],
+        "never_used": {
+            "plugins": [{"plugin": "acme", "skills": names[:1]}],
+            "connectors": [{"name": names[0]}],
+        },
+        "used": {"plugins": [], "connectors": []},
+    }
+
+
+def test_share_labels_are_ordinal_and_unique() -> None:
+    for names in (["some-skill", "other-skill"], ["private-a", "private-b", "private-c"]):
+        out = _anonymize(_share_report(names))
+        skills = [it["name"] for it in out["items"] if it["kind"] == "skill"]
+        conns = [it["name"] for it in out["items"] if it["kind"] == "connector"]
+        assert skills == [f"skill-{i}" for i in range(1, len(names) + 1)]
+        assert conns == [f"connector-{i}" for i in range(1, len(names) + 1)]
+        assert len(set(skills)) == len(skills)
+        assert len(set(conns)) == len(conns)
+        for name in names:
+            digest = hashlib.sha1(name.encode("utf-8")).hexdigest()[:4]
+            assert f"skill-{digest}" not in skills
+            assert f"connector-{digest}" not in conns
+    # Same name -> same label inside one report.
+    dup = _anonymize(
+        {
+            "items": [
+                {"kind": "skill", "name": "x", "group": "g"},
+                {"kind": "skill", "name": "x", "group": "g"},
+            ],
+            "subagent_types": [],
+            "never_used": {"plugins": [], "connectors": []},
+            "used": {"plugins": [], "connectors": []},
+        }
+    )
+    assert [it["name"] for it in dup["items"]] == ["skill-1", "skill-1"]
+    out = _anonymize(_share_report(["some-skill", "other-skill"]))
+    assert out["items"][0]["group"] == "plugin-1"
+    assert out["subagent_types"] == ["subagent-1"]
+    assert out["never_used"]["plugins"][0]["skills"] == ["skill-1"]
+    assert out["never_used"]["connectors"][0]["name"] == "connector-1"
     assert _norm("claude.ai Vercel") == _norm("claude_ai_Vercel") == "claudeaivercel"
 
 
