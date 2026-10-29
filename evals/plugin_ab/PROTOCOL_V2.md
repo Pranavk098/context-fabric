@@ -24,11 +24,13 @@ reaches roughly 31–80 requests reproducibly.
 The checkpoint arm saves through the same code path the
 `/context-fabric:checkpoint` command uses (`cfxd checkpoint save`), with the
 run's working directory and the run's `CFX_HOME`/`CFX_PORT`. The next step then
-runs as a **new** session: a fresh `--session-id`, no `--resume`, and
-`CFX_RESTORE_ON_STARTUP=1` so the plugin's SessionStart handler restores the
-checkpoint on `source == "startup"`. A boundary is taken only when a next step
+runs as a **new** session: a fresh `--session-id` and no `--resume`. The block
+`cfxd checkpoint show` prints (the text a `/clear` restore would inject) is prefixed to that
+new session's first prompt, because the SessionStart restore path is only specified for
+`/clear`; the rendering code is identical, the injection route is the harness's.
+A boundary is taken only when a next step
 exists. Every run record reports the boundaries taken, the saved byte count and
-the daemon receipt's restore outcome (counts only).
+whether a block was injected (counts only).
 
 Every long chain ends with a recall probe: the final step asks for
 `answers.json` with three facts fixed earlier (for example the rounding rule and
@@ -67,8 +69,8 @@ checkpoint mechanism. The runner rejects those labels for v2.
   chain.
 - **Invocation.** Step 1 uses `--session-id <uuid>`; every later step uses
   `--resume <uuid>`, except the first step after a checkpoint boundary in the
-  checkpoint arm, which gets a new `--session-id` and
-  `CFX_RESTORE_ON_STARTUP=1`. Each step keeps its own oracle, timeout and usage
+  checkpoint arm, which gets a new `--session-id` and the restored
+  block as a prompt prefix. Each step keeps its own oracle, timeout and usage
   record. A run result is the list of step results plus the recall score.
 - **Cap.** `EVALS_MAX_RUN_USD` (default `0.60`) is a hard per-run cap. The chain
   stops after the step that crosses it and records `cap_hit`; a capped run is

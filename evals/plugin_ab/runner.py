@@ -379,6 +379,29 @@ def save_checkpoint(python: str, work: Path, cfx_home: Path, port: int) -> int:
     return int(size) if isinstance(size, int) and not isinstance(size, bool) else 0
 
 
+def checkpoint_block(python: str, work: Path, cfx_home: Path, port: int) -> str:
+    """The block ``cfxd checkpoint show`` prints (the text a restore would inject)."""
+    env = os.environ.copy()
+    env["CFX_HOME"] = str(cfx_home)
+    env["CFX_PORT"] = str(port)
+    env["PYTHONPATH"] = str(_REPO_ROOT) + (
+        os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else ""
+    )
+    try:
+        proc = subprocess.run(
+            [python, "-m", "cfxd", "checkpoint", "show"],
+            cwd=work,
+            env=env,
+            capture_output=True,
+            timeout=60,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+    if proc.returncode != 0:
+        return ""
+    return proc.stdout.decode("utf-8", errors="replace").strip()
+
+
 def restore_outcome(cfx_home: Path) -> str:
     """The daemon receipt's outcome for the last checkpoint restore (counts only)."""
     receipt = _last_receipt(cfx_home, "checkpoint_restore")
@@ -554,10 +577,12 @@ def _run_chain(
     )
     checkpoints: list[dict[str, Any]] = []
     fresh_session = False
+    pending_block = ""
 
     for index, step in enumerate(task.steps):
         if index in boundaries and index < len(task.steps):
             saved = save_checkpoint(python, work, cfx_home, port)
+            pending_block = checkpoint_block(python, work, cfx_home, port) if saved else ""
             session_id = _new_session_id()
             fresh_session = True
             checkpoints.append(
@@ -565,7 +590,7 @@ def _run_chain(
             )
         cmd = build_command(
             claude_bin,
-            prompt=step.prompt,
+            prompt=(pending_block + chr(10) * 2 if pending_block else "") + step.prompt,
             model=model,
             session_id=session_id,
             arm=spec.arm,
@@ -575,11 +600,6 @@ def _run_chain(
         env = os.environ.copy()
         env["CFX_HOME"] = str(cfx_home)
         env["CFX_PORT"] = str(port)
-        # The restore handler runs inside the daemon, which starts with the first step's
-        # environment, so the checkpoint arm sets this for every step (nothing is saved
-        # before the first boundary, so step 1 restores nothing).
-        if spec.arm == "checkpoint":
-            env["CFX_RESTORE_ON_STARTUP"] = "1"
         if override_config:
             env["CLAUDE_CONFIG_DIR"] = str(config_dir)
         if fake:
@@ -604,7 +624,8 @@ def _run_chain(
         if failure is not None:
             return _infra_record(task, spec, session_id, failure)
         if fresh_session:
-            checkpoints[-1]["restore_outcome"] = restore_outcome(cfx_home)
+            checkpoints[-1]["restore_outcome"] = "injected" if pending_block else "missing"
+            pending_block = ""
             fresh_session = False
 
         oracle_result = run_step_oracle(python, work, step.oracle, step.timeout)

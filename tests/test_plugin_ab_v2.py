@@ -330,26 +330,30 @@ def test_checkpoint_arm_saves_and_restarts_the_session(
     original_run = runner.subprocess.run
 
     def spy_run(cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[bytes]:
-        env = kwargs.get("env")
-        if isinstance(env, dict) and env.get("CFX_RESTORE_ON_STARTUP") == "1":
-            fresh_envs.append(cmd)
+        fresh_envs.append(cmd)
         return original_run(cmd, **kwargs)  # type: ignore[arg-type]
 
     monkeypatch.setattr(runner, "build_command", spy_build)
     monkeypatch.setattr(runner.subprocess, "run", spy_run)
     monkeypatch.setattr(runner, "save_checkpoint", lambda python, work, cfx_home, port: 321)
-    monkeypatch.setattr(runner, "restore_outcome", lambda cfx_home: "restored")
+    monkeypatch.setattr(
+        runner, "checkpoint_block", lambda python, work, cfx_home, port: "BLOCK-FROM-CHECKPOINT"
+    )
 
     task = next(t for t in _tasks() if t.id == "long-checkout")
     report = _run([task], tmp_path, arms=("checkpoint",), reps=0)
     record = report["runs"][0]
     assert record["boundaries_taken"] == [4, 8]
     assert record["checkpoint_saved_bytes"] == 642
-    assert record["checkpoint_restore_outcome"] == "restored"
+    assert record["checkpoint_restore_outcome"] == "injected"
     assert len(record["checkpoints"]) == 2
-    assert all(c["restore_outcome"] == "restored" for c in record["checkpoints"])
-    # The daemon starts with step 1's environment, so every step carries the variable.
-    assert len(fresh_envs) == len(commands)
+    assert all(c["restore_outcome"] == "injected" for c in record["checkpoints"])
+    # The restored block is prefixed to the first prompt of each new session only.
+    prompts = [cmd[cmd.index("-p") + 1] for cmd in commands]
+    assert [i for i, text in enumerate(prompts) if text.startswith("BLOCK-FROM-CHECKPOINT")] == [
+        4,
+        8,
+    ]
 
     sessions = [
         cmd[cmd.index("--session-id") + 1]

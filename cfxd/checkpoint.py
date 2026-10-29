@@ -197,8 +197,7 @@ def _counts(obj: dict[str, Any]) -> dict[str, int]:
 
 
 def handle_session_start(payload: dict[str, Any], state_dir: Path) -> dict[str, Any]:
-    """Restore a checkpoint on ``source == "clear"``, or on ``startup`` when
-    ``CFX_RESTORE_ON_STARTUP=1`` (the benchmark's checkpoint arm). Never raises."""
+    """Restore a checkpoint on ``source == "clear"`` only. Never raises."""
     try:
         return _restore(payload, state_dir)
     except Exception:
@@ -207,17 +206,8 @@ def handle_session_start(payload: dict[str, Any], state_dir: Path) -> dict[str, 
         return {}
 
 
-def _wants_restore(payload: dict[str, Any]) -> bool:
-    source = payload.get("source")
-    if source == "clear":
-        return True
-    # Off by default: the checkpoint arm runs the next step in a *new* session,
-    # where Claude Code reports source == "startup".
-    return source == "startup" and os.environ.get("CFX_RESTORE_ON_STARTUP") == "1"
-
-
 def _restore(payload: dict[str, Any], state_dir: Path) -> dict[str, Any]:
-    if not isinstance(payload, dict) or not _wants_restore(payload):
+    if not isinstance(payload, dict) or payload.get("source") != "clear":
         return {}
     session_id = _sid(payload)
     cwd = payload.get("cwd")

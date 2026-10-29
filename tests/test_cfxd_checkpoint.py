@@ -133,18 +133,6 @@ def test_restore_only_on_clear(tmp_path: Path) -> None:
     assert _context(checkpoint.handle_session_start(_clear_event(), tmp_path))
 
 
-def test_restore_on_startup_only_with_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    _seed_file("s1", "/proj/a.py")
-    checkpoint.handle_checkpoint_save({"cwd": "/proj"}, tmp_path)
-    payload = {"session_id": "s2", "source": "startup", "cwd": "/proj"}
-    monkeypatch.setenv("CFX_RESTORE_ON_STARTUP", "0")
-    assert checkpoint.handle_session_start(payload, tmp_path) == {}
-    monkeypatch.setenv("CFX_RESTORE_ON_STARTUP", "1")
-    assert _context(checkpoint.handle_session_start(payload, tmp_path))
-    # Consumed once, exactly like the clear path.
-    assert checkpoint.handle_session_start(payload, tmp_path) == {}
-
-
 def test_consumed_once(tmp_path: Path) -> None:
     _seed_file("s1", "/proj/a.py")
     checkpoint.handle_checkpoint_save({"cwd": "/proj"}, tmp_path)
