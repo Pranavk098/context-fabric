@@ -9,6 +9,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,7 @@ from cfxd.agents.opencode import OpenCodeDBError
 from cfxd.audit import DEFAULT_ROOT, audit, coverage
 from cfxd.audit import format_coverage as format_coverage_report
 from cfxd.audit import format_human as format_audit
+from cfxd.brief_receipts import BriefReceipt, join_receipts, path_sha16, receipts_to_json
 from cfxd.config import read_config, set_flag
 from cfxd.console import ensure_utf8_output
 from cfxd.daemon import (
@@ -379,6 +381,15 @@ def _build_parser() -> argparse.ArgumentParser:
     packet_install.add_argument("--packet", default=None, help="packet JSON file to install")
     packet_install.add_argument("--remove", action="store_true", help="remove the marked block")
     packet_install.set_defaults(func=_cmd_packet)
+
+    briefp = subparsers.add_parser(
+        "brief", help="show what each sub-agent handoff carried and what the child did with it"
+    )
+    briefp.add_argument("--session", default=None, help="only handoffs from this session id")
+    briefp.add_argument("--root", default=None, help=f"transcripts root (default: {DEFAULT_ROOT})")
+    briefp.add_argument("--json", action="store_true", help="emit a single JSON object")
+    _add_state_dir(briefp)
+    briefp.set_defaults(func=_cmd_brief)
 
     setp = subparsers.add_parser(
         "set", help="toggle brief, carry, fold, fold_read, bound, coach or idle_notice on/off"
@@ -927,6 +938,154 @@ def _cmd_ledger(args: argparse.Namespace) -> int:
     root = Path(args.root) if args.root else DEFAULT_ROOT
     report = ledger(root, args.days, resolve_state_dir(args.state_dir), share=args.share)
     print(json.dumps(report) if args.json else format_ledger(report, args.share))
+    return 0
+
+
+_BRIEF_EMPTY = (
+    "No briefs have been logged yet.\n"
+    "Brief v1 is {state}. Turn it on with: cfxd set brief on && cfxd set brief_v1 on\n"
+    "Then delegate work to a sub-agent and run `cfxd brief` again."
+)
+
+
+def _read_briefs(path: Path) -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = []
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return entries
+    for line in lines:
+        try:
+            obj = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(obj, dict):
+            entries.append(obj)
+    return entries
+
+
+def _rel(path: str) -> str:
+    try:
+        return Path(path).resolve().relative_to(Path.cwd().resolve()).as_posix()
+    except (ValueError, OSError):
+        return path
+
+
+def _brief_details(entry: dict[str, Any], r: BriefReceipt) -> list[dict[str, Any]]:
+    """v1 items (path hash + reasons) with the path recovered from what the child saw."""
+    known = {path_sha16(p): p for p in [*r.briefed_files, *r.child_files_read]}
+    out: list[dict[str, Any]] = []
+    items = entry.get("items")
+    for it in items if isinstance(items, list) else []:
+        if not isinstance(it, dict):
+            continue
+        reasons = it.get("r")
+        out.append(
+            {
+                "path": known.get(str(it.get("p"))),
+                "reasons": [x for x in reasons if isinstance(x, str)]
+                if isinstance(reasons, list)
+                else [],
+                "excerpt_ranges": it.get("x") if isinstance(it.get("x"), list) else [],
+            }
+        )
+    return out
+
+
+def _format_brief(entries: list[dict[str, Any]], receipts: list[BriefReceipt]) -> str:
+    out = [f"Brief handoffs: {len(receipts)}", ""]
+    for n, (entry, r) in enumerate(zip(entries, receipts, strict=True), 1):
+        agent = r.subagent_type or "agent"
+        sid = (r.session_id or "?")[:8]
+        out.append(f"{n}. {agent}  session {sid}  {r.ts or ''}".rstrip())
+        budget = entry.get("budget_bytes")
+        size = f"{r.packet_bytes:,} bytes"
+        if isinstance(budget, int) and budget > 0:
+            size += f" of {budget:,} budget ({r.packet_bytes * 100 // budget}%)"
+        if r.packet_items is not None:
+            size += f", {r.packet_items} items"
+        rows: list[tuple[str, str]] = [
+            ("decision", r.decision + (f" ({r.skip_reason})" if r.skip_reason else ""))
+            if r.decision
+            else ("decision", "unknown"),
+            ("target model", r.target_model or str(entry.get("target_model") or "unknown")),
+            ("packet", size),
+        ]
+        if r.matched:
+            rows.append(
+                (
+                    "re-read anyway",
+                    f"{len(r.rereads_of_briefed)} of {len(r.briefed_files)} briefed files"
+                    + "".join(f"\n    {_rel(p)}" for p in r.rereads_of_briefed),
+                )
+            )
+            if r.parent_read_not_briefed:
+                rows.append(
+                    (
+                        "left out, re-read",
+                        f"{len(r.parent_read_not_briefed)} files the parent had read"
+                        + "".join(f"\n    {_rel(p)}" for p in r.parent_read_not_briefed),
+                    )
+                )
+            t = r.child_tokens
+            rows.append(
+                (
+                    "child tokens",
+                    f"{t.get('total', 0):,} total over {r.child_turns} turns "
+                    f"(input {t.get('input', 0):,}, output {t.get('output', 0):,}, "
+                    f"cache read {t.get('cache_read', 0):,}, "
+                    f"cache write {t.get('cache_creation', 0):,})",
+                )
+            )
+            rows.append(("compactions", f"{r.compactions}, context overflows {r.overflows}"))
+        rows.append(("outcome", r.outcome or "unknown"))
+        if not r.matched:
+            rows.append(("unmatched", r.unmatched_reason or "unknown"))
+        for label, value in rows:
+            out.append(f"   {label:<18} {value}")
+        details = _brief_details(entry, r)
+        if details:
+            out.append("   top items and why:")
+            for d in details[:5]:
+                where = _rel(d["path"]) if d["path"] else "(path not recoverable)"
+                out.append(f"    {where}  [{', '.join(d['reasons']) or 'no reason recorded'}]")
+            if len(details) > 5:
+                out.append(f"    ... {len(details) - 5} more")
+        out.append("")
+    return "\n".join(out).rstrip()
+
+
+def _cmd_brief(args: argparse.Namespace) -> int:
+    state_dir = resolve_state_dir(args.state_dir)
+    root = Path(args.root) if args.root else DEFAULT_ROOT
+    entries = _read_briefs(state_dir / "briefs.jsonl")
+    if args.session:
+        entries = [e for e in entries if e.get("session_id") == args.session]
+    if not entries:
+        state = "on" if read_config(state_dir).get("brief_v1") else "off"
+        if args.json:
+            print(json.dumps({"receipts": [], "details": [], "brief_v1": state}))
+        elif args.session:
+            print(f"No briefs logged for session {args.session}.")
+        else:
+            print(_BRIEF_EMPTY.format(state=state))
+        return 0
+    with tempfile.TemporaryDirectory() as tmp:
+        log = Path(tmp) / "briefs.jsonl"
+        log.write_text("".join(json.dumps(e) + "\n" for e in entries), encoding="utf-8")
+        receipts = join_receipts(log, root)
+    if args.json:
+        details = [
+            {
+                "tool_use_id": r.tool_use_id,
+                "budget_bytes": e.get("budget_bytes"),
+                "items": _brief_details(e, r),
+            }
+            for e, r in zip(entries, receipts, strict=True)
+        ]
+        print(json.dumps({"receipts": receipts_to_json(receipts), "details": details}))
+    else:
+        print(_format_brief(entries, receipts))
     return 0
 
 

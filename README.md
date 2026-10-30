@@ -78,6 +78,7 @@ experimental until a paired test shows they pay.
 | `cfxd tour` | A guided five-step first run over your own transcripts | working |
 | `cfxd week --share` | A one-command weekly summary of counts that is safe to paste | working |
 | `cfxd trend` | Week-over-week snapshots from `cfxd week --save`, each change labelled OBSERVED (a before/after, not a counterfactual) | experimental |
+| `cfxd brief` | Lists each sub-agent handoff Brief logged: target model, packet size, why items were chosen, what the child re-read anyway. Needs `cfxd set brief_v1 on`; experimental | experimental |
 | `cfxd ledger` | What the plugin did or changed, each line labelled OBSERVED, ESTIMATED or PROVEN (none proven yet) | experimental |
 | `cfxd refetch` | Measures how much of the context dropped by a compaction or `/clear` the agent reads again | working |
 | `cfxd diet --apply` / `--undo` | Disables fully unused local plugins through Claude Code's own command, with an exact undo | experimental |
