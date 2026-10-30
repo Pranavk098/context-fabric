@@ -63,7 +63,7 @@ ignore_missing_imports = true
 line-length = 100
 target-version = "py312"
 # Benchmark fixtures are patched byte-for-byte by reference patches; never reformat them.
-extend-exclude = ["evals/plugin_ab/fixture_v2"]
+extend-exclude = ["evals/plugin_ab/fixture_v2", "evals/plugin_ab/fixture_v3"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]

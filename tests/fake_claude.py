@@ -141,7 +141,8 @@ def main(argv: list[str] | None = None) -> int:
             _write(parent, _assistant("delegating", _usage(600, 60, 1200, 100)))
             _write(parent, _user_text("<tool_result>"))
             _write_subagent(project_dir, session_id)
-        _write(parent, _assistant("done", _usage(300, 30, 0, 200)))
+        text = os.environ.get("PLUGIN_AB_FAKE_TEXT") or "done"
+        _write(parent, _assistant(text, _usage(300, 30, 0, 200)))
     else:
         _write(parent, _assistant(f"step {step}", _usage(300, 25, 500, 100)))
 

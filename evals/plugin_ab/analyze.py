@@ -636,6 +636,67 @@ def format_markdown_v2(result: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def format_markdown_v3(result: dict[str, Any]) -> str:
+    lines = [
+        "# Plugin A/B v3 adversarial chains (EXPLORATORY, not registered)",
+        "",
+        str(result["note"]),
+        "",
+        "| chain | arm | runs | pass | fail | killed | misleading claims |",
+        "| --- | --- | --- | --- | --- | --- | --- |",
+    ]
+    for chain, arms in result["chains"].items():
+        for arm, entry in arms.items():
+            lines.append(
+                f"| {chain} | {arm} | {entry['runs']} | {entry['pass']} | {entry['fail']} "
+                f"| {entry['killed']} | {entry['misleading_claims']} |"
+            )
+    lines.append("")
+    return "\n".join(lines)
+
+
+def run_outcome(record: dict[str, Any]) -> str:
+    """``killed`` if any step was killed, else ``pass``/``fail`` over the whole chain."""
+    steps = record.get("steps")
+    if not isinstance(steps, list) or not steps:
+        return "fail"
+    outcomes = [
+        str(step.get("outcome", "pass" if step.get("resolved") else "fail"))
+        for step in steps
+        if isinstance(step, dict)
+    ]
+    if "killed" in outcomes:
+        return "killed"
+    return "pass" if outcomes and all(outcome == "pass" for outcome in outcomes) else "fail"
+
+
+def analyze_v3(records: list[dict[str, Any]]) -> dict[str, Any]:
+    """Exploratory per-chain view: oracle outcomes and misleading claims, no intervals."""
+    records = [r for r in records if not r.get("infra_failure") and not r.get("warm_up")]
+    chains: dict[str, dict[str, Any]] = {}
+    for record in records:
+        chain = str(record.get("task"))
+        arm = str(record.get("arm"))
+        entry = chains.setdefault(chain, {}).setdefault(
+            arm,
+            {"runs": 0, "pass": 0, "fail": 0, "killed": 0, "misleading_claims": 0, "outcomes": []},
+        )
+        outcome = run_outcome(record)
+        entry["runs"] += 1
+        entry[outcome] += 1
+        entry["outcomes"].append(outcome)
+        steps = record.get("steps")
+        if isinstance(steps, list):
+            entry["misleading_claims"] += sum(
+                1 for step in steps if isinstance(step, dict) and step.get("misleading_claim")
+            )
+    return {
+        "label": "EXPLORATORY",
+        "note": "EXPLORATORY: n is small; no confirmatory claim",
+        "chains": chains,
+    }
+
+
 def format_markdown(result: dict[str, Any]) -> str:
     label = "PILOT (not evidence)" if result["pilot"] else "confirmatory"
     lines = [f"# Plugin A/B {label}", ""]
@@ -730,9 +791,26 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="per-stratum report for tasks_v2 chains (writes analysis_v2.*)",
     )
+    p.add_argument(
+        "--v3",
+        action="store_true",
+        help="exploratory per-chain report for tasks_v3_adversarial (writes analysis_v3.*)",
+    )
     args = p.parse_args(sys.argv[1:] if argv is None else argv)
     report_dir = Path(args.report_dir)
     records = load_records(report_dir)
+    if args.v3:
+        result = analyze_v3(records)
+        if args.json:
+            print(json.dumps(result, indent=2))
+        else:
+            markdown = format_markdown_v3(result)
+            print(markdown)
+            (report_dir / "analysis_v3.md").write_text(markdown + "\n", encoding="utf-8")
+            (report_dir / "analysis_v3.json").write_text(
+                json.dumps(result, indent=2), encoding="utf-8"
+            )
+        return 0
     if args.v2:
         result = analyze_v2(records)
         if args.json:

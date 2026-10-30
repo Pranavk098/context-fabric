@@ -47,9 +47,15 @@ V2_ARMS = ("off", "shipped", "checkpoint")
 V2_REJECTED_ARMS = ("diet", "combo")
 # The checkpoint arm saves after these 1-based step numbers and continues in a new session.
 CHECKPOINT_BOUNDARIES: dict[str, tuple[int, ...]] = {"long": (4, 8), "medium": (2,), "short": ()}
+# Exploratory v3 chains save after steps 2 and 4 so the harness change that follows is unseen.
+V3_CHECKPOINT_BOUNDARIES: tuple[int, ...] = (3, 5)
 SLICE0_MODEL = "claude-haiku-5-5"
 CLAUDE_TIMEOUT_S = 1800
 ORACLE_TIMEOUT_S = 300
+# A step declared ``killed`` has its oracle killed this fast; the record says "killed", not failed.
+KILLED_TEST_TIMEOUT_S = 0.05
+# Where the runner drops the step's last assistant text for the v3 claim oracles to read.
+AGENT_TEXT = Path(".harness") / "agent_text.txt"
 
 _ALLOWED_TOOLS = "Read,Edit,Write,Grep,Glob,Agent,Bash(python -m pytest:*)"
 
@@ -62,6 +68,10 @@ class Step:
     timeout: int
     reference_patch: dict[str, Any] = field(default_factory=dict)
     fake_answers: dict[str, Any] | None = None
+    between: tuple[dict[str, Any], ...] = ()
+    killed: bool = False
+    claim_check: bool = False
+    fake_text: str = ""
 
 
 @dataclass(frozen=True)
@@ -76,6 +86,7 @@ class Task:
     stratum: str = ""
     steps: tuple[Step, ...] = ()
     fixture: str = "fixture"
+    exploratory: bool = False
 
 
 @dataclass(frozen=True)
@@ -103,6 +114,10 @@ def load_tasks(path: Path = DEFAULT_TASKS) -> list[Task]:
                 timeout=int(step.get("timeout", ORACLE_TIMEOUT_S)),
                 reference_patch=step.get("reference_patch") or {},
                 fake_answers=step.get("fake_answers"),
+                between=tuple(step.get("between") or ()),
+                killed=bool(step.get("killed", False)),
+                claim_check=bool(step.get("claim_check", False)),
+                fake_text=str(step.get("fake_text", "")),
             )
             for step in item.get("steps", [])
         )
@@ -118,6 +133,7 @@ def load_tasks(path: Path = DEFAULT_TASKS) -> list[Task]:
                 stratum=str(item.get("stratum", "")),
                 steps=steps,
                 fixture=str(item.get("fixture", "fixture")),
+                exploratory=bool(item.get("exploratory", False)),
             )
         )
     return tasks
@@ -148,6 +164,18 @@ def plan_runs(tasks: list[Task], arms: tuple[str, ...], reps: int, seed: int) ->
 
 def is_v2(tasks: list[Task]) -> bool:
     return any(t.stratum for t in tasks)
+
+
+def is_v3(tasks: list[Task]) -> bool:
+    """An exploratory task file marks each task; it is never part of the v2 prereg hash."""
+    return any(t.exploratory for t in tasks)
+
+
+def plan_smoke(tasks: list[Task]) -> list[RunSpec]:
+    """Fake-claude smoke run: the first adversarial chain, one off and one checkpoint run."""
+    task = next(t for t in tasks if any(s.between or s.killed for s in t.steps))
+    arms = ("off", "checkpoint")
+    return [RunSpec(task.id, arm, 0, False, index) for index, arm in enumerate(arms)]
 
 
 def plan_slice0(tasks: list[Task]) -> list[RunSpec]:
@@ -476,6 +504,109 @@ def purge_pycache(root: Path) -> None:
             shutil.rmtree(path, ignore_errors=True)
 
 
+def _safe_rel(work: Path, rel: str) -> Path:
+    if Path(rel).is_absolute() or ".." in Path(rel).parts:
+        raise ValueError(f"between action path must stay inside the workspace: {rel!r}")
+    return work / rel
+
+
+def snapshot_tree(root: Path) -> dict[str, bytes]:
+    """Every fixture file's bytes, keyed by posix relative path (for ``revert``)."""
+    out: dict[str, bytes] = {}
+    for path in root.rglob("*"):
+        if not path.is_file() or path.is_symlink():
+            continue
+        if {"__pycache__", ".pytest_cache", ".harness"} & set(path.relative_to(root).parts):
+            continue
+        out[path.relative_to(root).as_posix()] = path.read_bytes()
+    return out
+
+
+def _revert_path(work: Path, rel: str, snapshots: list[dict[str, bytes]]) -> None:
+    """Restore ``rel`` to its content before the last step that changed it."""
+    path = _safe_rel(work, rel)
+    current = path.read_bytes() if path.is_file() else None
+    for snap in reversed(snapshots):
+        before = snap.get(rel)
+        if before != current:
+            if before is None:
+                path.unlink(missing_ok=True)
+            else:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(before)
+            return
+
+
+def apply_between(
+    work: Path,
+    ops: list[dict[str, Any]] | tuple[dict[str, Any], ...],
+    snapshots: list[dict[str, bytes]],
+) -> None:
+    """Apply a step's ``between`` actions in order (harness changes between sessions)."""
+    for op in ops:
+        kind = op.get("op")
+        if kind == "write":
+            path = _safe_rel(work, str(op["path"]))
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(str(op["content"]), encoding="utf-8")
+        elif kind == "rename":
+            src = _safe_rel(work, str(op["from"]))
+            dst = _safe_rel(work, str(op["to"]))
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            src.replace(dst)
+        elif kind == "revert":
+            _revert_path(work, str(op["path"]), snapshots)
+        else:
+            raise ValueError(f"unknown between op {kind!r}")
+
+
+def last_assistant_text(transcript: Path) -> str:
+    """The last assistant text block of a transcript (empty string if none)."""
+    text = ""
+    for line in transcript.read_text(encoding="utf-8", errors="replace").splitlines():
+        try:
+            obj = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(obj, dict) or obj.get("type") != "assistant":
+            continue
+        message = obj.get("message")
+        content = message.get("content") if isinstance(message, dict) else None
+        if not isinstance(content, list):
+            continue
+        parts = [
+            str(block.get("text", ""))
+            for block in content
+            if isinstance(block, dict) and block.get("type") == "text"
+        ]
+        if parts:
+            text = "\n".join(parts)
+    return text
+
+
+def write_agent_text(work: Path, config_dir: Path, session_id: str) -> None:
+    """Drop the step's last assistant text where a claim oracle can read it."""
+    transcript = find_parent_transcript(config_dir, session_id)
+    target = work / AGENT_TEXT
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(last_assistant_text(transcript) if transcript else "", encoding="utf-8")
+
+
+def kill_step_oracle(python: str, work: Path, oracle: str) -> str:
+    """Run the step oracle with a kill timeout; always report the outcome ``killed``."""
+    try:
+        subprocess.run(
+            [python, "-m", "pytest", "-q", oracle],
+            cwd=work,
+            capture_output=True,
+            timeout=KILLED_TEST_TIMEOUT_S,
+            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+        )
+    except subprocess.TimeoutExpired:
+        pass
+    return "killed"
+
+
 def _prepare_run(
     task: Task,
     spec: RunSpec,
@@ -572,12 +703,16 @@ def _run_chain(
     previous_total = ScanResult()
     duration = 0.0
     cap_hit = False
-    boundaries = (
-        set(CHECKPOINT_BOUNDARIES.get(task.stratum, ())) if spec.arm == "checkpoint" else set()
-    )
+    boundaries: set[int] = set()
+    if spec.arm == "checkpoint":
+        registered = CHECKPOINT_BOUNDARIES.get(task.stratum, ())
+        if task.exploratory:
+            registered = V3_CHECKPOINT_BOUNDARIES
+        boundaries = set(registered)
     checkpoints: list[dict[str, Any]] = []
     fresh_session = False
     pending_block = ""
+    snapshots: list[dict[str, bytes]] = []
 
     for index, step in enumerate(task.steps):
         if index in boundaries and index < len(task.steps):
@@ -588,6 +723,12 @@ def _run_chain(
             checkpoints.append(
                 {"after_step": index, "saved_bytes": saved, "restore_outcome": "none"}
             )
+        if task.exploratory:
+            # Snapshot before the step (for ``revert``), then let the harness change the
+            # workspace after the checkpoint save, so the saved packet stays stale.
+            snapshots.append(snapshot_tree(work))
+            if index > 0:
+                apply_between(work, task.steps[index - 1].between, snapshots)
         cmd = build_command(
             claude_bin,
             prompt=(pending_block + chr(10) * 2 if pending_block else "") + step.prompt,
@@ -611,6 +752,8 @@ def _run_chain(
                 answers_path = run_dir / f"answers_{index}.json"
                 answers_path.write_text(json.dumps(step.fake_answers), encoding="utf-8")
                 env["PLUGIN_AB_FAKE_ANSWERS"] = str(answers_path)
+            if step.fake_text:
+                env["PLUGIN_AB_FAKE_TEXT"] = step.fake_text
         start = time.perf_counter()
         try:
             proc = subprocess.run(
@@ -628,10 +771,19 @@ def _run_chain(
             pending_block = ""
             fresh_session = False
 
-        oracle_result = run_step_oracle(python, work, step.oracle, step.timeout)
-        if oracle_result is None:
-            return _infra_record(task, spec, session_id, "step oracle could not execute")
-        resolved, recall_score, recall_of = oracle_result
+        if task.exploratory:
+            write_agent_text(work, config_dir, session_id)
+
+        if step.killed:
+            outcome = kill_step_oracle(python, work, step.oracle)
+            recall_score, recall_of = None, None
+            resolved = False
+        else:
+            oracle_result = run_step_oracle(python, work, step.oracle, step.timeout)
+            if oracle_result is None:
+                return _infra_record(task, spec, session_id, "step oracle could not execute")
+            resolved, recall_score, recall_of = oracle_result
+            outcome = "pass" if resolved else "fail"
 
         try:
             parent, subs, total, sub_count = collect_session_usage(config_dir, session_id, prices)
@@ -642,22 +794,25 @@ def _run_chain(
         dtotal = _delta_usage(previous_total, total)
         previous_parent, previous_subs, previous_total = parent, subs, total
 
-        step_records.append(
-            {
-                "id": step.id,
-                "resolved": resolved,
-                "recall_score": recall_score,
-                "recall_of": recall_of,
-                "turns": dtotal.turns,
-                "dollars": round(dtotal.dollars, 8) if dtotal.dollars is not None else None,
-                "usage": {
-                    "parent": _usage_dict(dparent),
-                    "subagents": _usage_dict(dsubs),
-                    "subagent_sessions": sub_count,
-                },
-                "duration_s": round(step_duration, 3),
-            }
-        )
+        step_record: dict[str, Any] = {
+            "id": step.id,
+            "resolved": resolved,
+            "recall_score": recall_score,
+            "recall_of": recall_of,
+            "turns": dtotal.turns,
+            "dollars": round(dtotal.dollars, 8) if dtotal.dollars is not None else None,
+            "usage": {
+                "parent": _usage_dict(dparent),
+                "subagents": _usage_dict(dsubs),
+                "subagent_sessions": sub_count,
+            },
+            "duration_s": round(step_duration, 3),
+        }
+        if task.exploratory:
+            step_record["outcome"] = outcome
+            if step.claim_check:
+                step_record["misleading_claim"] = not resolved
+        step_records.append(step_record)
         if total.dollars is not None and total.dollars > cap_usd:
             cap_hit = True
             break
@@ -833,10 +988,15 @@ def run_experiment(
     max_runs: int | None = None,
     stratum: str | None = None,
     slice_name: str | None = None,
+    exploratory: bool = False,
+    smoke: bool = False,
 ) -> dict[str, Any]:
     if stratum:
         tasks = [t for t in tasks if t.stratum == stratum]
-    specs = plan_slice0(tasks) if slice_name == "slice0" else plan_runs(tasks, arms, reps, seed)
+    if smoke:
+        specs = plan_smoke(tasks)
+    else:
+        specs = plan_slice0(tasks) if slice_name == "slice0" else plan_runs(tasks, arms, reps, seed)
     if max_runs is not None:
         specs = specs[:max_runs]
     records: list[dict[str, Any]] = []
@@ -863,7 +1023,7 @@ def run_experiment(
             break
     report = {
         "run_id": run_id,
-        "mode": "pilot" if pilot else "confirmatory",
+        "mode": "exploratory" if exploratory else ("pilot" if pilot else "confirmatory"),
         "seed": seed,
         "repetitions": reps,
         "arms": list(arms),
@@ -871,10 +1031,19 @@ def run_experiment(
         "stratum": stratum,
         "max_run_usd": float(os.environ.get("EVALS_MAX_RUN_USD", "0.60")),
         "prices_as_of": prices.get("as_of"),
-        "prereg_sha256": (prereg.stored_hash_v2() if is_v2(tasks) else prereg.stored_hash()),
+        "prereg_sha256": (
+            None
+            if exploratory
+            else (prereg.stored_hash_v2() if is_v2(tasks) else prereg.stored_hash())
+        ),
         "started_at": datetime.now(UTC).isoformat(),
         "runs": records,
     }
+    if exploratory:
+        report["exploratory"] = True
+        report["label"] = "EXPLORATORY"
+    if smoke:
+        report["smoke"] = True
     if slice_name is not None:
         report["slice"] = slice_name
     if aborted is not None:
@@ -917,6 +1086,16 @@ def _parser() -> argparse.ArgumentParser:
         help="harness-validation slice: first long task, 1 off warm-up + ABBA off/checkpoint",
     )
     p.add_argument(
+        "--exploratory",
+        action="store_true",
+        help="required for the v3 adversarial task file; bypasses the prereg gate",
+    )
+    p.add_argument(
+        "--smoke",
+        action="store_true",
+        help="v3 only: fake claude, one adversarial chain x 2 arms (off, checkpoint)",
+    )
+    p.add_argument(
         "--stratum",
         choices=("short", "medium", "long"),
         default=None,
@@ -935,7 +1114,29 @@ def main(argv: list[str] | None = None) -> int:
     pilot = bool(args.pilot)
     tasks = load_tasks(Path(args.tasks))
     v2 = is_v2(tasks)
-    ok, message = (prereg.gate_ok_v2 if v2 else prereg.gate_ok)(_PKG, pilot)
+    exploratory = is_v3(tasks)
+    if exploratory and not args.exploratory:
+        print(
+            "refusing to start: the v3 adversarial task file is exploratory; pass --exploratory",
+            file=sys.stderr,
+        )
+        return 2
+    if args.exploratory and not exploratory:
+        print(
+            "refusing to start: --exploratory needs the v3 adversarial task file",
+            file=sys.stderr,
+        )
+        return 2
+    if args.smoke and not exploratory:
+        print("refusing to start: --smoke is a v3 exploratory run", file=sys.stderr)
+        return 2
+    if args.smoke and not os.environ.get("PLUGIN_AB_CLAUDE"):
+        print("refusing to start: --smoke runs the fake claude only", file=sys.stderr)
+        return 2
+    if exploratory:
+        ok, message = True, "exploratory run: no prereg gate"
+    else:
+        ok, message = (prereg.gate_ok_v2 if v2 else prereg.gate_ok)(_PKG, pilot)
     if not ok:
         print(f"refusing to start: {message}", file=sys.stderr)
         return 2
@@ -945,8 +1146,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.arms is not None:
         arms = tuple(a.strip() for a in args.arms.split(",") if a.strip())
     else:
-        arms = V2_ARMS if v2 else ARMS_OFF_ON
-    if v2:
+        arms = V2_ARMS if (v2 or exploratory) else ARMS_OFF_ON
+    if v2 or exploratory:
         rejected = [a for a in arms if a in V2_REJECTED_ARMS]
         if rejected:
             print(
@@ -970,7 +1171,9 @@ def main(argv: list[str] | None = None) -> int:
             print("refusing to start: --slice0 is a v2 slice", file=sys.stderr)
             return 2
         arms = ("off", "checkpoint")
-    model = SLICE0_MODEL if (v2 or args.slice0) else "haiku"
+    if args.smoke:
+        arms = ("off", "checkpoint")
+    model = SLICE0_MODEL if (v2 or exploratory or args.slice0) else "haiku"
     if args.model is not None and not args.slice0:
         model = args.model
     run_id = args.run_id or datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
@@ -996,6 +1199,8 @@ def main(argv: list[str] | None = None) -> int:
             max_runs=max_runs,
             stratum=args.stratum,
             slice_name="slice0" if args.slice0 else None,
+            exploratory=exploratory,
+            smoke=args.smoke,
         )
     finally:
         if not args.keep:
