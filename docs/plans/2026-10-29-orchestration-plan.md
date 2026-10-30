@@ -1,5 +1,8 @@
 # Orchestration plan: ten-day sprint as agent work packages
 
+> **Superseded 2026-10-30** by `2026-10-30-brief-first-orchestration.md` (Brief-first). Kept for history; Wave 1 here is done.
+
+
 Companion to `2026-10-29-ten-day-plan.md` (the why). This file is the how. Each work
 package (WP) is self-contained so it can be pasted into an Orca task and handed to a Claude
 Code or OpenCode agent.
