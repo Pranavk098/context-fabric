@@ -36,6 +36,7 @@ class FileFact:
     lines: int | None
     edited: bool
     last_seen: float
+    ranges: tuple[tuple[int, int, str, str], ...] = ()
 
 
 @dataclass(frozen=True)

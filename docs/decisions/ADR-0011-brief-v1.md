@@ -1,6 +1,6 @@
 # ADR-0011 — Brief v1: a model-aware, task-relevant handoff packet
 
-- **Status:** Proposed (founder signs off)
+- **Status:** Accepted 2026-10-30 (coordinator, under the founder's sprint authority; founder may amend)
 - **Date:** 2026-10-30
 - **Work package:** B0 in `docs/plans/2026-10-30-brief-first-orchestration.md`; binds B1, B2, B3 and R1
 - **Evidence:** `cfxd/brief.py` (Brief v0: 2,000-byte cap, `_sanitize`, `_rank_files`, `briefs.jsonl` receipt),
@@ -445,3 +445,17 @@ neighbours outside the working set; carry-back of the child's reply text.
   `tests/test_cfxd_launch.py` (B3: synchronous `PostToolUse` for `Agent`); `cfxd/cli.py` `set` choices (B3, before
   U1); a later doc update to `docs/specs/context-packet-v0.md` (boundary table: `v="1"` brief) and an "amended by
   ADR-0011" note on ADR-0008.
+
+## Decisions on the open questions (2026-10-30)
+
+- **Q1.** Accepted as written: parent assistant text is an allowed intent source, as the brief-first plan specifies.
+  Each item stays capped, labelled `[parent]`, and the required injection tests cover it. If a pilot shows prose
+  restating tool output, narrow to user prompts and the delegation prompt.
+- **Q2.** v1 packet JSON stays pointer-only. A packet v0.1 `brief` object is deferred until after the v4 pilot.
+- **Q3.** Fable budget equals Opus (20,000 bytes).
+- **Q4.** Missing `model` stays `unknown` (4,000 bytes). The v4 harness always passes `model`.
+- **Q5.** B3 must inspect a real sub-agent capture before building carry-back, and skips it under concurrency.
+- **Q6.** Import neighbours stay inside the parent's working set.
+- **Q7.** File locks amended as listed. Already on main: `cfxd/brief_types.py` (extracted verbatim) and
+  `FileFact.ranges` in `cfxd/session_state.py`. B2 still owns range recording; B1, B2 and B3 import
+  `cfxd/brief_types.py` and must not recreate it.
