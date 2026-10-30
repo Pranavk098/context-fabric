@@ -11,7 +11,7 @@ Paste this block at the top of every task.
 ```
 Repo: github.com/Pranavk098/context-fabric. Work on your own branch `s10-<wp-id>` from main.
 Read CLAUDE.md / AGENTS.md first. Python, uv, ruff, pytest.
-Before you finish: `uv run ruff check .`, `uv run pytest -q`, and `uv run python scripts/<docs-numbers checker>` must pass.
+Before you finish: `uv run ruff check .`, `uv run pytest -q`, and `uv run python scripts/check_docs_numbers.py` must pass.
 No new public claims. Do not edit README headline numbers, registered protocols (PROTOCOL*.md),
 or anything under evals/reports/. Touch only the files your WP lists; if you need another, stop and say so.
 Commit with a clear message; do not push or merge. End with: files changed, tests added, commands run + output, open questions.
