@@ -154,8 +154,8 @@ uvx --from git+https://github.com/Pranavk098/context-fabric cfxd audit
 ```
 
 **Help test it.** Follow [`docs/TESTING-GUIDE.md`](docs/TESTING-GUIDE.md) (about 15 minutes of setup, then normal
-use), then open an
-[alpha feedback issue](https://github.com/Pranavk098/context-fabric/issues/new?template=alpha-feedback.md) with the
+use), then open a
+[Brief feedback issue](https://github.com/Pranavk098/context-fabric/issues/new?template=brief-feedback.yml) with the
 output of `audit` and `stats`. Use it on your own computer only for now; see [`SECURITY.md`](SECURITY.md).
 
 Remove it: `claude plugin uninstall context-fabric@context-fabric`. Full steps and what is stored on disk:

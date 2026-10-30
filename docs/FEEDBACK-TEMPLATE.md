@@ -1,34 +1,11 @@
-# Alpha feedback template
+# Tester feedback
 
-Copy this into an issue or an email and fill in what you can. Short answers are fine.
+This page used to hold a copy-and-paste template. It is retired so there is one form to maintain.
 
-**OS and version:**
-(for example macOS 15.2, Ubuntu 24.04, Windows 11)
+Open a **Brief feedback** issue instead:
+https://github.com/Pranavk098/context-fabric/issues/new?template=brief-feedback.yml
 
-**Claude Code version:**
-(`claude --version`)
-
-**cfxd version:**
-(the first line of `cfxd week --share`, for example `cfxd week 0.1.1a1`)
-
-**Which experiments did you run?**
-- [ ] diet --apply / --undo
-- [ ] bound
-- [ ] coach
-- [ ] checkpoint then /clear
-- [ ] idle notice
-- [ ] none, measurement only
-
-**`cfxd week --share` output:**
-(paste the whole block)
-
-**What surprised you?**
-
-**What broke, errored or felt slower?**
-
-**Would you keep using it?**
-(yes / no / why)
-
-**May we quote you in public?**
-- [ ] No (default)
-- [ ] Yes
+It asks for the same things (OS, Claude Code and cfxd versions, which experiments you ran, your
+`cfxd week --share` output, what surprised you, what broke, whether you would keep using it, and
+whether we may quote you), plus what `cfxd brief` showed. For a bug, use the **Brief bug** form.
+If you cannot use GitHub, send the same answers by email.

@@ -9,14 +9,14 @@ SAFE_OUTPUT = "I pasted only `--share` output or counts, no prompts, paths or co
 
 
 def test_issue_forms_have_required_keys() -> None:
-    for name in ("bug.yml", "tester-feedback.yml"):
+    for name in ("bug.yml", "brief-bug.yml", "brief-feedback.yml"):
         text = (TEMPLATES / name).read_text(encoding="utf-8")
         for key in ("name:", "description:", "body:", "type: input", "type: textarea"):
             assert key in text, f"{name}: missing {key}"
 
 
 def test_feedback_form_covers_the_template_fields() -> None:
-    text = (TEMPLATES / "tester-feedback.yml").read_text(encoding="utf-8")
+    text = (TEMPLATES / "brief-feedback.yml").read_text(encoding="utf-8")
     for field in (
         "OS and version",
         "Claude Code version",
@@ -28,7 +28,7 @@ def test_feedback_form_covers_the_template_fields() -> None:
         "Would you keep using it?",
         "May we quote you in public?",
     ):
-        assert field in text, f"tester-feedback.yml: missing {field}"
+        assert field in text, f"brief-feedback.yml: missing {field}"
     assert SAFE_OUTPUT in text
     assert text.count(SAFE_OUTPUT) == 1
 
