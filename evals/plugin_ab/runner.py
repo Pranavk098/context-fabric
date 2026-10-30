@@ -1594,6 +1594,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--report-dir", default=str(DEFAULT_REPORT_DIR))
     p.add_argument("--run-id", default=None)
+    p.add_argument("--task-ids", default=None, help="comma-separated task ids to run (v4 pilot)")
     p.add_argument(
         "--pilot", action="store_true", help="bypass the prereg gate; capped at 8 runs; PILOT label"
     )
@@ -1645,6 +1646,12 @@ def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(sys.argv[1:] if argv is None else argv)
     pilot = bool(args.pilot)
     tasks = load_tasks(Path(args.tasks))
+    if args.task_ids:
+        wanted = {t for t in args.task_ids.split(",") if t}
+        tasks = [t for t in tasks if t.id in wanted]
+        if not tasks:
+            print("refusing to start: --task-ids matched no task", file=sys.stderr)
+            return 2
     v2 = is_v2(tasks)
     v4 = is_v4(tasks)
     exploratory = is_v3(tasks)
@@ -1735,7 +1742,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.model is not None and not args.slice0:
         model = args.model
     run_id = args.run_id or datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
-    max_runs = 8 if pilot else None
+    max_runs = (10 if v4 else 8) if pilot else None
     isolation = Path(tempfile.mkdtemp(prefix="plugin_ab_"))
     try:
         report = run_experiment(
