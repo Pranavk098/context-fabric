@@ -1,0 +1,46 @@
+name: macos
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
+        with:
+          version: "0.11.3"
+      - name: Sync environment
+        run: uv sync --locked --extra langgraph --python 3.12
+      - name: Lint
+        run: uv run ruff check .
+      - name: Tests
+        run: uv run pytest -q
+      - name: Install the plugin from the checkout
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude plugin marketplace add "$GITHUB_WORKSPACE"
+          claude plugin install context-fabric@context-fabric
+      - name: Ensure daemon
+        run: uv run --no-project --quiet --python ">=3.12" cfxd/launch.py ensure
+      - name: Doctor
+        run: uv run --no-project --quiet --python ">=3.12" python -m cfxd doctor
+      - name: Audit a fixture transcript
+        run: |
+          mkdir -p "$RUNNER_TEMP/transcripts/smoke"
+          cat > "$RUNNER_TEMP/transcripts/smoke/smoke.jsonl" <<'JSONL'
+          {"type": "user", "message": {"content": [{"type": "text", "text": "hello"}]}}
+          {"type": "assistant", "message": {"content": [{"type": "text", "text": "hi"}], "usage": {"input_tokens": 10, "output_tokens": 2, "cache_creation_input_tokens": 500, "cache_read_input_tokens": 0}}}
+          {"type": "result", "subtype": "success", "session_id": "smoke"}
+          JSONL
+          uv run cfxd audit --root "$RUNNER_TEMP/transcripts" --since all --json > "$RUNNER_TEMP/audit.json"
+          uv run python -c 'import json, sys; r = json.load(open(sys.argv[1])); assert r["sessions"] == 1, r; print("sessions:", r["sessions"])' "$RUNNER_TEMP/audit.json"
+      - name: Stop
+        run: uv run --no-project --quiet --python ">=3.12" python -m cfxd stop
