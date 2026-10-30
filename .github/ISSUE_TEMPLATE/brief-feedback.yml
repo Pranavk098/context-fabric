@@ -1,0 +1,83 @@
+name: Brief feedback
+description: Tried Brief with sub-agents? Tell us what happened (counts only, please)
+labels: ["alpha-feedback", "brief"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Brief v1 is experimental, off by default, and has no measured benefit. See
+        [`docs/TESTING-GUIDE.md`](https://github.com/Pranavk098/context-fabric/blob/main/docs/TESTING-GUIDE.md). Short answers are fine, and
+        "it did nothing" is a useful answer.
+  - type: input
+    id: os
+    attributes:
+      label: OS and version
+      placeholder: macOS 15.2, Ubuntu 24.04, Windows 11
+    validations:
+      required: true
+  - type: input
+    id: claude-version
+    attributes:
+      label: Claude Code version
+      description: The output of `claude --version`.
+    validations:
+      required: true
+  - type: input
+    id: cfxd-version
+    attributes:
+      label: cfxd version
+      description: The first line of `cfxd week --share`, for example `cfxd week 0.1.1a1`.
+  - type: checkboxes
+    id: experiments
+    attributes:
+      label: Which experiments did you run?
+      options:
+        - label: Brief (`cfxd set brief on` and `cfxd set brief_v1 on`)
+        - label: diet --apply / --undo
+        - label: bound
+        - label: coach
+        - label: checkpoint then /clear
+        - label: idle notice
+        - label: none, measurement only
+  - type: textarea
+    id: share-output
+    attributes:
+      label: cfxd week --share output
+      description: Paste the whole block. It contains counts, sizes and model ids only.
+      render: text
+  - type: textarea
+    id: brief-summary
+    attributes:
+      label: What did `cfxd brief` show?
+      description: In words, not pasted. Target model, packet size against the budget, and the re-read counts. No file paths.
+  - type: textarea
+    id: surprised
+    attributes:
+      label: What surprised you?
+  - type: textarea
+    id: broke
+    attributes:
+      label: What broke, errored or felt slower?
+  - type: textarea
+    id: confused
+    attributes:
+      label: Did a `context-fabric-brief` note ever confuse or mislead a sub-agent?
+  - type: textarea
+    id: keep-using
+    attributes:
+      label: Would you keep using it?
+      description: "yes / no / why"
+  - type: checkboxes
+    id: quote
+    attributes:
+      label: May we quote you in public?
+      options:
+        - label: No (default)
+        - label: "Yes"
+  - type: checkboxes
+    id: safe-output
+    attributes:
+      label: Safe to share
+      options:
+        - label: I pasted only `--share` output or counts, no prompts, paths or commands
+          required: true
