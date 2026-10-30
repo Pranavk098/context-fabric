@@ -206,8 +206,8 @@ def test_v2_prereg_gate_still_matches() -> None:
 def test_v3_smoke_runs_off_and_checkpoint_and_labels_the_report(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setattr(runner, "save_checkpoint", lambda *args: 0)
-    monkeypatch.setattr(runner, "checkpoint_block", lambda *args: "")
+    monkeypatch.setattr(runner, "save_checkpoint", lambda *args: 321)
+    monkeypatch.setattr(runner, "checkpoint_block", lambda *args: "BLOCK")
     report = _run(_tasks(), tmp_path, arms=("off", "checkpoint"), smoke=True)
     assert report["mode"] == "exploratory"
     assert report["label"] == "EXPLORATORY"
@@ -303,8 +303,8 @@ def test_analyzer_v3_outcomes_claims_and_note() -> None:
 def test_v3_analysis_cli_writes_exploratory_files(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(runner, "save_checkpoint", lambda *args: 0)
-    monkeypatch.setattr(runner, "checkpoint_block", lambda *args: "")
+    monkeypatch.setattr(runner, "save_checkpoint", lambda *args: 321)
+    monkeypatch.setattr(runner, "checkpoint_block", lambda *args: "BLOCK")
     report = _run(_tasks(), tmp_path, arms=("off", "checkpoint"), smoke=True)
     assert report["label"] == "EXPLORATORY"
     assert analyze.main(["--v3", "--report-dir", str(tmp_path / "reports")]) == 0

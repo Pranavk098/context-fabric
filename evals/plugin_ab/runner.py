@@ -18,6 +18,7 @@ import argparse
 import json
 import os
 import random
+import re
 import shutil
 import socket
 import subprocess
@@ -25,7 +26,7 @@ import sys
 import tempfile
 import time
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -45,6 +46,13 @@ DEFAULT_REPORT_DIR = _REPO_ROOT / "evals" / "reports" / "plugin_ab"
 ARMS_OFF_ON = ("off", "on")
 V2_ARMS = ("off", "shipped", "checkpoint")
 V2_REJECTED_ARMS = ("diet", "combo")
+# Recall-validation control: same session break as the checkpoint arm, but nothing is saved or
+# injected, and no plugin loads. Never part of a measured comparison.
+RECALL_CONTROL_ARM = "no_restore"
+BOUNDARY_ARMS = ("checkpoint", RECALL_CONTROL_ARM)
+RECALL_ORACLE_PREFIX = "oracles/recall_"
+# The recall facts are planted in the prompt of this (0-based) step, before the first boundary.
+RECALL_PLANT_STEP = 1
 # The checkpoint arm saves after these 1-based step numbers and continues in a new session.
 CHECKPOINT_BOUNDARIES: dict[str, tuple[int, ...]] = {"long": (4, 8), "medium": (2,), "short": ()}
 # Exploratory v3 chains save after steps 2 and 4 so the harness change that follows is unseen.
@@ -96,6 +104,7 @@ class RunSpec:
     rep: int  # -1 is the warm-up run
     warm_up: bool
     order_index: int
+    seed: int = 0  # experiment seed; recall facts are derived from it per run
 
 
 def load_tasks(path: Path = DEFAULT_TASKS) -> list[Task]:
@@ -240,7 +249,7 @@ def build_command(
         # Account connectors leak in despite --setting-sources; an empty strict config blocks them
         # for every arm so no arm pays for (or races) ~490 deferred tools.
         cmd += ["--strict-mcp-config", "--mcp-config", str(mcp_config)]
-    if arm != "off":
+    if arm not in ("off", RECALL_CONTROL_ARM):
         cmd += ["--plugin-dir", str(plugin_root)]
     return cmd
 
@@ -429,6 +438,75 @@ def _last_receipt(cfx_home: Path, event: str) -> dict[str, Any] | None:
         if isinstance(obj, dict) and obj.get("event") == event:
             last = obj
     return last
+
+
+_TOKEN_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+_CODE_ADJECTIVES = (
+    "amber", "brisk", "cobalt", "dusky", "ember", "flint", "gilded", "hazel", "ivory", "jade",
+    "keen", "lunar",
+)  # fmt: skip
+_CODE_NOUNS = (
+    "anchor", "beacon", "cipher", "delta", "engine", "falcon", "garnet", "harbor", "island",
+    "jigsaw", "kettle", "lantern",
+)  # fmt: skip
+
+
+@dataclass(frozen=True)
+class RecallQuestion:
+    key: str
+    ask: str
+    expected: str
+
+
+def make_recall_facts(seed: int, task_id: str, rep: int) -> tuple[str, tuple[RecallQuestion, ...]]:
+    """Facts that exist nowhere in the repo, generated from the run seed.
+
+    Returns ``(plant_text, questions)``. The plant text goes into one mid-session prompt; the
+    questions are asked after the session break. Same ``(seed, task, rep)`` -> same facts.
+    """
+    rng = random.Random(f"recall:{seed}:{task_id}:{rep}")
+    token = "CF-" + "".join(rng.choice(_TOKEN_ALPHABET) for _ in range(6))
+    days = str(rng.randint(101, 989))
+    codename = f"{rng.choice(_CODE_ADJECTIVES)}-{rng.choice(_CODE_NOUNS)}"
+    decision_id = f"DEC-{rng.randint(1000, 9999)}"
+    plant = (
+        "Side note for later in this session (not part of the task; do not write it to any "
+        f"file): the release token is {token}; {decision_id} decided that stale carts are "
+        f"archived after {days} days; the incident codename is {codename}."
+    )
+    questions = (
+        RecallQuestion("release_token", "the release token", token),
+        RecallQuestion(
+            "archive_days", "the number of days after which stale carts are archived", days
+        ),
+        RecallQuestion("incident_codename", "the incident codename", codename),
+    )
+    return plant, questions
+
+
+def recall_prompt(questions: tuple[RecallQuestion, ...]) -> str:
+    keys = "; ".join(f"`{q.key}` ({q.ask})" for q in questions)
+    return (
+        "Earlier in this session I mentioned three facts in a side note. Write `answers.json` "
+        f"in the working directory with these keys: {keys}. Answer only from what was said "
+        'in this session; do not search the repository, and use "unknown" if you do not know.'
+    )
+
+
+def _answer_matches(answer: object, expected: str) -> bool:
+    pattern = r"(?<![A-Za-z0-9-])" + re.escape(expected) + r"(?![A-Za-z0-9-])"
+    return re.search(pattern, str(answer), re.IGNORECASE) is not None
+
+
+def score_recall(work: Path, questions: tuple[RecallQuestion, ...]) -> list[str]:
+    """Keys of the questions answered correctly in ``answers.json`` (missing file -> none)."""
+    try:
+        answers = json.loads((work / "answers.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    if not isinstance(answers, dict):
+        return []
+    return [q.key for q in questions if _answer_matches(answers.get(q.key, ""), q.expected)]
 
 
 def save_checkpoint(python: str, work: Path, cfx_home: Path, port: int) -> int:
@@ -751,10 +829,13 @@ def _run_chain(
     previous_parent = ScanResult()
     previous_subs = ScanResult()
     previous_total = ScanResult()
+    run_parent = ScanResult()  # run-wide sums of the per-step deltas, across every session
+    run_subs = ScanResult()
+    run_total = ScanResult()
     duration = 0.0
     cap_hit = False
     boundaries: set[int] = set()
-    if spec.arm == "checkpoint":
+    if spec.arm in BOUNDARY_ARMS:
         registered = CHECKPOINT_BOUNDARIES.get(task.stratum, ())
         if task.exploratory:
             registered = V3_CHECKPOINT_BOUNDARIES
@@ -765,13 +846,31 @@ def _run_chain(
     snapshots: list[dict[str, bytes]] = []
     mcp_config = write_empty_mcp_config(run_dir)
     mcp_seen: dict[str, tuple[int, int]] = {}
+    has_recall = any(s.oracle.startswith(RECALL_ORACLE_PREFIX) for s in task.steps)
+    plant_text, questions = (
+        make_recall_facts(spec.seed, task.id, spec.rep) if has_recall else ("", ())
+    )
+    recall_invalid: list[str] = []
 
     for index, step in enumerate(task.steps):
         if index in boundaries and index < len(task.steps):
-            saved = save_checkpoint(python, work, cfx_home, port)
+            if spec.arm == RECALL_CONTROL_ARM:
+                saved = 0  # control: break the session, save nothing, inject nothing
+            else:
+                saved = save_checkpoint(python, work, cfx_home, port)
+                if saved <= 0:
+                    # A 0-byte save means the arm under test did not run; never score it degraded.
+                    return _infra_record(task, spec, session_id, "save_empty")
             pending_block = checkpoint_block(python, work, cfx_home, port) if saved else ""
             session_id = _new_session_id()
             fresh_session = True
+            # The new session's usage starts at zero; its cumulative totals are not a delta
+            # against the old session's.
+            previous_parent, previous_subs, previous_total = (
+                ScanResult(),
+                ScanResult(),
+                ScanResult(),
+            )
             checkpoints.append(
                 {"after_step": index, "saved_bytes": saved, "restore_outcome": "none"}
             )
@@ -781,9 +880,14 @@ def _run_chain(
             snapshots.append(snapshot_tree(work))
             if index > 0:
                 apply_between(work, task.steps[index - 1].between, snapshots)
+        is_recall = step.oracle.startswith(RECALL_ORACLE_PREFIX)
+        correct: list[str] = []
+        step_prompt = recall_prompt(questions) if is_recall else step.prompt
+        if plant_text and index == RECALL_PLANT_STEP:
+            step_prompt = step_prompt + "\n\n" + plant_text
         cmd = build_command(
             claude_bin,
-            prompt=(pending_block + chr(10) * 2 if pending_block else "") + step.prompt,
+            prompt=(pending_block + chr(10) * 2 if pending_block else "") + step_prompt,
             model=model,
             session_id=session_id,
             arm=spec.arm,
@@ -802,7 +906,14 @@ def _run_chain(
             solution_path = run_dir / f"solution_{index}.json"
             solution_path.write_text(json.dumps(step.reference_patch), encoding="utf-8")
             env["PLUGIN_AB_SOLUTION"] = str(solution_path)
-            if step.fake_answers is not None:
+            if is_recall:
+                # The fake "remembers" unless the arm has no memory of the planted facts.
+                forgets = spec.arm == RECALL_CONTROL_ARM
+                fake_recall = {q.key: "unknown" if forgets else q.expected for q in questions}
+                answers_path = run_dir / f"answers_{index}.json"
+                answers_path.write_text(json.dumps(fake_recall), encoding="utf-8")
+                env["PLUGIN_AB_FAKE_ANSWERS"] = str(answers_path)
+            elif step.fake_answers is not None:
                 answers_path = run_dir / f"answers_{index}.json"
                 answers_path.write_text(json.dumps(step.fake_answers), encoding="utf-8")
                 env["PLUGIN_AB_FAKE_ANSWERS"] = str(answers_path)
@@ -826,7 +937,10 @@ def _run_chain(
         if churn:
             return _infra_record(task, spec, session_id, "mcp_churn")
         if fresh_session:
-            checkpoints[-1]["restore_outcome"] = "injected" if pending_block else "missing"
+            if spec.arm == RECALL_CONTROL_ARM:
+                checkpoints[-1]["restore_outcome"] = "none"
+            else:
+                checkpoints[-1]["restore_outcome"] = "injected" if pending_block else "missing"
             pending_block = ""
             fresh_session = False
 
@@ -837,6 +951,13 @@ def _run_chain(
             outcome = kill_step_oracle(python, work, step.oracle)
             recall_score, recall_of = None, None
             resolved = False
+        elif is_recall:
+            correct = score_recall(work, questions)
+            recall_score, recall_of = len(correct), len(questions)
+            resolved = recall_score == recall_of
+            outcome = "pass" if resolved else "fail"
+            if spec.arm == RECALL_CONTROL_ARM:
+                recall_invalid = correct
         else:
             oracle_result = run_step_oracle(python, work, step.oracle, step.timeout)
             if oracle_result is None:
@@ -852,6 +973,9 @@ def _run_chain(
         dsubs = _delta_usage(previous_subs, subs)
         dtotal = _delta_usage(previous_total, total)
         previous_parent, previous_subs, previous_total = parent, subs, total
+        run_parent = combine([run_parent, dparent])
+        run_subs = combine([run_subs, dsubs])
+        run_total = combine([run_total, dtotal])
 
         step_record: dict[str, Any] = {
             "id": step.id,
@@ -871,8 +995,10 @@ def _run_chain(
             step_record["outcome"] = outcome
             if step.claim_check:
                 step_record["misleading_claim"] = not resolved
+        if is_recall:
+            step_record["recall_correct"] = correct
         step_records.append(step_record)
-        if total.dollars is not None and total.dollars > cap_usd:
+        if run_total.dollars is not None and run_total.dollars > cap_usd:
             cap_hit = True
             break
 
@@ -894,19 +1020,17 @@ def _run_chain(
         "recall_of": sum(s["recall_of"] or 0 for s in step_records if s["recall_of"] is not None)
         if recall_scores
         else None,
-        "turns": previous_total.turns,
+        "turns": run_total.turns,
         "usage": {
-            "parent": _usage_dict(previous_parent),
-            "subagents": _usage_dict(previous_subs),
+            "parent": _usage_dict(run_parent),
+            "subagents": _usage_dict(run_subs),
             "subagent_sessions": step_records[-1]["usage"]["subagent_sessions"]
             if step_records
             else 0,
         },
-        "weighted_tokens": round(previous_total.weighted(), 3),
-        "dollars": (
-            round(previous_total.dollars, 8) if previous_total.dollars is not None else None
-        ),
-        "unpriced_models": sorted(previous_total.unpriced_models),
+        "weighted_tokens": round(run_total.weighted(), 3),
+        "dollars": (round(run_total.dollars, 8) if run_total.dollars is not None else None),
+        "unpriced_models": sorted(run_total.unpriced_models),
         "duration_s": round(duration, 3),
         "session_id": session_id,
     }
@@ -915,7 +1039,11 @@ def _run_chain(
         record["boundaries_taken"] = [c["after_step"] for c in checkpoints]
         record["checkpoint_saved_bytes"] = sum(int(c["saved_bytes"]) for c in checkpoints)
         record["checkpoint_restore_outcome"] = checkpoints[-1]["restore_outcome"]
-    if spec.arm != "off":
+    if spec.arm == RECALL_CONTROL_ARM:
+        # Any question the memoryless control answers correctly does not measure memory.
+        record["recall_invalid_questions"] = recall_invalid
+        record["recall_valid"] = not recall_invalid
+    if spec.arm not in ("off", RECALL_CONTROL_ARM):
         record["brief_fired"] = detect_brief(cfx_home)
         record["carry_fired"] = detect_carry(cfx_home)
         record["overhead"] = collect_overhead(cfx_home)
@@ -1067,6 +1195,7 @@ def run_experiment(
     aborted: str | None = None
     consecutive_infra = 0
     for spec in specs:
+        spec = replace(spec, seed=seed)
         task = next(t for t in tasks if t.id == spec.task_id)
         record = run_one(
             task,
@@ -1220,7 +1349,7 @@ def main(argv: list[str] | None = None) -> int:
                 file=sys.stderr,
             )
             return 2
-        unknown = [a for a in arms if a not in V2_ARMS]
+        unknown = [a for a in arms if a not in (*V2_ARMS, RECALL_CONTROL_ARM)]
         if unknown:
             print(
                 f"refusing to start: unknown v2 arm(s) {', '.join(unknown)}; "
