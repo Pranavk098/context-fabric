@@ -38,6 +38,14 @@ jobs:
         uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
         with:
           version: "0.11.3"
+      - name: Test gates
+        run: |
+          uv sync --locked
+          uv run ruff check .
+          uv run ruff format --check .
+          uv run mypy protocol evals kernel sidecar adapters cfxd
+          uv run pytest -q
+          uv run python scripts/check_docs_numbers.py
       - name: Build sdist and wheel
         run: uv build
       - name: Checksums
@@ -59,7 +67,7 @@ jobs:
           printf '%s' "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?$' \
             || { echo "release: invalid tag '$TAG'" >&2; exit 1; }
           notes="docs/release-notes/${TAG}.md"
-          [ -f "$notes" ] || { printf 'Release %s. See CHANGELOG.md.\n' "$TAG" > "$notes"; }
+          if [ -f "$notes" ]; then notes_arg="--notes-file $notes"; else notes_arg="--generate-notes"; fi
           flags=""
           case "$TAG" in *-*) flags="--prerelease" ;; esac
-          gh release create "$TAG" dist/* --title "$TAG" --notes-file "$notes" $flags
+          gh release create "$TAG" dist/* --title "$TAG" $notes_arg $flags
