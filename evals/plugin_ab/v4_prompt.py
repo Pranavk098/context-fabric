@@ -13,9 +13,10 @@ from __future__ import annotations
 
 CONSTRAINTS_MARKER = "Constraints for this task:"
 SUBAGENT_TYPE = "general-purpose"
-# Environment switch that turns on forked sub-agents in Claude Code. UNVERIFIED for the pinned
-# claude version: the v4 pilot must confirm that a fork child inherits the parent conversation
-# (the run record's ``child_parent_msg_overlap`` is the evidence).
+# Fork mode is on by default in claude >= 2.1.302 (docs; "0" turns it off). A fork always runs on
+# the parent's model, so the fork arm cannot be model-matched to the Haiku children. The pilot's
+# ``child_parent_msg_overlap`` was 0 for fork runs, so whether the child really inherited the
+# conversation is still unconfirmed.
 FORK_ENV = {"CLAUDE_CODE_FORK_SUBAGENT": "1"}
 
 
