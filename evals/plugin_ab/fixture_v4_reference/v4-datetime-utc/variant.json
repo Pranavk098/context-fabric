@@ -1,0 +1,14 @@
+{
+  "src/click/datetimes.py": [
+    {"old": "DEFAULT_ASSUME_UTC", "new": "ASSUME_UTC_DEFAULT", "all": true},
+    {"old": "def attach_utc(", "new": "def _attach_utc("},
+    {
+      "old": "raise TypeError(\"assume_utc must be a bool\")",
+      "new": "raise TypeError(\"assume_utc must be true or false\")"
+    }
+  ],
+  "src/click/types.py": [
+    {"old": "DEFAULT_ASSUME_UTC", "new": "ASSUME_UTC_DEFAULT", "all": true},
+    {"old": "attach_utc", "new": "_attach_utc", "all": true}
+  ]
+}

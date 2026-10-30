@@ -1,0 +1,12 @@
+{
+  "src/click/utils.py": [
+    {"old": "DEFAULT_ECHO_SEP", "new": "ECHO_SEPARATOR", "all": true},
+    {
+      "old": "    if not isinstance(sep, str):\n        raise TypeError(\"sep must be a string\")\n\n",
+      "new": ""
+    }
+  ],
+  "src/click/termui.py": [
+    {"old": "DEFAULT_ECHO_SEP", "new": "ECHO_SEPARATOR", "all": true}
+  ]
+}

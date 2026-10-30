@@ -1,0 +1,18 @@
+{
+  "src/click/aliases.py": [
+    {"old": "ALIAS_HELP_SEPARATOR = \" / \"", "new": "ALIAS_HELP_SEPARATOR = \", \""},
+    {"old": "def find_alias(", "new": "def _find_alias("}
+  ],
+  "src/click/core.py": [
+    {"old": "from .aliases import find_alias", "new": "from .aliases import _find_alias"},
+    {"old": "command = find_alias(self.commands, cmd_name)", "new": "command = _find_alias(self.commands, cmd_name)"},
+    {
+      "old": "                aliases = getattr(cmd, \"aliases\", ())\n\n                if aliases:\n                    from .aliases import ALIAS_HELP_SEPARATOR\n\n                    help = f\"{help} (aliases: {ALIAS_HELP_SEPARATOR.join(aliases)})\"\n\n                rows.append((subcommand, help))",
+      "new": "                rows.append((subcommand, help))"
+    },
+    {
+      "old": "        if any(not alias for alias in aliases):\n            raise ValueError(\"aliases must be non-empty strings\")\n\n        self.aliases = tuple(aliases)",
+      "new": "        self.aliases = tuple(aliases)"
+    }
+  ]
+}

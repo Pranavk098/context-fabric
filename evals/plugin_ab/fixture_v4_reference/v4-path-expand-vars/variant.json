@@ -1,0 +1,14 @@
+{
+  "src/click/paths.py": [
+    {"old": "DEFAULT_EXPAND_VARS", "new": "EXPAND_VARS_DEFAULT", "all": true},
+    {"old": "def expand_path_vars(", "new": "def _expand_path_vars("},
+    {
+      "old": "    if not isinstance(enabled, bool):\n        raise TypeError(\"expand_vars must be a bool\")\n\n",
+      "new": ""
+    }
+  ],
+  "src/click/types.py": [
+    {"old": "DEFAULT_EXPAND_VARS", "new": "EXPAND_VARS_DEFAULT", "all": true},
+    {"old": "expand_path_vars", "new": "_expand_path_vars", "all": true}
+  ]
+}

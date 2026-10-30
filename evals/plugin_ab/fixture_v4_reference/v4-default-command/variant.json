@@ -1,0 +1,17 @@
+{
+  "src/click/defaults.py": [
+    {"old": "DEFAULT_COMMAND_ATTR", "new": "DEFAULT_CMD_ATTR", "all": true},
+    {"old": "def pick_default_command(", "new": "def select_default_command("}
+  ],
+  "src/click/core.py": [
+    {"old": "from .defaults import pick_default_command", "new": "from .defaults import select_default_command"},
+    {
+      "old": "        default_command = pick_default_command(self.default_command, ctx._protected_args)",
+      "new": "        default_command = select_default_command(self.default_command, ctx._protected_args)"
+    },
+    {
+      "old": "                raise RuntimeError(\n                    f\"Default command {default_command!r} is not registered.\"\n                )",
+      "new": "                raise RuntimeError(f\"unknown default: {default_command}\")"
+    }
+  ]
+}

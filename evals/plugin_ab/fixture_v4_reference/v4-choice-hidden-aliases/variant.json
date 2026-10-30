@@ -1,0 +1,14 @@
+{
+  "src/click/choice_set.py": [
+    {"old": "ALIAS_MAP_NAME", "new": "ALIAS_KEY", "all": true},
+    {"old": "def build_alias_map(", "new": "def _build_map("},
+    {
+      "old": "raise ValueError(f\"alias {alias!r} conflicts with a choice\")",
+      "new": "raise ValueError(f\"duplicate alias: {alias}\")"
+    }
+  ],
+  "src/click/types.py": [
+    {"old": "ALIAS_MAP_NAME", "new": "ALIAS_KEY", "all": true},
+    {"old": "build_alias_map", "new": "_build_map", "all": true}
+  ]
+}

@@ -38,6 +38,12 @@ packages = ["protocol", "kernel", "sidecar", "adapters", "cfxd"]
 python_version = "3.12"
 strict = true
 warn_unused_ignores = true
+# v4 fixture, its hidden tests and its reference patches are not part of the package.
+exclude = [
+    "^evals/plugin_ab/fixture_v4/",
+    "^evals/plugin_ab/fixture_v4_hidden/",
+    "^evals/plugin_ab/fixture_v4_reference/",
+]
 
 # Optional extras: type-check must pass whether or not they are installed.
 [[tool.mypy.overrides]]
@@ -63,7 +69,13 @@ ignore_missing_imports = true
 line-length = 100
 target-version = "py312"
 # Benchmark fixtures are patched byte-for-byte by reference patches; never reformat them.
-extend-exclude = ["evals/plugin_ab/fixture_v2", "evals/plugin_ab/fixture_v3"]
+extend-exclude = [
+    "evals/plugin_ab/fixture_v2",
+    "evals/plugin_ab/fixture_v3",
+    "evals/plugin_ab/fixture_v4",
+    "evals/plugin_ab/fixture_v4_hidden",
+    "evals/plugin_ab/fixture_v4_reference",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
