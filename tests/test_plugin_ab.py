@@ -34,7 +34,7 @@ def _copy_fixture(dest: Path) -> Path:
 
 def _run_oracle(work: Path, oracle: str) -> bool:
     runner.purge_pycache(work)
-    env = dict(**os.environ, PYTHONDONTWRITEBYTECODE="1")
+    env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
     proc = subprocess.run(
         [sys.executable, "-m", "pytest", "-q", oracle],
         cwd=work,
@@ -52,7 +52,7 @@ def test_fixture_tests_pass(tmp_path: Path) -> None:
         cwd=dest,
         capture_output=True,
         timeout=300,
-        env=dict(**os.environ, PYTHONDONTWRITEBYTECODE="1"),
+        env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
     )
     assert proc.returncode == 0
 
