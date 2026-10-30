@@ -22,6 +22,15 @@ INTENT_ITEM_MAX_BYTES = 200
 GOAL_MIN_BYTES = 40
 MAX_PER_SECTION = 20
 _MAX_SENTENCES_PER_RECORD = 40
+# Share of each section's cap reserved for the opening user turn(s) (ordering amendment).
+RESERVED_PER_SECTION = -(-MAX_PER_SECTION // 3)
+_STRONG = 3
+_TOKEN = re.compile(r"[\w][\w./\-]*")
+_STOPWORDS = frozenset(
+    "this that with from have will would should must never always only avoid required "
+    "does done into when then than them they their there what which while where about "
+    "after before also been being both each other some such very your ours".split()
+)
 
 _CONSTRAINT = re.compile(
     r"\b(?:must|must not|do not|don't|never|always|only|avoid|required|should not|shouldn't)\b"
@@ -116,6 +125,52 @@ def _looks_like_marker(text: str) -> bool:
     return _MARKER.search(compact) is not None
 
 
+def _tokens(text: str) -> dict[str, int]:
+    """Content words of ``text`` mapped to a weight: 3 for identifier-like, 1 for plain words."""
+    out: dict[str, int] = {}
+    for raw in _TOKEN.findall(unicodedata.normalize("NFKC", text)):
+        word = raw.strip("./-_")
+        low = word.casefold()
+        if len(low) < 4 or low in _STOPWORDS:
+            continue
+        identifier = any(ch in word for ch in "._/\\") or any(ch.isdigit() for ch in word)
+        identifier = identifier or (
+            word != low and word != word.capitalize() and word != word.upper()
+        )
+        out[low] = max(out.get(low, 0), _STRONG if identifier else 1)
+    return out
+
+
+_Cand = tuple[str, str, int, int]  # (sentence, source, turn, arrival order)
+
+
+def _select(cands: list[_Cand], task: dict[str, int]) -> list[_Cand]:
+    """Pick up to ``MAX_PER_SECTION`` candidates (given newest-first), in rendering order.
+
+    Order: (1) items sharing an identifier (file name, symbol) with the delegation prompt, best
+    first; (2) the reserved share of the opening user turn(s), chosen oldest first and shown
+    newest-first; (3) the rest, items sharing plain words first, then newest-first. The sort is
+    stable, so ties stay newest-first.
+    """
+    scored: list[tuple[int, bool, _Cand]] = []
+    for cand in cands:
+        shared = [(w, task[t]) for t, w in _tokens(cand[0]).items() if t in task]
+        scored.append(
+            (sum(max(pair) for pair in shared), any(max(p) >= _STRONG for p in shared), cand)
+        )
+    ranked = sorted(scored, key=lambda t: -t[0])
+    early = sorted((c for _, _, c in scored if c[1] == "user"), key=lambda c: (c[2], c[3]))
+    early = early[:RESERVED_PER_SECTION]
+    strong = [c for _, is_strong, c in ranked if is_strong]
+    strong_ids = {id(c) for c in strong}
+    early = [c for c in early if id(c) not in strong_ids]
+    early.sort(key=lambda c: (-c[2], c[3]))  # shown newest-first, as before
+    picked = strong[: MAX_PER_SECTION - len(early)] + early
+    chosen = {id(c) for c in picked}
+    picked += [c for _, _, c in ranked if id(c) not in chosen]
+    return picked[:MAX_PER_SECTION]
+
+
 def _make_item(sentence: str, source: str, turn: int) -> IntentItem | None:
     if _looks_like_marker(sentence):
         return None
@@ -182,21 +237,20 @@ def extract_intent(transcript_path: str | None, prompt: str, facts: SessionFacts
     delegation = _fold_key(_normalise(prompt)) if isinstance(prompt, str) else ""
     seen: set[str] = set()
     deduped = 0
-    sections: dict[str, list[IntentItem]] = {"constraints": [], "decisions": [], "tried": []}
+    cands: dict[str, list[_Cand]] = {"constraints": [], "decisions": [], "tried": []}
 
     def add(name: str, sentence: str, source: str, turn: int) -> None:
         nonlocal deduped
         key = _fold_key(sentence)
-        if not key or key in seen or len(sections[name]) >= MAX_PER_SECTION:
+        if not key or key in seen:
             return
         if key in delegation:
             deduped += 1
             return
-        item = _make_item(sentence, source, turn)
-        if item is None:
+        if _make_item(sentence, source, turn) is None:
             return
         seen.add(key)
-        sections[name].append(item)
+        cands[name].append((sentence, source, turn, len(cands[name])))
 
     records = _after_last_boundary(_read_records(transcript_path))
     users = [
@@ -216,6 +270,15 @@ def extract_intent(transcript_path: str | None, prompt: str, facts: SessionFacts
                 name = _section_of(sentence)
                 if name is not None:
                     add(name, sentence, source, turn)
+
+    task = _tokens(prompt) if isinstance(prompt, str) else {}
+    sections: dict[str, list[IntentItem]] = {}
+    for name, found in cands.items():
+        sections[name] = [
+            item
+            for sentence, source, turn, _ in _select(found, task)
+            if (item := _make_item(sentence, source, turn)) is not None
+        ]
 
     if facts is not None and facts.test is not None and facts.test.ok is False:
         key = _cap(_sanitize(facts.test.key), 80).strip()

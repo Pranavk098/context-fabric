@@ -486,3 +486,24 @@ Review findings on rendered packets. No interface (`cfxd/brief_types.py`) or pac
   by (b) increments `Intent.deduped`. If nothing is left the next older user prompt is tried; if none, there is no goal
   line. The delegation-prompt dedup is unchanged.
 - **`cfxd doctor`** prints `brief_v1` and `carry_back` on the `flags:` line.
+
+## Amended (ordering, 2026-10-30)
+
+`scripts/check_brief_ordering.py` showed that newest-first selection loses facts stated in the opening user turn.
+`extract_intent` kept the first `MAX_PER_SECTION` (20) sentences walking newest-first, and `render` fills the
+constraints sub-budget in that order (about 624 bytes on Haiku). With 3 planted early facts, Haiku lost one after 2
+later user turns and all after 5; Sonnet and Opus lost all by 10. Facts planted early in a long session are exactly
+what a handoff must carry.
+
+Selection per section (constraints, decisions, tried) is now, in rendering order:
+
+1. Items that share an identifier with the delegation prompt (file name, path, symbol such as `parse_widget` or
+   `lib/widgets.py`), most overlap first. Plain-word overlap alone does not qualify, so common verbs do not
+   crowd out older facts.
+2. A reserved share of `ceil(MAX_PER_SECTION / 3)` = 7 slots for the oldest user sentences in the section (chosen oldest first, listed newest-first among themselves).
+3. The remaining slots: items with plain-word overlap first, then newest first.
+
+Ties keep the old newest-first order, so output is deterministic. The cap (20), byte budgets, sanitising, source
+rules (user prompts, parent assistant text, delegation prompt only; never tool output) and both dedup rules are
+unchanged. Result of the script: all 3 early facts survive up to 20 later user turns on Haiku, Sonnet and Opus. Each
+fact is under 100 bytes, so 3 facts fit the Haiku constraints budget with room to spare.
