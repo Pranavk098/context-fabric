@@ -229,7 +229,7 @@ def test_changed_file_degrades_to_pointer(tmp_path: Path) -> None:
     out = run(selection(files=(f,)), cwd=tmp_path)
     assert "CHANGED" not in out.text  # type: ignore[attr-defined]
     assert "=== " not in out.text  # type: ignore[attr-defined]
-    assert f"- {p.as_posix()} | 10 lines | read" in out.text  # type: ignore[attr-defined]
+    assert "- a.py | 10 lines | read" in out.text  # type: ignore[attr-defined]
     (receipt,) = out.items  # type: ignore[attr-defined]
     assert receipt.degraded is True and receipt.excerpt_lines == ()
     assert_valid(out)
@@ -337,7 +337,7 @@ def test_content_lines_never_start_at_column_zero(tmp_path: Path) -> None:
     lines = out.text.split("\n")  # type: ignore[attr-defined]
     start = [i for i, x in enumerate(lines) if x.startswith("=== ") and " lines " in x][0]
     end = lines.index("=== end ===", start)
-    assert lines[start].startswith(f"=== {Path(f.path).as_posix()} lines 1-5")
+    assert lines[start].startswith(f"=== {Path(f.path).name} lines 1-5")
     assert all(x[:5].strip().isdigit() and x[5:7] == "| " for x in lines[start + 1 : end])
     assert lines.count("=== end ===") == 1  # the forged one is only inside a prefixed line
 

@@ -117,6 +117,19 @@ def _path_text(path: object) -> str:
     return _clean(posix)
 
 
+def _rel_path_text(path: object, abs_cwd: str) -> str:
+    """``path`` relative to ``abs_cwd`` (forward slashes) when under it, else the absolute form."""
+    full = _path_text(path)
+    if not full or not isinstance(path, str):
+        return full
+    try:
+        full_path = path if os.path.isabs(path) else os.path.join(abs_cwd, path)
+        rel = Path(os.path.abspath(full_path)).relative_to(abs_cwd).as_posix()
+    except (ValueError, OSError):
+        return full
+    return _clean(rel) if rel not in ("", ".") else full
+
+
 def _intent_line(item: IntentItem) -> str | None:
     body = _cap(_sanitize(item.text if isinstance(item.text, str) else ""), INTENT_ITEM_MAX_BYTES)
     body = body.strip()
@@ -428,7 +441,7 @@ def render(
 
     # --- files, first pass ---------------------------------------------------------------
     seen: set[str] = set()
-    candidates: list[tuple[FileItem, str]] = []
+    candidates: list[tuple[FileItem, str]] = []  # (item, absolute text for the packet JSON)
     for item in selection.files[: budgets.max_files]:
         shown = _path_text(item.path)
         if not shown:
@@ -441,7 +454,7 @@ def render(
     file_lines: dict[int, str] = {}
     files_cost = 0
     for index, (item, shown) in enumerate(candidates):
-        line = _file_line(item, shown)
+        line = _file_line(item, _rel_path_text(item.path, abs_cwd) or shown)
         cost = _blen(line) + 1
         if files_cost + cost <= sub("files") and used + cost <= avail:
             file_lines[index] = line
@@ -461,7 +474,9 @@ def render(
             break
         if not item.excerpt or not item.ranges:
             continue
-        built, bad = _build_excerpt(item, abs_cwd, shown, min(per_excerpt, remaining))
+        built, bad = _build_excerpt(
+            item, abs_cwd, _rel_path_text(item.path, abs_cwd) or shown, min(per_excerpt, remaining)
+        )
         if bad:
             degraded.add(index)
         elif built is None:
@@ -493,7 +508,7 @@ def render(
     for index, (item, shown) in enumerate(candidates):
         if index in file_lines:
             continue
-        line = _file_line(item, shown)
+        line = _file_line(item, _rel_path_text(item.path, abs_cwd) or shown)
         cost = _blen(line) + 1
         if used + cost <= avail:
             file_lines[index] = line

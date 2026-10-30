@@ -162,6 +162,7 @@ def test_doctor_prints_identity_verified(tmp_path: Path) -> None:
         result = _run_cli("doctor", "--state-dir", str(state_dir), timeout=120)
         assert "identity:" in result.stdout
         assert "verified" in result.stdout
+        assert "brief_v1=off carry_back=off" in result.stdout
     finally:
         if proc.poll() is None:
             proc.kill()
