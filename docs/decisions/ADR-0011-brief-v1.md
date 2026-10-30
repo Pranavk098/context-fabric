@@ -306,22 +306,31 @@ call still works: `ranges: tuple[tuple[int, int, str, str], ...] = ()`. B1 reads
 # cfxd/brief_select.py (B1)
 BUDGET_BYTES: dict[str, int]  # haiku 6_000, sonnet 12_000, opus 20_000, fable 20_000, unknown 4_000
 FIXED_MAX_BYTES = 800
+
+
 def normalize_model(value: object) -> str: ...
 def resolve_target(tool_input: Mapping[str, Any]) -> TargetModel: ...
 def budgets_for(family: str) -> Budgets: ...
 def select(facts: SessionFacts | None, prompt: str, target_model: TargetModel) -> Selection: ...
 
+
 # cfxd/brief_render.py (B2)
 EXCERPT_LINE_MAX_BYTES = 200
+
+
 def render(
     selection: Selection, intent: Intent, *, cwd: str, session_id: str, now: datetime
 ) -> Rendered: ...
 
+
 # cfxd/brief_intent.py (B3)
 INTENT_ITEM_MAX_BYTES = 200
+
+
 def extract_intent(
     transcript_path: str | None, prompt: str, facts: SessionFacts | None
 ) -> Intent: ...
+
 
 # cfxd/brief.py (B3): existing handle_pre_tool_use dispatches to v0 or v1; plus
 def handle_post_tool_use_agent(payload: dict[str, Any], state_dir: Path) -> dict[str, Any]: ...
