@@ -20,13 +20,13 @@ Old Waves 2–5 (checkpoint-vs-shipped v3) are superseded; checkpoint is seconda
 
 | WP | State | Branch | Blockers |
 |---|---|---|---|
-| B0 Brief v1 ADR | todo | s11-b0 | — |
-| H1 v4 fixture + tasks | todo | s11-h1 | — |
-| R1 receipts joiner | todo | s11-r1 | — |
-| B1 budgets + ranking | blocked | s11-b1 | B0 |
-| B2 excerpts + packet v0 | blocked | s11-b2 | B0 |
-| B3 intent + carry-back | blocked | s11-b3 | B1, B2 |
-| H2 v4 harness arms | blocked | s11-h2 | H1 |
+| B0 Brief v1 ADR | merged (ADR-0011 accepted) | s11-b0 | — |
+| H1 v4 fixture + tasks | merged (click 8.5.0, 8 tasks, verify script 8/8) | s11-h1 | — |
+| R1 receipts joiner | merged | s11-r1 | — |
+| B1 budgets + ranking | merged | s11-b1 | B0 |
+| B2 excerpts + packet v0 | merged | s11-b2 | B0 |
+| B3 intent + carry-back | merged (carry-back attribution unverified) | s11-b3 | B1, B2 |
+| H2 v4 harness arms | dispatched (Sonnet) | s11-h2 | H1 |
 | P0 v4 pilot (gate) | blocked | — | B3, H2, R1 |
 
 Next: assign Wave 2 (B0, H1, R1).
