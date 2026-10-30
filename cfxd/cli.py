@@ -741,7 +741,12 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
     brief = "on" if cfg["brief"] else "off"
     carry = "on" if cfg["carry"] else "off"
     fold = "on" if cfg["fold"] else "off"
-    print(f"flags:       brief={brief} carry={carry} fold={fold}")
+    brief_v1 = "on" if cfg.get("brief_v1") else "off"
+    carry_back = "on" if cfg.get("carry_back") else "off"
+    print(
+        f"flags:       brief={brief} carry={carry} fold={fold} "
+        f"brief_v1={brief_v1} carry_back={carry_back}"
+    )
     print(f"health:      {'ok' if healthy else 'FAIL'}")
     print(f"identity:    {'verified' if verify_identity(state_dir, port) else 'NOT verified'}")
     print(sh_line)

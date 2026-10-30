@@ -468,3 +468,21 @@ neighbours outside the working set; carry-back of the child's reply text.
 - **Q7.** File locks amended as listed. Already on main: `cfxd/brief_types.py` (extracted verbatim) and
   `FileFact.ranges` in `cfxd/session_state.py`. B2 still owns range recording; B1, B2 and B3 import
   `cfxd/brief_types.py` and must not recreate it.
+
+## Amended (WP B4, 2026-10-30)
+
+Review findings on rendered packets. No interface (`cfxd/brief_types.py`) or packet v0 change.
+
+- **Relative paths.** In the text block, a file under `cwd` (the `render()` argument) is shown relative to it with
+  forward slashes, in the `files` lines and the excerpt frame (`=== src/a.py lines 1-9 (sha ...) ===`); a file
+  outside `cwd` keeps its absolute path. `_sanitize`/`_cap` and the marker rules are unchanged. The packet JSON
+  `files[].path` stays absolute (packet v0 accepts relative paths too, resolved against `cwd`, but the JSON is read by
+  other tools). Section byte accounting uses the shorter strings, so the freed bytes roll over to excerpts under the
+  existing rollover rule.
+- **Goal/constraint dedup (one rule).** Constraints, decisions and tried keep every matching sentence. The goal
+  is built from the newest user prompt that has at least 40 bytes of prose, minus (a) sentences shaped as
+  constraint, decision or tried, and (b) sentences whose normalised text (case-folded, whitespace-collapsed,
+  trailing punctuation stripped) equals, is contained in, or contains a kept item. Each sentence removed
+  by (b) increments `Intent.deduped`. If nothing is left the next older user prompt is tried; if none, there is no goal
+  line. The delegation-prompt dedup is unchanged.
+- **`cfxd doctor`** prints `brief_v1` and `carry_back` on the `flags:` line.

@@ -223,16 +223,30 @@ def extract_intent(transcript_path: str | None, prompt: str, facts: SessionFacts
             line = IntentItem(text=f"Last test run: {key}, failed", source="assistant", turn=-1)
             sections["tried"].insert(0, line)
 
+    # Goal/constraint dedup rule (ADR-0011, B4 note): a sentence shown in constraints, decisions
+    # or tried is never repeated in the goal. The goal is built from the newest user prompt that
+    # has goal prose left, keeping only sentences that are not constraint/decision/tried-shaped and
+    # whose normalised text is neither equal to, contained in, nor containing a kept item.
+    kept_keys = [_fold_key(i.text) for name in sections for i in sections[name]]
     goal = None
     for turn, text in users:
-        goal_text = _goal_text(text)
-        if goal_text is None:
+        sentences = _sentences(text)
+        if _goal_text(sentences) is None:
             continue
-        if _fold_key(goal_text) in delegation:
-            deduped += 1
-        else:
-            goal = _make_item(goal_text, "user", turn)
-        break
+        rest: list[str] = []
+        for sentence in sentences:
+            key = _fold_key(sentence)
+            if any(k and (key in k or k in key) for k in kept_keys):
+                deduped += 1
+            elif _section_of(sentence) is None:
+                rest.append(sentence)
+        goal_text = _goal_text(rest, 1)
+        if goal_text is not None:
+            if _fold_key(goal_text) in delegation:
+                deduped += 1
+            else:
+                goal = _make_item(goal_text, "user", turn)
+            break
 
     return Intent(
         goal=goal,
@@ -243,11 +257,10 @@ def extract_intent(transcript_path: str | None, prompt: str, facts: SessionFacts
     )
 
 
-def _goal_text(text: str) -> str | None:
+def _goal_text(sentences: list[str], min_bytes: int = GOAL_MIN_BYTES) -> str | None:
     """The first sentences of a user prompt, if at least 40 bytes of prose survive stripping."""
-    sentences = _sentences(text)
     joined = " ".join(sentences).strip()
-    if len(joined.encode("utf-8")) < GOAL_MIN_BYTES:
+    if not joined or len(joined.encode("utf-8")) < min_bytes:
         return None
     out: list[str] = []
     size = 0
