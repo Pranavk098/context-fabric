@@ -11,6 +11,8 @@ work packages: `docs/plans/2026-10-30-brief-first-orchestration.md` (branch pref
 | A2 usage dedup | merged | s10-a2 | stored v2 records still per-line |
 | C1 macOS CI | merged, green | s10-c1 | — |
 | D1 ADRs | merged (ADR-0010, b8-parked) | s10-d1 | wheel contents decision open |
+| A3 seeded recall, no_restore control, save_empty guard, D3 checkpoint billing fix | merged (1313 tests green locally) | s10-a3 | recall wording not yet pinned by any protocol |
+| A4 v2 dedup re-analysis (exploratory) + deviation entry | merged | s10-a4 | inputs live outside the repo |
 
 Old Waves 2–5 (checkpoint-vs-shipped v3) are superseded; checkpoint is secondary.
 
