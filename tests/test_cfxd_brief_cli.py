@@ -102,3 +102,13 @@ def test_empty_state_explains_how_to_turn_on(
     text = capsys.readouterr().out
     assert "No briefs have been logged yet" in text
     assert "Brief v1 is off" in text and "cfxd set brief_v1 on" in text
+
+
+def test_empty_state_does_not_tell_you_to_turn_on_when_it_is_on(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "config.json").write_text('{"brief_v1": true}', encoding="utf-8")
+    assert main(["brief", "--state-dir", str(tmp_path)]) == 0
+    text = capsys.readouterr().out
+    assert "Brief v1 is on" in text
+    assert "Turn it on" not in text and "cfxd set brief_v1 on" not in text

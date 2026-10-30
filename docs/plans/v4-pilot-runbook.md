@@ -9,7 +9,7 @@ From `C:\dev\cf-bench` (benchmarks only), after fetching main:
 ```
 git fetch origin && git checkout --detach origin/main
 uv sync
-export EVALS_MAX_RUN_USD=1.0      # per-run cap; 10 runs => at most about $10
+export EVALS_MAX_RUN_USD=1.0      # per-run cap; 10 runs => at most about $10 (bash only, see below)
 uv run python -m evals.plugin_ab.runner --v4 --pilot \
   --tasks evals/plugin_ab/tasks_v4.json \
   --task-ids v4-command-aliases,v4-option-sections \
@@ -17,6 +17,10 @@ uv run python -m evals.plugin_ab.runner --v4 --pilot \
   --repetitions 1 --seed 1 \
   --run-id v4-pilot-1 --report-dir evals/reports/v4_pilot
 ```
+
+**PowerShell:** `export` does nothing there, and the cap would silently stay unset. Use `$env:EVALS_MAX_RUN_USD = "1.0"`
+(or run the block in Git Bash), then **check the cap is set before starting**: `echo $env:EVALS_MAX_RUN_USD` (PowerShell) or
+`echo $EVALS_MAX_RUN_USD` (bash) must print `1.0`. If it prints nothing, stop: the harness then falls back to its v4 default of $1.50 per run, which allows up to about $15 for the 10 runs.
 
 2 tasks x 5 arms x 1 rep = 10 runs (the pilot cap). Parent Sonnet, children Haiku. Use a separate
 `--report-dir`; the v1/v2 analyzers would pick up v4 records otherwise. You do not need to turn Brief on in your own profile; the harness writes the per-arm config itself.

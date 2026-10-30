@@ -40,9 +40,13 @@ Start one Claude Code session, then check the helper from a terminal:
 cfxd doctor
 ```
 
-Expect `healthy` and `identity: verified`. The `flags:` line shows `brief`, `carry` and `fold`; it does not show
-`brief_v1`. If `doctor` fails, see [Known limits](#9-known-limits-and-things-that-may-look-wrong) or the troubleshooting
+Expect `healthy` and `identity: verified`. The `flags:` line shows `brief`, `carry`, `fold`, `brief_v1` and
+`carry_back`. If `doctor` fails, see [Known limits](#9-known-limits-and-things-that-may-look-wrong) or the troubleshooting
 table in [`INSTALL-ALPHA.md`](INSTALL-ALPHA.md#7-troubleshooting).
+
+**Windows blocks `cfxd.exe`?** Some Windows setups (Application Control, SmartScreen, a managed laptop) refuse to run
+the `cfxd` launcher. Run the same command through Python instead: `python -m cfxd doctor`. Use `python -m cfxd ...`
+wherever this guide says `cfxd ...`, from the environment where cfxd is installed.
 
 ## 3. Turn Brief on
 

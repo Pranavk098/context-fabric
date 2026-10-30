@@ -946,10 +946,14 @@ def _cmd_ledger(args: argparse.Namespace) -> int:
     return 0
 
 
-_BRIEF_EMPTY = (
+_BRIEF_EMPTY_OFF = (
     "No briefs have been logged yet.\n"
-    "Brief v1 is {state}. Turn it on with: cfxd set brief on && cfxd set brief_v1 on\n"
+    "Brief v1 is off. Turn it on with: cfxd set brief on && cfxd set brief_v1 on\n"
     "Then delegate work to a sub-agent and run `cfxd brief` again."
+)
+_BRIEF_EMPTY_ON = (
+    "No briefs have been logged yet.\n"
+    "Brief v1 is on. Delegate work to a sub-agent and run `cfxd brief` again."
 )
 
 
@@ -1073,7 +1077,7 @@ def _cmd_brief(args: argparse.Namespace) -> int:
         elif args.session:
             print(f"No briefs logged for session {args.session}.")
         else:
-            print(_BRIEF_EMPTY.format(state=state))
+            print(_BRIEF_EMPTY_ON if state == "on" else _BRIEF_EMPTY_OFF)
         return 0
     with tempfile.TemporaryDirectory() as tmp:
         log = Path(tmp) / "briefs.jsonl"
