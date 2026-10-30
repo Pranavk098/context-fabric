@@ -66,9 +66,7 @@ def test_primary_is_brief_v1_vs_none_with_the_v1_bootstrap() -> None:
 def test_secondary_comparisons_and_arm_table() -> None:
     result = analyze.analyze_v4(_records(), resamples=200)
     sec = {c["baseline"]: c for c in result["secondary"]}
-    assert set(sec) == {"fork", "brief_v0"}
-    assert sec["fork"]["geometric_mean_cost_ratio"] == 0.5
-    assert sec["fork"]["delta_child_compactions"] == -1.0
+    assert set(sec) == {"brief_v0"}  # no brief_v1 vs fork ratio: fork runs on the parent model
     assert sec["brief_v0"]["delta_child_rereads"] == -2.0
     arms = result["arms"]
     assert arms["none"]["runs"] == 6  # the infra failure is excluded
@@ -108,7 +106,8 @@ def test_markdown_has_primary_and_secondary_tables_and_no_claim() -> None:
     text = analyze.format_markdown_v4(analyze.analyze_v4(_records(), resamples=100))
     assert "## Primary: total cost (parent + children) at non-inferior pass rate" in text
     assert "| brief_v1 vs none | 3 | 0.800 |" in text
-    assert "## Secondary: comparisons" in text and "brief_v1 vs fork" in text
+    assert "## Secondary: comparisons" in text and "brief_v1 vs brief_v0" in text
+    assert "brief_v1 vs fork" not in text
     assert "brief_v1 vs brief_v0" in text
     assert "## Secondary: per arm" in text
     for arm in analyze.V4_ARMS:
