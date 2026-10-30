@@ -13,7 +13,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from cfxd import checkpoint, packet
+from cfxd import checkpoint, handoff, packet
 from cfxd.agents import READERS, build_report, default_root, since_cutoff
 from cfxd.agents import format_human as format_agent_report
 from cfxd.agents.opencode import OpenCodeDBError
@@ -327,18 +327,22 @@ def _build_parser() -> argparse.ArgumentParser:
     ledgerp.set_defaults(func=_cmd_ledger)
 
     checkpoint_parser = subparsers.add_parser(
-        "checkpoint", help="experimental: save, show or clear a restart checkpoint"
+        "checkpoint", help="experimental: save, show, import or clear a restart checkpoint"
     )
-    checkpoint_parser.add_argument("action", choices=["save", "show", "clear"])
+    checkpoint_parser.add_argument("action", choices=["save", "show", "clear", "import"])
+    checkpoint_parser.add_argument("file", nargs="?", help="packet file (import only)")
     checkpoint_parser.add_argument("--cwd", default=None, help="directory (default: current)")
     checkpoint_parser.add_argument(
         "--note", default=None, help="optional goal note (up to 300 characters)"
+    )
+    checkpoint_parser.add_argument(
+        "--force", action="store_true", help="import a packet older than 24 hours"
     )
     _add_state_dir(checkpoint_parser)
     checkpoint_parser.set_defaults(func=_cmd_checkpoint)
 
     packet_parser = subparsers.add_parser(
-        "packet", help="experimental: validate a Context Packet v0 file"
+        "packet", help="experimental: validate, build, render or install a Context Packet v0 file"
     )
     packet_sub = packet_parser.add_subparsers(dest="action", required=True)
     packet_validate = packet_sub.add_parser("validate", help="check a packet against the v0 rules")
@@ -348,6 +352,33 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     packet_validate.add_argument("--json", action="store_true", help="emit a single JSON object")
     packet_validate.set_defaults(func=_cmd_packet)
+    packet_build = packet_sub.add_parser(
+        "build", help="build a packet from an agent session log (observed facts only)"
+    )
+    packet_build.add_argument("--agent", required=True, choices=list(handoff.AGENTS))
+    packet_build.add_argument(
+        "--root", default=None, help="session log root (default: the agent's own)"
+    )
+    packet_build.add_argument("--session", default="latest", help="session id, or latest (default)")
+    packet_build.add_argument("--cwd", default=None, help="directory (default: current)")
+    packet_build.add_argument("--out", default=None, help="write the packet here (default: stdout)")
+    packet_build.set_defaults(func=_cmd_packet)
+    packet_render = packet_sub.add_parser("render", help="print a packet for another agent")
+    packet_render.add_argument("file", help="packet JSON file")
+    packet_render.add_argument(
+        "--format", choices=["agents-md", "plain"], default="agents-md", help="output form"
+    )
+    packet_render.add_argument(
+        "--cwd", default=None, help="stat listed files against this directory"
+    )
+    packet_render.set_defaults(func=_cmd_packet)
+    packet_install = packet_sub.add_parser(
+        "install-agents-md", help="write or remove the marked packet block in AGENTS.md"
+    )
+    packet_install.add_argument("--cwd", default=None, help="directory (default: current)")
+    packet_install.add_argument("--packet", default=None, help="packet JSON file to install")
+    packet_install.add_argument("--remove", action="store_true", help="remove the marked block")
+    packet_install.set_defaults(func=_cmd_packet)
 
     setp = subparsers.add_parser(
         "set", help="toggle brief, carry, fold, fold_read, bound, coach or idle_notice on/off"
@@ -434,6 +465,8 @@ def _cmd_set(args: argparse.Namespace) -> int:
 def _cmd_checkpoint(args: argparse.Namespace) -> int:
     state_dir = resolve_state_dir(args.state_dir)
     cwd = args.cwd if args.cwd else os.getcwd()
+    if args.action == "import":
+        return _cmd_checkpoint_import(args, state_dir, cwd)
     if args.action == "clear":
         cleared = checkpoint.clear(state_dir, cwd)
         print("cfxd checkpoint: cleared" if cleared else "cfxd checkpoint: no checkpoint to clear.")
@@ -467,7 +500,30 @@ def _cmd_checkpoint(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_checkpoint_import(args: argparse.Namespace, state_dir: Path, cwd: str) -> int:
+    if not args.file:
+        print("cfxd checkpoint import: give a packet file.", file=sys.stderr)
+        return 2
+    try:
+        obj = packet.load(Path(args.file))
+        counts = handoff.import_packet(obj, state_dir, cwd, force=args.force)
+    except (OSError, ValueError) as exc:
+        print(f"cfxd checkpoint import: {exc}", file=sys.stderr)
+        return 1
+    print(
+        f"cfxd checkpoint import: {counts['files']} files, {counts['folds']} folds, "
+        f"{counts['commands']} commands, {counts['todos']} todos"
+    )
+    return 0
+
+
 def _cmd_packet(args: argparse.Namespace) -> int:
+    if args.action == "build":
+        return _cmd_packet_build(args)
+    if args.action == "render":
+        return _cmd_packet_render(args)
+    if args.action == "install-agents-md":
+        return _cmd_packet_install(args)
     try:
         obj = packet.load(Path(args.file))
     except (OSError, ValueError) as exc:
@@ -485,6 +541,66 @@ def _cmd_packet(args: argparse.Namespace) -> int:
         for check in checks:
             print(f"{check.status} {check.name}: {check.reason}")
     return 0 if ok else 1
+
+
+def _cmd_packet_build(args: argparse.Namespace) -> int:
+    cwd = args.cwd if args.cwd else os.getcwd()
+    root = Path(args.root) if args.root else None
+    try:
+        obj = handoff.build_packet(args.agent, root, args.session, cwd)
+    except (LookupError, OSError) as exc:
+        print(f"cfxd packet build: {exc}", file=sys.stderr)
+        return 1
+    text = json.dumps(obj, indent=2)
+    if args.out:
+        try:
+            Path(args.out).write_text(text + "\n", encoding="utf-8")
+        except OSError as exc:
+            print(f"cfxd packet build: cannot write {args.out}: {exc}", file=sys.stderr)
+            return 2
+    else:
+        print(text)
+    counts = checkpoint._counts(obj)
+    test = 1 if "test" in obj else 0
+    print(
+        f"cfxd packet build: {counts['files']} files, {counts['folds']} folds, "
+        f"{counts['commands']} commands, {counts['todos']} todos, {test} test",
+        file=sys.stderr,
+    )
+    return 0
+
+
+def _cmd_packet_render(args: argparse.Namespace) -> int:
+    try:
+        obj = packet.load(Path(args.file))
+        text, _dropped = handoff.render_packet(obj, args.format, args.cwd)
+    except (OSError, ValueError) as exc:
+        print(f"cfxd packet render: {exc}", file=sys.stderr)
+        return 2
+    print(text)
+    return 0
+
+
+def _cmd_packet_install(args: argparse.Namespace) -> int:
+    cwd = args.cwd if args.cwd else os.getcwd()
+    block: str | None = None
+    if not args.remove:
+        if not args.packet:
+            print("cfxd packet install-agents-md: give --packet or --remove.", file=sys.stderr)
+            return 2
+        try:
+            obj = packet.load(Path(args.packet))
+            block, _dropped = handoff.render_packet(obj, "agents-md", cwd)
+        except (OSError, ValueError) as exc:
+            print(f"cfxd packet install-agents-md: {exc}", file=sys.stderr)
+            return 2
+    try:
+        action, size = handoff.install_agents_md(cwd, block)
+    except (OSError, ValueError) as exc:
+        print(f"cfxd packet install-agents-md: {exc}", file=sys.stderr)
+        return 1
+    print(f"cfxd packet install-agents-md: {action} ({size} bytes)")
+    return 0
 
 
 def _measure_shim(state_dir: Path, runs: int) -> tuple[list[float], int]:

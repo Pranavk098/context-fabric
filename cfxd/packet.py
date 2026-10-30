@@ -45,7 +45,7 @@ REQUIRED: tuple[str, ...] = (
     "saved_at",
     "armed",
 )
-TOP_LEVEL = frozenset({*REQUIRED, "note", "test"})
+TOP_LEVEL = frozenset({*REQUIRED, "note", "test", "source"})
 FILE_FIELDS = frozenset({"path", "lines", "edited", "t"})
 FOLD_FIELDS = frozenset({"id", "tool", "src", "bytes", "kind"})
 TODO_FIELDS = frozenset({"s", "t"})
@@ -114,6 +114,8 @@ def _schema_problems(obj: Any) -> list[str]:
         problems.append("armed must be a boolean")
     if "note" in obj and not isinstance(obj["note"], str):
         problems.append("note must be a string")
+    if "source" in obj and (not isinstance(obj["source"], str) or not obj["source"].strip()):
+        problems.append("source must be a non-empty string")
 
     files = obj.get("files")
     if not isinstance(files, list):

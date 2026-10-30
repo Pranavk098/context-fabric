@@ -127,6 +127,15 @@ one is optional and experimental; none has a proven saving.
 - **What to look for:** the diet before/after first-turn context, the checkpoint counts and estimate, and the restart ceiling. The header says no saving is proven; treat every number as a hint, not a result.
 - **What to report:** the whole `ledger --share` output and whether the numbered labels matched what you expected to change.
 
+### 4.7 Handoff between agents
+
+- **What it does:** experimental. Moves observed facts between agents: a Codex or OpenCode session into Claude Code's normal `/clear` restore, and a Claude Code session into `AGENTS.md`, which Codex and OpenCode both read. It carries files, masked commands, todos and the last test result — never message text, summaries or model output. It has been tested on hand-built logs only, **not** end to end with live Codex or OpenCode.
+- **Codex or OpenCode → Claude Code:** finish a task in the other agent, then run `cfxd packet build --agent codex --cwd . --out handoff.json` (or `--agent opencode`; add `--root DIR` if the log is not in the agent's default location, or `--session ID` for one specific session). Check it with `cfxd packet validate handoff.json`, then `cfxd checkpoint import handoff.json --cwd .`. Within 60 minutes, run `/clear` in Claude Code in that directory.
+- **Claude Code → Codex or OpenCode:** after a task in Claude Code, run `cfxd packet build --agent claude --cwd . --out handoff.json`; preview it with `cfxd packet render handoff.json --cwd .`, then write the block with `cfxd packet install-agents-md --cwd . --packet handoff.json`. Open Codex or OpenCode in that directory and check the block appears in `AGENTS.md`.
+- **What to look for:** the `Source:` line names the agent and the tool mapping used; only the fact classes that existed in the log appear; secret-looking commands show `***`; `--cwd` marks files `[missing]` or `[changed since checkpoint]`; the rendered block is at most 3,000 bytes; a second `/clear` restores nothing.
+- **Turn off / undo:** `cfxd checkpoint clear --cwd .` deletes an imported checkpoint; `cfxd packet install-agents-md --cwd . --remove` removes only the marked block from `AGENTS.md` and leaves the rest of the file unchanged.
+- **What to report:** which direction worked, whether the source line and facts matched the old session, and any mark that was wrong. Treat it as a reference, not instructions: check the files before relying on them.
+
 ## 5. Known limits and things that may look wrong
 
 - **Windows needs Git for Windows.** The plugin's start-up script runs in Git Bash.
