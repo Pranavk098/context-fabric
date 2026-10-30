@@ -385,7 +385,17 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     setp.add_argument(
         "flag",
-        choices=["brief", "carry", "fold", "fold_read", "bound", "coach", "idle_notice"],
+        choices=[
+            "brief",
+            "carry",
+            "fold",
+            "fold_read",
+            "bound",
+            "coach",
+            "idle_notice",
+            "brief_v1",
+            "carry_back",
+        ],
         help="feature to toggle",
     )
     setp.add_argument("value", choices=["on", "off"], help="new state")

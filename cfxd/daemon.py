@@ -29,6 +29,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 from cfxd import __version__, session_state
 from cfxd.bound import install as bound_install
 from cfxd.brief import install as brief_install
+from cfxd.brief import sync_range_recording
 from cfxd.carry import install as carry_install
 from cfxd.checkpoint import install as checkpoint_install
 from cfxd.coach import install as coach_install
@@ -190,6 +191,8 @@ class Daemon:
         checkpoint_install(self.state_dir)
         coach_install(self.state_dir)
         idle_install(self.state_dir)
+        sync_range_recording(self.state_dir)
+        add_observer("PostToolUse", lambda _payload: sync_range_recording(self.state_dir))
         add_observer("PostToolUse", session_state.observe_post_tool_use)
         httpd = _CfxdServer(("127.0.0.1", self._port), _Handler)
         httpd.daemon = self

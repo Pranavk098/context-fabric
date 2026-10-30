@@ -29,6 +29,9 @@ _DEFAULTS: dict[str, bool] = {
     "bound": False,
     "coach": False,
     "idle_notice": False,
+    # Brief v1 (ADR-0011) and the sub-agent carry-back are opt-in until the v4 pilot.
+    "brief_v1": False,
+    "carry_back": False,
 }
 _CACHE: dict[Path, tuple[int, dict[str, bool]]] = {}
 
