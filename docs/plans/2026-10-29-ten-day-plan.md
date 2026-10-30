@@ -1,5 +1,8 @@
 # Ten-day plan (2026-10-30 → 2026-11-08)
 
+> **Superseded 2026-10-30** by `2026-10-30-brief-first-plan.md` (Brief-first). Kept for history; Wave 1 here is done.
+
+
 ## 0. The v2 confound: found
 
 Evidence: paired long-checkout rep 0 transcripts (off `7e5be006…`, shipped `1d4c469f…`).
