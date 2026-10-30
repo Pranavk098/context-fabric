@@ -1,6 +1,6 @@
-# ADR 0001 — The plugin is the product; the compiler is internal
+# ADR-0010 — The plugin is the product; the compiler is internal
 
-- **Status:** Proposed (founder confirms in the PR)
+- **Status:** Accepted (founder, 2026-10-30)
 - **Date:** 2026-10-29
 - **Work package:** D1 in `docs/plans/2026-10-29-orchestration-plan.md`; item 6 in `docs/plans/2026-10-29-ten-day-plan.md`
 - **Evidence:** `CONTRIBUTING.md` (repository layout), `docs/README.md`, `README.md`, `CHANGELOG.md`,
@@ -50,5 +50,4 @@ no import of `kernel`, `protocol`, `sidecar` or `adapters` anywhere under `cfxd/
 
 ## Open for the founder
 
-- Confirm or reject the supersession of ADR-0004 decisions 1 and 2.
 - Keep `kernel`/`sidecar`/`cfx` in the published wheel, or ship `cfxd` only.

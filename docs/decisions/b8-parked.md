@@ -1,11 +1,11 @@
 # B8 is parked
 
-- **Status:** Proposed (founder confirms in the PR)
+- **Status:** Accepted (founder, 2026-10-30)
 - **Date:** 2026-10-29
 - **Work package:** D1 in `docs/plans/2026-10-29-orchestration-plan.md`; item 5 in `docs/plans/2026-10-29-ten-day-plan.md`
 - **Evidence:** `docs/engineering/B8-PREREGISTRATION-v3.md`, `docs/engineering/B8-DEVIATIONS.md`,
   `evals/reports/b8_batch_report_20261021.md`, `docs/engineering/RELEASE-v0.2.md`, `evals/b8_live.py`,
-  `docs/adr/0001-compiler-vs-plugin.md`
+  `docs/decisions/ADR-0010-compiler-vs-plugin.md`
 
 ## Context
 
@@ -26,7 +26,7 @@ What was built and what happened:
 
 Why it is parked rather than resumed now:
 - It is not on the sprint's critical path; the ten-day plan lists B8 under "Explicitly not before testers" (§2).
-- Arm B tests `kernel.router.compiler.compile_packet` (`evals/b8_live.py`), which ADR 0001 makes internal. A B8
+- Arm B tests `kernel.router.compiler.compile_packet` (`evals/b8_live.py`), which ADR-0010 makes internal. A B8
   result would speak about the compiler, not the plugin.
 
 ## Decision
