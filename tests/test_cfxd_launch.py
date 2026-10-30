@@ -230,6 +230,14 @@ def test_hooks_json_shape() -> None:
     post_tool = events["PostToolUse"][0]
     assert post_tool["matcher"] == "*"
     assert post_tool["hooks"][0]["command"].endswith(" forward PostToolUse")
+    assert post_tool["hooks"][0]["async"] is True
+
+    # Carry-back needs a synchronous Agent entry. It forwards under its own event name so the
+    # async "*" entry (which also matches Agent) never runs the same handler twice.
+    post_agent = events["PostToolUse"][1]
+    assert post_agent["matcher"] == "Agent"
+    assert post_agent["hooks"][0]["command"].endswith(" forward PostToolUseAgent")
+    assert "async" not in post_agent["hooks"][0]
 
     # SubagentStart/SubagentStop have no handlers: they must be gone.
     assert "SubagentStart" not in events
