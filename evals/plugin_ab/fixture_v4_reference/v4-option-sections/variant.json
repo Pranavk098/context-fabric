@@ -1,0 +1,11 @@
+{
+  "src/click/formatting.py": [
+    {"old": "DEFAULT_OPTION_SECTION", "new": "OPTION_SECTION", "all": true},
+    {"old": "def group_by_section(", "new": "def _group_options("},
+    {"old": "    return name.upper()", "new": "    return name"}
+  ],
+  "src/click/core.py": [
+    {"old": "from .formatting import group_by_section", "new": "from .formatting import _group_options"},
+    {"old": "group_by_section(opts)", "new": "_group_options(opts)"}
+  ]
+}

@@ -1,0 +1,268 @@
+[
+  {
+    "id": "v4-command-aliases",
+    "kind": "plain",
+    "stratum": "medium",
+    "fixture": "fixture_v4",
+    "prompt": "Add command aliases to Click. A command should accept `aliases=[\"ls\", \"li\"]` (a sequence of strings) on `click.Command`, `click.Group` and the `@click.command` decorator, and a group must resolve an alias to the same command object when it is invoked. Aliases must not become separate entries in `list_commands`, and `--help` must still list each command once. Constraints for this task: put the lookup helper in a new `click/aliases.py` module and call it `find_alias`; use the constant `ALIAS_HELP_SEPARATOR = \" / \"` when appending `(aliases: ...)` to a command's help row; reject an empty alias with the exact `ValueError` message `aliases must be non-empty strings`.",
+    "hidden_tests": "evals/plugin_ab/fixture_v4_hidden/v4-command-aliases",
+    "reference": "evals/plugin_ab/fixture_v4_reference/v4-command-aliases/files",
+    "reference_variant": "evals/plugin_ab/fixture_v4_reference/v4-command-aliases/variant.json",
+    "needs_read_files": [
+      "src/click/core.py",
+      "src/click/decorators.py",
+      "src/click/exceptions.py"
+    ],
+    "planted_facts": [
+      {
+        "id": "alias-helper",
+        "fact": "The alias lookup helper is `click.aliases.find_alias`.",
+        "test": "test_planted.py::test_find_alias_helper_exists"
+      },
+      {
+        "id": "alias-separator",
+        "fact": "The constant used between aliases in help is `ALIAS_HELP_SEPARATOR = \" / \"`.",
+        "test": "test_planted.py::test_alias_help_separator"
+      },
+      {
+        "id": "alias-empty-error",
+        "fact": "An empty alias raises `ValueError(\"aliases must be non-empty strings\")`.",
+        "test": "test_planted.py::test_empty_alias_message"
+      }
+    ],
+    "max_turns": 22,
+    "timeout": 900
+  },
+  {
+    "id": "v4-echo-sep",
+    "kind": "plain",
+    "stratum": "medium",
+    "fixture": "fixture_v4",
+    "prompt": "Let `click.echo` and `click.secho` print several values with a separator, like `print`. Both functions should accept extra positional values after `message` and a keyword-only `sep` (default a single space); `click.echo(\"a\", \"b\", sep=\"-\")` writes `a-b`. The existing single-message and `None` behaviour must not change. Constraints for this task: the default separator must live in `click.utils.DEFAULT_ECHO_SEP` and equal `\" \"`; `click.secho` must forward `sep` to `click.echo`; a non-string separator must raise `TypeError(\"sep must be a string\")`.",
+    "hidden_tests": "evals/plugin_ab/fixture_v4_hidden/v4-echo-sep",
+    "reference": "evals/plugin_ab/fixture_v4_reference/v4-echo-sep/files",
+    "reference_variant": "evals/plugin_ab/fixture_v4_reference/v4-echo-sep/variant.json",
+    "needs_read_files": [
+      "src/click/utils.py",
+      "src/click/termui.py",
+      "tests/test_basic.py"
+    ],
+    "planted_facts": [
+      {
+        "id": "echo-default-constant",
+        "fact": "The default separator constant is `click.utils.DEFAULT_ECHO_SEP = \" \"`.",
+        "test": "test_planted.py::test_default_echo_sep_constant"
+      },
+      {
+        "id": "echo-sep-type-error",
+        "fact": "A non-string separator raises `TypeError(\"sep must be a string\")`.",
+        "test": "test_planted.py::test_non_string_sep_message"
+      }
+    ],
+    "max_turns": 18,
+    "timeout": 900
+  },
+  {
+    "id": "v4-path-expand-vars",
+    "kind": "plain",
+    "stratum": "medium",
+    "fixture": "fixture_v4",
+    "prompt": "Add an `expand_vars: bool = False` option to `click.Path`. When it is true, expand environment variables in the incoming value (`$VAR` and `%VAR%`) before existence, file/directory and permission checks, and return the expanded path. The default must stay off so every existing caller behaves exactly as before. Constraints for this task: put the helper in a new `click/paths.py` module and call it `expand_path_vars`; export the default as `DEFAULT_EXPAND_VARS = False`; a non-boolean `expand_vars` raises `TypeError(\"expand_vars must be a bool\")`.",
+    "hidden_tests": "evals/plugin_ab/fixture_v4_hidden/v4-path-expand-vars",
+    "reference": "evals/plugin_ab/fixture_v4_reference/v4-path-expand-vars/files",
+    "reference_variant": "evals/plugin_ab/fixture_v4_reference/v4-path-expand-vars/variant.json",
+    "needs_read_files": [
+      "src/click/types.py",
+      "src/click/utils.py",
+      "tests/test_types.py"
+    ],
+    "planted_facts": [
+      {
+        "id": "path-helper",
+        "fact": "The path expansion helper is `click.paths.expand_path_vars`.",
+        "test": "test_planted.py::test_expand_path_vars_helper"
+      },
+      {
+        "id": "path-default",
+        "fact": "The default is exported as `click.paths.DEFAULT_EXPAND_VARS = False`.",
+        "test": "test_planted.py::test_default_expand_vars_constant"
+      },
+      {
+        "id": "path-type-error",
+        "fact": "A non-boolean `expand_vars` raises `TypeError(\"expand_vars must be a bool\")`.",
+        "test": "test_planted.py::test_expand_vars_type_message"
+      }
+    ],
+    "max_turns": 20,
+    "timeout": 900
+  },
+  {
+    "id": "v4-default-command",
+    "kind": "plain",
+    "stratum": "medium",
+    "fixture": "fixture_v4",
+    "prompt": "Add `default_command: str | None = None` to `click.Group`. When it is set and the user runs the group with no subcommand, invoke that registered subcommand; when the user names a subcommand, invoke the named one; `invoke_without_command` keeps its current meaning for groups without a default. Do not make the default command show up twice in help. Constraints for this task: put the selection helper in a new `click/defaults.py` module and call it `pick_default_command`; export `DEFAULT_COMMAND_ATTR = \"default_command\"`; if the configured default is not registered, raise `RuntimeError(\"Default command 'name' is not registered.\")` with the real name substituted.",
+    "hidden_tests": "evals/plugin_ab/fixture_v4_hidden/v4-default-command",
+    "reference": "evals/plugin_ab/fixture_v4_reference/v4-default-command/files",
+    "reference_variant": "evals/plugin_ab/fixture_v4_reference/v4-default-command/variant.json",
+    "needs_read_files": [
+      "src/click/core.py",
+      "src/click/decorators.py",
+      "tests/test_commands.py"
+    ],
+    "planted_facts": [
+      {
+        "id": "default-helper",
+        "fact": "The selection helper is `click.defaults.pick_default_command`.",
+        "test": "test_planted.py::test_pick_default_command_helper"
+      },
+      {
+        "id": "default-attr",
+        "fact": "The attribute name constant is `click.defaults.DEFAULT_COMMAND_ATTR = \"default_command\"`.",
+        "test": "test_planted.py::test_default_command_attr_constant"
+      },
+      {
+        "id": "default-missing-error",
+        "fact": "A missing default command raises `RuntimeError(\"Default command 'name' is not registered.\")`.",
+        "test": "test_planted.py::test_missing_default_command_message"
+      }
+    ],
+    "max_turns": 22,
+    "timeout": 900
+  },
+  {
+    "id": "v4-option-sections",
+    "kind": "plain",
+    "stratum": "medium",
+    "fixture": "fixture_v4",
+    "prompt": "Group options in `--help` by an optional `section=` value on `click.Option` (e.g. `click.Option([\"--token\"], section=\"Network\")`). Options without a section stay under the normal `Options` heading; each named section gets its own heading and all of its options beneath it. Keep the existing parameter order inside each group and keep arguments where they are. Constraints for this task: put the grouping helper in `click/formatting.py` and call it `group_by_section`; export `DEFAULT_OPTION_SECTION = \"Options\"` from that module; named sections are rendered upper-case (`Network` becomes `NETWORK:`).",
+    "hidden_tests": "evals/plugin_ab/fixture_v4_hidden/v4-option-sections",
+    "reference": "evals/plugin_ab/fixture_v4_reference/v4-option-sections/files",
+    "reference_variant": "evals/plugin_ab/fixture_v4_reference/v4-option-sections/variant.json",
+    "needs_read_files": [
+      "src/click/core.py",
+      "src/click/formatting.py",
+      "tests/test_info_dict.py"
+    ],
+    "planted_facts": [
+      {
+        "id": "section-helper",
+        "fact": "The grouping helper is `click.formatting.group_by_section`.",
+        "test": "test_planted.py::test_group_by_section_helper"
+      },
+      {
+        "id": "section-default",
+        "fact": "The unnamed section is `click.formatting.DEFAULT_OPTION_SECTION = \"Options\"`.",
+        "test": "test_planted.py::test_default_option_section_constant"
+      },
+      {
+        "id": "section-uppercase",
+        "fact": "Named section headings are upper-cased in help output (`Network` renders as `NETWORK:`).",
+        "test": "test_planted.py::test_named_section_is_uppercase"
+      }
+    ],
+    "max_turns": 24,
+    "timeout": 900
+  },
+  {
+    "id": "v4-datetime-utc",
+    "kind": "plain",
+    "stratum": "medium",
+    "fixture": "fixture_v4",
+    "prompt": "Add `assume_utc: bool = False` to `click.DateTime`. When true, a parsed naive datetime is returned with `datetime.timezone.utc` attached; an input that is already timezone-aware is returned unchanged; the default keeps the current naive results. Constraints for this task: put the conversion helpers in a new `click/datetimes.py` module, name the UTC attacher `attach_utc`, and export `DEFAULT_ASSUME_UTC = False`; a non-boolean `assume_utc` raises `TypeError(\"assume_utc must be a bool\")`.",
+    "hidden_tests": "evals/plugin_ab/fixture_v4_hidden/v4-datetime-utc",
+    "reference": "evals/plugin_ab/fixture_v4_reference/v4-datetime-utc/files",
+    "reference_variant": "evals/plugin_ab/fixture_v4_reference/v4-datetime-utc/variant.json",
+    "needs_read_files": [
+      "src/click/types.py",
+      "tests/test_types.py"
+    ],
+    "planted_facts": [
+      {
+        "id": "datetime-helper",
+        "fact": "The UTC attacher is `click.datetimes.attach_utc`.",
+        "test": "test_planted.py::test_attach_utc_helper"
+      },
+      {
+        "id": "datetime-default",
+        "fact": "The default is `click.datetimes.DEFAULT_ASSUME_UTC = False`.",
+        "test": "test_planted.py::test_default_assume_utc_constant"
+      },
+      {
+        "id": "datetime-type-error",
+        "fact": "A non-boolean `assume_utc` raises `TypeError(\"assume_utc must be a bool\")`.",
+        "test": "test_planted.py::test_assume_utc_type_message"
+      }
+    ],
+    "max_turns": 18,
+    "timeout": 900
+  },
+  {
+    "id": "v4-choice-hidden-aliases",
+    "kind": "plain",
+    "stratum": "medium",
+    "fixture": "fixture_v4",
+    "prompt": "Extend `click.Choice` with `aliases: Mapping[str, choice]` and `hidden: Iterable[choice]`. An alias is accepted on the command line and converts to its target choice; hidden choices stay valid but are omitted from the metavar, the missing-choice message, the invalid-choice message and shell completion. Validate that an alias does not collide with a real choice and that every alias target exists. Constraints for this task: put the mapping helpers in a new `click/choice_set.py` module, name the alias-map builder `build_alias_map`, export `ALIAS_MAP_NAME = \"aliases\"`, and reject a colliding alias with `ValueError(\"alias 'x' conflicts with a choice\")` (real alias substituted).",
+    "hidden_tests": "evals/plugin_ab/fixture_v4_hidden/v4-choice-hidden-aliases",
+    "reference": "evals/plugin_ab/fixture_v4_reference/v4-choice-hidden-aliases/files",
+    "reference_variant": "evals/plugin_ab/fixture_v4_reference/v4-choice-hidden-aliases/variant.json",
+    "needs_read_files": [
+      "src/click/types.py",
+      "src/click/shell_completion.py",
+      "tests/test_types.py"
+    ],
+    "planted_facts": [
+      {
+        "id": "choice-helper",
+        "fact": "The alias-map builder is `click.choice_set.build_alias_map`.",
+        "test": "test_planted.py::test_build_alias_map_helper"
+      },
+      {
+        "id": "choice-attr",
+        "fact": "The exported name constant is `click.choice_set.ALIAS_MAP_NAME = \"aliases\"`.",
+        "test": "test_planted.py::test_alias_map_name_constant"
+      },
+      {
+        "id": "choice-conflict-error",
+        "fact": "A colliding alias raises `ValueError(\"alias 'x' conflicts with a choice\")`.",
+        "test": "test_planted.py::test_alias_conflict_message"
+      }
+    ],
+    "max_turns": 24,
+    "timeout": 900
+  },
+  {
+    "id": "v4-open-file-newline",
+    "kind": "plain",
+    "stratum": "medium",
+    "fixture": "fixture_v4",
+    "prompt": "Add a `newline: str | None = None` argument to `click.open_file` and the lazy file wrapper it returns. Pass it through to the underlying text `open()` call so callers can force `\\n`, `\\r`, `\\r\\n` or no translation (empty string); the default must keep Python's normal universal-newline behaviour. Binary modes ignore it. Constraints for this task: validate the value in `click._compat.validate_newline`, export `DEFAULT_NEWLINE = None`, and raise `ValueError(\"newline must be None, '', '\\n', '\\r', or '\\r\\n'\")` for any other value.",
+    "hidden_tests": "evals/plugin_ab/fixture_v4_hidden/v4-open-file-newline",
+    "reference": "evals/plugin_ab/fixture_v4_reference/v4-open-file-newline/files",
+    "reference_variant": "evals/plugin_ab/fixture_v4_reference/v4-open-file-newline/variant.json",
+    "needs_read_files": [
+      "src/click/utils.py",
+      "src/click/_compat.py",
+      "tests/test_utils.py"
+    ],
+    "planted_facts": [
+      {
+        "id": "newline-default",
+        "fact": "The default is `click._compat.DEFAULT_NEWLINE = None`.",
+        "test": "test_planted.py::test_default_newline_constant"
+      },
+      {
+        "id": "newline-validator",
+        "fact": "Validation lives in `click._compat.validate_newline`.",
+        "test": "test_planted.py::test_validate_newline_helper"
+      },
+      {
+        "id": "newline-error",
+        "fact": "An invalid newline raises `ValueError(\"newline must be None, '', '\\n', '\\r', or '\\r\\n'\")`.",
+        "test": "test_planted.py::test_invalid_newline_message"
+      }
+    ],
+    "max_turns": 24,
+    "timeout": 900
+  }
+]

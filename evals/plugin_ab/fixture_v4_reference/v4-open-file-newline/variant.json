@@ -1,0 +1,11 @@
+{
+  "src/click/_compat.py": [
+    {"old": "DEFAULT_NEWLINE", "new": "NEWLINE_DEFAULT", "all": true},
+    {"old": "def validate_newline(", "new": "def _check_newline("},
+    {"old": "newline = validate_newline(newline)", "new": "newline = _check_newline(newline)"},
+    {
+      "old": "raise ValueError(\"newline must be None, '', '\\\\n', '\\\\r', or '\\\\r\\\\n'\")",
+      "new": "raise ValueError(\"invalid newline\")"
+    }
+  ]
+}
