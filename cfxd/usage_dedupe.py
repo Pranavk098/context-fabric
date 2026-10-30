@@ -37,12 +37,12 @@ class MessageUsage:
                 self._last[mid] = usage
                 self._remaining[mid] = self._remaining.get(mid, 0) + 1
 
-    def final_usage(self, msg: dict[str, Any], usage: dict[str, Any]) -> dict[str, Any]:
+    def final_usage(self, msg: Any, usage: dict[str, Any]) -> dict[str, Any]:
         """The message's final usage (this line's own usage when it has no id)."""
         mid = msg.get("id")
         return self._last.get(mid, usage) if isinstance(mid, str) else usage
 
-    def count_here(self, msg: dict[str, Any]) -> bool:
+    def count_here(self, msg: Any) -> bool:
         """True exactly once per message id: on its last usage-bearing line.
 
         Call once per assistant line that carries usage, in file order.
@@ -53,7 +53,7 @@ class MessageUsage:
         self._remaining[mid] -= 1
         return self._remaining[mid] == 0
 
-    def tool_uses(self, msg: dict[str, Any]) -> int | None:
+    def tool_uses(self, msg: Any) -> int | None:
         """Total tool_use blocks across all lines of this message, if it has an id."""
         mid = msg.get("id")
         return self._uses.get(mid) if isinstance(mid, str) else None
