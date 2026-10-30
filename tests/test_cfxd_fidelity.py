@@ -395,6 +395,8 @@ def test_canary_strings_never_leak_and_cli_shape(tmp_path: Path) -> None:
         "summary_tokens",
         "mentions",
         "held_files",
+        "held_named",
+        "held_unnamed",
         "recall",
         "recall_recent20",
         "precision",
@@ -419,6 +421,8 @@ def test_canary_strings_never_leak_and_cli_shape(tmp_path: Path) -> None:
     assert "Frozen metrics v1" in human.stdout
     assert "Checkpoint comparison" in human.stdout
     assert "counts and numbers only" in human.stdout
+    assert "not a benchmark" in human.stdout
+    assert "Per compaction" in human.stdout
 
 
 def test_empty_root(tmp_path: Path) -> None:
@@ -427,3 +431,65 @@ def test_empty_root(tmp_path: Path) -> None:
     report = fidelity(empty, "all")
     assert report["events_analyzed"] == 0
     assert format_fidelity(report, empty.name) == "No transcripts found under empty."
+
+
+def test_hand_built_fixture_exact_numbers(tmp_path: Path) -> None:
+    """Held 3 (2 edited); summary names 1 held and 1 unseen path; pass claim after a failure."""
+    lines = [
+        *_reads("/repo/a.py", "/repo/b.py"),
+        *_edits("/repo/c.py", "/repo/b.py"),
+        *_bash("t0", "pytest -q", "Exit code 1 FAILED", is_error=True),
+        _summary("Edited /repo/b.py and /repo/ghost.py. All tests pass."),
+    ]
+    _session(tmp_path, "proj", "s1", lines)
+    report = fidelity(tmp_path, "all")
+
+    e = report["events"][0]
+    assert (e["held_files"], e["held_named"], e["held_unnamed"]) == (3, 1, 2)
+    assert (e["mentions"], e["unseen_mentions"]) == (2, 1)
+    assert (e["edited_files"], e["dropped_edits"]) == (2, 1)
+    frozen = report["frozen_metrics"]
+    assert frozen["M1"]["rate"] == 0.5
+    assert frozen["M2"]["rate"] == 0.5
+    assert frozen["M3"] == {"events_with_pass_claim": 1, "unsupported": 1}
+    text = format_fidelity(report, tmp_path.name)
+    assert "held 3 files, summary named 1 and left out 2" in text
+    assert "1 of 2 edited files not named" in text
+    assert "1 of 2 named paths never seen" in text
+
+
+def test_bare_passing_is_a_pass_claim_and_notebook_edit_counts(tmp_path: Path) -> None:
+    lines = [
+        *_reads("/repo/a.py"),
+        _assistant(
+            _tool_use("n0", "NotebookEdit", {"notebook_path": "/repo/nb.ipynb"}),
+            usage=_usage(1000),
+        ),
+        _user(_tool_result("n0", "ok")),
+        _summary("Read /repo/a.py. Suite is passing."),
+    ]
+    _session(tmp_path, "proj", "s1", lines)
+    frozen = fidelity(tmp_path, "all")["frozen_metrics"]
+    assert frozen["M3"] == {"events_with_pass_claim": 1, "unsupported": 1}
+    assert frozen["M2"]["edited_files"] == 1
+    assert frozen["M2"]["dropped"] == 1
+
+
+def test_no_compactions_empty_state(tmp_path: Path) -> None:
+    _session(tmp_path, "proj", "s1", _reads("/repo/a.py"))
+    text = format_fidelity(fidelity(tmp_path, "all"), tmp_path.name)
+    assert text.startswith("No compactions to analyse")
+    assert "/compact" in text
+
+
+def test_fifty_synthetic_sessions_under_ten_seconds(tmp_path: Path) -> None:
+    import time
+
+    for i in range(50):
+        files = [f"/repo/m{i}_{j}.py" for j in range(40)]
+        lines = [*_reads(*files), *_edits(*files[:10]), _summary(" ".join(files[:15]))]
+        _session(tmp_path, "proj", f"s{i}", lines)
+    start = time.perf_counter()
+    report = fidelity(tmp_path, "all")
+    assert time.perf_counter() - start < 10
+    assert report["events_analyzed"] == 50

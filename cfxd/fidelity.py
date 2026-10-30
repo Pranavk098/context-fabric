@@ -39,13 +39,13 @@ _PASS_CLAIMS = (
     "tests pass",
     "tests passed",
     "all tests pass",
-    "tests passing",
-    "all passing",
+    "passing",
     "all green",
     "0 failed",
     "no failures",
 )
 _EDIT_TOOLS = _FILE_TOOLS - {"Read"}
+_SHOWN = 10
 _TRIGGERS = ("manual", "auto", "unknown")
 _SKIP_REASONS = ("no_summary_text", "no_held_files")
 
@@ -207,6 +207,8 @@ def _event(
         "summary_tokens": round(len(text.encode("utf-8")) / 4.0, 1),
         "mentions": len(mentions),
         "held_files": n,
+        "held_named": matched,
+        "held_unnamed": n - matched,
         "recall": round(matched / n, 4),
         "recall_recent20": round(recent_matched / len(recent), 4),
         "precision": round((len(mentions) - unseen) / len(mentions), 4) if mentions else 1.0,
@@ -270,6 +272,8 @@ def _scan(path: Path) -> tuple[list[dict[str, Any]], dict[str, int]]:
                     seen.add(text)
                 name = block.get("name")
                 file_path = inp.get("file_path")
+                if name == "NotebookEdit" and not isinstance(file_path, str):
+                    file_path = inp.get("notebook_path")
                 if name in _EDIT_TOOLS and isinstance(file_path, str):
                     norm = _norm(file_path)
                     if norm:
@@ -454,6 +458,14 @@ def format_fidelity(report: dict[str, Any], dir_name: str = ".") -> str:
     label = _SINCE_LABELS.get(str(report["since"]), str(report["since"]))
     skipped = report["events_skipped"]
     n = report["events_analyzed"]
+    if n == 0:
+        return (
+            f"No compactions to analyse under {dir_name} ({label}): "
+            f"{sessions['parents']:,} sessions scanned, "
+            f"{skipped['no_summary_text'] + skipped['no_held_files']:,} compaction boundaries "
+            "skipped (no summary text or no files held). "
+            "Run /compact in a session, then try again."
+        )
     frozen = report["frozen_metrics"]
     m1 = frozen["M1"]
     m2 = frozen["M2"]
@@ -487,6 +499,15 @@ def format_fidelity(report: dict[str, Any], dir_name: str = ".") -> str:
         "  " + _line("recall bound", report["checkpoint"]["recall_bound"]),
         f"  precision: {report['checkpoint']['precision']:.4f} by construction",
     ]
+    lines.append(f"Per compaction (newest last, up to {_SHOWN}; sample = {n:,} compactions):")
+    for i, e in enumerate(report["events"][-_SHOWN:], start=max(1, n - _SHOWN + 1)):
+        lines.append(
+            f"  #{i} {e['trigger']}: held {e['held_files']:,} files, summary named "
+            f"{e['held_named']:,} and left out {e['held_unnamed']:,}; "
+            f"{e['dropped_edits']:,} of {e['edited_files']:,} edited files not named; "
+            f"{e['unseen_mentions']:,} of {e['mentions']:,} named paths never seen earlier "
+            f"(possibly invented)"
+        )
     if report["by_trigger"]:
         lines.append("By trigger (events, recall median, recent-20 median, precision median):")
         for trigger, st in report["by_trigger"].items():
@@ -502,6 +523,10 @@ def format_fidelity(report: dict[str, Any], dir_name: str = ".") -> str:
     lines.append("Limitations:")
     for limitation in report["limitations"]:
         lines.append(f"  - {limitation}")
+    lines.append(
+        "This is descriptive of your own logs on this machine, not a benchmark; small samples "
+        "move these rates a lot."
+    )
     lines.append(
         "This report contains counts and numbers only; no paths, names, summary text or hashes."
     )
