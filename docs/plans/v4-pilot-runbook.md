@@ -19,10 +19,9 @@ uv run python -m evals.plugin_ab.runner --v4 --pilot \
 ```
 
 2 tasks x 5 arms x 1 rep = 10 runs (the pilot cap). Parent Sonnet, children Haiku. Use a separate
-`--report-dir`; the v1/v2 analyzers would pick up v4 records otherwise. Before the run, turn Brief
-on in your own profile is NOT needed: the harness writes the per-arm config itself.
+`--report-dir`; the v1/v2 analyzers would pick up v4 records otherwise. You do not need to turn Brief on in your own profile; the harness writes the per-arm config itself.
 
-Analyze (fake or real records): `uv run python -m evals.plugin_ab.analyze --v4 --report-dir evals/reports/v4_pilot` (check `--help`).
+Analyze (fake or real records): `uv run python -m evals.plugin_ab.analyze --v4 --report-dir evals/reports/v4_pilot`.
 
 ## Gate checks (the coordinator reads the transcripts)
 
