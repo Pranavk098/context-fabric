@@ -21,6 +21,7 @@ from cfxd.audit import (
     _weighted,
 )
 from cfxd.daemon import percentile
+from cfxd.usage_dedupe import MessageUsage
 
 _DEFAULT_PRICES = Path(__file__).with_name("data") / "prices.json"
 
@@ -175,6 +176,7 @@ def _add_tokens(dst: dict[str, int], src: dict[str, int]) -> None:
 
 def _scan_turns(path: Path, families: dict[str, Any]) -> list[dict[str, Any]]:
     turns: list[dict[str, Any]] = []
+    dedupe = MessageUsage(_iter_objects(path))
     for obj in _iter_objects(path):
         if obj.get("type") != "assistant":
             continue
@@ -183,6 +185,8 @@ def _scan_turns(path: Path, families: dict[str, Any]) -> list[dict[str, Any]]:
             continue
         usage = msg.get("usage")
         if not isinstance(usage, dict):
+            continue
+        if not dedupe.count_here(msg):
             continue
         model = msg.get("model")
         if not isinstance(model, str) or not model.strip() or model == _SYNTHETIC_MODEL:

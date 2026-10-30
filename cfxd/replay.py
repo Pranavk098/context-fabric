@@ -77,6 +77,7 @@ from cfxd.audit import (
     _texts,
     _weighted,
 )
+from cfxd.usage_dedupe import MessageUsage
 
 R_FRACTIONS = (0.0, 0.1, 0.3)
 VARIANTS = ("conservative", "optimistic")
@@ -131,6 +132,7 @@ def _reconstruct(path: Path) -> tuple[list[_Turn], list[_Result], list[bool]]:
     resets: list[bool] = []
     reset_next = False
 
+    dedupe = MessageUsage(_iter_objects(path))
     for obj in _iter_objects(path):
         if "isCompactSummary" in obj or obj.get("subtype") == "compact_boundary":
             reset_next = True
@@ -147,7 +149,7 @@ def _reconstruct(path: Path) -> tuple[list[_Turn], list[_Result], list[bool]]:
         usage = msg.get("usage") if isinstance(msg, dict) else None
         usage = usage if isinstance(usage, dict) else None
 
-        if obj.get("type") == "assistant" and usage is not None:
+        if obj.get("type") == "assistant" and usage is not None and dedupe.count_here(msg):
             for r in pending:
                 r.entered_at = len(turns)
                 results.append(r)

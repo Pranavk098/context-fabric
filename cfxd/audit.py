@@ -18,6 +18,7 @@ from typing import Any
 
 from cfxd.daemon import EVENTS_FILE, percentile
 from cfxd.fsutil import iter_json_lines
+from cfxd.usage_dedupe import MessageUsage
 
 DEFAULT_ROOT = Path.home() / ".claude" / "projects"
 
@@ -236,6 +237,7 @@ def _scan(path: Path, known: set[int] | None = None) -> dict[str, Any]:
         key = name if isinstance(name, str) and _TYPE_NAME_RE.fullmatch(name) else "other"
         other_types[key] = other_types.get(key, 0) + count
 
+    dedupe = MessageUsage(_iter_objects(path))
     for obj in _iter_objects(path):
         obj_type = obj.get("type")
         is_assistant = obj_type == "assistant"
@@ -284,7 +286,7 @@ def _scan(path: Path, known: set[int] | None = None) -> dict[str, Any]:
                         + (_as_int(usage.get("cache_creation_input_tokens")) or 0)
                         + (_as_int(usage.get("cache_read_input_tokens")) or 0)
                     )
-            if usage is not None:
+            if usage is not None and dedupe.count_here(msg):
                 if known is not None and not touched and any(_touches(b, known) for b in tool_uses):
                     before_first_touch = weighted
                     touched = True
