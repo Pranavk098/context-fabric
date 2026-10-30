@@ -21,6 +21,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from cfxd.brief_receipts import path_sha16
 from cfxd.config import read_config
 from cfxd.fsutil import ensure_dir, open_log
 from cfxd.handlers import register, register_after
@@ -327,12 +328,6 @@ class _V1:
     rendered: Rendered
     counts: dict[str, int]
     receipt: dict[str, Any]
-
-
-def path_sha16(path: str) -> str:
-    """ADR-0011 join key for a file path (the formula the receipts joiner uses for child reads)."""
-    key = os.path.normcase(os.path.abspath(path))
-    return hashlib.sha256(key.encode("utf-8")).hexdigest()[:16]
 
 
 def _check_deadline(started: float) -> None:

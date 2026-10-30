@@ -41,6 +41,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 from collections.abc import Iterable, Iterator
 from dataclasses import asdict, dataclass, field
@@ -48,6 +49,13 @@ from pathlib import Path
 from typing import Any
 
 from cfxd.usage_dedupe import MessageUsage
+
+
+def path_sha16(path: str) -> str:
+    """ADR-0011 join key for a file path: sha256(normcase(abspath(path)))[:16]."""
+    key = os.path.normcase(os.path.abspath(path))
+    return hashlib.sha256(key.encode("utf-8")).hexdigest()[:16]
+
 
 _READ_TOOLS = frozenset({"Read", "NotebookRead"})
 _AGENT_TOOLS = frozenset({"Agent", "Task"})

@@ -62,6 +62,8 @@ __all__ = [
 STATE_FILE = "state.json"
 EVENTS_FILE = "events.jsonl"
 HANDLER_TIMEOUT_MS = 150.0
+# Agent calls may build a Brief v1 packet (1 s deadline inside the handler, hook timeout 2 s).
+AGENT_HANDLER_TIMEOUT_MS = 1300.0
 MAX_BODY_BYTES = 8 * 1024 * 1024
 MAX_CONNECTIONS = 64
 EVENTS_ROTATE_BYTES = 20 * 1024 * 1024
@@ -412,12 +414,13 @@ class _Handler(BaseHTTPRequestHandler):
             print(f"cfxd: malformed hook payload for {event}", file=sys.stderr)
             return
         try:
+            timeout_ms = AGENT_HANDLER_TIMEOUT_MS if tool_name == "Agent" else HANDLER_TIMEOUT_MS
             future = _POOL.submit(dispatch, event, payload)
-            result = future.result(timeout=HANDLER_TIMEOUT_MS / 1000.0)
+            result = future.result(timeout=timeout_ms / 1000.0)
         except FutureTimeout:
             self._finish(event, tool_name, session_id, {}, "error", start, len(body))
             print(
-                f"cfxd: handler {event} exceeded {HANDLER_TIMEOUT_MS:.0f} ms; passed through",
+                f"cfxd: handler {event} exceeded {timeout_ms:.0f} ms; passed through",
                 file=sys.stderr,
             )
             return
