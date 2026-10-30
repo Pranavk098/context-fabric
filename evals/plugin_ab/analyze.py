@@ -697,6 +697,207 @@ def analyze_v3(records: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+V4_ARMS = ("none", "brief_v0", "brief_v1", "fork", "control")
+# Comparisons are (treatment, baseline). The first is the primary; the rest are secondary.
+V4_PRIMARY = ("brief_v1", "none")
+V4_SECONDARY = (("brief_v1", "fork"), ("brief_v1", "brief_v0"))
+
+
+def _v4_runs(records: list[dict[str, Any]], arm: str) -> list[dict[str, Any]]:
+    return [
+        r
+        for r in records
+        if r.get("v4")
+        and r.get("arm") == arm
+        and not r.get("warm_up")
+        and not r.get("infra_failure")
+    ]
+
+
+def _mean(values: list[float]) -> float | None:
+    return sum(values) / len(values) if values else None
+
+
+def _num(runs: list[dict[str, Any]], key: str) -> list[float]:
+    return [
+        float(r[key])
+        for r in runs
+        if isinstance(r.get(key), (int, float)) and not isinstance(r.get(key), bool)
+    ]
+
+
+def _rate(runs: list[dict[str, Any]], pred: Any) -> float | None:
+    return sum(1 for r in runs if pred(r)) / len(runs) if runs else None
+
+
+def _round(value: float | None, digits: int = 4) -> float | None:
+    return round(value, digits) if value is not None else None
+
+
+def _v4_arm_stats(runs: list[dict[str, Any]]) -> dict[str, Any]:
+    facts = sum(int(r.get("planted_of") or 0) for r in runs)
+    passed = sum(int(r.get("planted_passed") or 0) for r in runs)
+    return {
+        "runs": len(runs),
+        "spawn_rate": _round(_rate(runs, lambda r: not r.get("no_spawn"))),
+        "no_spawn_runs": sum(1 for r in runs if r.get("no_spawn")),
+        "pass_rate": _round(_rate(runs, lambda r: bool(r.get("resolved")))),
+        "hidden_pass_rate": _round(_rate(runs, lambda r: bool(r.get("hidden_pass")))),
+        "planted_fact_pass_rate": _round(passed / facts if facts else None),
+        "mean_dollars": _round(_mean(_num(runs, "dollars")), 6),
+        "mean_child_rereads": _round(_mean(_num(runs, "child_rereads"))),
+        "mean_child_compactions": _round(_mean(_num(runs, "child_compactions"))),
+        "mean_child_overflows": _round(_mean(_num(runs, "child_overflows"))),
+        "mean_child_parent_msg_overlap": _round(_mean(_num(runs, "child_parent_msg_overlap"))),
+        "cap_hit_runs": sum(1 for r in runs if r.get("cap_hit")),
+    }
+
+
+def _v4_task_means(runs: list[dict[str, Any]], key: str) -> dict[str, float]:
+    by_task: dict[str, list[float]] = {}
+    for r in runs:
+        by_task.setdefault(str(r["task"]), []).extend(_num([r], key))
+    return {task: sum(v) / len(v) for task, v in by_task.items() if v}
+
+
+def _task_solved(runs: list[dict[str, Any]], task: str) -> bool:
+    return any(r.get("resolved") for r in runs if r["task"] == task)
+
+
+def _v4_compare(
+    records: list[dict[str, Any]], treat: str, base: str, seed: int, resamples: int
+) -> dict[str, Any]:
+    """Paired per-task cost ratio treat/base (all non-infra runs, intention to treat)."""
+    t_runs, b_runs = _v4_runs(records, treat), _v4_runs(records, base)
+    t_cost, b_cost = _v4_task_means(t_runs, "dollars"), _v4_task_means(b_runs, "dollars")
+    log_ratios = [
+        math.log(t_cost[k] / b_cost[k])
+        for k in sorted(t_cost)
+        if k in b_cost and t_cost[k] > 0 and b_cost[k] > 0
+    ]
+    geo = math.exp(sum(log_ratios) / len(log_ratios)) if log_ratios else None
+    lo, hi = _bootstrap_ci(log_ratios, seed, resamples)
+    tasks = sorted({str(r["task"]) for r in t_runs} & {str(r["task"]) for r in b_runs})
+    treat_fails = sum(1 for k in tasks if _task_solved(b_runs, k) and not _task_solved(t_runs, k))
+    base_fails = sum(1 for k in tasks if _task_solved(t_runs, k) and not _task_solved(b_runs, k))
+    ts, bs = _v4_arm_stats(t_runs), _v4_arm_stats(b_runs)
+
+    def diff(key: str) -> float | None:
+        a, b = ts[key], bs[key]
+        return round(a - b, 4) if a is not None and b is not None else None
+
+    return {
+        "treatment": treat,
+        "baseline": base,
+        "tasks": len(log_ratios),
+        "geometric_mean_cost_ratio": _round(geo),
+        "bootstrap_95ci": [round(math.exp(lo), 4), round(math.exp(hi), 4)] if log_ratios else None,
+        "treatment_pass_rate": ts["pass_rate"],
+        "baseline_pass_rate": bs["pass_rate"],
+        "tasks_treatment_fails_baseline_passes": treat_fails,
+        "tasks_baseline_fails_treatment_passes": base_fails,
+        "non_inferior": (treat_fails - base_fails) <= CLAIM_NON_INFERIOR_TASKS,
+        "non_inferiority_margin_tasks": CLAIM_NON_INFERIOR_TASKS,
+        "delta_child_rereads": diff("mean_child_rereads"),
+        "delta_child_compactions": diff("mean_child_compactions"),
+        "delta_child_overflows": diff("mean_child_overflows"),
+        "delta_planted_fact_pass_rate": diff("planted_fact_pass_rate"),
+    }
+
+
+def analyze_v4(
+    records: list[dict[str, Any]],
+    *,
+    seed: int = BOOTSTRAP_SEED,
+    resamples: int = BOOTSTRAP_RESAMPLES,
+) -> dict[str, Any]:
+    """v4 delegation report: primary brief_v1 vs none, secondary comparisons, per-arm table.
+
+    Cost is parent plus children (dedup counted when the run was recorded). The ratio interval
+    is the v1 task-level bootstrap and non-inferiority is the v1 task rule. Nothing here asserts
+    significance, and the control arm is a validity check, not a comparison.
+    """
+    v4 = [r for r in records if r.get("v4")]
+    arms = {arm: _v4_arm_stats(_v4_runs(v4, arm)) for arm in V4_ARMS if _v4_runs(v4, arm)}
+    control = arms.get("control")
+    return {
+        "arms": arms,
+        "primary": _v4_compare(v4, *V4_PRIMARY, seed, resamples),
+        "secondary": [_v4_compare(v4, t, b, seed, resamples) for t, b in V4_SECONDARY],
+        "control_valid": None if control is None else control["planted_fact_pass_rate"] == 0.0,
+        "infra_excluded": sum(1 for r in v4 if r.get("infra_failure")),
+        "pilot": any(r.get("mode") == "pilot" for r in v4),
+    }
+
+
+def _f(value: Any, digits: int = 3) -> str:
+    return "n/a" if value is None else f"{value:.{digits}f}"
+
+
+def _ci(c: dict[str, Any]) -> str:
+    ci = c["bootstrap_95ci"]
+    return "n/a" if ci is None else f"{ci[0]:.3f} to {ci[1]:.3f}"
+
+
+def format_markdown_v4(result: dict[str, Any]) -> str:
+    label = "PILOT (not evidence)" if result["pilot"] else "delegation"
+    p = result["primary"]
+    lines = [
+        f"# Plugin A/B v4 {label}",
+        "",
+        "## Primary: total cost (parent + children) at non-inferior pass rate",
+        "",
+        "| comparison | tasks | cost ratio | 95% bootstrap CI | pass (treat / base) "
+        "| treat fails, base passes | base fails, treat passes | non-inferior |",
+        "|---|---|---|---|---|---|---|---|",
+        f"| {p['treatment']} vs {p['baseline']} | {p['tasks']} "
+        f"| {_f(p['geometric_mean_cost_ratio'])} | {_ci(p)} "
+        f"| {_f(p['treatment_pass_rate'])} / {_f(p['baseline_pass_rate'])} "
+        f"| {p['tasks_treatment_fails_baseline_passes']} "
+        f"| {p['tasks_baseline_fails_treatment_passes']} "
+        f"| {'yes' if p['non_inferior'] else 'NO'} "
+        f"(margin {p['non_inferiority_margin_tasks']} task) |",
+        "",
+        "## Secondary: comparisons",
+        "",
+        "| comparison | tasks | cost ratio | 95% CI | d child re-reads | d compactions "
+        "| d overflows | d planted-fact pass |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for c in result["secondary"]:
+        lines.append(
+            f"| {c['treatment']} vs {c['baseline']} | {c['tasks']} "
+            f"| {_f(c['geometric_mean_cost_ratio'])} | {_ci(c)} "
+            f"| {_f(c['delta_child_rereads'])} | {_f(c['delta_child_compactions'])} "
+            f"| {_f(c['delta_child_overflows'])} | {_f(c['delta_planted_fact_pass_rate'])} |"
+        )
+    lines += [
+        "",
+        "## Secondary: per arm",
+        "",
+        "| arm | runs | spawn rate | no_spawn | pass | hidden pass | planted-fact pass "
+        "| mean $ | child re-reads | child compactions | child overflows | parent-msg overlap |",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|",
+    ]
+    for arm, a in result["arms"].items():
+        lines.append(
+            f"| {arm} | {a['runs']} | {_f(a['spawn_rate'])} | {a['no_spawn_runs']} "
+            f"| {_f(a['pass_rate'])} | {_f(a['hidden_pass_rate'])} "
+            f"| {_f(a['planted_fact_pass_rate'])} | {_f(a['mean_dollars'], 4)} "
+            f"| {_f(a['mean_child_rereads'])} | {_f(a['mean_child_compactions'])} "
+            f"| {_f(a['mean_child_overflows'])} | {_f(a['mean_child_parent_msg_overlap'])} |"
+        )
+    valid = result["control_valid"]
+    lines += [
+        "",
+        "Control check (planted-fact pass rate must be 0): "
+        + ("no control runs" if valid is None else ("valid" if valid else "INVALID")),
+    ]
+    if result["infra_excluded"]:
+        lines.append(f"Excluded as infrastructure failures: {result['infra_excluded']} run(s)")
+    return "\n".join(lines)
+
+
 def format_markdown(result: dict[str, Any]) -> str:
     label = "PILOT (not evidence)" if result["pilot"] else "confirmatory"
     lines = [f"# Plugin A/B {label}", ""]
@@ -796,9 +997,26 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="exploratory per-chain report for tasks_v3_adversarial (writes analysis_v3.*)",
     )
+    p.add_argument(
+        "--v4",
+        action="store_true",
+        help="delegation report for tasks_v4 runs (writes analysis_v4.*)",
+    )
     args = p.parse_args(sys.argv[1:] if argv is None else argv)
     report_dir = Path(args.report_dir)
     records = load_records(report_dir)
+    if args.v4:
+        result = analyze_v4(records)
+        if args.json:
+            print(json.dumps(result, indent=2))
+        else:
+            markdown = format_markdown_v4(result)
+            print(markdown)
+            (report_dir / "analysis_v4.md").write_text(markdown + "\n", encoding="utf-8")
+            (report_dir / "analysis_v4.json").write_text(
+                json.dumps(result, indent=2), encoding="utf-8"
+            )
+        return 0
     if args.v3:
         result = analyze_v3(records)
         if args.json:
