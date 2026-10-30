@@ -25,6 +25,7 @@ from cfxd.audit import (
     _weighted,
 )
 from cfxd.daemon import percentile
+from cfxd.usage_dedupe import MessageUsage
 
 # A loop: the same signature 3+ times within a window of 10 consecutive tool calls.
 _LOOP_WINDOW = 10
@@ -135,6 +136,7 @@ def _scan(path: Path) -> _Session:
     results: list[_Result] = []
     id_info: dict[str, tuple[str, float]] = {}
 
+    dedupe = MessageUsage(_iter_objects(path))
     for obj in _iter_objects(path):
         msg = obj.get("message")
         content = msg.get("content") if isinstance(msg, dict) else None
@@ -144,10 +146,14 @@ def _scan(path: Path) -> _Session:
         usage = usage if isinstance(usage, dict) else None
 
         if obj.get("type") == "assistant" and usage is not None:
-            weighted = _weighted(usage)
-            turns.append(weighted)
+            # Usage repeats on every line of one message.id: count the turn once, and
+            # split the message's cost across all of its tool_use blocks.
+            weighted = _weighted(dedupe.final_usage(msg, usage))
+            if dedupe.count_here(msg):
+                turns.append(weighted)
             uses = [b for b in blocks if b.get("type") == "tool_use"]
-            per_call = weighted / len(uses) if uses else 0.0
+            n_uses = dedupe.tool_uses(msg) or len(uses)
+            per_call = weighted / n_uses if uses else 0.0
             for b in uses:
                 name = b.get("name")
                 bid = b.get("id")

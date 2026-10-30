@@ -21,6 +21,7 @@ from cfxd.audit import (
     _iter_objects,
 )
 from cfxd.daemon import percentile
+from cfxd.usage_dedupe import MessageUsage
 
 # Item kinds that can be disabled (the only ones in the "never used" report).
 _DISABLE_KINDS = ("skill", "connector")
@@ -126,6 +127,7 @@ def _scan(path: Path) -> dict[str, Any]:
     assistant_seen = 0
     first_turn_tokens: int | None = None
 
+    dedupe = MessageUsage(_iter_objects(path))
     for obj in _iter_objects(path):
         obj_type = obj.get("type")
         is_assistant = obj_type == "assistant"
@@ -187,7 +189,8 @@ def _scan(path: Path) -> dict[str, Any]:
         if is_assistant:
             usage = msg.get("usage") if isinstance(msg, dict) else None
             if isinstance(usage, dict):
-                turns += 1
+                if dedupe.count_here(msg):
+                    turns += 1
                 if first_turn_tokens is None:
                     first_turn_tokens = sum(
                         v

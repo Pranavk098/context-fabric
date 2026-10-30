@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from cfxd.usage_dedupe import MessageUsage
 from evals.plugin_ab.prices import dollar_cost
 
 WEIGHT_CC = 1.25
@@ -81,6 +82,7 @@ def _turn_tokens(usage: dict[str, Any]) -> tuple[int, int, int, int, int]:
 def scan_transcript(path: Path, prices: dict[str, Any]) -> ScanResult:
     """Aggregate token usage and dollars across one transcript's assistant turns."""
     result = ScanResult()
+    dedupe = MessageUsage(_iter_objects(path))
     for obj in _iter_objects(path):
         if obj.get("type") != "assistant":
             continue
@@ -89,6 +91,9 @@ def scan_transcript(path: Path, prices: dict[str, Any]) -> ScanResult:
             continue
         usage = msg.get("usage")
         if not isinstance(usage, dict):
+            continue
+        # One JSONL line per content block repeats usage: count each message.id once.
+        if not dedupe.count_here(msg):
             continue
         model = msg.get("model")
         if not isinstance(model, str):
