@@ -212,6 +212,7 @@ def build_command(
     arm: str,
     plugin_root: Path,
     resume: bool = False,
+    mcp_config: Path | None = None,
 ) -> list[str]:
     cmd = [
         *_claude_argv(claude_bin),
@@ -235,9 +236,58 @@ def build_command(
         "project,local",
     ]
     cmd += ["--resume", session_id] if resume else ["--session-id", session_id]
+    if mcp_config is not None:
+        # Account connectors leak in despite --setting-sources; an empty strict config blocks them
+        # for every arm so no arm pays for (or races) ~490 deferred tools.
+        cmd += ["--strict-mcp-config", "--mcp-config", str(mcp_config)]
     if arm != "off":
         cmd += ["--plugin-dir", str(plugin_root)]
     return cmd
+
+
+def write_empty_mcp_config(run_dir: Path) -> Path:
+    path = run_dir / "empty_mcp.json"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"mcpServers": {}}), encoding="utf-8")
+    return path
+
+
+def _isolate_mcp_env(env: dict[str, str]) -> None:
+    # Found in the claude binary (not in --help): turns off claude.ai account connectors.
+    env["ENABLE_CLAUDEAI_MCP_SERVERS"] = "false"
+
+
+def count_mcp_attachments(transcript: Path) -> tuple[int, int]:
+    """Count ``deferred_tools_delta`` and ``mcp_instructions_delta`` attachments (counts only)."""
+    deferred = instructions = 0
+    try:
+        with open(transcript, "rb") as fh:
+            for raw in fh:
+                try:
+                    obj = json.loads(raw.decode("utf-8", "replace"))
+                except ValueError:
+                    continue
+                att = obj.get("attachment") if isinstance(obj, dict) else None
+                kind = att.get("type") if isinstance(att, dict) else None
+                if kind == "deferred_tools_delta":
+                    deferred += 1
+                elif kind == "mcp_instructions_delta":
+                    instructions += 1
+    except OSError:
+        pass
+    return deferred, instructions
+
+
+def mcp_churn(
+    config_dir: Path, session_id: str, previous: tuple[int, int] = (0, 0), invocations: int = 1
+) -> tuple[bool, tuple[int, int]]:
+    """True when new MCP delta attachments exceed one per invocation start."""
+    path = find_parent_transcript(config_dir, session_id)
+    if path is None:
+        return False, previous
+    now = count_mcp_attachments(path)
+    churn = now[0] - previous[0] > invocations or now[1] - previous[1] > invocations
+    return churn, now
 
 
 def _new_session_id() -> str:
@@ -713,6 +763,8 @@ def _run_chain(
     fresh_session = False
     pending_block = ""
     snapshots: list[dict[str, bytes]] = []
+    mcp_config = write_empty_mcp_config(run_dir)
+    mcp_seen: dict[str, tuple[int, int]] = {}
 
     for index, step in enumerate(task.steps):
         if index in boundaries and index < len(task.steps):
@@ -737,8 +789,10 @@ def _run_chain(
             arm=spec.arm,
             plugin_root=plugin_root,
             resume=index > 0 and not fresh_session,
+            mcp_config=mcp_config,
         )
         env = os.environ.copy()
+        _isolate_mcp_env(env)
         env["CFX_HOME"] = str(cfx_home)
         env["CFX_PORT"] = str(port)
         if override_config:
@@ -766,6 +820,11 @@ def _run_chain(
         failure = _claude_failure(proc)
         if failure is not None:
             return _infra_record(task, spec, session_id, failure)
+        churn, mcp_seen[session_id] = mcp_churn(
+            config_dir, session_id, mcp_seen.get(session_id, (0, 0))
+        )
+        if churn:
+            return _infra_record(task, spec, session_id, "mcp_churn")
         if fresh_session:
             checkpoints[-1]["restore_outcome"] = "injected" if pending_block else "missing"
             pending_block = ""
@@ -900,6 +959,7 @@ def run_one(
         solution_path.write_text(json.dumps(task.reference_patch), encoding="utf-8")
 
     prompts, steps = _steps_for(task)
+    mcp_config = write_empty_mcp_config(run_dir)
     duration = 0.0
     for prompt, step in zip(prompts, steps, strict=True):
         cmd = build_command(
@@ -910,8 +970,10 @@ def run_one(
             arm=spec.arm,
             plugin_root=plugin_root,
             resume=step in ("compact", "implement"),
+            mcp_config=mcp_config,
         )
         env = os.environ.copy()
+        _isolate_mcp_env(env)
         env["CFX_HOME"] = str(cfx_home)
         env["CFX_PORT"] = str(port)
         if override_config:
@@ -934,6 +996,8 @@ def run_one(
         if failure is not None:
             return _infra_record(task, spec, session_id, failure)
 
+    if mcp_churn(config_dir, session_id, invocations=len(prompts))[0]:
+        return _infra_record(task, spec, session_id, "mcp_churn")
     resolved = run_oracle(python, work, task.oracle)
     try:
         parent, subs, total, sub_count = collect_session_usage(config_dir, session_id, prices)
