@@ -8,6 +8,7 @@ daemon simply has no facts and brief skips with a ``no-state`` receipt.
 
 from __future__ import annotations
 
+import hashlib
 import os
 import re
 import threading
@@ -26,6 +27,11 @@ MAX_TODOS = 20
 IDLE_TTL_S = 24 * 3600
 
 _FILE_TOOLS = ("Read", "Edit", "Write", "MultiEdit", "NotebookEdit")
+
+# Line ranges for Brief v1 excerpts (ADR-0011 decision 3). Off until the daemon turns it on.
+RANGES_PER_FILE = 8
+RANGE_MAX_FILE_BYTES = 1_000_000
+_RANGES_ENABLED = False
 
 _LOCK = threading.Lock()
 
@@ -128,10 +134,13 @@ def _observe(payload: dict[str, Any]) -> None:
         path, lines = _file_fact(tool_name, tool_input, payload.get("tool_response"))
         if path is None:
             return
+        ranges: list[tuple[int, int, str, str]] = []
+        if _RANGES_ENABLED and _is_parent_event(payload):
+            ranges = _file_ranges(tool_name, tool_input, payload.get("tool_response"), path)
         with _LOCK:
             sess = _session(session_id)
             sess.last_seen = now
-            _record_file(sess, path, lines, edited=tool_name != "Read", now=now)
+            _record_file(sess, path, lines, edited=tool_name != "Read", now=now, ranges=ranges)
 
 
 def _test_fact(command: str, response: Any, now: float) -> TestFact | None:
@@ -246,14 +255,125 @@ def _file_fact(
     return path, lines
 
 
-def _record_file(sess: _Session, path: str, lines: int | None, edited: bool, now: float) -> None:
+def set_range_recording(enabled: bool) -> None:
+    """Turn line-range recording on or off (the daemon ties it to ``brief_v1``)."""
+    global _RANGES_ENABLED
+    _RANGES_ENABLED = bool(enabled)
+
+
+def _is_parent_event(payload: dict[str, Any]) -> bool:
+    """False when the payload says a sub-agent made the call (best effort, unverified)."""
+    if payload.get("agent_id"):
+        return False
+    return not (payload.get("isSidechain") is True or payload.get("is_sidechain") is True)
+
+
+def _disk_lines(path: str) -> tuple[str, list[str]] | None:
+    """``(sha16, lines)`` of the file as it is on disk now, or ``None``."""
+    try:
+        if os.stat(path).st_size > RANGE_MAX_FILE_BYTES:
+            return None
+        with open(path, "rb") as fh:
+            data = fh.read(RANGE_MAX_FILE_BYTES + 1)
+    except OSError:
+        return None
+    if len(data) > RANGE_MAX_FILE_BYTES:
+        return None
+    text = data.decode("utf-8", "replace").replace("\r\n", "\n")
+    lines = text.split("\n")
+    if lines and lines[-1] == "":
+        lines.pop()
+    return hashlib.sha256(data).hexdigest()[:16], lines
+
+
+def _file_ranges(
+    tool_name: str, tool_input: dict[str, Any], tool_response: Any, path: str
+) -> list[tuple[int, int, str, str]]:
+    """The ranges one file event touched, hashed from disk (never ``tool_response`` text)."""
+    try:
+        if tool_name == "NotebookEdit":
+            return []
+        disk = _disk_lines(os.path.abspath(path))
+        if disk is None:
+            return []
+        sha, lines = disk
+        total = len(lines)
+        if total == 0:
+            return []
+        if tool_name == "Read":
+            offset = tool_input.get("offset")
+            start = offset if isinstance(offset, int) and not isinstance(offset, bool) else 1
+            start = max(start, 1)
+            count = None
+            if isinstance(tool_response, dict) and isinstance(tool_response.get("file"), dict):
+                count = tool_response["file"].get("numLines")
+            if not isinstance(count, int) or isinstance(count, bool) or count < 1:
+                return []
+            end = min(start + count - 1, total)
+            return [(start, end, sha, "read")] if start <= end else []
+        if tool_name == "Write":
+            return [(1, total, sha, "edit")]
+        if tool_name == "Edit":
+            news = [tool_input.get("new_string")]
+        else:  # MultiEdit
+            edits = tool_input.get("edits")
+            news = (
+                [e.get("new_string") for e in edits if isinstance(e, dict)]
+                if isinstance(edits, list)
+                else []
+            )
+        text = "\n".join(lines)
+        out: list[tuple[int, int, str, str]] = []
+        for new in news:
+            if not isinstance(new, str) or not new.strip("\r\n"):
+                continue
+            needle = new.replace("\r\n", "\n").rstrip("\n")
+            idx = text.find(needle)
+            if idx < 0:
+                continue
+            start = text.count("\n", 0, idx) + 1
+            end = start + needle.count("\n")
+            out.append((start, min(end, total), sha, "edit"))
+        return out
+    except Exception:
+        return []
+
+
+def _merge_ranges(
+    existing: tuple[tuple[int, int, str, str], ...], new: list[tuple[int, int, str, str]]
+) -> tuple[tuple[int, int, str, str], ...]:
+    """Newest last; ranges hashed against an older file version are dropped; at most 8."""
+    if not new:
+        return existing
+    sha = new[-1][2]
+    kept = [r for r in existing if r[2] == sha]
+    for item in new:
+        if item in kept:
+            kept.remove(item)
+        kept.append(item)
+    return tuple(kept[-RANGES_PER_FILE:])
+
+
+def _record_file(
+    sess: _Session,
+    path: str,
+    lines: int | None,
+    edited: bool,
+    now: float,
+    ranges: list[tuple[int, int, str, str]] | None = None,
+) -> None:
     key = os.path.normcase(os.path.abspath(path))
     existing = sess.files.get(key)
     if lines is None and existing is not None:
         lines = existing.lines
     was_edited = existing.edited if existing is not None else False
+    merged = _merge_ranges(existing.ranges if existing is not None else (), ranges or [])
     sess.files[key] = FileFact(
-        path=os.path.abspath(path), lines=lines, edited=was_edited or edited, last_seen=now
+        path=os.path.abspath(path),
+        lines=lines,
+        edited=was_edited or edited,
+        last_seen=now,
+        ranges=merged,
     )
     sess.files.move_to_end(key)
     while len(sess.files) > MAX_FILES:
