@@ -1,0 +1,1571 @@
+{
+  "label": "EXPLORATORY: not a registered result",
+  "records_dir": "C:\\dev\\cf-bench\\evals\\reports\\v2_registered",
+  "runs_in_records": 132,
+  "runs_missing_transcripts": [],
+  "vs_off": {
+    "registered": {
+      "short": {
+        "shipped": {
+          "ratio": 0.8769,
+          "ci": [
+            0.7127,
+            1.0994
+          ],
+          "sonnet": 0.8769
+        },
+        "checkpoint": {
+          "ratio": 0.8421,
+          "ci": [
+            0.6657,
+            1.0561
+          ],
+          "sonnet": 0.8421
+        }
+      },
+      "medium": {
+        "shipped": {
+          "ratio": 0.6851,
+          "ci": [
+            0.601,
+            0.7942
+          ],
+          "sonnet": 0.6851
+        },
+        "checkpoint": {
+          "ratio": 0.5703,
+          "ci": [
+            0.4864,
+            0.6668
+          ],
+          "sonnet": 0.5703
+        }
+      },
+      "long": {
+        "shipped": {
+          "ratio": 0.5446,
+          "ci": [
+            0.4885,
+            0.6124
+          ],
+          "sonnet": 0.5446
+        },
+        "checkpoint": {
+          "ratio": 0.2404,
+          "ci": [
+            0.1961,
+            0.3223
+          ],
+          "sonnet": 0.2404
+        }
+      }
+    },
+    "dedup_final": {
+      "short": {
+        "shipped": {
+          "ratio": 1.0015,
+          "ci": [
+            0.9598,
+            1.0384
+          ],
+          "sonnet": 1.0015
+        },
+        "checkpoint": {
+          "ratio": 0.9988,
+          "ci": [
+            0.9617,
+            1.0434
+          ],
+          "sonnet": 0.9988
+        }
+      },
+      "medium": {
+        "shipped": {
+          "ratio": 0.7614,
+          "ci": [
+            0.7119,
+            0.8315
+          ],
+          "sonnet": 0.7614
+        },
+        "checkpoint": {
+          "ratio": 0.4999,
+          "ci": [
+            0.4326,
+            0.5575
+          ],
+          "sonnet": 0.4999
+        }
+      },
+      "long": {
+        "shipped": {
+          "ratio": 0.6241,
+          "ci": [
+            0.5553,
+            0.6839
+          ],
+          "sonnet": 0.6241
+        },
+        "checkpoint": {
+          "ratio": 0.2991,
+          "ci": [
+            0.2447,
+            0.4113
+          ],
+          "sonnet": 0.2991
+        }
+      }
+    },
+    "dedup_all": {
+      "short": {
+        "shipped": {
+          "ratio": 1.0015,
+          "ci": [
+            0.9598,
+            1.0384
+          ],
+          "sonnet": 1.0015
+        },
+        "checkpoint": {
+          "ratio": 0.9988,
+          "ci": [
+            0.9617,
+            1.0434
+          ],
+          "sonnet": 0.9988
+        }
+      },
+      "medium": {
+        "shipped": {
+          "ratio": 0.7614,
+          "ci": [
+            0.7119,
+            0.8315
+          ],
+          "sonnet": 0.7614
+        },
+        "checkpoint": {
+          "ratio": 1.0463,
+          "ci": [
+            0.9839,
+            1.1063
+          ],
+          "sonnet": 1.0463
+        }
+      },
+      "long": {
+        "shipped": {
+          "ratio": 0.6241,
+          "ci": [
+            0.5553,
+            0.6839
+          ],
+          "sonnet": 0.6241
+        },
+        "checkpoint": {
+          "ratio": 0.7807,
+          "ci": [
+            0.7142,
+            0.8477
+          ],
+          "sonnet": 0.7807
+        }
+      }
+    }
+  },
+  "checkpoint_vs_shipped": {
+    "registered": {
+      "short": {
+        "ratio": 0.9603,
+        "ci": [
+          0.7615,
+          1.127
+        ],
+        "sonnet": 0.9603
+      },
+      "medium": {
+        "ratio": 0.8324,
+        "ci": [
+          0.7001,
+          1.0021
+        ],
+        "sonnet": 0.8324
+      },
+      "long": {
+        "ratio": 0.4413,
+        "ci": [
+          0.3509,
+          0.5675
+        ],
+        "sonnet": 0.4413
+      }
+    },
+    "dedup_final": {
+      "short": {
+        "ratio": 0.9973,
+        "ci": [
+          0.9516,
+          1.0502
+        ],
+        "sonnet": 0.9973
+      },
+      "medium": {
+        "ratio": 0.6565,
+        "ci": [
+          0.5364,
+          0.7496
+        ],
+        "sonnet": 0.6565
+      },
+      "long": {
+        "ratio": 0.4792,
+        "ci": [
+          0.3807,
+          0.6281
+        ],
+        "sonnet": 0.4792
+      }
+    },
+    "dedup_all": {
+      "short": {
+        "ratio": 0.9973,
+        "ci": [
+          0.9516,
+          1.0502
+        ],
+        "sonnet": 0.9973
+      },
+      "medium": {
+        "ratio": 1.3741,
+        "ci": [
+          1.2864,
+          1.4523
+        ],
+        "sonnet": 1.3741
+      },
+      "long": {
+        "ratio": 1.251,
+        "ci": [
+          1.1818,
+          1.3093
+        ],
+        "sonnet": 1.251
+      }
+    }
+  },
+  "deferred_tools_delta_per_run": {
+    "long": {
+      "checkpoint": [
+        3,
+        8,
+        3,
+        2,
+        2,
+        2,
+        3,
+        3,
+        3
+      ],
+      "shipped": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        3
+      ],
+      "off": [
+        27,
+        24,
+        24,
+        14,
+        19,
+        16,
+        20,
+        20,
+        20
+      ]
+    },
+    "medium": {
+      "checkpoint": [
+        2,
+        3,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        3,
+        2,
+        2
+      ],
+      "shipped": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "off": [
+        7,
+        7,
+        6,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        9,
+        6,
+        8
+      ]
+    },
+    "short": {
+      "checkpoint": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "shipped": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "off": [
+        2,
+        2,
+        2,
+        2,
+        3,
+        3,
+        2,
+        3,
+        1,
+        2,
+        3,
+        3
+      ]
+    }
+  },
+  "runs": [
+    {
+      "run": "long/long-checkout/checkpoint/rep-1",
+      "warm_up": true,
+      "sessions": 3,
+      "deferred_tools_delta": 3,
+      "weighted_registered": 324175.65,
+      "weighted_dedup_final": 137620.75,
+      "weighted_dedup_all": 387266.05
+    },
+    {
+      "run": "long/long-checkout/shipped/rep-1",
+      "warm_up": true,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 869956.85,
+      "weighted_dedup_final": 342109.25,
+      "weighted_dedup_all": 342109.25
+    },
+    {
+      "run": "long/long-checkout/off/rep-1",
+      "warm_up": true,
+      "sessions": 1,
+      "deferred_tools_delta": 24,
+      "weighted_registered": 1636625.7,
+      "weighted_dedup_final": 558993.65,
+      "weighted_dedup_all": 558993.65
+    },
+    {
+      "run": "long/long-checkout/checkpoint/rep0",
+      "warm_up": false,
+      "sessions": 3,
+      "deferred_tools_delta": 3,
+      "weighted_registered": 281040.85,
+      "weighted_dedup_final": 128563.9,
+      "weighted_dedup_all": 367687.15
+    },
+    {
+      "run": "long/long-checkout/shipped/rep0",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 812517.3,
+      "weighted_dedup_final": 331585.1,
+      "weighted_dedup_all": 331585.1
+    },
+    {
+      "run": "long/long-checkout/off/rep0",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 27,
+      "weighted_registered": 1644463.95,
+      "weighted_dedup_final": 582862.6,
+      "weighted_dedup_all": 582862.6
+    },
+    {
+      "run": "long/long-checkout/off/rep1",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 24,
+      "weighted_registered": 1568992.75,
+      "weighted_dedup_final": 571524.65,
+      "weighted_dedup_all": 571524.65
+    },
+    {
+      "run": "long/long-checkout/shipped/rep1",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 805114.35,
+      "weighted_dedup_final": 325926.9,
+      "weighted_dedup_all": 325926.9
+    },
+    {
+      "run": "long/long-checkout/checkpoint/rep1",
+      "warm_up": false,
+      "sessions": 3,
+      "deferred_tools_delta": 8,
+      "weighted_registered": 307971.05,
+      "weighted_dedup_final": 134369.3,
+      "weighted_dedup_all": 384304.4
+    },
+    {
+      "run": "long/long-checkout/checkpoint/rep2",
+      "warm_up": false,
+      "sessions": 3,
+      "deferred_tools_delta": 3,
+      "weighted_registered": 330442.1,
+      "weighted_dedup_final": 136838.55,
+      "weighted_dedup_all": 379129.5
+    },
+    {
+      "run": "long/long-checkout/shipped/rep2",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 772560.0,
+      "weighted_dedup_final": 306980.7,
+      "weighted_dedup_all": 306980.7
+    },
+    {
+      "run": "long/long-checkout/off/rep2",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 24,
+      "weighted_registered": 1487290.15,
+      "weighted_dedup_final": 578542.45,
+      "weighted_dedup_all": 578542.45
+    },
+    {
+      "run": "long/long-coupons/off/rep-1",
+      "warm_up": true,
+      "sessions": 1,
+      "deferred_tools_delta": 16,
+      "weighted_registered": 953358.65,
+      "weighted_dedup_final": 363767.8,
+      "weighted_dedup_all": 363767.8
+    },
+    {
+      "run": "long/long-coupons/shipped/rep-1",
+      "warm_up": true,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 703785.7,
+      "weighted_dedup_final": 277525.2,
+      "weighted_dedup_all": 277525.2
+    },
+    {
+      "run": "long/long-coupons/checkpoint/rep-1",
+      "warm_up": true,
+      "sessions": 2,
+      "deferred_tools_delta": 2,
+      "weighted_registered": 405776.6,
+      "weighted_dedup_final": 154875.0,
+      "weighted_dedup_all": 275255.75
+    },
+    {
+      "run": "long/long-coupons/off/rep0",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 14,
+      "weighted_registered": 812562.05,
+      "weighted_dedup_final": 345470.5,
+      "weighted_dedup_all": 345470.5
+    },
+    {
+      "run": "long/long-coupons/shipped/rep0",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 580750.65,
+      "weighted_dedup_final": 231151.6,
+      "weighted_dedup_all": 231151.6
+    },
+    {
+      "run": "long/long-coupons/checkpoint/rep0",
+      "warm_up": false,
+      "sessions": 2,
+      "deferred_tools_delta": 2,
+      "weighted_registered": 360076.25,
+      "weighted_dedup_final": 148241.35,
+      "weighted_dedup_all": 269846.5
+    },
+    {
+      "run": "long/long-coupons/checkpoint/rep1",
+      "warm_up": false,
+      "sessions": 2,
+      "deferred_tools_delta": 2,
+      "weighted_registered": 336367.45,
+      "weighted_dedup_final": 156760.15,
+      "weighted_dedup_all": 295395.7
+    },
+    {
+      "run": "long/long-coupons/shipped/rep1",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 528575.05,
+      "weighted_dedup_final": 223921.05,
+      "weighted_dedup_all": 223921.05
+    },
+    {
+      "run": "long/long-coupons/off/rep1",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 19,
+      "weighted_registered": 1086237.95,
+      "weighted_dedup_final": 378543.5,
+      "weighted_dedup_all": 378543.5
+    },
+    {
+      "run": "long/long-coupons/off/rep2",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 16,
+      "weighted_registered": 947268.55,
+      "weighted_dedup_final": 341529.3,
+      "weighted_dedup_all": 341529.3
+    },
+    {
+      "run": "long/long-coupons/shipped/rep2",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 595276.4,
+      "weighted_dedup_final": 260902.3,
+      "weighted_dedup_all": 260902.3
+    },
+    {
+      "run": "long/long-coupons/checkpoint/rep2",
+      "warm_up": false,
+      "sessions": 2,
+      "deferred_tools_delta": 2,
+      "weighted_registered": 250214.6,
+      "weighted_dedup_final": 126653.55,
+      "weighted_dedup_all": 247446.7
+    },
+    {
+      "run": "long/long-refunds/checkpoint/rep-1",
+      "warm_up": true,
+      "sessions": 3,
+      "deferred_tools_delta": 4,
+      "weighted_registered": 211404.1,
+      "weighted_dedup_final": 92184.2,
+      "weighted_dedup_all": 332855.95
+    },
+    {
+      "run": "long/long-refunds/shipped/rep-1",
+      "warm_up": true,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 635663.5,
+      "weighted_dedup_final": 272076.4,
+      "weighted_dedup_all": 272076.4
+    },
+    {
+      "run": "long/long-refunds/off/rep-1",
+      "warm_up": true,
+      "sessions": 1,
+      "deferred_tools_delta": 20,
+      "weighted_registered": 1040051.75,
+      "weighted_dedup_final": 456745.95,
+      "weighted_dedup_all": 456745.95
+    },
+    {
+      "run": "long/long-refunds/checkpoint/rep0",
+      "warm_up": false,
+      "sessions": 3,
+      "deferred_tools_delta": 3,
+      "weighted_registered": 201006.75,
+      "weighted_dedup_final": 85918.15,
+      "weighted_dedup_all": 334657.8
+    },
+    {
+      "run": "long/long-refunds/shipped/rep0",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 587811.25,
+      "weighted_dedup_final": 323735.4,
+      "weighted_dedup_all": 323735.4
+    },
+    {
+      "run": "long/long-refunds/off/rep0",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 20,
+      "weighted_registered": 1085912.4,
+      "weighted_dedup_final": 435299.0,
+      "weighted_dedup_all": 435299.0
+    },
+    {
+      "run": "long/long-refunds/off/rep1",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 20,
+      "weighted_registered": 1102419.2,
+      "weighted_dedup_final": 442349.05,
+      "weighted_dedup_all": 442349.05
+    },
+    {
+      "run": "long/long-refunds/shipped/rep1",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 706119.25,
+      "weighted_dedup_final": 291379.55,
+      "weighted_dedup_all": 291379.55
+    },
+    {
+      "run": "long/long-refunds/checkpoint/rep1",
+      "warm_up": false,
+      "sessions": 3,
+      "deferred_tools_delta": 3,
+      "weighted_registered": 253287.05,
+      "weighted_dedup_final": 117769.45,
+      "weighted_dedup_all": 353631.25
+    },
+    {
+      "run": "long/long-refunds/checkpoint/rep2",
+      "warm_up": false,
+      "sessions": 3,
+      "deferred_tools_delta": 3,
+      "weighted_registered": 200882.1,
+      "weighted_dedup_final": 101648.25,
+      "weighted_dedup_all": 350095.0
+    },
+    {
+      "run": "long/long-refunds/shipped/rep2",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 3,
+      "weighted_registered": 769957.85,
+      "weighted_dedup_final": 303065.4,
+      "weighted_dedup_all": 303065.4
+    },
+    {
+      "run": "long/long-refunds/off/rep2",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 20,
+      "weighted_registered": 1091974.7,
+      "weighted_dedup_final": 433918.95,
+      "weighted_dedup_all": 433918.95
+    },
+    {
+      "run": "medium/medium-refunds/checkpoint/rep-1",
+      "warm_up": true,
+      "sessions": 2,
+      "deferred_tools_delta": 3,
+      "weighted_registered": 181465.25,
+      "weighted_dedup_final": 73092.05,
+      "weighted_dedup_all": 175936.6
+    },
+    {
+      "run": "medium/medium-refunds/shipped/rep-1",
+      "warm_up": true,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 208283.0,
+      "weighted_dedup_final": 108919.3,
+      "weighted_dedup_all": 108919.3
+    },
+    {
+      "run": "medium/medium-refunds/off/rep-1",
+      "warm_up": true,
+      "sessions": 1,
+      "deferred_tools_delta": 4,
+      "weighted_registered": 269745.45,
+      "weighted_dedup_final": 100880.85,
+      "weighted_dedup_all": 100880.85
+    },
+    {
+      "run": "medium/medium-refunds/checkpoint/rep0",
+      "warm_up": false,
+      "sessions": 2,
+      "deferred_tools_delta": 2,
+      "weighted_registered": 102354.8,
+      "weighted_dedup_final": 45850.7,
+      "weighted_dedup_all": 123940.2
+    },
+    {
+      "run": "medium/medium-refunds/shipped/rep0",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 204505.3,
+      "weighted_dedup_final": 104006.8,
+      "weighted_dedup_all": 104006.8
+    },
+    {
+      "run": "medium/medium-refunds/off/rep0",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 7,
+      "weighted_registered": 231456.75,
+      "weighted_dedup_final": 150425.7,
+      "weighted_dedup_all": 150425.7
+    },
+    {
+      "run": "medium/medium-refunds/off/rep1",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 7,
+      "weighted_registered": 209508.65,
+      "weighted_dedup_final": 117192.2,
+      "weighted_dedup_all": 117192.2
+    },
+    {
+      "run": "medium/medium-refunds/shipped/rep1",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 195219.7,
+      "weighted_dedup_final": 98780.8,
+      "weighted_dedup_all": 98780.8
+    },
+    {
+      "run": "medium/medium-refunds/checkpoint/rep1",
+      "warm_up": false,
+      "sessions": 2,
+      "deferred_tools_delta": 3,
+      "weighted_registered": 160311.65,
+      "weighted_dedup_final": 47346.8,
+      "weighted_dedup_all": 125697.6
+    },
+    {
+      "run": "medium/medium-refunds/checkpoint/rep2",
+      "warm_up": false,
+      "sessions": 2,
+      "deferred_tools_delta": 2,
+      "weighted_registered": 125456.2,
+      "weighted_dedup_final": 45576.9,
+      "weighted_dedup_all": 127888.6
+    },
+    {
+      "run": "medium/medium-refunds/shipped/rep2",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 231126.65,
+      "weighted_dedup_final": 120728.3,
+      "weighted_dedup_all": 120728.3
+    },
+    {
+      "run": "medium/medium-refunds/off/rep2",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 6,
+      "weighted_registered": 267961.65,
+      "weighted_dedup_final": 105844.85,
+      "weighted_dedup_all": 105844.85
+    },
+    {
+      "run": "medium/medium-tax/off/rep-1",
+      "warm_up": true,
+      "sessions": 1,
+      "deferred_tools_delta": 8,
+      "weighted_registered": 335457.7,
+      "weighted_dedup_final": 180792.3,
+      "weighted_dedup_all": 180792.3
+    },
+    {
+      "run": "medium/medium-tax/shipped/rep-1",
+      "warm_up": true,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 302000.85,
+      "weighted_dedup_final": 119169.35,
+      "weighted_dedup_all": 119169.35
+    },
+    {
+      "run": "medium/medium-tax/checkpoint/rep-1",
+      "warm_up": true,
+      "sessions": 2,
+      "deferred_tools_delta": 2,
+      "weighted_registered": 252035.9,
+      "weighted_dedup_final": 78201.75,
+      "weighted_dedup_all": 152896.95
+    },
+    {
+      "run": "medium/medium-tax/off/rep0",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 8,
+      "weighted_registered": 412035.95,
+      "weighted_dedup_final": 146420.2,
+      "weighted_dedup_all": 146420.2
+    },
+    {
+      "run": "medium/medium-tax/shipped/rep0",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 241065.55,
+      "weighted_dedup_final": 120027.7,
+      "weighted_dedup_all": 120027.7
+    },
+    {
+      "run": "medium/medium-tax/checkpoint/rep0",
+      "warm_up": false,
+      "sessions": 2,
+      "deferred_tools_delta": 2,
+      "weighted_registered": 198486.35,
+      "weighted_dedup_final": 72164.85,
+      "weighted_dedup_all": 146827.65
+    },
+    {
+      "run": "medium/medium-tax/checkpoint/rep1",
+      "warm_up": false,
+      "sessions": 2,
+      "deferred_tools_delta": 2,
+      "weighted_registered": 316981.65,
+      "weighted_dedup_final": 89822.9,
+      "weighted_dedup_all": 173830.65
+    },
+    {
+      "run": "medium/medium-tax/shipped/rep1",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 270620.9,
+      "weighted_dedup_final": 120562.8,
+      "weighted_dedup_all": 120562.8
+    },
+    {
+      "run": "medium/medium-tax/off/rep1",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 8,
+      "weighted_registered": 334882.45,
+      "weighted_dedup_final": 152349.85,
+      "weighted_dedup_all": 152349.85
+    },
+    {
+      "run": "medium/medium-tax/off/rep2",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 8,
+      "weighted_registered": 404928.5,
+      "weighted_dedup_final": 157380.7,
+      "weighted_dedup_all": 157380.7
+    },
+    {
+      "run": "medium/medium-tax/shipped/rep2",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 250838.95,
+      "weighted_dedup_final": 118967.45,
+      "weighted_dedup_all": 118967.45
+    },
+    {
+      "run": "medium/medium-tax/checkpoint/rep2",
+      "warm_up": false,
+      "sessions": 2,
+      "deferred_tools_delta": 2,
+      "weighted_registered": 184341.65,
+      "weighted_dedup_final": 82444.75,
+      "weighted_dedup_all": 158063.45
+    },
+    {
+      "run": "medium/medium-coupons/checkpoint/rep-1",
+      "warm_up": true,
+      "sessions": 2,
+      "deferred_tools_delta": 2,
+      "weighted_registered": 249787.4,
+      "weighted_dedup_final": 76688.7,
+      "weighted_dedup_all": 166346.65
+    },
+    {
+      "run": "medium/medium-coupons/shipped/rep-1",
+      "warm_up": true,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 340569.1,
+      "weighted_dedup_final": 138726.9,
+      "weighted_dedup_all": 138726.9
+    },
+    {
+      "run": "medium/medium-coupons/off/rep-1",
+      "warm_up": true,
+      "sessions": 1,
+      "deferred_tools_delta": 8,
+      "weighted_registered": 337920.75,
+      "weighted_dedup_final": 172371.85,
+      "weighted_dedup_all": 172371.85
+    },
+    {
+      "run": "medium/medium-coupons/checkpoint/rep0",
+      "warm_up": false,
+      "sessions": 2,
+      "deferred_tools_delta": 2,
+      "weighted_registered": 183318.45,
+      "weighted_dedup_final": 79827.05,
+      "weighted_dedup_all": 155155.3
+    },
+    {
+      "run": "medium/medium-coupons/shipped/rep0",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 257021.35,
+      "weighted_dedup_final": 121623.2,
+      "weighted_dedup_all": 121623.2
+    },
+    {
+      "run": "medium/medium-coupons/off/rep0",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 8,
+      "weighted_registered": 431664.15,
+      "weighted_dedup_final": 167982.25,
+      "weighted_dedup_all": 167982.25
+    },
+    {
+      "run": "medium/medium-coupons/off/rep1",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 8,
+      "weighted_registered": 440992.05,
+      "weighted_dedup_final": 166255.35,
+      "weighted_dedup_all": 166255.35
+    },
+    {
+      "run": "medium/medium-coupons/shipped/rep1",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 275761.15,
+      "weighted_dedup_final": 117217.7,
+      "weighted_dedup_all": 117217.7
+    },
+    {
+      "run": "medium/medium-coupons/checkpoint/rep1",
+      "warm_up": false,
+      "sessions": 2,
+      "deferred_tools_delta": 2,
+      "weighted_registered": 203781.4,
+      "weighted_dedup_final": 88345.2,
+      "weighted_dedup_all": 168287.65
+    },
+    {
+      "run": "medium/medium-coupons/checkpoint/rep2",
+      "warm_up": false,
+      "sessions": 2,
+      "deferred_tools_delta": 2,
+      "weighted_registered": 228914.4,
+      "weighted_dedup_final": 87916.9,
+      "weighted_dedup_all": 172431.8
+    },
+    {
+      "run": "medium/medium-coupons/shipped/rep2",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 346066.5,
+      "weighted_dedup_final": 120751.25,
+      "weighted_dedup_all": 120751.25
+    },
+    {
+      "run": "medium/medium-coupons/off/rep2",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 8,
+      "weighted_registered": 394716.6,
+      "weighted_dedup_final": 155773.7,
+      "weighted_dedup_all": 155773.7
+    },
+    {
+      "run": "medium/medium-report/off/rep-1",
+      "warm_up": true,
+      "sessions": 1,
+      "deferred_tools_delta": 8,
+      "weighted_registered": 407667.8,
+      "weighted_dedup_final": 160667.2,
+      "weighted_dedup_all": 160667.2
+    },
+    {
+      "run": "medium/medium-report/shipped/rep-1",
+      "warm_up": true,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 274629.6,
+      "weighted_dedup_final": 125480.5,
+      "weighted_dedup_all": 125480.5
+    },
+    {
+      "run": "medium/medium-report/checkpoint/rep-1",
+      "warm_up": true,
+      "sessions": 2,
+      "deferred_tools_delta": 2,
+      "weighted_registered": 195631.0,
+      "weighted_dedup_final": 82289.9,
+      "weighted_dedup_all": 172613.2
+    },
+    {
+      "run": "medium/medium-report/off/rep0",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 9,
+      "weighted_registered": 476668.8,
+      "weighted_dedup_final": 196158.75,
+      "weighted_dedup_all": 196158.75
+    },
+    {
+      "run": "medium/medium-report/shipped/rep0",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 269534.2,
+      "weighted_dedup_final": 124682.05,
+      "weighted_dedup_all": 124682.05
+    },
+    {
+      "run": "medium/medium-report/checkpoint/rep0",
+      "warm_up": false,
+      "sessions": 2,
+      "deferred_tools_delta": 3,
+      "weighted_registered": 238147.3,
+      "weighted_dedup_final": 77266.0,
+      "weighted_dedup_all": 152201.35
+    },
+    {
+      "run": "medium/medium-report/checkpoint/rep1",
+      "warm_up": false,
+      "sessions": 2,
+      "deferred_tools_delta": 2,
+      "weighted_registered": 217795.3,
+      "weighted_dedup_final": 75442.7,
+      "weighted_dedup_all": 166083.9
+    },
+    {
+      "run": "medium/medium-report/shipped/rep1",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 341494.6,
+      "weighted_dedup_final": 132152.1,
+      "weighted_dedup_all": 132152.1
+    },
+    {
+      "run": "medium/medium-report/off/rep1",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 6,
+      "weighted_registered": 356593.7,
+      "weighted_dedup_final": 146871.75,
+      "weighted_dedup_all": 146871.75
+    },
+    {
+      "run": "medium/medium-report/off/rep2",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 8,
+      "weighted_registered": 407450.9,
+      "weighted_dedup_final": 168702.25,
+      "weighted_dedup_all": 168702.25
+    },
+    {
+      "run": "medium/medium-report/shipped/rep2",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 290104.75,
+      "weighted_dedup_final": 124519.85,
+      "weighted_dedup_all": 124519.85
+    },
+    {
+      "run": "medium/medium-report/checkpoint/rep2",
+      "warm_up": false,
+      "sessions": 2,
+      "deferred_tools_delta": 2,
+      "weighted_registered": 246656.6,
+      "weighted_dedup_final": 95408.35,
+      "weighted_dedup_all": 170617.0
+    },
+    {
+      "run": "short/plain-rename-format-currency/checkpoint/rep-1",
+      "warm_up": true,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 249049.3,
+      "weighted_dedup_final": 75762.1,
+      "weighted_dedup_all": 75762.1
+    },
+    {
+      "run": "short/plain-rename-format-currency/shipped/rep-1",
+      "warm_up": true,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 252497.0,
+      "weighted_dedup_final": 74677.4,
+      "weighted_dedup_all": 74677.4
+    },
+    {
+      "run": "short/plain-rename-format-currency/off/rep-1",
+      "warm_up": true,
+      "sessions": 1,
+      "deferred_tools_delta": 2,
+      "weighted_registered": 289872.7,
+      "weighted_dedup_final": 86759.85,
+      "weighted_dedup_all": 86759.85
+    },
+    {
+      "run": "short/plain-rename-format-currency/checkpoint/rep0",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 272382.85,
+      "weighted_dedup_final": 69105.95,
+      "weighted_dedup_all": 69105.95
+    },
+    {
+      "run": "short/plain-rename-format-currency/shipped/rep0",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 252116.65,
+      "weighted_dedup_final": 68289.95,
+      "weighted_dedup_all": 68289.95
+    },
+    {
+      "run": "short/plain-rename-format-currency/off/rep0",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 2,
+      "weighted_registered": 243607.35,
+      "weighted_dedup_final": 73606.5,
+      "weighted_dedup_all": 73606.5
+    },
+    {
+      "run": "short/plain-rename-format-currency/off/rep1",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 2,
+      "weighted_registered": 241852.65,
+      "weighted_dedup_final": 80205.25,
+      "weighted_dedup_all": 80205.25
+    },
+    {
+      "run": "short/plain-rename-format-currency/shipped/rep1",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 221157.25,
+      "weighted_dedup_final": 67334.35,
+      "weighted_dedup_all": 67334.35
+    },
+    {
+      "run": "short/plain-rename-format-currency/checkpoint/rep1",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 264347.0,
+      "weighted_dedup_final": 68714.5,
+      "weighted_dedup_all": 68714.5
+    },
+    {
+      "run": "short/plain-rename-format-currency/checkpoint/rep2",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 292784.65,
+      "weighted_dedup_final": 86266.7,
+      "weighted_dedup_all": 86266.7
+    },
+    {
+      "run": "short/plain-rename-format-currency/shipped/rep2",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 244713.55,
+      "weighted_dedup_final": 75509.05,
+      "weighted_dedup_all": 75509.05
+    },
+    {
+      "run": "short/plain-rename-format-currency/off/rep2",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 2,
+      "weighted_registered": 242422.7,
+      "weighted_dedup_final": 66583.85,
+      "weighted_dedup_all": 66583.85
+    },
+    {
+      "run": "short/plain-fix-discount/off/rep-1",
+      "warm_up": true,
+      "sessions": 1,
+      "deferred_tools_delta": 2,
+      "weighted_registered": 88131.0,
+      "weighted_dedup_final": 49338.25,
+      "weighted_dedup_all": 49338.25
+    },
+    {
+      "run": "short/plain-fix-discount/shipped/rep-1",
+      "warm_up": true,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 94987.35,
+      "weighted_dedup_final": 46706.0,
+      "weighted_dedup_all": 46706.0
+    },
+    {
+      "run": "short/plain-fix-discount/checkpoint/rep-1",
+      "warm_up": true,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 58982.85,
+      "weighted_dedup_final": 45617.95,
+      "weighted_dedup_all": 45617.95
+    },
+    {
+      "run": "short/plain-fix-discount/off/rep0",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 2,
+      "weighted_registered": 141549.7,
+      "weighted_dedup_final": 45597.5,
+      "weighted_dedup_all": 45597.5
+    },
+    {
+      "run": "short/plain-fix-discount/shipped/rep0",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 94795.4,
+      "weighted_dedup_final": 46603.0,
+      "weighted_dedup_all": 46603.0
+    },
+    {
+      "run": "short/plain-fix-discount/checkpoint/rep0",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 94960.0,
+      "weighted_dedup_final": 46589.3,
+      "weighted_dedup_all": 46589.3
+    },
+    {
+      "run": "short/plain-fix-discount/checkpoint/rep1",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 94835.0,
+      "weighted_dedup_final": 46574.3,
+      "weighted_dedup_all": 46574.3
+    },
+    {
+      "run": "short/plain-fix-discount/shipped/rep1",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 94761.65,
+      "weighted_dedup_final": 46529.25,
+      "weighted_dedup_all": 46529.25
+    },
+    {
+      "run": "short/plain-fix-discount/off/rep1",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 3,
+      "weighted_registered": 97511.9,
+      "weighted_dedup_final": 49733.85,
+      "weighted_dedup_all": 49733.85
+    },
+    {
+      "run": "short/plain-fix-discount/off/rep2",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 3,
+      "weighted_registered": 123266.4,
+      "weighted_dedup_final": 46019.2,
+      "weighted_dedup_all": 46019.2
+    },
+    {
+      "run": "short/plain-fix-discount/shipped/rep2",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 94892.9,
+      "weighted_dedup_final": 46690.5,
+      "weighted_dedup_all": 46690.5
+    },
+    {
+      "run": "short/plain-fix-discount/checkpoint/rep2",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 103928.6,
+      "weighted_dedup_final": 47196.8,
+      "weighted_dedup_all": 47196.8
+    },
+    {
+      "run": "short/plain-implement-tax/checkpoint/rep-1",
+      "warm_up": true,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 102151.5,
+      "weighted_dedup_final": 49661.45,
+      "weighted_dedup_all": 49661.45
+    },
+    {
+      "run": "short/plain-implement-tax/shipped/rep-1",
+      "warm_up": true,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 146298.1,
+      "weighted_dedup_final": 51095.55,
+      "weighted_dedup_all": 51095.55
+    },
+    {
+      "run": "short/plain-implement-tax/off/rep-1",
+      "warm_up": true,
+      "sessions": 1,
+      "deferred_tools_delta": 2,
+      "weighted_registered": 146586.8,
+      "weighted_dedup_final": 47421.2,
+      "weighted_dedup_all": 47421.2
+    },
+    {
+      "run": "short/plain-implement-tax/checkpoint/rep0",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 60232.95,
+      "weighted_dedup_final": 46267.85,
+      "weighted_dedup_all": 46267.85
+    },
+    {
+      "run": "short/plain-implement-tax/shipped/rep0",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 82574.0,
+      "weighted_dedup_final": 51326.3,
+      "weighted_dedup_all": 51326.3
+    },
+    {
+      "run": "short/plain-implement-tax/off/rep0",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 2,
+      "weighted_registered": 116462.7,
+      "weighted_dedup_final": 47051.75,
+      "weighted_dedup_all": 47051.75
+    },
+    {
+      "run": "short/plain-implement-tax/off/rep1",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 3,
+      "weighted_registered": 102014.35,
+      "weighted_dedup_final": 45670.0,
+      "weighted_dedup_all": 45670.0
+    },
+    {
+      "run": "short/plain-implement-tax/shipped/rep1",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 72892.7,
+      "weighted_dedup_final": 48098.75,
+      "weighted_dedup_all": 48098.75
+    },
+    {
+      "run": "short/plain-implement-tax/checkpoint/rep1",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 66012.95,
+      "weighted_dedup_final": 48647.85,
+      "weighted_dedup_all": 48647.85
+    },
+    {
+      "run": "short/plain-implement-tax/checkpoint/rep2",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 83767.85,
+      "weighted_dedup_final": 54680.05,
+      "weighted_dedup_all": 54680.05
+    },
+    {
+      "run": "short/plain-implement-tax/shipped/rep2",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 65831.85,
+      "weighted_dedup_final": 48730.05,
+      "weighted_dedup_all": 48730.05
+    },
+    {
+      "run": "short/plain-implement-tax/off/rep2",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 75170.3,
+      "weighted_dedup_final": 48922.55,
+      "weighted_dedup_all": 48922.55
+    },
+    {
+      "run": "short/plain-add-empty-order-validation/off/rep-1",
+      "warm_up": true,
+      "sessions": 1,
+      "deferred_tools_delta": 2,
+      "weighted_registered": 148883.3,
+      "weighted_dedup_final": 46225.5,
+      "weighted_dedup_all": 46225.5
+    },
+    {
+      "run": "short/plain-add-empty-order-validation/shipped/rep-1",
+      "warm_up": true,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 131625.9,
+      "weighted_dedup_final": 47613.5,
+      "weighted_dedup_all": 47613.5
+    },
+    {
+      "run": "short/plain-add-empty-order-validation/checkpoint/rep-1",
+      "warm_up": true,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 76057.8,
+      "weighted_dedup_final": 54207.95,
+      "weighted_dedup_all": 54207.95
+    },
+    {
+      "run": "short/plain-add-empty-order-validation/off/rep0",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 2,
+      "weighted_registered": 132537.7,
+      "weighted_dedup_final": 52033.05,
+      "weighted_dedup_all": 52033.05
+    },
+    {
+      "run": "short/plain-add-empty-order-validation/shipped/rep0",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 144216.3,
+      "weighted_dedup_final": 54186.7,
+      "weighted_dedup_all": 54186.7
+    },
+    {
+      "run": "short/plain-add-empty-order-validation/checkpoint/rep0",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 71950.45,
+      "weighted_dedup_final": 47630.2,
+      "weighted_dedup_all": 47630.2
+    },
+    {
+      "run": "short/plain-add-empty-order-validation/checkpoint/rep1",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 75873.05,
+      "weighted_dedup_final": 53971.4,
+      "weighted_dedup_all": 53971.4
+    },
+    {
+      "run": "short/plain-add-empty-order-validation/shipped/rep1",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 82771.65,
+      "weighted_dedup_final": 53597.9,
+      "weighted_dedup_all": 53597.9
+    },
+    {
+      "run": "short/plain-add-empty-order-validation/off/rep1",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 3,
+      "weighted_registered": 98025.15,
+      "weighted_dedup_final": 50015.8,
+      "weighted_dedup_all": 50015.8
+    },
+    {
+      "run": "short/plain-add-empty-order-validation/off/rep2",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 3,
+      "weighted_registered": 83394.6,
+      "weighted_dedup_final": 50343.8,
+      "weighted_dedup_all": 50343.8
+    },
+    {
+      "run": "short/plain-add-empty-order-validation/shipped/rep2",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 134090.25,
+      "weighted_dedup_final": 52839.15,
+      "weighted_dedup_all": 52839.15
+    },
+    {
+      "run": "short/plain-add-empty-order-validation/checkpoint/rep2",
+      "warm_up": false,
+      "sessions": 1,
+      "deferred_tools_delta": 1,
+      "weighted_registered": 131059.45,
+      "weighted_dedup_final": 47313.95,
+      "weighted_dedup_all": 47313.95
+    }
+  ]
+}
