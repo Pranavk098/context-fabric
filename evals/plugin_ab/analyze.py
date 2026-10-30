@@ -700,9 +700,9 @@ def analyze_v3(records: list[dict[str, Any]]) -> dict[str, Any]:
 V4_ARMS = ("none", "brief_v0", "brief_v1", "fork", "control")
 # Comparisons are (treatment, baseline). The first is the primary; the rest are secondary.
 V4_PRIMARY = ("brief_v1", "none")
-# No brief_v1 vs fork cost comparison: a fork child runs on the parent model (Sonnet) while the other
-# arms use Haiku children, so a ratio would report a model difference as a context effect. The fork
-# arm stays in the per-arm table only.
+# No brief_v1 vs fork cost comparison: a fork child runs on the parent model (Sonnet) while the
+# other arms use Haiku children, so a ratio would report a model difference as a context effect.
+# The fork arm stays in the per-arm table only.
 V4_SECONDARY = (("brief_v1", "brief_v0"),)
 
 
