@@ -31,7 +31,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from evals.plugin_ab import prereg
+from cfxd.brief_receipts import (
+    BriefReceipt,
+    _scan_parent,
+    join_receipts,
+    path_sha16,
+)
+from evals.plugin_ab import prereg, v4_prompt
 from evals.plugin_ab.patch import apply_patch
 from evals.plugin_ab.prices import load_prices
 from evals.plugin_ab.usage import ScanResult, combine, scan_transcript
@@ -41,6 +47,7 @@ _REPO_ROOT = _PKG.parents[1]
 DEFAULT_FIXTURE = _PKG / "fixture"
 DEFAULT_TASKS = _PKG / "tasks.json"
 TASKS_V2 = _PKG / "tasks_v2.json"
+TASKS_V4 = _PKG / "tasks_v4.json"
 DEFAULT_REPORT_DIR = _REPO_ROOT / "evals" / "reports" / "plugin_ab"
 
 ARMS_OFF_ON = ("off", "on")
@@ -65,6 +72,23 @@ KILLED_TEST_TIMEOUT_S = 0.05
 # Where the runner drops the step's last assistant text for the v3 claim oracles to read.
 AGENT_TEXT = Path(".harness") / "agent_text.txt"
 
+# v4 delegation benchmark (WP H2). Every arm loads the plugin; arms differ in the brief flags
+# (``V4_ARM_CONFIG``) and in how the parent is told to spawn (``fork`` inherits the conversation).
+V4_ARMS = ("none", "brief_v0", "brief_v1", "fork", "control")
+V4_PARENT_MODEL = "sonnet"
+V4_CHILD_MODEL = "haiku"
+V4_PARENT_MAX_TURNS = 40
+V4_DEFAULT_CAP_USD = 1.50  # per run; EVALS_MAX_RUN_USD overrides, as for v2
+V4_HIDDEN_TIMEOUT_S = 300
+# carry_back stays off in every arm so the arms differ only in the handoff under test; H3 decides.
+V4_ARM_CONFIG: dict[str, dict[str, bool]] = {
+    "none": {"brief": False, "brief_v1": False, "carry_back": False},
+    "brief_v0": {"brief": True, "brief_v1": False, "carry_back": False},
+    "brief_v1": {"brief": True, "brief_v1": True, "carry_back": False},
+    "fork": {"brief": False, "brief_v1": False, "carry_back": False},
+    "control": {"brief": False, "brief_v1": False, "carry_back": False},
+}
+
 _ALLOWED_TOOLS = "Read,Edit,Write,Grep,Glob,Agent,Bash(python -m pytest:*)"
 
 
@@ -83,6 +107,13 @@ class Step:
 
 
 @dataclass(frozen=True)
+class PlantedFact:
+    id: str
+    fact: str
+    test: str  # "test_planted.py::test_name" inside the task's hidden test directory
+
+
+@dataclass(frozen=True)
 class Task:
     id: str
     kind: str
@@ -95,6 +126,13 @@ class Task:
     steps: tuple[Step, ...] = ()
     fixture: str = "fixture"
     exploratory: bool = False
+    # v4 (delegation benchmark) fields; empty for v1/v2/v3 tasks.
+    hidden_tests: str = ""
+    reference: str = ""
+    reference_variant: str = ""
+    planted_facts: tuple[PlantedFact, ...] = ()
+    max_turns: int = 0
+    timeout: int = 0
 
 
 @dataclass(frozen=True)
@@ -143,6 +181,15 @@ def load_tasks(path: Path = DEFAULT_TASKS) -> list[Task]:
                 steps=steps,
                 fixture=str(item.get("fixture", "fixture")),
                 exploratory=bool(item.get("exploratory", False)),
+                hidden_tests=str(item.get("hidden_tests", "")),
+                reference=str(item.get("reference", "")),
+                reference_variant=str(item.get("reference_variant", "")),
+                planted_facts=tuple(
+                    PlantedFact(str(f["id"]), str(f["fact"]), str(f["test"]))
+                    for f in item.get("planted_facts", [])
+                ),
+                max_turns=int(item.get("max_turns", 0)),
+                timeout=int(item.get("timeout", 0)),
             )
         )
     return tasks
@@ -171,13 +218,25 @@ def plan_runs(tasks: list[Task], arms: tuple[str, ...], reps: int, seed: int) ->
     return specs
 
 
+def is_v4(tasks: list[Task]) -> bool:
+    """The v4 delegation task file: tasks carry planted facts and hidden tests."""
+    return any(t.planted_facts for t in tasks)
+
+
 def is_v2(tasks: list[Task]) -> bool:
-    return any(t.stratum for t in tasks)
+    return any(t.stratum for t in tasks) and not is_v4(tasks)
 
 
 def is_v3(tasks: list[Task]) -> bool:
     """An exploratory task file marks each task; it is never part of the v2 prereg hash."""
     return any(t.exploratory for t in tasks)
+
+
+def plan_v4(tasks: list[Task], arms: tuple[str, ...], reps: int, seed: int) -> list[RunSpec]:
+    """The v2/v3 seeded ABBA order without warm-up runs (a warm-up per arm per task would
+    cost 5x a measured rep on a Sonnet parent)."""
+    measured = [s for s in plan_runs(tasks, arms, reps, seed) if not s.warm_up]
+    return [replace(s, order_index=i) for i, s in enumerate(measured)]
 
 
 def plan_smoke(tasks: list[Task]) -> list[RunSpec]:
@@ -222,6 +281,8 @@ def build_command(
     plugin_root: Path,
     resume: bool = False,
     mcp_config: Path | None = None,
+    max_turns: int = 25,
+    max_budget_usd: str = "0.50",
 ) -> list[str]:
     cmd = [
         *_claude_argv(claude_bin),
@@ -232,9 +293,9 @@ def build_command(
         "--output-format",
         "json",
         "--max-turns",
-        "25",
+        str(max_turns),
         "--max-budget-usd",
-        "0.50",
+        max_budget_usd,
         "--permission-mode",
         "acceptEdits",
         "--allowedTools",
@@ -377,8 +438,10 @@ def _task_fixture(task: Task, default: Path) -> Path:
 
 
 def _write_arm_config(arm: str, cfx_home: Path) -> None:
-    """Only ``on_fold`` needs a config override; every other plugin arm uses defaults."""
-    if arm == "on_fold":
+    """Only ``on_fold`` and the v4 arms need a config override; the rest use defaults."""
+    if arm in V4_ARM_CONFIG:
+        (cfx_home / "config.json").write_text(json.dumps(V4_ARM_CONFIG[arm]), encoding="utf-8")
+    elif arm == "on_fold":
         (cfx_home / "config.json").write_text(
             json.dumps({"brief": True, "carry": True, "fold": True, "fold_read": True}),
             encoding="utf-8",
@@ -1050,6 +1113,250 @@ def _run_chain(
     return record
 
 
+# ----------------------------------------------------------------------------- v4 delegation
+
+_PYTEST_OUTCOME_RE = re.compile(r"^(PASSED|FAILED|ERROR)\s+\S*::(\w+)", re.MULTILINE)
+
+
+def run_hidden_tests(
+    python: str, work: Path, hidden: Path, facts: tuple[PlantedFact, ...], timeout: int
+) -> tuple[bool, dict[str, bool]] | None:
+    """Run a v4 task's hidden tests against the workspace.
+
+    Returns ``(behavior_pass, {fact id: planted test passed})``; ``None`` means pytest could not
+    run at all (missing directory, timeout). A failing or uncollectable test is data, not infra.
+    """
+    if not (hidden / "test_behavior.py").is_file() or not (hidden / "test_planted.py").is_file():
+        return None
+    purge_pycache(work)
+    env = {**os.environ, "CLICK_FIXTURE_ROOT": str(work), "PYTHONDONTWRITEBYTECODE": "1"}
+
+    def run(*args: str) -> subprocess.CompletedProcess[bytes]:
+        return subprocess.run(
+            [python, "-m", "pytest", "-q", "-p", "no:cacheprovider", *args],
+            cwd=_REPO_ROOT,
+            capture_output=True,
+            timeout=timeout,
+            env=env,
+        )
+
+    try:
+        behavior = run(str(hidden / "test_behavior.py"))
+        planted = run("-rA", str(hidden / "test_planted.py"))
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    text = planted.stdout.decode("utf-8", "replace")
+    passed = {m.group(2) for m in _PYTEST_OUTCOME_RE.finditer(text) if m.group(1) == "PASSED"}
+    return behavior.returncode == 0, {f.id: f.test.rsplit("::", 1)[-1] in passed for f in facts}
+
+
+def _assistant_ids(path: Path) -> set[str]:
+    ids: set[str] = set()
+    try:
+        with open(path, "rb") as fh:
+            for raw in fh:
+                try:
+                    obj = json.loads(raw.decode("utf-8", "replace"))
+                except ValueError:
+                    continue
+                msg = obj.get("message") if isinstance(obj, dict) else None
+                mid = msg.get("id") if isinstance(msg, dict) else None
+                if obj.get("type") == "assistant" and isinstance(mid, str) and mid:
+                    ids.add(mid)
+    except OSError:
+        pass
+    return ids
+
+
+def delegation_metrics(parent_path: Path, session_id: str) -> dict[str, Any]:
+    """Counts about what the sub-agents read, compacted and replayed (no paths, no text).
+
+    A child "re-read" is a distinct file the child read that the parent had already read before
+    the ``Agent`` call that spawned it (path hashes, the ADR-0011 join key).
+    ``child_parent_msg_overlap`` counts assistant message ids that appear in both a child and the
+    parent transcript: nonzero means the child replays parent history (a fork), and those
+    messages' usage would be double counted by the per-file scan.
+    """
+    parent = _scan_parent(parent_path)
+    children = parent.children()
+    agent_to_call = {aid: tid for tid, aid in parent.agent_ids.items()}
+    first_call = min(parent.agent_calls.values(), default=None)
+    parent_ids = _assistant_ids(parent_path)
+    overlap = sum(
+        len(_assistant_ids(p) & parent_ids)
+        for p in find_subagent_transcripts(parent_path, session_id)
+    )
+    entries: list[dict[str, Any]] = []
+    for aid, child in sorted(children.items()):
+        tid = agent_to_call.get(aid)
+        call_idx = parent.agent_calls.get(tid, first_call) if tid else first_call
+        seen = {path_sha16(p) for i, p in parent.reads if call_idx is None or i < call_idx}
+        read = {path_sha16(p) for p in child.reads}
+        entries.append(
+            {
+                "model": child.model,
+                "turns": child.turns,
+                "compactions": child.compactions,
+                "overflows": child.overflows,
+                "files_read": len(read),
+                "rereads_of_parent_reads": len(read & seen),
+                "tokens_total": child.tokens.get("total", 0),
+            }
+        )
+    return {
+        "agent_calls": len(parent.agent_calls),
+        "parent_files_read": len({path_sha16(p) for _, p in parent.reads}),
+        "children": entries,
+        "child_compactions": sum(int(e["compactions"]) for e in entries),
+        "child_overflows": sum(int(e["overflows"]) for e in entries),
+        "child_rereads": sum(int(e["rereads_of_parent_reads"]) for e in entries),
+        "child_files_read": sum(int(e["files_read"]) for e in entries),
+        "child_parent_msg_overlap": overlap,
+        "child_models": sorted({str(e["model"]) for e in entries if e["model"]}),
+    }
+
+
+def receipt_summary(receipt: BriefReceipt) -> dict[str, Any]:
+    """An R1 receipt reduced to counts and ids: file path lists become lengths."""
+    out = receipt.to_dict()
+    for key in (
+        "briefed_files",
+        "child_files_read",
+        "rereads_of_briefed",
+        "parent_read_not_briefed",
+    ):
+        out[f"n_{key}"] = len(out.pop(key))
+    return out
+
+
+def _run_v4(
+    task: Task,
+    spec: RunSpec,
+    *,
+    model: str,
+    child_model: str,
+    claude_bin: str,
+    plugin_root: Path,
+    fixture: Path,
+    isolation: Path,
+    prices: dict[str, Any],
+    python: str,
+    fake: bool,
+) -> dict[str, Any]:
+    """One v4 run: a Sonnet parent is told to delegate to Haiku sub-agents, then the hidden
+    behaviour tests and the planted-fact tests run against the workspace."""
+    session_id, run_dir, work, cfx_home, config_dir, override_config, port = _prepare_run(
+        task, spec, fixture=fixture, isolation=isolation, fake=fake
+    )
+    configured_cap = os.environ.get("EVALS_MAX_RUN_USD")
+    cap_usd = float(configured_cap) if configured_cap else V4_DEFAULT_CAP_USD
+    mcp_config = write_empty_mcp_config(run_dir)
+    cmd = build_command(
+        claude_bin,
+        prompt=v4_prompt.parent_prompt(task.prompt, spec.arm, child_model),
+        model=model,
+        session_id=session_id,
+        arm=spec.arm,
+        plugin_root=plugin_root,
+        mcp_config=mcp_config,
+        max_turns=V4_PARENT_MAX_TURNS,
+        max_budget_usd=f"{cap_usd:.2f}",
+    )
+    env = os.environ.copy()
+    _isolate_mcp_env(env)
+    env["CFX_HOME"] = str(cfx_home)
+    env["CFX_PORT"] = str(port)
+    if override_config:
+        env["CLAUDE_CONFIG_DIR"] = str(config_dir)
+    for key in v4_prompt.FORK_ENV:
+        env.pop(key, None)
+    env.pop("CLAUDE_CODE_SUBAGENT_MODEL", None)
+    if spec.arm == "fork":
+        env.update(v4_prompt.FORK_ENV)  # the child inherits the parent model and conversation
+    else:
+        env["CLAUDE_CODE_SUBAGENT_MODEL"] = child_model  # backs up the model named in the prompt
+    if fake:
+        env["PLUGIN_AB_FAKE_STEP"] = "run"
+        env["PLUGIN_AB_V4_ARM"] = spec.arm
+        env["PLUGIN_AB_V4_REFERENCE"] = str(_REPO_ROOT / task.reference)
+        env["PLUGIN_AB_V4_READS"] = ",".join(task.needs_read_files)
+        if spec.arm == "control":  # nobody knew the planted facts: the stand-in ignores them
+            env["PLUGIN_AB_V4_VARIANT"] = str(_REPO_ROOT / task.reference_variant)
+    start = time.perf_counter()
+    try:
+        proc = subprocess.run(
+            cmd, cwd=work, env=env, capture_output=True, timeout=task.timeout or CLAUDE_TIMEOUT_S
+        )
+    except subprocess.TimeoutExpired:
+        return _infra_record(task, spec, session_id, "claude call timed out")
+    duration = time.perf_counter() - start
+    failure = _claude_failure(proc)
+    if failure is not None:
+        return _infra_record(task, spec, session_id, failure)
+    if mcp_churn(config_dir, session_id)[0]:
+        return _infra_record(task, spec, session_id, "mcp_churn")
+    parent_path = find_parent_transcript(config_dir, session_id)
+    if parent_path is None:
+        return _infra_record(task, spec, session_id, "no transcript found for the session")
+    hidden = run_hidden_tests(
+        python, work, _REPO_ROOT / task.hidden_tests, task.planted_facts, V4_HIDDEN_TIMEOUT_S
+    )
+    if hidden is None:
+        return _infra_record(task, spec, session_id, "hidden tests could not execute")
+    behavior_pass, planted = hidden
+    parent, subs, total, sub_count = collect_session_usage(config_dir, session_id, prices)
+    metrics = delegation_metrics(parent_path, session_id)
+    receipts: list[dict[str, Any]] = []
+    briefs = cfx_home / "briefs.jsonl"
+    if briefs.is_file():
+        receipts = [
+            receipt_summary(r)
+            for r in join_receipts(
+                briefs, config_dir / "projects", parent_transcripts={session_id: parent_path}
+            )
+        ]
+    dollars = round(total.dollars, 8) if total.dollars is not None else None
+    planted_pass = bool(planted) and all(planted.values())
+    return {
+        "task": task.id,
+        "kind": task.kind,
+        "stratum": task.stratum,
+        "arm": spec.arm,
+        "rep": spec.rep,
+        "order_index": spec.order_index,
+        "warm_up": spec.warm_up,
+        "v4": True,
+        "parent_model": model,
+        "child_model_requested": None if spec.arm == "fork" else child_model,
+        "facts_in_prompt": spec.arm != "control",
+        "resolved": behavior_pass and planted_pass,
+        "hidden_pass": behavior_pass,
+        "planted": planted,
+        "planted_passed": sum(1 for ok in planted.values() if ok),
+        "planted_of": len(planted),
+        "spawns": sub_count,
+        "no_spawn": sub_count == 0,  # data, not an infrastructure failure
+        "cap_hit": dollars is not None and dollars > cap_usd,
+        "cap_usd": cap_usd,
+        "turns": total.turns,
+        "usage": {
+            "parent": _usage_dict(parent),
+            "subagents": _usage_dict(subs),
+            "subagent_sessions": sub_count,
+        },
+        **metrics,
+        "receipts": receipts,
+        "weighted_tokens": round(total.weighted(), 3),
+        "dollars": dollars,
+        "unpriced_models": sorted(total.unpriced_models),
+        "brief_fired": detect_brief(cfx_home),
+        "carry_fired": detect_carry(cfx_home),
+        "overhead": collect_overhead(cfx_home),
+        "duration_s": round(duration, 3),
+        "session_id": session_id,
+    }
+
+
 def run_one(
     task: Task,
     spec: RunSpec,
@@ -1062,7 +1369,22 @@ def run_one(
     prices: dict[str, Any],
     python: str,
     fake: bool,
+    child_model: str = V4_CHILD_MODEL,
 ) -> dict[str, Any]:
+    if task.planted_facts:
+        return _run_v4(
+            task,
+            spec,
+            model=model,
+            child_model=child_model,
+            claude_bin=claude_bin,
+            plugin_root=plugin_root,
+            fixture=fixture,
+            isolation=isolation,
+            prices=prices,
+            python=python,
+            fake=fake,
+        )
     if task.steps:
         return _run_chain(
             task,
@@ -1182,11 +1504,15 @@ def run_experiment(
     slice_name: str | None = None,
     exploratory: bool = False,
     smoke: bool = False,
+    child_model: str = V4_CHILD_MODEL,
 ) -> dict[str, Any]:
     if stratum:
         tasks = [t for t in tasks if t.stratum == stratum]
+    v4 = is_v4(tasks)
     if smoke:
         specs = plan_smoke(tasks)
+    elif v4:
+        specs = plan_v4(tasks, arms, reps, seed)
     else:
         specs = plan_slice0(tasks) if slice_name == "slice0" else plan_runs(tasks, arms, reps, seed)
     if max_runs is not None:
@@ -1208,6 +1534,7 @@ def run_experiment(
             prices=prices,
             python=python,
             fake=fake,
+            child_model=child_model,
         )
         records.append(record)
         consecutive_infra = consecutive_infra + 1 if record.get("infra_failure") else 0
@@ -1222,16 +1549,20 @@ def run_experiment(
         "arms": list(arms),
         "model": model,
         "stratum": stratum,
-        "max_run_usd": float(os.environ.get("EVALS_MAX_RUN_USD", "0.60")),
+        "max_run_usd": float(
+            os.environ.get("EVALS_MAX_RUN_USD", V4_DEFAULT_CAP_USD if v4 else "0.60")
+        ),
         "prices_as_of": prices.get("as_of"),
         "prereg_sha256": (
             None
-            if exploratory
+            if (exploratory or v4)
             else (prereg.stored_hash_v2() if is_v2(tasks) else prereg.stored_hash())
         ),
         "started_at": datetime.now(UTC).isoformat(),
         "runs": records,
     }
+    if v4:
+        report["child_model"] = child_model
     if exploratory:
         report["exploratory"] = True
         report["label"] = "EXPLORATORY"
@@ -1289,6 +1620,14 @@ def _parser() -> argparse.ArgumentParser:
         help="v3 only: fake claude, one adversarial chain x 2 arms (off, checkpoint)",
     )
     p.add_argument(
+        "--v4",
+        action="store_true",
+        help="required for tasks_v4.json (delegation benchmark); pilot only until H3 freezes it",
+    )
+    p.add_argument(
+        "--child-model", default=V4_CHILD_MODEL, help="v4 sub-agent model (default: haiku)"
+    )
+    p.add_argument(
         "--stratum",
         choices=("short", "medium", "long"),
         default=None,
@@ -1307,7 +1646,19 @@ def main(argv: list[str] | None = None) -> int:
     pilot = bool(args.pilot)
     tasks = load_tasks(Path(args.tasks))
     v2 = is_v2(tasks)
+    v4 = is_v4(tasks)
     exploratory = is_v3(tasks)
+    if v4 != bool(args.v4):
+        print(
+            "refusing to start: --v4 and the v4 task file (tasks_v4.json) go together",
+            file=sys.stderr,
+        )
+        return 2
+    if v4 and (args.slice0 or args.smoke or args.exploratory):
+        print(
+            "refusing to start: --slice0/--smoke/--exploratory are not v4 options", file=sys.stderr
+        )
+        return 2
     if exploratory and not args.exploratory:
         print(
             "refusing to start: the v3 adversarial task file is exploratory; pass --exploratory",
@@ -1326,7 +1677,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.smoke and not os.environ.get("PLUGIN_AB_CLAUDE"):
         print("refusing to start: --smoke runs the fake claude only", file=sys.stderr)
         return 2
-    if exploratory:
+    if v4:
+        # No v4 prereg hash exists until H3 freezes the protocol: pilot runs only.
+        ok, message = (pilot, "v4 is not frozen yet (H3): run it with --pilot")
+    elif exploratory:
         ok, message = True, "exploratory run: no prereg gate"
     else:
         ok, message = (prereg.gate_ok_v2 if v2 else prereg.gate_ok)(_PKG, pilot)
@@ -1339,7 +1693,16 @@ def main(argv: list[str] | None = None) -> int:
     if args.arms is not None:
         arms = tuple(a.strip() for a in args.arms.split(",") if a.strip())
     else:
-        arms = V2_ARMS if (v2 or exploratory) else ARMS_OFF_ON
+        arms = V4_ARMS if v4 else (V2_ARMS if (v2 or exploratory) else ARMS_OFF_ON)
+    if v4:
+        unknown_v4 = [a for a in arms if a not in V4_ARMS]
+        if unknown_v4:
+            print(
+                f"refusing to start: unknown v4 arm(s) {', '.join(unknown_v4)}; "
+                f"arms are {','.join(V4_ARMS)}",
+                file=sys.stderr,
+            )
+            return 2
     if v2 or exploratory:
         rejected = [a for a in arms if a in V2_REJECTED_ARMS]
         if rejected:
@@ -1367,6 +1730,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.smoke:
         arms = ("off", "checkpoint")
     model = SLICE0_MODEL if (v2 or exploratory or args.slice0) else "haiku"
+    if v4:
+        model = V4_PARENT_MODEL
     if args.model is not None and not args.slice0:
         model = args.model
     run_id = args.run_id or datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
@@ -1394,6 +1759,7 @@ def main(argv: list[str] | None = None) -> int:
             slice_name="slice0" if args.slice0 else None,
             exploratory=exploratory,
             smoke=args.smoke,
+            child_model=args.child_model,
         )
     finally:
         if not args.keep:
