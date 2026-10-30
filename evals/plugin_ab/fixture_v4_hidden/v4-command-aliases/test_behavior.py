@@ -35,7 +35,7 @@ def test_aliases_are_not_registered_as_separate_commands():
     cli = _group()
     assert "ls" not in cli.commands
     assert "li" not in cli.commands
-    assert cli.commands["list"].aliases == ("ls", "li")
+    assert tuple(cli.commands["list"].aliases) == ("ls", "li")
 
 
 def test_help_lists_the_command_once():

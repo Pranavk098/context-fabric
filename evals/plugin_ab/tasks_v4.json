@@ -135,7 +135,7 @@
     "kind": "plain",
     "stratum": "medium",
     "fixture": "fixture_v4",
-    "prompt": "Group options in `--help` by an optional `section=` value on `click.Option` (e.g. `click.Option([\"--token\"], section=\"Network\")`). Options without a section stay under the normal `Options` heading; each named section gets its own heading and all of its options beneath it. Keep the existing parameter order inside each group and keep arguments where they are. Constraints for this task: put the grouping helper in `click/formatting.py` and call it `group_by_section`; export `DEFAULT_OPTION_SECTION = \"Options\"` from that module; named sections are rendered upper-case (`Network` becomes `NETWORK:`).",
+    "prompt": "Group options in `--help` by an optional `section=` value on `click.Option` (e.g. `click.Option([\"--token\"], section=\"Network\")`). Options without a section stay under the normal `Options` heading; each named section gets its own heading and all of its options beneath it. Keep the existing parameter order inside each group and keep arguments where they are. Constraints for this task: put the grouping helper in `click/formatting.py` and call it `group_by_section` (it takes a list of `(opts, help, section_or_None)` tuples and returns a dict mapping section name to a list of `(opts, help)` tuples, with unsectioned options under `DEFAULT_OPTION_SECTION`); export `DEFAULT_OPTION_SECTION = \"Options\"` from that module; named sections are rendered upper-case (`Network` becomes `NETWORK:`).",
     "hidden_tests": "evals/plugin_ab/fixture_v4_hidden/v4-option-sections",
     "reference": "evals/plugin_ab/fixture_v4_reference/v4-option-sections/files",
     "reference_variant": "evals/plugin_ab/fixture_v4_reference/v4-option-sections/variant.json",
