@@ -1,12 +1,12 @@
 # Sprint 10 status
 
-Updated by the coordinator each evening.
+Updated 2026-10-30.
 
 | WP | State | Branch | Blockers |
 |---|---|---|---|
-| A1 | dispatched (Sonnet) | s10-a1 | |
-| A2 | dispatched (Sonnet) | s10-a2 | |
-| C1 | dispatched (OpenCode Flash) | s10-c1 | |
-| D1 | dispatched (Opus) | s10-d1 | founder sign-off |
+| A1 MCP isolation | merged | s10-a1 | env var ENABLE_CLAUDEAI_MCP_SERVERS unverified |
+| A2 usage dedup | merged | s10-a2 | v2 stored records still per-line |
+| C1 macOS CI | merged, pushed; first run pending | s10-c1 | read the macOS run for failing tests |
+| D1 ADRs | merged (ADR-0010, b8-parked); ContextDB ADR dropped | s10-d1 | wheel contents decision open |
 
-Next: Wave 2 (A3 after A1, A4 after A2, A5 gate after both).
+Next: Wave 2. A3 (after A1, now unblocked), A4 (after A2, now unblocked), A5 gate probe (founder, cf-bench).
