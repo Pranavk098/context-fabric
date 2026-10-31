@@ -41,7 +41,9 @@ INJECTIONS = [
 
 
 @pytest.fixture(autouse=True)
-def _clean() -> Iterator[None]:
+def _clean(tmp_path: Path) -> Iterator[None]:
+    # R-2: these tests cover v0/v1 content, not the default-on skip policy.
+    set_flag(tmp_path / "state", "brief_policy", False)
     ss.reset()
     clear()
     brief.reset_inflight()

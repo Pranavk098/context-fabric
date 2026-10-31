@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from cfxd.brief_types import Intent, Rendered
 
 PACKET_CAP_BYTES = 2_000
+POLICY_MIN_KNOWN_FILES = 3
 MAX_FILES = 12
 MAX_FOLDS = 5
 MAX_COMMANDS = 5
@@ -141,7 +142,11 @@ def handle_pre_tool_use(payload: dict[str, Any], state_dir: Path) -> dict[str, A
     else:
         facts = snapshot(session_id) if session_id is not None else None
         fallback: str | None = None
-        if config.get("brief_v1"):
+        policy = _policy_skip(config, tool_input, facts)
+        if policy is not None:
+            reason, family = policy
+            extra = {"target_model": family}
+        elif config.get("brief_v1"):
             try:
                 v1 = _build_v1(payload, tool_input, prompt, facts, started)
             except _Deadline:
@@ -197,6 +202,27 @@ def handle_pre_tool_use(payload: dict[str, Any], state_dir: Path) -> dict[str, A
             "updatedInput": updated,
         }
     }
+
+
+def _policy_skip(
+    config: dict[str, bool], tool_input: dict[str, Any], facts: SessionFacts | None
+) -> tuple[str, str] | None:
+    """``(skip_reason, target family)`` when a brief cannot pay for itself (R-2)."""
+    if not config.get("brief_policy", True):
+        return None
+    try:
+        # Local import: brief_select imports the sanitising helpers from this module.
+        from cfxd.brief_select import resolve_target
+
+        family = resolve_target(tool_input).family
+    except Exception:
+        # A policy check must never turn a working brief into a failed hook.
+        return None
+    if family == "haiku":
+        return "policy_haiku", family
+    if facts is None or len(facts.files) < POLICY_MIN_KNOWN_FILES:
+        return "policy_low_knowledge", family
+    return None
 
 
 def _render(facts: SessionFacts, prompt: str) -> str:

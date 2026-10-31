@@ -23,6 +23,9 @@ CONFIG_FILE = "config.json"
 # output showed no measurable saving because Claude Code already stubs very large outputs itself.
 _DEFAULTS: dict[str, bool] = {
     "brief": True,
+    # R-2: stay silent where a brief cannot pay for itself (Haiku children, parents that
+    # know fewer than three files).
+    "brief_policy": True,
     "carry": True,
     "fold": False,
     "fold_read": False,
