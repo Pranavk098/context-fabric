@@ -50,10 +50,10 @@ wherever this guide says `cfxd ...`, from the environment where cfxd is installe
 
 ## 3. Turn Brief on
 
-Brief v1 needs two switches:
+`brief`, `brief_policy` and `carry` are on by default and every other switch is off. Brief v1
+is one of the off ones, so one switch turns it on:
 
 ```bash
-cfxd set brief on
 cfxd set brief_v1 on
 ```
 
