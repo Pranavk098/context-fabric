@@ -16,7 +16,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from cfxd import checkpoint, handoff, packet
+from cfxd import __version__, checkpoint, handoff, packet
 from cfxd.agents import READERS, build_report, default_root, since_cutoff
 from cfxd.agents import format_human as format_agent_report
 from cfxd.agents.opencode import OpenCodeDBError
@@ -71,6 +71,7 @@ def _add_state_dir(parser: argparse.ArgumentParser) -> None:
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="cfxd", description="Context Fabric daemon")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     serve = subparsers.add_parser("serve", help="run the hook daemon")

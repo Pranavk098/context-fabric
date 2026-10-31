@@ -1,0 +1,81 @@
+name: install-smoke
+
+# Install smoke (F-5): on a version tag, or on demand, run the install path a tester uses on all
+# three OSes, then prove cfxd runs and prints one report. The checked-out ref is what gets
+# installed and verified, so a tag run tests that tag. Read-only: this job never writes.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Ref to install and verify (default: the current ref)"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      CFX_REPO: Pranavk098/context-fabric
+      CFX_REF: ${{ inputs.ref || github.ref_name }}
+      UV_PYTHON: "3.12"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+      - name: Install uv
+        uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
+        with:
+          version: "0.11.3"
+      # A temp HOME/USERPROFILE holds Claude Code, the plugin install and ~/.cfx, so the runner's
+      # real home stays clean. Claude Code is a prerequisite of the installer, not the thing under
+      # test, so it is installed before the clock starts.
+      - name: Isolated home and Claude Code
+        shell: bash
+        run: |
+          home="${{ runner.temp }}/cfx-home"
+          mkdir -p "$home"
+          # Consumed by Windows processes too (PowerShell's $HOME), so use the runner's own form.
+          { echo "HOME=$home"; echo "USERPROFILE=$home"; } >> "$GITHUB_ENV"
+          echo "$home/.local/bin" >> "$GITHUB_PATH"
+          export HOME="$home" USERPROFILE="$home"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://claude.ai/install.ps1 | iex"
+          else
+            curl -fsSL https://claude.ai/install.sh | bash
+          fi
+      - name: Install, then first report
+        shell: bash
+        run: |
+          set -euo pipefail
+          start=$(date +%s)
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install.ps1
+          else
+            sh scripts/install.sh
+          fi
+          # The tester's command, pinned to the ref that was checked out.
+          cfxd() { uvx --from "git+https://github.com/${CFX_REPO}@${CFX_REF}" cfxd "$@"; }
+          cfxd --version
+          # On a fresh home there is no daemon yet, so doctor exits 1; install.sh also treats that
+          # as informational, so it must not fail the smoke.
+          cfxd doctor || echo "cfxd doctor: not running yet (expected before the first session)"
+          transcripts="$RUNNER_TEMP/cfx-empty-transcripts"
+          mkdir -p "$transcripts"
+          cfxd week --share --root "$transcripts"
+          secs=$(( $(date +%s) - start ))
+          echo "time-to-first-report=${secs} seconds"
+          {
+            echo "### install smoke: ${RUNNER_OS} (${CFX_REF})"
+            echo ""
+            echo "time-to-first-report=${secs} seconds"
+          } >> "$GITHUB_STEP_SUMMARY"

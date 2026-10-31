@@ -58,6 +58,23 @@ def test_security_scan_is_weekly_and_read_only() -> None:
     assert "uvx pip-audit -r" in text
 
 
+def test_install_smoke_runs_the_tester_path_on_three_oses() -> None:
+    text = (WORKFLOWS / "install-smoke.yml").read_text(encoding="utf-8")
+    assert 'tags: ["v*"]' in text
+    assert "workflow_dispatch:" in text
+    for os_name in ("ubuntu-latest", "macos-latest", "windows-latest"):
+        assert os_name in text, f"install-smoke.yml: {os_name} missing from the matrix"
+    assert "scripts/install.sh" in text
+    assert "scripts/install.ps1" in text
+    assert "time-to-first-report=" in text
+    assert "pull_request_target" not in text
+    permissions = text.split("permissions:", 1)[1].split("jobs:", 1)[0]
+    assert "contents: read" in permissions
+    assert "write" not in permissions
+    for ref in USES.findall(text):
+        assert SHA.match(ref.rsplit("@", 1)[1]), f"install-smoke.yml: {ref} is not a 40-hex SHA"
+
+
 def test_bandit_allowlist_is_documented_and_narrow() -> None:
     import json
 

@@ -67,6 +67,14 @@ def test_doctor_no_state_exits_1(tmp_path: Path) -> None:
     assert "no state file" in result.stdout
 
 
+def test_version_prints_the_package_version() -> None:
+    from cfxd import __version__
+
+    result = _run_cli("--version")
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == f"cfxd {__version__}"
+
+
 def test_serve_port_in_use_exits_2(tmp_path: Path) -> None:
     with socket.socket() as blocker:
         blocker.bind(("127.0.0.1", 0))
