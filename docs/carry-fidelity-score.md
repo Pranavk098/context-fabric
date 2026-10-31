@@ -7,7 +7,7 @@ definitions in `docs/FIDELITY-METRICS.md`, imported from `cfxd/fidelity.py`.
 ## Sample
 
 - Window: last 30 days
-- Sessions scanned: 521 parents, 495 sub-agent transcript files
+- Sessions scanned: 524 parents, 495 sub-agent transcript files
 - Compaction boundaries scored: 30; skipped 36 (no summary text 33, no held files 3)
 
 ## Headline (pooled over every scored compaction)
@@ -21,6 +21,23 @@ definitions in `docs/FIDELITY-METRICS.md`, imported from `cfxd/fidelity.py`.
 - Frozen M2 on the same compactions: 522 of 684 edited files were not named by the summary (76.3%). Those are the files carry can add back.
 - Compactions where v2 restores more dropped edited files than v1: 15; equal: 15; fewer: 0
 
+## Equal budget (both renderers capped to the same bytes)
+
+Each renderer is called with the same byte cap, so this measures selection at equal
+cost rather than a larger allowance. `restored per KB` is pooled dropped edited
+files restored divided by the pooled rendered block bytes, times 1,024.
+
+| cap (bytes) | renderer | dropped edited restored | block bytes (pooled) | restored per KB |
+|---|---|---|---|---|
+| 3,000 | carry v1 | 173 of 522 (33.1%) | 63,248 | 2.80 |
+| 3,000 | carry v2 | 242 of 522 (46.4%) | 71,864 | 3.45 |
+| 4,000 | carry v1 | 203 of 522 (38.9%) | 79,606 | 2.61 |
+| 4,000 | carry v2 | 245 of 522 (46.9%) | 89,090 | 2.82 |
+
+- At 3,000 bytes v2 restores 3.45 dropped edited files per KB vs v1's 2.80 (1.23x).
+
+- At 4,000 bytes v2 restores 2.82 dropped edited files per KB vs v1's 2.61 (1.08x).
+
 ## By trigger
 
 | trigger | events | dropped edited | v1 restored | v2 restored |
@@ -31,7 +48,8 @@ definitions in `docs/FIDELITY-METRICS.md`, imported from `cfxd/fidelity.py`.
 ## Method
 
 - Facts are rebuilt from the transcript before each boundary: file read/edit calls (last-seen order, edited flag), the last test-runner result, open todos and constraint sentences from allowed user/assistant prose (same source rules as Brief v1 intent).
-- Both blocks are rendered by `cfxd.carry`: v1 is the shipped renderer (3,000-byte cap, last-seen order); v2 is the 4,000-byte renderer (edited files first, with line ranges, then test result, todos, constraints, folds, commands).
+- The headline renders each version at its shipped cap: v1 3,000 bytes, last-seen order; v2 4,000 bytes, edited files first with line ranges, then test result, todos, constraints, folds and commands.
+- The equal-budget section re-renders both versions through `cfxd.carry` with one shared byte cap (`--cap`), so the same block size is available to each.
 - A file counts as restored when the block names it under the frozen M2 matching rule (full path, separator-aligned suffix, or basename).
 
 ## Limitations

@@ -19,7 +19,9 @@ transcript text are printed or written. The frozen metric definitions are import
 from __future__ import annotations
 
 import argparse
+import contextlib
 import sys
+from collections.abc import Iterator
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -58,8 +60,22 @@ _FILE_TOOLS = frozenset({"Read", "Edit", "Write", "MultiEdit", "NotebookEdit"})
 _EDIT_TOOLS = _FILE_TOOLS - {"Read"}
 _TRIGGERS = ("manual", "auto", "unknown")
 _SKIP_REASONS = ("no_summary_text", "no_held_files")
+# The two equal-budget caps E-4 asks for; a renderer's shipped cap is irrelevant here.
+_DEFAULT_CAPS = (3_000, 4_000)
 # Folds live in a daemon state dir, which a transcript-only scorer does not have.
 _STATE = Path(__file__).resolve().parent / "_no_carry_state_"
+
+
+@contextlib.contextmanager
+def _equal_cap(cap: int) -> Iterator[None]:
+    """Cap both renderers to ``cap`` bytes; each reads its module constant at call time."""
+    old = (carry.RENDER_CAP_BYTES, carry.CARRY_V2_CAP_BYTES)
+    carry.RENDER_CAP_BYTES = cap
+    carry.CARRY_V2_CAP_BYTES = cap
+    try:
+        yield
+    finally:
+        carry.RENDER_CAP_BYTES, carry.CARRY_V2_CAP_BYTES = old
 
 
 def _named(block: str) -> tuple[set[str], set[str]]:
@@ -102,6 +118,7 @@ def _score(
     trigger: str,
     held: list[str],
     edited: set[str],
+    caps: tuple[int, ...] = _DEFAULT_CAPS,
 ) -> dict[str, Any]:
     mentions = set(_path_tokens(summary))
     full = {_hash(m) for m in mentions}
@@ -110,27 +127,43 @@ def _score(
 
     v1, _ = carry.render_report(facts, _STATE, trigger, version=1)
     v2, _ = carry.render_report(facts, _STATE, trigger, constraints=constraints, version=2)
-    v1_full, v1_base = _named(v1)
-    v2_full, v2_base = _named(v2)
 
-    def count(block_full: set[str], block_base: set[str], paths: list[str]) -> int:
+    def count(block: str, paths: list[str]) -> int:
+        block_full, block_base = _named(block)
         return sum(1 for path in paths if _matches(path, block_full, block_base))
+
+    equal: dict[int, dict[str, int]] = {}
+    for cap in caps:
+        with _equal_cap(cap):
+            c1, _ = carry.render_report(facts, _STATE, trigger, version=1)
+            c2, _ = carry.render_report(facts, _STATE, trigger, constraints=constraints, version=2)
+        equal[cap] = {
+            "v1_held": count(c1, held),
+            "v2_held": count(c2, held),
+            "v1_dropped": count(c1, dropped),
+            "v2_dropped": count(c2, dropped),
+            "bytes_v1": len(c1.encode("utf-8")),
+            "bytes_v2": len(c2.encode("utf-8")),
+        }
 
     return {
         "trigger": trigger,
         "held": len(held),
         "edited": len(edited),
         "dropped": len(dropped),
-        "v1_held": count(v1_full, v1_base, held),
-        "v2_held": count(v2_full, v2_base, held),
-        "v1_dropped": count(v1_full, v1_base, dropped),
-        "v2_dropped": count(v2_full, v2_base, dropped),
+        "v1_held": count(v1, held),
+        "v2_held": count(v2, held),
+        "v1_dropped": count(v1, dropped),
+        "v2_dropped": count(v2, dropped),
         "bytes_v1": len(v1.encode("utf-8")),
         "bytes_v2": len(v2.encode("utf-8")),
+        "equal": equal,
     }
 
 
-def scan(path: Path) -> tuple[list[dict[str, Any]], dict[str, int]]:
+def scan(
+    path: Path, caps: tuple[int, ...] = _DEFAULT_CAPS
+) -> tuple[list[dict[str, Any]], dict[str, int]]:
     """Every scored compaction in one transcript, plus skip counts."""
     events: list[dict[str, Any]] = []
     skipped = {reason: 0 for reason in _SKIP_REASONS}
@@ -178,7 +211,9 @@ def scan(path: Path) -> tuple[list[dict[str, Any]], dict[str, int]]:
                 todos=todos,
                 test=test,
             )
-            events.append(_score(text, facts, _constraints(prose), trigger, paths, set(edited)))
+            events.append(
+                _score(text, facts, _constraints(prose), trigger, paths, set(edited), caps)
+            )
             continue
 
         msg = obj.get("message")
@@ -271,6 +306,11 @@ def _rate(num: int, den: int) -> float | None:
     return num / den if den else None
 
 
+def _per_kb(restored: int, total_bytes: int) -> float | None:
+    """Pooled restores per kilobyte of rendered block."""
+    return restored / (total_bytes / 1024) if total_bytes else None
+
+
 def _dist(values: list[float]) -> dict[str, float]:
     return {
         "median": round(percentile(values, 50), 1),
@@ -279,7 +319,11 @@ def _dist(values: list[float]) -> dict[str, float]:
     }
 
 
-def summarise(events: list[dict[str, Any]], skipped: dict[str, int]) -> dict[str, Any]:
+def summarise(
+    events: list[dict[str, Any]],
+    skipped: dict[str, int],
+    caps: tuple[int, ...] = _DEFAULT_CAPS,
+) -> dict[str, Any]:
     held = sum(e["held"] for e in events)
     edited = sum(e["edited"] for e in events)
     dropped = sum(e["dropped"] for e in events)
@@ -298,6 +342,23 @@ def summarise(events: list[dict[str, Any]], skipped: dict[str, int]) -> dict[str
             "dropped": sum(e["dropped"] for e in group),
             "v1_dropped": sum(e["v1_dropped"] for e in group),
             "v2_dropped": sum(e["v2_dropped"] for e in group),
+        }
+    equal: dict[str, Any] = {}
+    for cap in caps:
+        rows = [e["equal"][cap] for e in events]
+        cap_bytes_v1 = sum(r["bytes_v1"] for r in rows)
+        cap_bytes_v2 = sum(r["bytes_v2"] for r in rows)
+        cap_v1_dropped = sum(r["v1_dropped"] for r in rows)
+        cap_v2_dropped = sum(r["v2_dropped"] for r in rows)
+        equal[str(cap)] = {
+            "bytes_v1": cap_bytes_v1,
+            "bytes_v2": cap_bytes_v2,
+            "v1_dropped": cap_v1_dropped,
+            "v2_dropped": cap_v2_dropped,
+            "v1_rate": _rate(cap_v1_dropped, dropped),
+            "v2_rate": _rate(cap_v2_dropped, dropped),
+            "v1_per_kb": _per_kb(cap_v1_dropped, cap_bytes_v1),
+            "v2_per_kb": _per_kb(cap_v2_dropped, cap_bytes_v2),
         }
     return {
         "events": len(events),
@@ -319,10 +380,16 @@ def summarise(events: list[dict[str, Any]], skipped: dict[str, int]) -> dict[str
         "v2_equal": sum(1 for e in events if e["v2_dropped"] == e["v1_dropped"]),
         "v2_smaller": sum(1 for e in events if e["v2_dropped"] < e["v1_dropped"]),
         "by_trigger": by_trigger,
+        "equal": equal,
     }
 
 
-def collect(root: Path, since: str = "30d", now: datetime | None = None) -> dict[str, Any]:
+def collect(
+    root: Path,
+    since: str = "30d",
+    now: datetime | None = None,
+    caps: tuple[int, ...] = _DEFAULT_CAPS,
+) -> dict[str, Any]:
     if now is None:
         now = datetime.now(UTC)
     from cfxd.audit import _SINCE_DELTAS
@@ -333,11 +400,12 @@ def collect(root: Path, since: str = "30d", now: datetime | None = None) -> dict
     events: list[dict[str, Any]] = []
     skipped = {reason: 0 for reason in _SKIP_REASONS}
     for path in [*parents, *(p for p, _ in subs)]:
-        found, file_skipped = scan(path)
+        found, file_skipped = scan(path, caps)
         events.extend(found)
         for reason, count in file_skipped.items():
             skipped[reason] += count
-    summary = summarise(events, skipped)
+    summary = summarise(events, skipped, caps)
+    summary["caps"] = [cap for cap in caps]
     summary["since"] = since
     summary["sessions"] = {"parents": len(parents), "subagents": len(subs)}
     return summary
@@ -413,6 +481,43 @@ def render(data: dict[str, Any]) -> str:
         f"- Compactions where v2 restores more dropped edited files than v1: "
         f"{data['v2_bigger']:,}; equal: {data['v2_equal']:,}; fewer: {data['v2_smaller']:,}"
     )
+    if data.get("caps"):
+        w("")
+        w("## Equal budget (both renderers capped to the same bytes)")
+        w("")
+        w("Each renderer is called with the same byte cap, so this measures selection at equal")
+        w("cost rather than a larger allowance. `restored per KB` is pooled dropped edited")
+        w("files restored divided by the pooled rendered block bytes, times 1,024.")
+        w("")
+        w(
+            "| cap (bytes) | renderer | dropped edited restored | "
+            "block bytes (pooled) | restored per KB |"
+        )
+        w("|---|---|---|---|---|")
+        for cap in data["caps"]:
+            row = data["equal"][str(cap)]
+            for version in ("v1", "v2"):
+                restored = row[f"{version}_dropped"]
+                total = data["dropped"]
+                rate = row[f"{version}_rate"]
+                per_kb = row[f"{version}_per_kb"]
+                kb_text = "n/a" if per_kb is None else f"{per_kb:.2f}"
+                w(
+                    f"| {cap:,} | carry {version} | "
+                    f"{_pair(restored, total, rate)} | "
+                    f"{row[f'bytes_{version}']:,} | {kb_text} |"
+                )
+        for cap in data["caps"]:
+            row = data["equal"][str(cap)]
+            v1, v2 = row["v1_per_kb"], row["v2_per_kb"]
+            if v1 is None or v2 is None:
+                continue
+            ratio = f"{v2 / v1:.2f}x" if v1 else "n/a"
+            w("")
+            w(
+                f"- At {cap:,} bytes v2 restores {v2:.2f} dropped edited files per KB vs "
+                f"v1's {v1:.2f} ({ratio})."
+            )
     if data["by_trigger"]:
         w("")
         w("## By trigger")
@@ -433,9 +538,13 @@ def render(data: dict[str, Any]) -> str:
         "sentences from allowed user/assistant prose (same source rules as Brief v1 intent)."
     )
     w(
-        "- Both blocks are rendered by `cfxd.carry`: v1 is the shipped renderer (3,000-byte "
-        "cap, last-seen order); v2 is the 4,000-byte renderer (edited files first, with line "
-        "ranges, then test result, todos, constraints, folds, commands)."
+        "- The headline renders each version at its shipped cap: v1 3,000 bytes, last-seen "
+        "order; v2 4,000 bytes, edited files first with line ranges, then test result, todos, "
+        "constraints, folds and commands."
+    )
+    w(
+        "- The equal-budget section re-renders both versions through `cfxd.carry` with one "
+        "shared byte cap (`--cap`), so the same block size is available to each."
     )
     w(
         "- A file counts as restored when the block names it under the frozen M2 matching "
@@ -466,12 +575,22 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Carry v1 vs v2 compaction restore report")
     ap.add_argument("--root", type=Path, default=Path.home() / ".claude" / "projects")
     ap.add_argument("--since", choices=("7d", "30d", "all"), default="30d")
+    ap.add_argument(
+        "--cap",
+        type=int,
+        nargs="+",
+        default=list(_DEFAULT_CAPS),
+        metavar="BYTES",
+        help="equal byte caps applied to both renderers (default: 3000 4000)",
+    )
     ap.add_argument("--out", type=Path, default=_REPO / "docs" / "carry-fidelity-score.md")
     args = ap.parse_args(argv)
-    text = render(collect(args.root, args.since))
+    if any(cap < 1 for cap in args.cap):
+        ap.error("--cap values must be positive byte counts")
+    text = render(collect(args.root, args.since, caps=tuple(args.cap)))
     sys.stdout.write(text + "\n")
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(text + "\n", encoding="utf-8")
+    args.out.write_text(text + "\n", encoding="utf-8", newline="\n")
     return 0
 
 
