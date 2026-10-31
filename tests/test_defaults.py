@@ -25,6 +25,7 @@ _EXPECTED = {
     "idle_notice": False,
     "brief_v1": False,
     "carry_back": False,
+    "carry_v2": False,
 }
 
 
