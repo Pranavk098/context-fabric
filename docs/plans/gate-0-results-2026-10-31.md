@@ -32,6 +32,13 @@ equivalents. Nothing here goes to the README or paper; the held-out set is teste
    not move. If testers' sessions show ≥ 5% re-discovery, that is a real, different
    population, and it is reported as such.
 
+## Direction after review (2026-10-31)
+
+- The Brief selector sprint is **dropped**, not postponed: even a perfect selector can save only about the 1.4%-2.5% of total session cost that re-discovery represents. It returns only if testers' logs show a very different split.
+- The parent session carries about 78% of cost, so the next research direction is parent-side: compaction timing and quality, when to start fresh versus continue, and prefix diet at scale.
+- Tester round 1 is measurement-only (checkup, diet, fidelity, `handoff-stats --share`), so their logs re-test E-1 independently. Brief is an optional extra.
+- Triage owner (M-12): the founder.
+
 ## Deviations
 
 (none)

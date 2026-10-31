@@ -72,6 +72,15 @@ jobs:
           transcripts="$RUNNER_TEMP/cfx-empty-transcripts"
           mkdir -p "$transcripts"
           cfxd week --share --root "$transcripts"
+          # The tester commands themselves, on a small synthetic transcript tree (no personal text).
+          fixture="$RUNNER_TEMP/cfx-fixture"
+          uv run --python 3.12 --with pytest python scripts/smoke_fixture.py "$fixture"
+          cfxd checkup --root "$fixture" | tee "$RUNNER_TEMP/checkup.txt"
+          grep -q "safe to paste: counts and percentages only" "$RUNNER_TEMP/checkup.txt"
+          cfxd diet --share --root "$fixture"
+          cfxd handoff-stats --share --root "$fixture" | tee "$RUNNER_TEMP/handoff.txt"
+          grep -q "safe to paste: counts and percentages only" "$RUNNER_TEMP/handoff.txt"
+          cfxd fidelity --root "$fixture"
           secs=$(( $(date +%s) - start ))
           echo "time-to-first-report=${secs} seconds"
           {

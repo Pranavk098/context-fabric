@@ -20,7 +20,7 @@ on any of this yet).
 | M-9 feedback form | Done (overseer) | `.github/ISSUE_TEMPLATE/tester-feedback.yml`: consent, friction log, Likert per feature, leak checkbox; test added |
 | M-10 one-pagers | Done (Gemini draft, overseer checked every command against `--help`) | `docs/testers/` (checkup, diet, fidelity, brief-opt-in, index). `cfxd fidelity --share` does not exist and the guides say so |
 | M-11 tagged build | **Not done** | `install-smoke.yml` is written and its structure is tested, but it has never run. It needs a pushed tag |
-| M-12 triage owner | **Founder** | needs a name with stop-ship authority |
+| M-12 triage owner | **Done: the founder (Pranav, GitHub Pranavk098)** | sole owner of tester-week triage with stop-ship authority |
 
 ## Offline experiments against the frozen Gate 0 bars
 
