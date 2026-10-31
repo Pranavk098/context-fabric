@@ -54,3 +54,31 @@ commands or transcript text. Dollars are API list-price equivalents, not a bill.
 - Packet bytes exclude intent sections and are measured on today's files: an excerpt can be truncated or degraded if the file changed or vanished, so real packets may differ slightly.
 - Coverage says a path was in the packet, not that the child would have used it, and some re-reads are needed anyway to edit exact bytes.
 
+## Budget sweep: precision-recall by packet budget
+
+The same replay, re-rendered with the packet budget forced to each value below
+(`cfxd.brief_select.BUDGET_BYTES`, the public per-family byte ceiling; item caps are
+unchanged). Coverage is recall over redundant reads, precision is packet files the
+child read over packet files. Bytes-weighted precision is the rendered bytes of the
+packet files the child read over all rendered packet bytes, so the fixed header,
+prologue and command lines count as irrelevant. Groups with no children are omitted.
+
+| budget | group | children | coverage | precision | bytes-weighted precision | packet bytes (median) |
+|---|---|---|---|---|---|---|
+| 2,000 B (2 KB) | haiku | 85 | 100.0% | 3.2% | 1.5% | 868 |
+| 2,000 B (2 KB) | sonnet | 275 | 88.2% | 12.3% | 6.1% | 1,561 |
+| 2,000 B (2 KB) | opus | 62 | 91.1% | 22.6% | 14.0% | 1,678 |
+| 2,000 B (2 KB) | parent knew 3 or more files | 341 | 89.1% | 13.1% | 7.1% | 1,619 |
+| 6,000 B (6 KB) | haiku | 85 | 100.0% | 3.2% | 1.3% | 1,020 |
+| 6,000 B (6 KB) | sonnet | 275 | 91.0% | 11.3% | 5.1% | 1,741 |
+| 6,000 B (6 KB) | opus | 62 | 93.3% | 17.0% | 10.4% | 2,358 |
+| 6,000 B (6 KB) | parent knew 3 or more files | 341 | 91.7% | 11.6% | 5.8% | 1,819 |
+| 12,000 B (12 KB) | haiku | 85 | 100.0% | 3.2% | 1.1% | 1,183 |
+| 12,000 B (12 KB) | sonnet | 275 | 91.0% | 11.3% | 4.4% | 2,066 |
+| 12,000 B (12 KB) | opus | 62 | 93.3% | 17.0% | 9.2% | 2,622 |
+| 12,000 B (12 KB) | parent knew 3 or more files | 341 | 91.7% | 11.6% | 5.0% | 2,117 |
+| 20,000 B (20 KB) | haiku | 85 | 100.0% | 3.2% | 1.1% | 1,183 |
+| 20,000 B (20 KB) | sonnet | 275 | 91.0% | 11.3% | 3.9% | 2,140 |
+| 20,000 B (20 KB) | opus | 62 | 93.3% | 17.0% | 8.5% | 2,740 |
+| 20,000 B (20 KB) | parent knew 3 or more files | 341 | 91.7% | 11.6% | 4.7% | 2,275 |
+

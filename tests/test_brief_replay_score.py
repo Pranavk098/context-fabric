@@ -130,3 +130,73 @@ def test_report_has_aggregates_only(tmp_path: Path) -> None:
     assert "parent knew 3 or more files" in text
     for leaked in ("a.py", "f0.py", tmp_path.name, str(tmp_path)):
         assert leaked not in text
+
+
+# --------------------------------------------------------------- budget sweep (E-3)
+
+# Hand-computed golden case. Every known path is "d/" + 80 x's + "NN.py" = 87 chars, so
+# one file pointer line is "- " + 87 + " | read" = 96 bytes, plus its newline = 97.
+# The fixed part of the rendered block (open tag, 3 prologue lines, files header, close)
+# is 532 bytes. At a 2,000 B budget avail = 1,200, so 12 lines fit (12 * 97 = 1,164;
+# 13 would be 1,261 > 1,200); at 6,000 B all 14 fit (1,358 bytes).
+_GOLDEN_NAME = "d/" + "x" * 80 + "{:02d}.py"
+_GOLDEN_LINE = 97
+_GOLDEN_FIXED = 532
+
+
+def _build_sweep(root: Path) -> None:
+    known = [_GOLDEN_NAME.format(i) for i in range(14)]
+    # Parent read all 14 before the spawn; the child re-reads the two newest (in every
+    # packet), the oldest (only in a 6 KB packet) and one unknown file.
+    _pair(
+        root,
+        "gold",
+        known,
+        "look around",
+        [known[13], known[12], known[0], "new.py"],
+        "claude-sonnet-5-5",
+    )
+
+
+def test_budget_sweep_golden(tmp_path: Path) -> None:
+    _build_sweep(tmp_path)
+    prices = b._load_prices(b._DEFAULT_PRICES)
+    data = b.collect(tmp_path, prices, (2_000, 6_000))
+    (kid,) = data["children"]
+    assert kid["parent_known"] == 14
+
+    small = kid["sweep"][2_000]
+    assert small["packet_files"] == 12
+    assert small["packet_bytes"] == _GOLDEN_FIXED + 12 * _GOLDEN_LINE == 1_696
+    assert small["redundant"] == 3 and small["covered"] == 2  # oldest file missed
+    assert small["packet_hit"] == 2
+    assert small["relevant_bytes"] == 2 * _GOLDEN_LINE == 194
+
+    large = kid["sweep"][6_000]
+    assert large["packet_files"] == 14
+    assert large["packet_bytes"] == _GOLDEN_FIXED + 14 * _GOLDEN_LINE == 1_890
+    assert large["redundant"] == 3 and large["covered"] == 3
+    assert large["packet_hit"] == 3
+    assert large["relevant_bytes"] == 3 * _GOLDEN_LINE == 291
+
+    # Pooled bytes-weighted precision: relevant bytes / packet bytes.
+    assert b.summarise_sweep([small])["bytes_precision"] == 194 / 1_696
+    assert b.summarise_sweep([large])["bytes_precision"] == 291 / 1_890
+
+    text = b.render_doc(data)
+    assert "| 2,000 B (2 KB) | sonnet | 1 | 66.7% | 16.7% | 11.4% | 1,696 |" in text
+    assert "| 6,000 B (6 KB) | sonnet | 1 | 100.0% | 21.4% | 15.4% | 1,890 |" in text
+    for leaked in ("xxxx", tmp_path.name, str(tmp_path)):
+        assert leaked not in text
+
+
+def test_sweep_keeps_default_output_and_restores_budget(tmp_path: Path) -> None:
+    _build_sweep(tmp_path)
+    prices = b._load_prices(b._DEFAULT_PRICES)
+    default = b.render_doc(b.collect(tmp_path, prices))
+    assert "Budget sweep" not in default
+    swept = b.render_doc(b.collect(tmp_path, prices, (2_000, 6_000)))
+    assert swept.startswith(default)  # the sweep is appended, nothing above changes
+    assert "Budget sweep" in swept
+    # The module-level budget is restored after every sweep render.
+    assert b.BUDGET_BYTES["sonnet"] == 12_000
