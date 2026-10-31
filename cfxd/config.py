@@ -1,11 +1,11 @@
-"""On/off switches for brief, carry, fold, fold_read, bound and coach, read from
-``<state_dir>/config.json``.
+"""On/off switches for brief, brief_policy, carry, brief_v1, carry_back, fold, fold_read,
+bound, coach and idle_notice, read from ``<state_dir>/config.json``.
 
-Brief and carry default on so the alpha produces data; bound and coach are
-experimental and default off. The daemon is shared across Claude Code sessions,
-so a file is the only way one session can reach the daemon; it is re-read
-whenever its mtime changes. A missing or malformed file falls back to the
-defaults.
+Defaults: brief, brief_policy and carry on; brief_v1, carry_back, fold, fold_read, bound,
+coach and idle_notice off. Brief and carry are on so the alpha produces data; the rest are
+experimental. The daemon is shared across Claude Code sessions, so a file is the only way
+one session can reach the daemon; it is re-read whenever its mtime changes. A missing or
+malformed file falls back to the defaults.
 """
 
 from __future__ import annotations
@@ -40,7 +40,7 @@ _CACHE: dict[Path, tuple[int, dict[str, bool]]] = {}
 
 
 def read_config(state_dir: Path) -> dict[str, bool]:
-    """Return the boolean flags (brief, carry, fold, fold_read); missing or bad file -> defaults."""
+    """Return every boolean flag; missing or bad file -> defaults."""
     path = state_dir / CONFIG_FILE
     try:
         mtime = path.stat().st_mtime_ns
