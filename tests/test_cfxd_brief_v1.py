@@ -265,6 +265,7 @@ def test_v1_end_to_end_haiku_within_budget(tmp_path: Path) -> None:
     root, transcript = _v1_session(tmp_path)
     state = tmp_path / "state"
     set_flag(state, "brief_v1", True)
+    set_flag(state, "brief_excerpts", True)
     out = handle_pre_tool_use(_agent(PROMPT, tmp_path, transcript, model="haiku"), state)
     updated = out["hookSpecificOutput"]["updatedInput"]["prompt"]
     assert updated.startswith(PROMPT)
@@ -641,3 +642,12 @@ def test_carry_back_ignores_other_tools(tmp_path: Path) -> None:
     set_flag(state, "carry_back", True)
     assert handle_post_tool_use_agent({"tool_name": "Read", "session_id": "s1"}, state) == {}
     assert handle_post_tool_use_agent("nope", state) == {}  # type: ignore[arg-type]
+
+
+def test_v1_through_the_hook_has_no_excerpts_unless_opted_in(tmp_path: Path) -> None:
+    root, transcript = _v1_session(tmp_path)
+    state = tmp_path / "state"
+    set_flag(state, "brief_v1", True)
+    out = handle_pre_tool_use(_agent(PROMPT, tmp_path, transcript, model="haiku"), state)
+    block = out["hookSpecificOutput"]["updatedInput"]["prompt"][len(PROMPT) + 2 :]
+    assert "Excerpts (file content" not in block

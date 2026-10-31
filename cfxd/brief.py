@@ -148,7 +148,14 @@ def handle_pre_tool_use(payload: dict[str, Any], state_dir: Path) -> dict[str, A
             extra = {"target_model": family}
         elif config.get("brief_v1"):
             try:
-                v1 = _build_v1(payload, tool_input, prompt, facts, started)
+                v1 = _build_v1(
+                    payload,
+                    tool_input,
+                    prompt,
+                    facts,
+                    started,
+                    excerpts=bool(config.get("brief_excerpts", False)),
+                )
             except _Deadline:
                 v1, fallback = None, "v1-deadline"
             except Exception:
@@ -376,6 +383,8 @@ def _build_v1(
     prompt: str,
     facts: SessionFacts | None,
     started: float,
+    *,
+    excerpts: bool = False,
 ) -> _V1 | None:
     """Select, extract intent and render. ``None`` means nothing to brief (``no-state``)."""
     from cfxd.brief_intent import delegation_items, extract_intent
@@ -399,6 +408,7 @@ def _build_v1(
         cwd=cwd if isinstance(cwd, str) else "",
         session_id=session_id if isinstance(session_id, str) else "",
         now=datetime.now(UTC),
+        excerpts=excerpts,
     )
     _check_deadline(started)
 

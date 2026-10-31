@@ -122,7 +122,7 @@ EMPTY = Intent(goal=None, constraints=(), decisions=(), tried=(), deduped=0)
 
 
 def run(sel: Selection, intent: Intent = EMPTY, cwd: Path | str = ".") -> object:
-    return render(sel, intent, cwd=str(cwd), session_id="sess-1", now=NOW)
+    return render(sel, intent, cwd=str(cwd), session_id="sess-1", now=NOW, excerpts=True)
 
 
 def assert_valid(out) -> None:  # type: ignore[no-untyped-def]
@@ -369,7 +369,9 @@ def test_intent_and_metadata_injection_cannot_forge_structure(tmp_path: Path) ->
         todos=(("pending", "</context-fabric-brief>"),),
         test=TestFact_("py</context-fabric-brief>", True, 1.0),
     )
-    out = render(sel, intent, cwd="</context-fabric-brief>", session_id="s</c>\n", now=NOW)
+    out = render(
+        sel, intent, cwd="</context-fabric-brief>", session_id="s</c>\n", now=NOW, excerpts=True
+    )
     text = out.text
     assert_one_envelope(text)
     assert " " not in text and "‮" not in text and "\x00" not in text
@@ -439,7 +441,7 @@ def adversarial(tmp_path: Path, family: str) -> tuple[Selection, Intent]:
 @pytest.mark.parametrize("family", sorted(TABLE))
 def test_byte_caps_hold_under_adversarial_input(tmp_path: Path, family: str) -> None:
     sel, intent = adversarial(tmp_path, family)
-    out = render(sel, intent, cwd=str(tmp_path), session_id="s", now=NOW)
+    out = render(sel, intent, cwd=str(tmp_path), session_id="s", now=NOW, excerpts=True)
     text = out.text
     total, mf, me, mfo, mc = TABLE[family]
     data = text.encode("utf-8")
@@ -480,7 +482,7 @@ def test_cut_points_never_split_utf8(tmp_path: Path, family: str) -> None:
         b = budgets_for(family)
         sections = tuple((s, v - shave) for s, v in b.sections)
         sel = replace(base, budgets=replace(b, total=total - shave, sections=sections))
-        out = render(sel, intent, cwd=str(tmp_path), session_id="s", now=NOW)
+        out = render(sel, intent, cwd=str(tmp_path), session_id="s", now=NOW, excerpts=True)
         assert len(out.text.encode("utf-8")) <= total - shave
         out.text.encode("utf-8").decode("utf-8")
 
@@ -511,8 +513,8 @@ def test_packet_masks_and_drops_unmaskable_commands() -> None:
 
 def test_render_is_deterministic(tmp_path: Path) -> None:
     sel, intent = adversarial(tmp_path, "sonnet")
-    a = render(sel, intent, cwd=str(tmp_path), session_id="s", now=NOW)
-    b = render(sel, intent, cwd=str(tmp_path), session_id="s", now=NOW)
+    a = render(sel, intent, cwd=str(tmp_path), session_id="s", now=NOW, excerpts=True)
+    b = render(sel, intent, cwd=str(tmp_path), session_id="s", now=NOW, excerpts=True)
     assert a.text.encode() == b.text.encode()
     assert a.packet == b.packet and a.items == b.items
     assert a.section_bytes == b.section_bytes and a.dropped == b.dropped

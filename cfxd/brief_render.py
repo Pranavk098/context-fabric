@@ -435,13 +435,12 @@ def render(
     cwd: str,
     session_id: str,
     now: datetime,
-    excerpts: bool = True,
+    excerpts: bool = False,
 ) -> Rendered:
     """Render the Brief v1 text block and its packet v0 object (ADR-0011).
 
-    ``excerpts=False`` renders pointers only. ``brief_excerpts`` is off by default, so a caller
-    that has read the config passes ``False`` unless the user opted in; ``True`` (the default)
-    keeps the pre-M-4 behaviour for callers that already gated the flag themselves.
+    ``excerpts=False`` renders pointers only. ``brief_excerpts`` is off by default, so the default
+    is ``False``; the daemon passes ``True`` only when the user set ``brief_excerpts``.
     """
     family = selection.target.family if selection.target.family in FAMILIES else "unknown"
     budgets = selection.budgets

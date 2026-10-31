@@ -319,6 +319,7 @@ def collect(root: Path, prices: dict[str, Any], budgets: tuple[int, ...] = ()) -
                     cwd="",
                     session_id=sid,
                     now=_EPOCH,
+                    excerpts=True,  # measure the richest packet, as in the E-3 record
                 )
             except (ValueError, OSError):
                 stats["render_failed"] += 1
@@ -356,6 +357,7 @@ def _sweep(
                 cwd="",
                 session_id=session_id,
                 now=_EPOCH,
+                excerpts=True,  # measure the richest packet, as in the E-3 record
             )
         except (ValueError, OSError):
             continue

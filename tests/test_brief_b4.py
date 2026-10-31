@@ -78,7 +78,7 @@ def _excerpt_bytes(text: str) -> int:
 def _render(root: Path, transcript: str, facts: SessionFacts):  # type: ignore[no-untyped-def]
     sel = select(facts, PROMPT, resolve_target({"model": "haiku"}))
     intent = extract_intent(transcript, PROMPT, facts)
-    return intent, render(sel, intent, cwd=str(root), session_id="s", now=NOW)
+    return intent, render(sel, intent, cwd=str(root), session_id="s", now=NOW, excerpts=True)
 
 
 def test_haiku_brief_relative_paths_single_constraints_more_excerpt(

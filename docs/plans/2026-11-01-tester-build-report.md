@@ -12,7 +12,7 @@ on any of this yet).
 | M-1 `carry_v2` flag + golden | Done | flag default off; golden test: off reproduces v1 byte for byte |
 | M-2 defaults test + doc fix | Done | `tests/test_defaults.py` pins every default, including `carry_v2`, `brief_excerpts`, `coach_control` |
 | M-3 numeric `--share` | Done | `tests/test_share_numeric.py` (canary strings); digests only behind `--share-digests` |
-| M-4 excerpt provenance + opt-in | Done | `tests/test_brief_provenance.py`: read ranges only, nothing outside the git work tree or from secret-looking names, default off |
+| M-4 excerpt provenance + opt-in | Done | `tests/test_brief_provenance.py`: read ranges only, nothing outside the git work tree or from secret-looking names, default off. **Gap found and fixed at overseer review:** the worker added the flag but the daemon never passed it, so excerpts were still on whenever `brief_v1` was on. `brief.py` now passes `brief_excerpts`, `render` defaults to off, and a hook-level test proves it |
 | M-5 SECURITY.md | Done (overseer) | state dir "private, not content-free", numeric `--share`, Brief excerpt surface, carry v2 4 KB, ACL as a stated assumption |
 | M-6 README | Done (overseer) | v2 benchmark voided (linked), v4 unregistered, retired features marked, Gate 0 findings stated without new digits |
 | M-7 retired means retired | Done | fold/bound/checkpoint print a retired notice, gone from help/tour/guide; daemon stops writing `obs/` and clears old blobs; ADR-0013 |

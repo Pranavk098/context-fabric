@@ -270,6 +270,7 @@ def _sweep(
                 cwd="",
                 session_id=session_id,
                 now=_EPOCH,
+                excerpts=True,  # measure the richest packet, as in the E-3 record
             )
         except (ValueError, OSError):
             continue
