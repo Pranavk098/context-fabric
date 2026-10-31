@@ -187,8 +187,9 @@ def _scan(path: Path) -> dict[str, Any]:
 
         if obj_type not in ("assistant", "user"):
             continue
-        msg = obj.get("message")
-        content = msg.get("content") if isinstance(msg, dict) else None
+        raw_msg = obj.get("message")
+        msg: dict[str, Any] = raw_msg if isinstance(raw_msg, dict) else {}
+        content = msg.get("content")
         blocks = [b for b in content if isinstance(b, dict)] if isinstance(content, list) else []
 
         if is_assistant:
@@ -197,11 +198,14 @@ def _scan(path: Path) -> dict[str, Any]:
                 if dedupe.count_here(msg):
                     turns += 1
                     cc = usage.get("cache_creation_input_tokens")
-                    if isinstance(cc, int) and not isinstance(cc, bool) and cc > 0:
-                        write_turns += 1
                     cr = usage.get("cache_read_input_tokens")
-                    if isinstance(cr, int) and not isinstance(cr, bool) and cr > 0:
+                    read = isinstance(cr, int) and not isinstance(cr, bool) and cr > 0
+                    if read:
                         read_turns += 1
+                    if isinstance(cc, int) and not isinstance(cc, bool) and cc > 0 and not read:
+                        # Only a turn with no cache read rewrote the whole prefix; an ordinary
+                        # turn writes just the new exchange and reads the cached prefix.
+                        write_turns += 1
                     turn_model = msg.get("model")
                     if (
                         model is None
@@ -352,9 +356,10 @@ def _group_connectors(
 
 def _price_families() -> dict[str, Any] | None:
     try:
-        return _load_prices(_DEFAULT_PRICES)["families"]
+        families: dict[str, Any] = _load_prices(_DEFAULT_PRICES)["families"]
     except (OSError, ValueError, KeyError):
         return None
+    return families
 
 
 def _cache_prices(model: str | None, families: dict[str, Any] | None) -> tuple[float, float] | None:
@@ -373,7 +378,12 @@ def _delta(
     never_keys: set[tuple[str, str]],
     families: dict[str, Any] | None,
 ) -> dict[str, Any]:
-    """Exact never-used listing bytes removed on every turn, priced at list price."""
+    """Never-used listing bytes removed from every turn, priced at list price.
+
+    The removed text lives in the stable cached prefix, so a normal turn pays the
+    cache-read price for it; only a turn that rewrote the whole prefix (no cache
+    read) pays to write it.
+    """
     per_turn: list[float] = []
     tokens_total = 0.0
     dollars = 0.0
@@ -391,9 +401,12 @@ def _delta(
         if prices is None:
             continue
         read_price, write_price = prices
-        # Turns without cache usage still pay: one write, then reads.
-        reads = sess["read_turns"] or max(sess["turns"] - 1, 0)
-        writes = sess["write_turns"] or (1 if sess["turns"] else 0)
+        reads = sess["read_turns"]
+        writes = sess["write_turns"]
+        if not reads and not writes:
+            # Older transcripts carry no cache split: assume one write, then reads.
+            reads = max(sess["turns"] - 1, 0)
+            writes = 1 if sess["turns"] else 0
         dollars += tokens * (reads * read_price + writes * write_price) / _MTOK
         priced += 1
     return {

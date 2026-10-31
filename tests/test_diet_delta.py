@@ -96,6 +96,37 @@ def test_delta_tokens_equal_the_sum_of_never_used_item_sizes(tmp_path: Path) -> 
     assert report["delta"]["sessions_priced"] == 1
 
 
+def test_delta_prices_reads_on_normal_turns_and_writes_only_on_prefix_rewrites(
+    tmp_path: Path,
+) -> None:
+    # 400,000 ASCII bytes of never-used listing = 100,000 tokens removed per turn.
+    dead_line = "- pkg:drop: " + "x" * 399988
+    content = "- pkg:keep: used\n" + dead_line + "\n"
+    lines = [
+        _skill_listing(["pkg:keep", "pkg:drop"], content),
+        # Turn 1 appends to the cache (write + read): the prefix is still paid as a read.
+        _assistant(
+            _tool_use("s1", "Skill", skill="pkg:keep"),
+            usage=_usage(cache_creation=5000, cache_read=20000),
+        ),
+        # Turn 2: plain cache read.
+        _assistant(usage=_usage(cache_read=30000)),
+        # Turn 3: no read at all, so the whole prefix was rewritten and paid as a write.
+        _assistant(usage=_usage(cache_creation=40000)),
+        # Turn 4: plain cache read.
+        _assistant(usage=_usage(cache_read=35000)),
+    ]
+    _session(tmp_path, "s1", lines)
+    report = diet(tmp_path, "all")
+
+    assert report["turns"] == 4
+    assert report["delta"]["tokens_per_turn"] == 100_000.0
+    assert report["delta"]["tokens"] == 400_000.0
+    # Hand-computed: 100,000 tokens x (3 reads x $0.1 + 1 write x $2.5) / 1M = $0.28.
+    assert report["delta"]["dollars"] == pytest.approx(0.28)
+    assert report["delta"]["sessions_priced"] == 1
+
+
 def test_delta_is_exact_per_session(tmp_path: Path) -> None:
     # Only session a carries the dead item: 2 turns pay for it, session b pays nothing.
     used_only = _skill_listing(["pkg:keep"], "- pkg:keep: used\n")
