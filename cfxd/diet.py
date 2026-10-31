@@ -21,10 +21,12 @@ from cfxd.audit import (
     _iter_objects,
 )
 from cfxd.daemon import percentile
+from cfxd.routing import _DEFAULT_PRICES, _load_prices, _match_family, _normalize
 from cfxd.usage_dedupe import MessageUsage
 
 # Item kinds that can be disabled (the only ones in the "never used" report).
 _DISABLE_KINDS = ("skill", "connector")
+_MTOK = 1_000_000.0
 
 _LABEL_PREFIX = {
     "skill": "skill",
@@ -123,6 +125,9 @@ def _scan(path: Path) -> dict[str, Any]:
     used_servers: set[str] = set()
     subagent_types: set[str] = set()
     turns = 0
+    read_turns = 0
+    write_turns = 0
+    model: str | None = None
     listing_seen = False
     assistant_seen = 0
     first_turn_tokens: int | None = None
@@ -191,6 +196,20 @@ def _scan(path: Path) -> dict[str, Any]:
             if isinstance(usage, dict):
                 if dedupe.count_here(msg):
                     turns += 1
+                    cc = usage.get("cache_creation_input_tokens")
+                    if isinstance(cc, int) and not isinstance(cc, bool) and cc > 0:
+                        write_turns += 1
+                    cr = usage.get("cache_read_input_tokens")
+                    if isinstance(cr, int) and not isinstance(cr, bool) and cr > 0:
+                        read_turns += 1
+                    turn_model = msg.get("model")
+                    if (
+                        model is None
+                        and isinstance(turn_model, str)
+                        and turn_model
+                        and turn_model != "<synthetic>"
+                    ):
+                        model = turn_model
                 if first_turn_tokens is None:
                     first_turn_tokens = sum(
                         v
@@ -230,6 +249,9 @@ def _scan(path: Path) -> dict[str, Any]:
         "used_servers": used_servers,
         "subagent_types": subagent_types,
         "turns": turns,
+        "read_turns": read_turns,
+        "write_turns": write_turns,
+        "model": model,
         "listing_seen": listing_seen,
         "first_turn_tokens": first_turn_tokens,
     }
@@ -328,6 +350,62 @@ def _group_connectors(
     return out
 
 
+def _price_families() -> dict[str, Any] | None:
+    try:
+        return _load_prices(_DEFAULT_PRICES)["families"]
+    except (OSError, ValueError, KeyError):
+        return None
+
+
+def _cache_prices(model: str | None, families: dict[str, Any] | None) -> tuple[float, float] | None:
+    """(cache read, 5m cache write) USD per Mtok for a model id, or None when unpriced."""
+    if families is None or not model:
+        return None
+    family = _match_family(_normalize(model), families)
+    if family is None:
+        return None
+    entry = families[family]
+    return float(entry["cache_read"]), float(entry["cache_write_5m"])
+
+
+def _delta(
+    per_session: list[dict[str, Any]],
+    never_keys: set[tuple[str, str]],
+    families: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Exact never-used listing bytes removed on every turn, priced at list price."""
+    per_turn: list[float] = []
+    tokens_total = 0.0
+    dollars = 0.0
+    with_items = 0
+    priced = 0
+    for sess in per_session:
+        removed = sum(b for key, b in sess["bytes"].items() if key in never_keys)
+        if removed <= 0:
+            continue
+        with_items += 1
+        tokens = removed / 4.0
+        per_turn.append(tokens)
+        tokens_total += tokens * sess["turns"]
+        prices = _cache_prices(sess["model"], families)
+        if prices is None:
+            continue
+        read_price, write_price = prices
+        # Turns without cache usage still pay: one write, then reads.
+        reads = sess["read_turns"] or max(sess["turns"] - 1, 0)
+        writes = sess["write_turns"] or (1 if sess["turns"] else 0)
+        dollars += tokens * (reads * read_price + writes * write_price) / _MTOK
+        priced += 1
+    return {
+        "tokens_per_turn": round(percentile(per_turn, 50), 1) if per_turn else 0.0,
+        "tokens": round(tokens_total, 1),
+        "dollars": round(dollars, 4),
+        "sessions_with_items": with_items,
+        "sessions_priced": priced,
+        "basis": "sum of never-used listing sizes / 4 at list price; an estimate, not a bill",
+    }
+
+
 def diet(root: Path, since: str = "30d", now: datetime | None = None) -> dict[str, Any]:
     """Aggregate starting-prefix dead weight across parent transcripts under ``root``."""
     if now is None:
@@ -349,7 +427,7 @@ def diet(root: Path, since: str = "30d", now: datetime | None = None) -> dict[st
     hook_sizes: dict[str, list[int]] = {}
     session_prefix_bytes: list[int] = []
     first_turn_tokens: list[int] = []
-    per_session: list[tuple[int, dict[tuple[str, str], int]]] = []
+    per_session: list[dict[str, Any]] = []
 
     for path in parents:
         r = _scan(path)
@@ -386,14 +464,17 @@ def diet(root: Path, since: str = "30d", now: datetime | None = None) -> dict[st
             hook_sizes.setdefault(name, []).append(nbytes)
 
         per_session.append(
-            (
-                r["turns"],
-                {("skill", n): b for n, b in r["skills"].items()}
+            {
+                "turns": r["turns"],
+                "bytes": {("skill", n): b for n, b in r["skills"].items()}
                 | {
                     ("connector", k): s["tool_names_bytes"] + s["instructions_bytes"]
                     for k, s in r["connectors"].items()
                 },
-            )
+                "read_turns": r["read_turns"],
+                "write_turns": r["write_turns"],
+                "model": r["model"],
+            }
         )
         session_prefix_bytes.append(
             sum(r["skills"].values())
@@ -434,8 +515,8 @@ def diet(root: Path, since: str = "30d", now: datetime | None = None) -> dict[st
         ("connector", k) for k in conn_sizes if k not in used_servers
     }
     never_tokens_total = sum(
-        turns * sum(b for key, b in sess.items() if key in never_keys) / 4.0
-        for turns, sess in per_session
+        sess["turns"] * sum(b for key, b in sess["bytes"].items() if key in never_keys) / 4.0
+        for sess in per_session
     )
     never_tokens = never_tokens_total / total_turns if total_turns else 0.0
 
@@ -462,6 +543,7 @@ def diet(root: Path, since: str = "30d", now: datetime | None = None) -> dict[st
             "turns": total_turns,
             "total_tokens": round(never_tokens_total, 1),
         },
+        "delta": _delta(per_session, never_keys, _price_families()),
     }
 
 
@@ -569,11 +651,28 @@ def format_human(report: dict[str, Any], share: bool = False, dir_name: str = ".
         lines.append(_connector_line(conn))
 
     effect = report["effect"]
-    lines.append("Estimated effect of removing never-used items:")
-    lines.append(
-        f"  ~{effect['per_turn_tokens']:,.0f} est. tokens/turn x {effect['turns']:,} turns "
-        f"= ~{effect['total_tokens']:,.0f} tokens not re-read"
-    )
+    delta = report.get("delta") or {}
+    if not delta.get("tokens_per_turn"):
+        lines.append("Estimated effect of removing never-used items: none (nothing unused found)")
+    else:
+        lines.append("Estimated effect of removing never-used items (estimate):")
+        window = _SINCE_LABELS.get(str(report["since"]), str(report["since"]))
+        over = "over all time" if report["since"] == "all" else f"over your {window}"
+        priced = (
+            f"about ${delta.get('dollars', 0.0):,.2f} {over} at list price"
+            if delta.get("sessions_priced")
+            else "cost not priced (no known model id)"
+        )
+        lines.append(
+            f"  would remove ~{delta['tokens_per_turn']:,.0f} tokens from every turn; {priced}"
+        )
+        lines.append(
+            f"  ~{effect['total_tokens']:,.0f} tokens not re-read over {effect['turns']:,} turns; "
+            "an estimate from the never-used listing sizes"
+        )
+        unpriced = delta.get("sessions_with_items", 0) - delta.get("sessions_priced", 0)
+        if unpriced:
+            lines.append(f"  {unpriced} session(s) with these items had no priced model id")
 
     lines.append("To act:")
     lines.append(
