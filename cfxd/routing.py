@@ -8,11 +8,13 @@ ids, roles, counts, tokens and dollars only.
 from __future__ import annotations
 
 import json
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from cfxd.audit import (
+    _EDIT_TOOLS,
     _SINCE_DELTAS,
     _SINCE_LABELS,
     _as_int,
@@ -20,6 +22,7 @@ from cfxd.audit import (
     _iter_objects,
     _weighted,
 )
+from cfxd.brief_receipts import _agent_id_from_text, _blocks
 from cfxd.daemon import percentile
 from cfxd.usage_dedupe import MessageUsage
 
@@ -50,6 +53,16 @@ _LIMITS = (
 )
 
 _FAMILIES_KEY = "families"
+
+# Gate 1 join: the parent's Agent calls point at child transcripts. Only ids, usage,
+# tool names and result sizes are read; paths are used for matching and never printed.
+_CHILD_AGENT_TOOLS = frozenset({"Agent", "Task"})
+_CHILD_KNOW_TOOLS = frozenset(
+    {"Read", "NotebookRead", "Edit", "Write", "MultiEdit", "NotebookEdit"}
+)
+_CHILD_READ_TOOLS = frozenset({"Read", "NotebookRead", "Grep"})
+_WS = re.compile(r"\s+")
+_GITBASH = re.compile(r"^/([a-zA-Z])/")
 
 
 def _load_prices(path: Path) -> dict[str, Any]:
@@ -226,6 +239,252 @@ def _model_entries(models: dict[str, dict[str, Any]], role_dollars: float) -> li
     return entries
 
 
+# ------------------------------------------------------------------ child models
+# Same join and attribution as ``scripts/gate1_rediscovery.py`` so the two reports
+# agree on the same logs. Kept local to avoid importing a script at runtime.
+
+
+def _norm_path(p: str) -> str:
+    s = _GITBASH.sub(lambda m: m.group(1) + ":/", p.replace("\\", "/").strip())
+    return s.rstrip("/").lower()
+
+
+def _norm_cmd(c: str) -> str:
+    return _WS.sub(" ", c).strip()
+
+
+def _tool_path(name: str, inp: Any) -> str | None:
+    if not isinstance(inp, dict):
+        return None
+    p = inp.get("path") if name == "Grep" else inp.get("file_path") or inp.get("notebook_path")
+    return _norm_path(p) if isinstance(p, str) and p else None
+
+
+def _result_chars(content: Any) -> int:
+    if isinstance(content, str):
+        return len(content)
+    if isinstance(content, list):
+        return sum(len(c.get("text", "")) for c in content if isinstance(c, dict))
+    return 0
+
+
+def _family_label(model: str | None) -> str:
+    if not model:
+        return "unknown"
+    name = _normalize(model)
+    for fam in ("haiku", "sonnet", "opus", "fable"):
+        if name.startswith(fam):
+            return fam
+    return "other"
+
+
+def _scan_child_parent(path: Path) -> dict[str, Any]:
+    """Parent knowledge, Bash commands, Agent calls and agent-id links by line index."""
+    known: list[tuple[int, str]] = []
+    cmds: list[tuple[int, str]] = []
+    calls: dict[str, int] = {}
+    links: dict[str, str] = {}
+    msg_ids: set[str] = set()
+    for idx, obj in enumerate(_iter_objects(path)):
+        if obj.get("isSidechain"):
+            continue
+        msg = obj.get("message")
+        if obj.get("type") == "assistant" and isinstance(msg, dict):
+            mid = msg.get("id")
+            if isinstance(mid, str):
+                msg_ids.add(mid)
+        tur = obj.get("toolUseResult")
+        for b in _blocks(obj):
+            if b.get("type") == "tool_use":
+                name = b.get("name")
+                inp = b.get("input")
+                if name in _CHILD_KNOW_TOOLS:
+                    p = _tool_path(name, inp)
+                    if p:
+                        known.append((idx, p))
+                elif (
+                    name == "Bash" and isinstance(inp, dict) and isinstance(inp.get("command"), str)
+                ):
+                    cmds.append((idx, _norm_cmd(inp["command"])))
+                elif name in _CHILD_AGENT_TOOLS and isinstance(b.get("id"), str):
+                    calls[b["id"]] = idx
+            elif b.get("type") == "tool_result" and isinstance(b.get("tool_use_id"), str):
+                aid = tur.get("agentId") if isinstance(tur, dict) else None
+                if not isinstance(aid, str):
+                    aid = _agent_id_from_text(b.get("content"))
+                if isinstance(aid, str) and aid:
+                    links[b["tool_use_id"]] = aid
+    return {"known": known, "cmds": cmds, "calls": calls, "links": links, "msg_ids": msg_ids}
+
+
+def _scan_child_turns(
+    path: Path, parent_msg_ids: set[str], families: dict[str, Any]
+) -> dict[str, Any]:
+    """One entry per child message id (deduped), with priced turns and result sizes."""
+    objs = list(_iter_objects(path))
+    dedupe = MessageUsage(objs)
+    turns: list[dict[str, Any]] = []
+    by_key: dict[str, dict[str, Any]] = {}
+    result_chars: dict[str, int] = {}
+    model: str | None = None
+    for n, obj in enumerate(objs):
+        if obj.get("type") == "user":
+            for b in _blocks(obj):
+                if b.get("type") == "tool_result" and isinstance(b.get("tool_use_id"), str):
+                    result_chars[b["tool_use_id"]] = _result_chars(b.get("content"))
+        if obj.get("type") != "assistant":
+            continue
+        msg = obj.get("message")
+        if not isinstance(msg, dict):
+            continue
+        mid = msg.get("id")
+        if isinstance(mid, str) and mid in parent_msg_ids:
+            continue  # forked history replayed by the child: not its cost
+        key = mid if isinstance(mid, str) and mid else f"line{n}"
+        turn = by_key.get(key)
+        if turn is None:
+            turn = {"calls": [], "usage": None, "model": None, "cost": None, "carry_price": None}
+            by_key[key] = turn
+            turns.append(turn)
+        for b in _blocks(obj):
+            if b.get("type") == "tool_use":
+                turn["calls"].append((b.get("id"), b.get("name"), b.get("input")))
+        m = msg.get("model")
+        if isinstance(m, str) and m and m != _SYNTHETIC_MODEL:
+            turn["model"] = m
+            model = model or m
+        usage = msg.get("usage")
+        if isinstance(usage, dict) and dedupe.count_here(msg):
+            turn["usage"] = dedupe.final_usage(msg, usage)
+    for turn in turns:
+        if turn["usage"] is None:
+            continue
+        tokens = _tokens(turn["usage"])
+        fam = _match_family(_normalize(turn["model"] or model or ""), families)
+        if fam is not None:
+            prompt = _prompt(tokens)
+            turn["cost"] = _turn_dollars(families[fam], tokens, prompt)
+            turn["carry_price"] = _price_for(families[fam], prompt)
+    return {"turns": turns, "result_chars": result_chars, "model": model}
+
+
+def _analyse_child(child: dict[str, Any], parent: dict[str, Any], spawn_idx: int) -> dict[str, Any]:
+    """Cost and the Gate 1 lower/upper re-discovery estimates for one child."""
+    known = {p for i, p in parent["known"] if i < spawn_idx}
+    pcmds = {c for i, c in parent["cmds"] if i < spawn_idx}
+    turns = child["turns"]
+    priced = all(t["cost"] is not None for t in turns if t["usage"] is not None)
+    cost = sum(t["cost"] or 0.0 for t in turns) if priced else None
+    calls = 0
+    redundant = 0
+    lower = 0.0
+    upper = 0.0
+    first_edit: int | None = None
+    for ti, turn in enumerate(turns):
+        red = 0
+        carry = 0.0
+        for cid, name, inp in turn["calls"]:
+            calls += 1
+            p = _tool_path(name, inp) if name in _CHILD_READ_TOOLS else None
+            if name in _EDIT_TOOLS and first_edit is None:
+                first_edit = ti
+            hit = bool(p and p in known) or (
+                name == "Bash"
+                and isinstance(inp, dict)
+                and isinstance(inp.get("command"), str)
+                and _norm_cmd(inp["command"]) in pcmds
+            )
+            if hit:
+                red += 1
+                redundant += 1
+                price = turn["carry_price"]
+                if price is not None:
+                    est = child["result_chars"].get(cid, 0) / 4.0
+                    later = len(turns) - 1 - ti
+                    carry += (
+                        est
+                        * (float(price["cache_write_5m"]) + float(price["cache_read"]) * later)
+                        / _MTOK
+                    )
+        if red and turn["cost"] is not None:
+            lower += turn["cost"] * red / max(1, len(turn["calls"]))
+            upper += turn["cost"] + carry
+    explore_end = first_edit if first_edit is not None else len(turns)
+    explore_cost = sum(t["cost"] or 0.0 for t in turns[:explore_end]) if cost is not None else None
+    return {
+        "family": _family_label(child["model"]),
+        "cost": cost,
+        "tool_calls": calls,
+        "redundant": redundant,
+        "lower": lower if cost is not None else None,
+        "upper": min(upper, cost) if cost is not None else None,
+        "explore_cost": explore_cost,
+    }
+
+
+def _child_model_report(
+    parents: list[Path], subs: list[tuple[Path, str]], families: dict[str, Any]
+) -> dict[str, Any]:
+    """Joined children grouped by child model family, priced with Gate 1 attribution."""
+    parents_by_key: dict[tuple[Path, str], Path] = {}
+    for path in sorted(parents):
+        parents_by_key.setdefault((path.parent, path.stem), path)
+    subs_by_key: dict[tuple[Path, str], dict[str, Path]] = {}
+    for path, sid in sorted(subs, key=lambda item: str(item[0])):
+        if not path.stem.startswith("agent-") or len(path.parents) < 3:
+            continue
+        kids = subs_by_key.setdefault((path.parents[2], sid), {})
+        kids.setdefault(path.stem[len("agent-") :], path)
+
+    children: list[dict[str, Any]] = []
+    seen_sids: set[str] = set()
+    for (proj, sid), parent_path in parents_by_key.items():
+        if sid in seen_sids:
+            continue  # duplicate copies of a session id, as in Gate 1
+        files = subs_by_key.get((proj, sid))
+        if not files:
+            continue
+        seen_sids.add(sid)
+        parent = _scan_child_parent(parent_path)
+        linked: set[str] = set()
+        for tid, spawn_idx in parent["calls"].items():
+            aid = parent["links"].get(tid)
+            if aid is None or aid in linked:
+                continue
+            linked.add(aid)
+            child_path = files.get(aid)
+            if child_path is None:
+                continue
+            child = _scan_child_turns(child_path, parent["msg_ids"], families)
+            if not child["turns"]:
+                continue
+            children.append(_analyse_child(child, parent, spawn_idx))
+
+    rows: list[dict[str, Any]] = []
+    for fam in sorted({c["family"] for c in children}):
+        group = [c for c in children if c["family"] == fam]
+        priced = [c for c in group if c["cost"] is not None]
+        cost = sum(c["cost"] for c in priced)
+        calls = sum(c["tool_calls"] for c in group)
+        rows.append(
+            {
+                "family": fam,
+                "children": len(group),
+                "priced_children": len(priced),
+                "dollars": round(cost, 4),
+                "lower_share": round(sum(c["lower"] for c in priced) / cost, 4) if cost else None,
+                "upper_share": round(sum(c["upper"] for c in priced) / cost, 4) if cost else None,
+                "redundant_call_share": round(sum(c["redundant"] for c in group) / calls, 4)
+                if calls
+                else None,
+                "explore_share": round(sum(c["explore_cost"] for c in priced) / cost, 4)
+                if cost
+                else None,
+            }
+        )
+    return {"note": "price only; quality unmeasured", "families": rows}
+
+
 def routing(
     root: Path,
     since: str = "30d",
@@ -242,6 +501,7 @@ def routing(
 
     prices = _load_prices(prices_path if prices_path is not None else _DEFAULT_PRICES)
     families: dict[str, Any] = prices[_FAMILIES_KEY]
+    child_models = _child_model_report(parents, subs, families)
 
     role_sessions = {"parent": len(parents), "subagent": len(subs)}
     role_turns: dict[str, int] = {r: 0 for r in _ROLES}
@@ -470,6 +730,7 @@ def routing(
         },
         "roles": roles,
         "unpriced": unpriced_report,
+        "child_models": child_models,
         "whatif": whatif_report,
         "model_switches": model_switches,
         "limits": list(_LIMITS),
@@ -522,6 +783,22 @@ def format_human(report: dict[str, Any], dir_name: str = ".") -> str:
                 f"{m['weighted_tokens']:,.1f} weighted tokens, ${m['dollars']:,.2f} "
                 f"({m['share_of_dollars'] * 100:.1f}%)"
             )
+    cm = report["child_models"]
+    lines.append("")
+    lines.append("Sub-agent cost by child model family (price only; quality unmeasured):")
+    if not cm["families"]:
+        lines.append("  no joined child transcripts in this window")
+    for f in cm["families"]:
+        lower = "n/a" if f["lower_share"] is None else f"{f['lower_share'] * 100:.1f}%"
+        upper = "n/a" if f["upper_share"] is None else f"{f['upper_share'] * 100:.1f}%"
+        explore = "n/a" if f["explore_share"] is None else f"{f['explore_share'] * 100:.1f}%"
+        priced = ""
+        if f["priced_children"] != f["children"]:
+            priced = f", {f['priced_children']:,} priced"
+        lines.append(
+            f"  {f['family']}: {f['children']:,} children{priced}, ${f['dollars']:,.2f}, "
+            f"re-discovery {lower} (lower) to {upper} (upper) of cost, explore {explore}"
+        )
     u = report["unpriced"]
     lines.append("")
     lines.append(
