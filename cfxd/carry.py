@@ -25,18 +25,29 @@ from cfxd.brief import _cap, _command_line, _file_line, _fold_line, _sanitize
 from cfxd.config import read_config
 from cfxd.fsutil import ensure_dir, open_log
 from cfxd.handlers import register
-from cfxd.session_state import FileFact, FoldFact, SessionFacts, TestFact, snapshot
+from cfxd.session_state import (
+    RANGES_PER_FILE,
+    FileFact,
+    FoldFact,
+    SessionFacts,
+    TestFact,
+    snapshot,
+)
 
 CARRY_DIR = "carry"
 CARRY_LOG = "carry.jsonl"
 SNAPSHOT_CAP_BYTES = 16 * 1024
 MAX_SNAPSHOT_FILE_BYTES = 64 * 1024
 RENDER_CAP_BYTES = 3_000
+CARRY_V2_CAP_BYTES = 4_000
 MAX_FILES = 20
 MAX_FOLDS = 8
 MAX_COMMANDS = 5
 MAX_TODOS = 8
 TODO_MAX_BYTES = 120
+MAX_CONSTRAINTS = 5
+CONSTRAINT_MAX_BYTES = 160
+MAX_RANGES_PER_FILE = 3
 _PRUNE_TTL_SECONDS = 7 * 24 * 3600
 
 _SID_RE = re.compile(r"[A-Za-z0-9_-]{1,64}")
@@ -47,6 +58,7 @@ _FILES_HEADER = "Working set (path | lines | status):"
 _FOLDS_HEADER = "Saved full outputs:"
 _COMMANDS_HEADER = "Recent commands:"
 _TODOS_HEADER = "Open todos the session had (status | text):"
+_CONSTRAINTS_HEADER = "Constraints from your earlier messages:"
 _GOAL_LABEL = "Goal (written by you at save time):"
 _TEST_LABEL = "Last test run:"
 _PROLOGUE = (
@@ -87,7 +99,8 @@ def _handle_pre_compact(payload: dict[str, Any], state_dir: Path) -> dict[str, A
         _receipt(state_dir, session_id, "PreCompact", "no-state", None, 0, {}, None)
         return {}
     assert session_id is not None
-    obj = _cap_snapshot(_to_snapshot(facts, trigger))
+    constraints = _constraints(payload.get("transcript_path"), facts)
+    obj = _cap_snapshot(_to_snapshot(facts, trigger, constraints))
     data = json.dumps(obj).encode("utf-8")
     _write_snapshot(state_dir, _sid(session_id), data)
     _receipt(
@@ -123,16 +136,17 @@ def _handle_session_start(payload: dict[str, Any], state_dir: Path) -> dict[str,
         return {}
     facts: SessionFacts | None = None
     trigger = "auto"
+    constraints: tuple[str, ...] = ()
     if session_id is not None:
         loaded = _load_snapshot(state_dir, _sid(session_id))
         if loaded is not None:
-            facts, trigger = loaded
+            facts, trigger, constraints = loaded
     if facts is None and session_id is not None:
         facts = snapshot(session_id)
     if facts is None or _empty(facts):
         _receipt(state_dir, session_id, "SessionStart", "no-state", None, 0, {}, None)
         return {}
-    text, _dropped = _render(facts, state_dir, trigger)
+    text, _dropped = _render(facts, state_dir, trigger, constraints=constraints)
     data = text.encode("utf-8")
     _receipt(
         state_dir,
@@ -172,14 +186,44 @@ def _open_todos(todos: tuple[tuple[str, str], ...]) -> tuple[tuple[str, str], ..
     return tuple((s, t) for s, t in todos if s in ("pending", "in_progress"))
 
 
-def _to_snapshot(facts: SessionFacts, trigger: str) -> dict[str, Any]:
+def _constraints(transcript_path: Any, facts: SessionFacts) -> tuple[str, ...]:
+    """The user's constraint sentences, sanitised and capped, from allowed prose only."""
+    if not isinstance(transcript_path, str) or not transcript_path:
+        return ()
+    try:
+        from cfxd.brief_intent import extract_intent
+
+        intent = extract_intent(transcript_path, "", facts)
+    except Exception:
+        return ()
+    out = []
+    for item in intent.constraints[:MAX_CONSTRAINTS]:
+        text = _cap(_sanitize(item.text), CONSTRAINT_MAX_BYTES).strip()
+        if text:
+            out.append(text)
+    return tuple(out)
+
+
+def _to_snapshot(
+    facts: SessionFacts, trigger: str, constraints: tuple[str, ...] = ()
+) -> dict[str, Any]:
     obj: dict[str, Any] = {
         "v": 0,
         "sid": facts.session_id,
         "created": datetime.now(UTC).isoformat(),
         "trigger": trigger,
         "files": [
-            {"path": f.path, "lines": f.lines, "edited": f.edited, "t": f.last_seen}
+            {
+                "path": f.path,
+                "lines": f.lines,
+                "edited": f.edited,
+                "t": f.last_seen,
+                **(
+                    {"rng": [[start, end, kind] for start, end, _sha, kind in f.ranges]}
+                    if f.ranges
+                    else {}
+                ),
+            }
             for f in facts.files
         ],
         "folds": [
@@ -191,9 +235,10 @@ def _to_snapshot(facts: SessionFacts, trigger: str) -> dict[str, Any]:
             {"s": s, "t": _cap(t, TODO_MAX_BYTES)} for s, t in _open_todos(facts.todos)[:MAX_TODOS]
         ],
     }
-    # Only the checkpoint package carries the last test result; /compact stays unchanged.
-    if trigger == "checkpoint" and facts.test is not None:
+    if facts.test is not None:
         obj["test"] = {"key": facts.test.key, "ok": facts.test.ok, "at": facts.test.at}
+    if constraints:
+        obj["constraints"] = list(constraints[:MAX_CONSTRAINTS])
     return obj
 
 
@@ -203,10 +248,11 @@ def _json_bytes(obj: dict[str, Any]) -> int:
 
 def _cap_snapshot(obj: dict[str, Any]) -> dict[str, Any]:
     """Drop whole sections bottom-up (todos, commands, folds, then oldest files) to fit."""
-    for key in ("todos", "commands", "folds"):
+    for key in ("todos", "commands", "folds", "constraints"):
         if _json_bytes(obj) <= SNAPSHOT_CAP_BYTES:
             return obj
-        obj[key] = []
+        if key in obj:
+            obj[key] = []
     files = obj["files"]
     while _json_bytes(obj) > SNAPSHOT_CAP_BYTES and files:
         files.pop(0)
@@ -254,9 +300,11 @@ def _write_snapshot(state_dir: Path, sid: str, data: bytes) -> None:
     write_state_file(state_dir, CARRY_DIR, f"{sid}.json", data)
 
 
-def snapshot_object(facts: SessionFacts, trigger: str) -> dict[str, Any]:
+def snapshot_object(
+    facts: SessionFacts, trigger: str, constraints: tuple[str, ...] = ()
+) -> dict[str, Any]:
     """Bounded, content-free snapshot dict for ``facts`` (the on-disk carry format)."""
-    return _cap_snapshot(_to_snapshot(facts, trigger))
+    return _cap_snapshot(_to_snapshot(facts, trigger, constraints))
 
 
 def facts_from_snapshot(obj: dict[str, Any], state_dir: Path) -> SessionFacts | None:
@@ -271,9 +319,20 @@ def render_facts(
     note: str | None = None,
     goal: str | None = None,
     stale: dict[str, str] | None = None,
+    constraints: tuple[str, ...] = (),
+    version: int | None = None,
 ) -> str:
     """Render the carry block; ``note`` is one extra line under the prologue."""
-    return _render(facts, state_dir, trigger, note=note, goal=goal, stale=stale)[0]
+    return _render(
+        facts,
+        state_dir,
+        trigger,
+        note=note,
+        goal=goal,
+        stale=stale,
+        constraints=constraints,
+        version=version,
+    )[0]
 
 
 def render_report(
@@ -283,12 +342,23 @@ def render_report(
     note: str | None = None,
     goal: str | None = None,
     stale: dict[str, str] | None = None,
+    constraints: tuple[str, ...] = (),
+    version: int | None = None,
 ) -> tuple[str, dict[str, int]]:
     """Render the block plus the counts of lines dropped to fit the cap."""
-    return _render(facts, state_dir, trigger, note=note, goal=goal, stale=stale)
+    return _render(
+        facts,
+        state_dir,
+        trigger,
+        note=note,
+        goal=goal,
+        stale=stale,
+        constraints=constraints,
+        version=version,
+    )
 
 
-def _load_snapshot(state_dir: Path, sid: str) -> tuple[SessionFacts, str] | None:
+def _load_snapshot(state_dir: Path, sid: str) -> tuple[SessionFacts, str, tuple[str, ...]] | None:
     path = state_dir / CARRY_DIR / f"{sid}.json"
     try:
         if path.stat().st_size > MAX_SNAPSHOT_FILE_BYTES:
@@ -302,7 +372,19 @@ def _load_snapshot(state_dir: Path, sid: str) -> tuple[SessionFacts, str] | None
     if facts is None:
         return None
     trigger = obj.get("trigger")
-    return facts, trigger if trigger in _TRIGGERS else "auto"
+    return facts, trigger if trigger in _TRIGGERS else "auto", _snapshot_constraints(obj)
+
+
+def _snapshot_constraints(obj: dict[str, Any]) -> tuple[str, ...]:
+    raw = obj.get("constraints")
+    if not isinstance(raw, list):
+        return ()
+    out = [
+        _cap(_sanitize(value), CONSTRAINT_MAX_BYTES).strip()
+        for value in raw
+        if isinstance(value, str)
+    ]
+    return tuple(text for text in out if text)[:MAX_CONSTRAINTS]
 
 
 def _snapshot_to_facts(obj: dict[str, Any], state_dir: Path) -> SessionFacts | None:
@@ -325,7 +407,12 @@ def _snapshot_to_facts(obj: dict[str, Any], state_dir: Path) -> SessionFacts | N
         t = item.get("t")
         if isinstance(t, bool) or not isinstance(t, (int, float)):
             return None
-        files.append(FileFact(path=path, lines=lines, edited=edited, last_seen=float(t)))
+        ranges = _snapshot_ranges(item.get("rng"))
+        if ranges is None:
+            return None
+        files.append(
+            FileFact(path=path, lines=lines, edited=edited, last_seen=float(t), ranges=ranges)
+        )
     folds: list[FoldFact] = []
     for item in _as_list(obj.get("folds")):
         if not isinstance(item, dict):
@@ -393,11 +480,184 @@ def _snapshot_to_facts(obj: dict[str, Any], state_dir: Path) -> SessionFacts | N
     )
 
 
+def _snapshot_ranges(value: Any) -> tuple[tuple[int, int, str, str], ...] | None:
+    """Parse ``[[start, end, kind], ...]``; ``None`` on malformed input, absent means none."""
+    if value is None:
+        return ()
+    if not isinstance(value, list):
+        return None
+    out: list[tuple[int, int, str, str]] = []
+    for item in value:
+        if not isinstance(item, list) or len(item) != 3:
+            return None
+        start, end, kind = item
+        if (
+            not isinstance(start, int)
+            or isinstance(start, bool)
+            or not isinstance(end, int)
+            or isinstance(end, bool)
+            or not isinstance(kind, str)
+            or start < 1
+            or end < start
+        ):
+            return None
+        out.append((start, end, "", kind))
+    return tuple(out[-RANGES_PER_FILE:])
+
+
 def _as_list(value: Any) -> list[Any]:
     return value if isinstance(value, list) else []
 
 
 def _render(
+    facts: SessionFacts,
+    state_dir: Path,
+    trigger: str,
+    note: str | None = None,
+    goal: str | None = None,
+    stale: dict[str, str] | None = None,
+    constraints: tuple[str, ...] = (),
+    version: int | None = None,
+) -> tuple[str, dict[str, int]]:
+    # Checkpoint keeps the v1 block byte-for-byte; real compactions get carry v2.
+    if version is None:
+        version = 1 if trigger == "checkpoint" else 2
+    if version == 1:
+        return _render_v1(facts, state_dir, trigger, note=note, goal=goal, stale=stale)
+    return _render_v2(
+        facts,
+        state_dir,
+        trigger,
+        note=note,
+        goal=goal,
+        stale=stale,
+        constraints=constraints,
+    )
+
+
+def _render_v2(
+    facts: SessionFacts,
+    state_dir: Path,
+    trigger: str,
+    note: str | None = None,
+    goal: str | None = None,
+    stale: dict[str, str] | None = None,
+    constraints: tuple[str, ...] = (),
+) -> tuple[str, dict[str, int]]:
+    """Edited files first (with line ranges), then test, todos, constraints, folds, commands."""
+    edited = sorted((f for f in facts.files if f.edited), key=lambda f: -f.last_seen)
+    read = sorted((f for f in facts.files if not f.edited), key=lambda f: -f.last_seen)
+    ranked = [*edited[:MAX_FILES]]
+    ranked.extend(read[: max(0, MAX_FILES - len(ranked))])
+    marks = dict(stale or {})
+
+    def file_lines() -> list[str]:
+        return [
+            _file_line(
+                f,
+                (_range_suffix(f) if f.edited else "") + marks.get(f.path, ""),
+            )
+            for f in ranked
+        ]
+
+    files = file_lines()
+    test = _test_line(facts.test) if facts.test is not None else None
+    todos = [_todo_line(s, t) for s, t in _open_todos(facts.todos)[:MAX_TODOS]]
+    constraint_lines = [
+        f"- {_cap(_sanitize(text), CONSTRAINT_MAX_BYTES)}"
+        for text in constraints[:MAX_CONSTRAINTS]
+        if _cap(_sanitize(text), CONSTRAINT_MAX_BYTES).strip()
+    ]
+    folds = [
+        _fold_line(f) for f in list(reversed(facts.folds)) if _obs_exists(state_dir, f.obs_id)
+    ][:MAX_FOLDS]
+    commands = [_command_line(c) for c in list(reversed(facts.commands))[:MAX_COMMANDS]]
+
+    sections: list[tuple[str, list[str]]] = []
+    if files:
+        sections.append(("files", [_FILES_HEADER, *files]))
+    if test is not None:
+        sections.append(("test", [test]))
+    if todos:
+        sections.append(("todos", [_TODOS_HEADER, *todos]))
+    if constraint_lines:
+        sections.append(("constraints", [_CONSTRAINTS_HEADER, *constraint_lines]))
+    if folds:
+        sections.append(("folds", [_FOLDS_HEADER, *folds]))
+    if commands:
+        sections.append(("commands", [_COMMANDS_HEADER, *commands]))
+
+    header = [f'<context-fabric-carry v="0" trigger="{trigger}">']
+    if goal:
+        header.append(f"{_GOAL_LABEL} {goal}")
+    header.append(_PROLOGUE)
+    if note is not None:
+        header.append(note)
+
+    dropped = {"stale": 0, "commands": 0, "folds": 0, "todos": 0, "constraints": 0, "files": 0}
+
+    def assemble() -> list[str]:
+        return [*header, *(line for _, lines in sections for line in lines), _CLOSE]
+
+    def over_cap() -> bool:
+        return len("\n".join(assemble()).encode("utf-8")) > CARRY_V2_CAP_BYTES
+
+    def drop_section(name: str) -> bool:
+        nonlocal sections
+        for index, (key, lines) in enumerate(sections):
+            if key == name:
+                dropped[key] += len(lines) - 1
+                sections = [*sections[:index], *sections[index + 1 :]]
+                return True
+        return False
+
+    def trim_file() -> bool:
+        nonlocal sections
+        for index, (key, lines) in enumerate(sections):
+            if key == "files" and len(lines) > 1:
+                dropped["files"] += 1
+                sections = [*sections[:index], ("files", lines[:-1]), *sections[index + 1 :]]
+                return True
+        return False
+
+    while over_cap():
+        if any(marks.get(f.path) for f in ranked):
+            dropped["stale"] += sum(1 for f in ranked if marks.get(f.path))
+            marks = {}
+            files = file_lines()
+            sections = [
+                ("files", [_FILES_HEADER, *files]) if key == "files" else (key, lines)
+                for key, lines in sections
+            ]
+            continue
+        # Lowest value first; the file list is trimmed last and from the bottom, so the
+        # edited files at the top survive longest.
+        if (
+            drop_section("commands")
+            or drop_section("folds")
+            or drop_section("constraints")
+            or drop_section("todos")
+        ):
+            continue
+        if trim_file():
+            continue
+        break
+    return "\n".join(assemble()), dropped
+
+
+def _range_suffix(fact: FileFact) -> str:
+    """Up to three ``Lstart-end`` labels from the fact's recorded ranges."""
+    seen: set[tuple[int, int]] = set()
+    labels: list[str] = []
+    for start, end, _sha, _kind in fact.ranges:
+        if (start, end) in seen:
+            continue
+        seen.add((start, end))
+        labels.append(f"L{start}-{end}" if end > start else f"L{start}")
+    return f" | {', '.join(labels[-MAX_RANGES_PER_FILE:])}" if labels else ""
+
+
+def _render_v1(
     facts: SessionFacts,
     state_dir: Path,
     trigger: str,
