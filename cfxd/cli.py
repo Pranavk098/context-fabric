@@ -24,6 +24,7 @@ from cfxd.audit import DEFAULT_ROOT, audit, coverage
 from cfxd.audit import format_coverage as format_coverage_report
 from cfxd.audit import format_human as format_audit
 from cfxd.brief_receipts import BriefReceipt, join_receipts, path_sha16, receipts_to_json
+from cfxd.checkup import main as checkup_main
 from cfxd.config import read_config, set_flag
 from cfxd.console import ensure_utf8_output
 from cfxd.daemon import (
@@ -44,6 +45,7 @@ from cfxd.diet import format_human as format_diet
 from cfxd.dietapply import apply_report, undo_records
 from cfxd.fidelity import fidelity
 from cfxd.fidelity import format_fidelity as format_fidelity_report
+from cfxd.handoff_stats import main as handoff_stats_main
 from cfxd.ledger import format_ledger, ledger
 from cfxd.refetch import format_refetch, refetch
 from cfxd.replay import format_replay, replay
@@ -257,6 +259,33 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     fidelityp.add_argument("--json", action="store_true", help="emit a single JSON object")
     fidelityp.set_defaults(func=_cmd_fidelity)
+
+    handoffp = subparsers.add_parser(
+        "handoff-stats", help="sub-agent re-discovery and Brief packet coverage (numbers only)"
+    )
+    handoffp.add_argument(
+        "--root", default=None, help=f"transcripts root (default: {DEFAULT_ROOT})"
+    )
+    handoffp.add_argument(
+        "--share", action="store_true", help="numeric aggregates only (safe to paste)"
+    )
+    handoffp.add_argument("--json", action="store_true", help="emit a single JSON object")
+    handoffp.set_defaults(func=_cmd_handoff_stats)
+
+    checkupp = subparsers.add_parser(
+        "checkup", help="one numbers-only tester report: diet, fidelity, sub-agents"
+    )
+    checkupp.add_argument(
+        "--root", default=None, help=f"transcripts root (default: {DEFAULT_ROOT})"
+    )
+    checkupp.add_argument(
+        "--since",
+        choices=("7d", "30d", "all"),
+        default="30d",
+        help="time window by file mtime (default: 30d)",
+    )
+    checkupp.add_argument("--json", action="store_true", help="emit a single JSON object")
+    checkupp.set_defaults(func=_cmd_checkup)
 
     wastep = subparsers.add_parser(
         "waste", help="loop, retry and rediscovery waste in Claude Code transcripts"
@@ -939,6 +968,27 @@ def _cmd_fidelity(args: argparse.Namespace) -> int:
     else:
         print(format_fidelity_report(report, root.name))
     return 0
+
+
+def _cmd_handoff_stats(args: argparse.Namespace) -> int:
+    argv: list[str] = []
+    if args.root:
+        argv.extend(["--root", args.root])
+    if args.share:
+        argv.append("--share")
+    if args.json:
+        argv.append("--json")
+    return handoff_stats_main(argv)
+
+
+def _cmd_checkup(args: argparse.Namespace) -> int:
+    argv: list[str] = []
+    if args.root:
+        argv.extend(["--root", args.root])
+    argv.extend(["--since", args.since])
+    if args.json:
+        argv.append("--json")
+    return checkup_main(argv)
 
 
 def _cmd_waste(args: argparse.Namespace) -> int:
