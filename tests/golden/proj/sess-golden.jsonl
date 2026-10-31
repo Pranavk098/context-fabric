@@ -1,0 +1,16 @@
+{"type": "attachment", "attachment": {"type": "skill_listing", "names": ["alpha:one", "beta:two"], "content": "- alpha:one: A\n- beta:two: B\n", "skillCount": 2}}
+{"type": "attachment", "attachment": {"type": "deferred_tools_delta", "addedNames": ["mcp__srv__tool_a", "mcp__srv__tool_b"]}}
+{"type": "attachment", "attachment": {"type": "mcp_instructions_delta", "addedNames": ["srv"], "addedBlocks": ["hello"]}}
+{"type": "assistant", "message": {"id": "p1", "model": "claude-haiku-4-5", "usage": {"input_tokens": 1000, "output_tokens": 100, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0}, "content": [{"type": "tool_use", "id": "r1", "name": "Read", "input": {"file_path": "C:/repo/a.py"}}]}}
+{"type": "assistant", "message": {"id": "p1", "model": "claude-haiku-4-5", "usage": {"input_tokens": 1200, "output_tokens": 120, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0}, "content": []}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "r1", "content": "aaaa"}]}}
+{"type": "assistant", "message": {"id": "p2", "model": "claude-haiku-4-5", "usage": {"input_tokens": 200, "output_tokens": 50, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0}, "content": [{"type": "tool_use", "id": "r2", "name": "Read", "input": {"file_path": "C:/repo/c.py"}}, {"type": "tool_use", "id": "s1", "name": "Skill", "input": {"skill": "alpha:one"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "r2", "content": "cc"}, {"type": "tool_result", "tool_use_id": "s1", "content": "ok"}]}}
+{"type": "assistant", "message": {"id": "p3", "model": "claude-haiku-4-5", "usage": {"input_tokens": 300, "output_tokens": 30, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0}, "content": [{"type": "tool_use", "id": "b1", "name": "Bash", "input": {"command": "pytest   -q"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "b1", "content": "PASS"}]}}
+{"type": "assistant", "message": {"id": "p4", "model": "claude-haiku-4-5", "usage": {"input_tokens": 400, "output_tokens": 40, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0}, "content": [{"type": "tool_use", "id": "e1", "name": "Edit", "input": {"file_path": "C:/repo/b.py"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "e1", "content": "edited"}]}}
+{"type": "assistant", "message": {"id": "p5", "model": "claude-haiku-4-5", "usage": {"input_tokens": 500, "output_tokens": 50, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0}, "content": [{"type": "tool_use", "id": "ag1", "name": "Agent", "input": {"prompt": "do it", "subagent_type": "general-purpose", "model": "claude-haiku-4-5"}}]}}
+{"type": "user", "toolUseResult": {"agentId": "kid1", "status": "completed"}, "message": {"content": [{"type": "tool_result", "tool_use_id": "ag1", "content": "done"}]}}
+{"type": "attachment", "attachment": {"type": "deferred_tools_delta", "addedNames": ["mcp__srv__tool_c"]}}
+{"type": "attachment", "attachment": {"type": "mcp_instructions_delta", "addedNames": ["srv"], "addedBlocks": ["bye!!"]}}

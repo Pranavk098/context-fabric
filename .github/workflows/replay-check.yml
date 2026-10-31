@@ -1,0 +1,23 @@
+name: replay-check
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  golden-accounting:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
+        with:
+          version: "0.11.3"
+      - name: Sync environment
+        run: uv sync --locked --python 3.12
+      - name: Replay golden transcripts
+        run: uv run pytest -q tests/test_golden_accounting.py
