@@ -13,7 +13,7 @@ import ast
 import os
 import posixpath
 import re
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from typing import Any
 
 from cfxd.brief import _cap, _sanitize
@@ -22,6 +22,7 @@ from cfxd.brief_types import (
     SECTIONS,
     Budgets,
     FileItem,
+    Range,
     Selection,
     TargetModel,
 )
@@ -57,6 +58,7 @@ _SHARES: dict[str, int] = {
 _FAMILIES = ("haiku", "sonnet", "opus", "fable")
 _RAW_MAX_BYTES = 64
 
+
 # Bounds for adversarial input and disk work.
 _PROMPT_MAX_CHARS = 100_000
 _TERM_MAX_BYTES = 200
@@ -67,6 +69,19 @@ _MAX_FACTS = 400
 _FILE_READ_MAX_BYTES = 1_000_000
 _TOTAL_READ_MAX_BYTES = 4_000_000
 _MAX_IMPORT_NAMES = 200
+
+
+def allowed_ranges(ranges: Iterable[Range]) -> tuple[Range, ...]:
+    """Ranges recorded from the parent's own Read/Edit calls (ADR-0011, M-4).
+
+    Only these may seed an excerpt: anything else replayed from state is not provenance.
+    """
+    return tuple(
+        (start, end, sha, kind)
+        for start, end, sha, kind in ranges
+        if kind in ("read", "edit") and start >= 1 and end >= start and len(sha) == 16
+    )
+
 
 _SOURCE_EXTS = (
     ".py",
@@ -490,7 +505,7 @@ def _rank(
             {t for name in ("prompt_path", "prompt_basename", "prompt_module") for t in found[name]}
             | set(found["prompt_symbol"])
         )
-        ranges = tuple(getattr(fact, "ranges", ()))
+        ranges = allowed_ranges(getattr(fact, "ranges", ()))
         excerpt = bool(ranges) and excerpts_left > 0
         if excerpt:
             excerpts_left -= 1
