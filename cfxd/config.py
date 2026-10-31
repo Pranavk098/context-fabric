@@ -31,6 +31,8 @@ _DEFAULTS: dict[str, bool] = {
     "fold_read": False,
     "bound": False,
     "coach": False,
+    # A/B half of the nudge sessions withheld, both arms receipted (F-4).
+    "coach_control": False,
     "idle_notice": False,
     # Brief v1 (ADR-0011) and the sub-agent carry-back are opt-in until the v4 pilot.
     "brief_v1": False,

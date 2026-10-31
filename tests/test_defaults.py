@@ -22,6 +22,7 @@ _EXPECTED = {
     "fold_read": False,
     "bound": False,
     "coach": False,
+    "coach_control": False,
     "idle_notice": False,
     "brief_v1": False,
     "carry_back": False,

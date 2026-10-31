@@ -11,6 +11,7 @@ import json
 import os
 import threading
 from datetime import UTC, datetime
+from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
@@ -43,8 +44,10 @@ def handle_stop(payload: dict[str, Any], state_dir: Path) -> dict[str, Any]:
             return {}
         if os.environ.get("CFX_COACH") == "0":
             return {}
-        if not read_config(state_dir).get("coach", False):
+        config = read_config(state_dir)
+        if not config.get("coach", False):
             return {}
+        control = config.get("coach_control", False)
         session_id = payload.get("session_id")
         transcript = payload.get("transcript_path")
         if not isinstance(session_id, str) or not session_id:
@@ -71,8 +74,18 @@ def handle_stop(payload: dict[str, Any], state_dir: Path) -> dict[str, Any]:
                 outcome = "shown"
                 session["last_context"] = context
                 session["last_turn"] = turns
+        arm: str | None = None
+        if control and outcome == "shown":
+            arm = _arm(session_id)
+            if arm == "control":
+                outcome = "withheld"
+            try:
+                _trigger_receipt(state_dir, arm, turns, context)
+            except OSError:
+                pass
         try:
-            _receipt(state_dir, session_id, context, turns, model, outcome)
+            # Under coach_control the receipts stay counts-only, so no session id.
+            _receipt(state_dir, None if control else session_id, context, turns, model, outcome)
         except OSError:
             pass
         if outcome == "shown":
@@ -166,9 +179,14 @@ def _as_int(value: Any) -> int | None:
     return value
 
 
+def _arm(session_id: str) -> str:
+    """Deterministic per session: an even first hash byte warns, an odd one withholds."""
+    return "warned" if sha256(session_id.encode("utf-8")).digest()[0] % 2 == 0 else "control"
+
+
 def _receipt(
     state_dir: Path,
-    session_id: str,
+    session_id: str | None,
     context: int,
     turns: int,
     model: str | None,
@@ -182,6 +200,21 @@ def _receipt(
         "turns": turns,
         "model": model,
         "outcome": outcome,
+    }
+    ensure_dir(state_dir)
+    with _receipt_lock:
+        with open_log(state_dir / COACH_LOG) as fh:
+            fh.write(json.dumps(entry) + "\n")
+
+
+def _trigger_receipt(state_dir: Path, arm: str, turns: int, context: int) -> None:
+    """Counts-only line for the A/B arms: no session id, path or text."""
+    entry = {
+        "ts": datetime.now(UTC).isoformat(),
+        "event": "coach_trigger",
+        "arm": arm,
+        "turn": turns,
+        "context_tokens": context,
     }
     ensure_dir(state_dir)
     with _receipt_lock:
