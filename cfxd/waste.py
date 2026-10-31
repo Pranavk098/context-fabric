@@ -20,6 +20,7 @@ from typing import Any
 from cfxd.audit import (
     _SINCE_DELTAS,
     _SINCE_LABELS,
+    _attachment_bytes,
     _discover,
     _iter_objects,
     _weighted,
@@ -36,6 +37,8 @@ _RETRY_MIN = 3
 _LONG_TURNS = 60
 # "Early" tool-call horizon for rediscovery.
 _FIRST_N = 5
+# MCP churn: more than one tool/instruction delta attachment per invocation start.
+_CHURN_MAX = 1
 
 # Discovery verbs, in output order only via allow-list membership. Bash first
 # word, plus the two-word ``git <sub>`` actions; Glob/Grep are keyed by tool name.
@@ -80,6 +83,9 @@ class _Session:
     turns: list[float]
     calls: list[_Call]
     results: list[_Result]
+    churn_deferred: int = 0
+    churn_instructions: int = 0
+    churn_bytes: int = 0
 
 
 def _signature(name: str, inp: Any) -> str:
@@ -135,12 +141,28 @@ def _scan(path: Path) -> _Session:
     calls: list[_Call] = []
     results: list[_Result] = []
     id_info: dict[str, tuple[str, float]] = {}
+    churn_deferred = 0
+    churn_instructions = 0
+    churn_bytes = 0
 
     dedupe = MessageUsage(_iter_objects(path))
     for obj in _iter_objects(path):
         msg = obj.get("message")
         content = msg.get("content") if isinstance(msg, dict) else None
         blocks = [b for b in content if isinstance(b, dict)] if isinstance(content, list) else []
+
+        # MCP churn: the first deferred-tool/instruction delta per session is needed context;
+        # every repeat is a re-sent attachment and counts as waste.
+        att = obj.get("attachment")
+        kind = att.get("type") if isinstance(att, dict) else None
+        if kind == "deferred_tools_delta":
+            if churn_deferred >= _CHURN_MAX:
+                churn_bytes += _attachment_bytes(obj)
+            churn_deferred += 1
+        elif kind == "mcp_instructions_delta":
+            if churn_instructions >= _CHURN_MAX:
+                churn_bytes += _attachment_bytes(obj)
+            churn_instructions += 1
 
         usage = msg.get("usage") if isinstance(msg, dict) else None
         usage = usage if isinstance(usage, dict) else None
@@ -172,7 +194,7 @@ def _scan(path: Path) -> _Session:
             name, cost = id_info[tid]
             results.append(_Result(name, _is_error(b), cost, tid))
 
-    return _Session(turns, calls, results)
+    return _Session(turns, calls, results, churn_deferred, churn_instructions, churn_bytes)
 
 
 def _loop_metrics(calls: list[_Call]) -> tuple[int, int, float, set[str]]:
@@ -261,6 +283,11 @@ def waste(root: Path, since: str = "30d", now: datetime | None = None) -> dict[s
     long_last_sum = 0.0
     long_last_turns = 0
 
+    churn_deferred = 0
+    churn_instructions = 0
+    churn_bytes = 0
+    sessions_with_churn = 0
+
     for path in paths:
         s = _scan(path)
         if not s.turns:
@@ -269,6 +296,14 @@ def waste(root: Path, since: str = "30d", now: datetime | None = None) -> dict[s
         total_weighted += weighted
         session_costs.append(weighted)
         turn_counts.append(len(s.turns))
+
+        churn_deferred += s.churn_deferred
+        churn_instructions += s.churn_instructions
+        churn_bytes += s.churn_bytes
+        # shortcut: one invocation start per transcript; a resumed session appends to the
+        # same .jsonl and may be counted once, upgrade by splitting on resume markers.
+        if s.churn_deferred > _CHURN_MAX or s.churn_instructions > _CHURN_MAX:
+            sessions_with_churn += 1
 
         found, calls_in, lcost, loop_ids = _loop_metrics(s.calls)
         loops_found += found
@@ -358,6 +393,13 @@ def waste(root: Path, since: str = "30d", now: datetime | None = None) -> dict[s
             "total_calls": discovery_total,
             "share_of_all_calls": round(redis_share, 4),
         },
+        "mcp_churn": {
+            "deferred_attachments": churn_deferred,
+            "instruction_attachments": churn_instructions,
+            "attachments": churn_deferred + churn_instructions,
+            "sessions_with_churn": sessions_with_churn,
+            "est_tokens": round(churn_bytes / 4.0, 1),
+        },
         "summary": {
             "top_10pct": round(top10, 4),
             "loops_retries": round(union_share, 4),
@@ -404,6 +446,14 @@ def format_waste(report: dict[str, Any], dir_name: str = ".") -> str:
         lines.append(
             f"  {verb}: {st['calls']:,} calls ({st['share'] * 100:.1f}% of all tool calls, "
             f"{st['first5_share'] * 100:.1f}% in first 5)"
+        )
+    mc = report["mcp_churn"]
+    if mc["sessions_with_churn"]:
+        lines.append(
+            f"MCP churn: {mc['attachments']:,} deferred-tool/instruction delta attachments in "
+            f"{mc['sessions_with_churn']:,} sessions (~{mc['est_tokens']:,.0f} tokens), more "
+            "than one per invocation start. For headless runs pass --strict-mcp-config with "
+            "an empty --mcp-config, or connect fewer servers."
         )
     s = report["summary"]
     lines.append("Summary:")

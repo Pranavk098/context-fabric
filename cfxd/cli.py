@@ -677,6 +677,19 @@ def _hook_delivery_warning(report: dict[str, Any], threshold: float = 0.70) -> s
     )
 
 
+def _mcp_churn_warning(root: Path, since: str = "7d") -> str | None:
+    """Warning when transcripts re-send MCP tool/instruction deltas (counts only)."""
+    churn = waste(root, since)["mcp_churn"]
+    if not churn["sessions_with_churn"]:
+        return None
+    return (
+        f"cfxd doctor: warning: MCP churn in {churn['sessions_with_churn']:,} recent sessions: "
+        f"{churn['attachments']:,} deferred-tool/instruction delta attachments "
+        f"(~{churn['est_tokens']:,.0f} tokens). For headless runs pass --strict-mcp-config "
+        "with an empty --mcp-config, or connect fewer servers."
+    )
+
+
 def _sh_check() -> tuple[bool, str]:
     """The hooks run ``sh launch.sh``; Windows gets that from Git for Windows."""
     found = shutil.which("sh")
@@ -766,6 +779,9 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
     warning = _hook_delivery_warning(coverage(DEFAULT_ROOT, state_dir, 7))
     if warning is not None:
         print(warning)
+    churn_warning = _mcp_churn_warning(DEFAULT_ROOT)
+    if churn_warning is not None:
+        print(churn_warning)
     return 0
 
 
