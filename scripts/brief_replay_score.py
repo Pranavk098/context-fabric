@@ -36,8 +36,8 @@ import gate1_rediscovery as gate1  # noqa: E402
 from cfxd.bound import test_key_any  # noqa: E402
 from cfxd.brief_intent import delegation_items  # noqa: E402
 from cfxd.brief_receipts import _iter_jsonl  # noqa: E402
-from cfxd.brief_render import render  # noqa: E402
-from cfxd.brief_select import resolve_target, select  # noqa: E402
+from cfxd.brief_render import HEADERS, render  # noqa: E402
+from cfxd.brief_select import BUDGET_BYTES, resolve_target, select  # noqa: E402
 from cfxd.brief_types import Intent  # noqa: E402
 from cfxd.routing import _DEFAULT_PRICES, _load_prices  # noqa: E402
 from cfxd.session_state import (  # noqa: E402
@@ -55,6 +55,9 @@ _FILE_TOOLS = frozenset({"Read", "Edit", "Write", "MultiEdit", "NotebookEdit"})
 _MTOK = 1_000_000.0
 _EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 _EMPTY_INTENT = Intent(goal=None, constraints=(), decisions=(), tried=(), deduped=0)
+SWEEP_BUDGETS = (2_000, 6_000, 12_000, 20_000)
+_FILES_HEADER = HEADERS["files"]
+_SECTION_HEADERS = frozenset(HEADERS.values())
 
 
 # ------------------------------------------------------------------ facts at spawn
@@ -164,6 +167,26 @@ def _child_model(ch: dict[str, Any], prompt_input: dict[str, Any]) -> Any:
     return ch["model"] or prompt_input.get("model")
 
 
+def file_bytes(text: str) -> dict[str, int]:
+    """Rendered bytes attributable to each packet file: its pointer line.
+
+    Excerpt bytes are not attributed: the replay's facts carry no line ranges, so
+    ``render`` never emits an excerpt here. shortcut: an excerpt would be counted as
+    irrelevant, upgrade when the replay records ranges.
+    """
+    out: dict[str, int] = {}
+    in_files = False
+    for line in text.split("\n"):
+        if line in _SECTION_HEADERS:
+            in_files = line == _FILES_HEADER
+            continue
+        if in_files and line.startswith("- "):
+            path = line[2:].split(" | ", 1)[0]
+            key = gate1.norm_path(path)
+            out[key] = out.get(key, 0) + len(line.encode("utf-8")) + 1
+    return out
+
+
 def score_child(
     ch: dict[str, Any],
     parent: dict[str, Any],
@@ -224,6 +247,9 @@ def score_child(
         "packet_files": len(packet),
         "packet_hit": len(packet & child_files),
         "packet_bytes": len(rendered_text.encode("utf-8")),
+        "relevant_bytes": sum(
+            n for path, n in file_bytes(rendered_text).items() if path in child_files
+        ),
         "lower": lower if cost is not None else None,
         "upper": min(upper, cost) if cost is not None else None,
         "result_tokens": result_tokens,
@@ -235,8 +261,12 @@ def _packet_of(rendered: Any) -> list[str]:
     return [item.path for item in rendered.items]
 
 
-def collect(root: Path, prices: dict[str, Any]) -> dict[str, Any]:
-    """Walk transcripts and score every child that can be joined and rendered."""
+def collect(root: Path, prices: dict[str, Any], budgets: tuple[int, ...] = ()) -> dict[str, Any]:
+    """Walk transcripts and score every child that can be joined and rendered.
+
+    ``budgets`` additionally re-renders every child with the packet budget forced to each
+    value (via the public ``BUDGET_BYTES`` knob) and stores the result under ``sweep``.
+    """
     stats: Counter[str] = Counter()
     seen: set[str] = set()
     children: list[dict[str, Any]] = []
@@ -297,9 +327,53 @@ def collect(root: Path, prices: dict[str, Any]) -> dict[str, Any]:
             rec["background"] = bool(call["bg_input"] or status == "async_launched")
             rec["session"] = sid
             rec["prompt_constraints"] = delegation_items(prompt)
+            rec["sweep"] = _sweep(ch, parent, call["idx"], facts, prompt, target, budgets, sid)
             children.append(rec)
         stats["child_files_not_referenced_by_parent"] += len(set(files) - linked)
-    return {"stats": stats, "children": children}
+    return {"stats": stats, "children": children, "sweep_budgets": list(budgets)}
+
+
+def _sweep(
+    ch: dict[str, Any],
+    parent: dict[str, Any],
+    spawn_idx: int,
+    facts: SessionFacts,
+    prompt: str,
+    target: Any,
+    budgets: tuple[int, ...],
+    session_id: str,
+) -> dict[int, dict[str, Any]]:
+    """Re-render one child at each sweep budget, restoring the module knob every time."""
+    out: dict[int, dict[str, Any]] = {}
+    family = target.family if target.family in BUDGET_BYTES else "unknown"
+    for budget in budgets:
+        default = BUDGET_BYTES[family]
+        BUDGET_BYTES[family] = budget
+        try:
+            swept = render(
+                select(facts, prompt, target),
+                _EMPTY_INTENT,
+                cwd="",
+                session_id=session_id,
+                now=_EPOCH,
+            )
+        except (ValueError, OSError):
+            continue
+        finally:
+            BUDGET_BYTES[family] = default
+        scored = score_child(ch, parent, spawn_idx, swept.text, _packet_of(swept))
+        out[budget] = {
+            key: scored[key]
+            for key in (
+                "redundant",
+                "covered",
+                "packet_files",
+                "packet_hit",
+                "packet_bytes",
+                "relevant_bytes",
+            )
+        }
+    return out
 
 
 # ------------------------------------------------------------------ aggregation
@@ -347,6 +421,58 @@ def summarise(kids: list[dict[str, Any]]) -> dict[str, Any]:
         "upper_share": _share(sum(k["upper"] for k in priced), cost),
         "result_tokens": sum(k["result_tokens"] for k in kids),
     }
+
+
+def summarise_sweep(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Coverage, precision and bytes-weighted precision over one budget's rows."""
+    packet_bytes = [r["packet_bytes"] for r in rows]
+    return {
+        "n": len(rows),
+        "coverage": _share(sum(r["covered"] for r in rows), sum(r["redundant"] for r in rows)),
+        "precision": _share(
+            sum(r["packet_hit"] for r in rows), sum(r["packet_files"] for r in rows)
+        ),
+        "bytes_precision": _share(sum(r["relevant_bytes"] for r in rows), sum(packet_bytes)),
+        "packet_bytes_median": sorted(packet_bytes)[len(packet_bytes) // 2] if packet_bytes else 0,
+    }
+
+
+_SWEEP_GROUPS: tuple[tuple[str, Any], ...] = (
+    ("haiku", lambda k: k["family"] == "haiku"),
+    ("sonnet", lambda k: k["family"] == "sonnet"),
+    ("opus", lambda k: k["family"] == "opus"),
+    ("parent knew 3 or more files", lambda k: k["parent_known"] >= 3),
+)
+
+
+def _sweep_section(kids: list[dict[str, Any]], budgets: list[int]) -> list[str]:
+    out = [
+        "## Budget sweep: precision-recall by packet budget",
+        "",
+        "The same replay, re-rendered with the packet budget forced to each value below",
+        "(`cfxd.brief_select.BUDGET_BYTES`, the public per-family byte ceiling; item caps are",
+        "unchanged). Coverage is recall over redundant reads, precision is packet files the",
+        "child read over packet files. Bytes-weighted precision is the rendered bytes of the",
+        "packet files the child read over all rendered packet bytes, so the fixed header,",
+        "prologue and command lines count as irrelevant. Groups with no children are omitted.",
+        "",
+        "| budget | group | children | coverage | precision | bytes-weighted precision "
+        "| packet bytes (median) |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for budget in budgets:
+        for name, keep in _SWEEP_GROUPS:
+            rows = [k["sweep"][budget] for k in kids if keep(k) and budget in k["sweep"]]
+            if not rows:
+                continue
+            s = summarise_sweep(rows)
+            out.append(
+                f"| {budget:,} B ({budget // 1000} KB) | {name} | {s['n']} | "
+                f"{_pct(s['coverage'])} | {_pct(s['precision'])} | "
+                f"{_pct(s['bytes_precision'])} | {_int(s['packet_bytes_median'])} |"
+            )
+    out.append("")
+    return out
 
 
 def _table(title: str, groups: list[tuple[str, list[dict[str, Any]]]]) -> list[str]:
@@ -493,6 +619,9 @@ def render_doc(data: dict[str, Any]) -> str:
         "some re-reads are needed anyway to edit exact bytes."
     )
     w("")
+    budgets = data.get("sweep_budgets") or []
+    if budgets:
+        out.extend(_sweep_section(kids, budgets))
     return "\n".join(out)
 
 
@@ -500,9 +629,15 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Brief replay coverage/precision report")
     ap.add_argument("--root", type=Path, default=Path.home() / ".claude" / "projects")
     ap.add_argument("--out", type=Path, default=_REPO / "docs" / "brief-replay-score.md")
+    ap.add_argument(
+        "--sweep",
+        action="store_true",
+        help="append a 2/6/12/20 KB budget sweep section (default output unchanged)",
+    )
     args = ap.parse_args(argv)
     prices = _load_prices(_DEFAULT_PRICES)
-    text = render_doc(collect(args.root, prices))
+    budgets = SWEEP_BUDGETS if args.sweep else ()
+    text = render_doc(collect(args.root, prices, budgets))
     sys.stdout.write(text + "\n")
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(text + "\n", encoding="utf-8")
