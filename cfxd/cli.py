@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import shutil
 import signal
+import statistics
 import subprocess
 import sys
 import tempfile
@@ -37,7 +39,7 @@ from cfxd.daemon import (
     run_serve,
     verify_identity,
 )
-from cfxd.diet import _anonymize, diet
+from cfxd.diet import _anonymize, _numeric, diet
 from cfxd.diet import format_human as format_diet
 from cfxd.dietapply import apply_report, undo_records
 from cfxd.fidelity import fidelity
@@ -157,7 +159,14 @@ def _build_parser() -> argparse.ArgumentParser:
         default="30d",
         help="time window by file mtime (default: 30d)",
     )
-    dietp.add_argument("--share", action="store_true", help="replace names with hash labels")
+    dietp.add_argument(
+        "--share", action="store_true", help="numeric aggregates only (safe to paste)"
+    )
+    dietp.add_argument(
+        "--share-digests",
+        action="store_true",
+        help="with --share: include per-item name labels (private; never paste)",
+    )
     dietp.add_argument("--json", action="store_true", help="emit a single JSON object")
     diet_action = dietp.add_mutually_exclusive_group()
     diet_action.add_argument(
@@ -294,6 +303,11 @@ def _build_parser() -> argparse.ArgumentParser:
     weekp.add_argument(
         "--share", action="store_true", help="append the version and the safe-to-paste line"
     )
+    weekp.add_argument(
+        "--share-digests",
+        action="store_true",
+        help="with --share: include private name digests (never paste)",
+    )
     weekp.add_argument("--json", action="store_true", help="emit a single JSON object")
     weekp.add_argument(
         "--save",
@@ -323,6 +337,11 @@ def _build_parser() -> argparse.ArgumentParser:
     ledgerp.add_argument("--days", type=int, default=30, help="time window in days (default: 30)")
     ledgerp.add_argument(
         "--share", action="store_true", help="append the safe-to-paste line (numbers only)"
+    )
+    ledgerp.add_argument(
+        "--share-digests",
+        action="store_true",
+        help="with --share: include private name digests (never paste)",
     )
     ledgerp.add_argument("--json", action="store_true", help="emit a single JSON object")
     _add_state_dir(ledgerp)
@@ -387,6 +406,14 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     briefp.add_argument("--session", default=None, help="only handoffs from this session id")
     briefp.add_argument("--root", default=None, help=f"transcripts root (default: {DEFAULT_ROOT})")
+    briefp.add_argument(
+        "--share", action="store_true", help="numeric aggregates only (safe to paste)"
+    )
+    briefp.add_argument(
+        "--share-digests",
+        action="store_true",
+        help="with --share: include private session/agent digests (never paste)",
+    )
     briefp.add_argument("--json", action="store_true", help="emit a single JSON object")
     _add_state_dir(briefp)
     briefp.set_defaults(func=_cmd_brief)
@@ -838,7 +865,7 @@ def _cmd_agent_audit(args: argparse.Namespace) -> int:
 
 
 def _cmd_diet(args: argparse.Namespace) -> int:
-    if (args.apply or args.undo) and (args.share or args.json):
+    if (args.apply or args.undo) and (args.share or args.share_digests or args.json):
         print(
             "cfxd diet: --apply/--undo cannot be combined with --share or --json", file=sys.stderr
         )
@@ -852,13 +879,17 @@ def _cmd_diet(args: argparse.Namespace) -> int:
     if args.undo:
         return undo_records(args.all)
     root = Path(args.root) if args.root else DEFAULT_ROOT
-    report = _anonymize(diet(root, args.since)) if args.share else diet(root, args.since)
+    share = args.share or args.share_digests
+    raw = diet(root, args.since)
+    report = _anonymize(raw) if args.share_digests else (_numeric(raw) if share else raw)
     if args.apply:
         return apply_report(report, yes=args.yes)
     if args.json:
         print(json.dumps(report))
     else:
-        print(format_diet(report, share=args.share, dir_name=root.name))
+        print(
+            format_diet(report, share=share, dir_name=root.name, share_digests=args.share_digests)
+        )
     return 0
 
 
@@ -937,8 +968,9 @@ def _cmd_week(args: argparse.Namespace) -> int:
         return 2
     root = Path(args.root) if args.root else DEFAULT_ROOT
     state_dir = resolve_state_dir(args.state_dir)
-    report = week(root, args.days, state_dir, share=args.share)
-    print(json.dumps(report) if args.json else format_week(report, args.share))
+    share = args.share or args.share_digests
+    report = week(root, args.days, state_dir, share=share)
+    print(json.dumps(report) if args.json else format_week(report, share))
     if args.save:
         save_snapshot(state_dir, report)
     return 0
@@ -958,8 +990,9 @@ def _cmd_ledger(args: argparse.Namespace) -> int:
         print("cfxd ledger: --days must be at least 1", file=sys.stderr)
         return 2
     root = Path(args.root) if args.root else DEFAULT_ROOT
-    report = ledger(root, args.days, resolve_state_dir(args.state_dir), share=args.share)
-    print(json.dumps(report) if args.json else format_ledger(report, args.share))
+    share = args.share or args.share_digests
+    report = ledger(root, args.days, resolve_state_dir(args.state_dir), share=share)
+    print(json.dumps(report) if args.json else format_ledger(report, share))
     return 0
 
 
@@ -972,6 +1005,144 @@ _BRIEF_EMPTY_ON = (
     "No briefs have been logged yet.\n"
     "Brief v1 is on. Delegate work to a sub-agent and run `cfxd brief` again."
 )
+_BRIEF_SAFE = "Safe to paste: counts, bytes, tokens and model ids only."
+
+
+def _sha16(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()[:16]
+
+
+def _brief_share(receipts: list[BriefReceipt], digests: bool = False) -> dict[str, Any]:
+    """Numeric aggregates for ``brief --share``: no agent, session or path names."""
+    decisions: dict[str, int] = {}
+    skip_reasons: dict[str, int] = {}
+    models: dict[str, int] = {}
+    outcomes: dict[str, int] = {}
+    unmatched_reasons: dict[str, int] = {}
+    tokens = {"total": 0, "input": 0, "output": 0, "cache_read": 0, "cache_creation": 0}
+    matched = briefed_files = rereads = left_out = items = 0
+    turns = compactions = overflows = 0
+    for r in receipts:
+        decision = r.decision or "unknown"
+        decisions[decision] = decisions.get(decision, 0) + 1
+        if r.skip_reason:
+            skip_reasons[r.skip_reason] = skip_reasons.get(r.skip_reason, 0) + 1
+        if r.outcome:
+            outcomes[r.outcome] = outcomes.get(r.outcome, 0) + 1
+        if not r.matched:
+            if r.unmatched_reason:
+                key = r.unmatched_reason
+                unmatched_reasons[key] = unmatched_reasons.get(key, 0) + 1
+            continue
+        matched += 1
+        key = r.target_model or "unknown"
+        models[key] = models.get(key, 0) + 1
+        briefed_files += len(r.briefed_files)
+        rereads += len(r.rereads_of_briefed)
+        left_out += len(r.parent_read_not_briefed)
+        items += r.packet_items or 0
+        turns += r.child_turns
+        compactions += r.compactions
+        overflows += r.overflows
+        for name in tokens:
+            value = r.child_tokens.get(name)
+            if isinstance(value, int) and not isinstance(value, bool):
+                tokens[name] += value
+
+    prompt_bytes = [r.prompt_bytes for r in receipts]
+    packet_bytes = [r.packet_bytes for r in receipts]
+    data: dict[str, Any] = {
+        "handoffs": len(receipts),
+        "matched": matched,
+        "unmatched": len(receipts) - matched,
+        "decisions": decisions,
+        "skip_reasons": skip_reasons,
+        "unmatched_reasons": unmatched_reasons,
+        "outcomes": outcomes,
+        "target_models": models,
+        "prompt_bytes": {
+            "total": sum(prompt_bytes),
+            "median": round(statistics.median(prompt_bytes), 1) if prompt_bytes else None,
+        },
+        "packet_bytes": {
+            "total": sum(packet_bytes),
+            "median": round(statistics.median(packet_bytes), 1) if packet_bytes else None,
+        },
+        "packet_items": items,
+        "briefed_files": briefed_files,
+        "rereads_of_briefed": rereads,
+        "parent_read_not_briefed": left_out,
+        "child_tokens": tokens,
+        "child_turns": turns,
+        "compactions": compactions,
+        "overflows": overflows,
+        "safe_to_paste": _BRIEF_SAFE,
+    }
+    if digests:
+        data["digests"] = [
+            {
+                "session": _sha16(r.session_id) if r.session_id else None,
+                "agent": r.subagent_type,
+                "tool_use": _sha16(r.tool_use_id) if r.tool_use_id else None,
+                "paths": [path_sha16(p) for p in r.briefed_files],
+            }
+            for r in receipts
+        ]
+    return data
+
+
+def _counts_line(label: str, counts: dict[str, int]) -> str:
+    if not counts:
+        return f"{label}: none"
+    return f"{label}: " + ", ".join(f"{key} {counts[key]:,}" for key in sorted(counts))
+
+
+def _median_text(value: float | None) -> str:
+    return "n/a" if value is None else f"{value:,.1f}"
+
+
+def _format_brief_share(data: dict[str, Any]) -> str:
+    """Render the numeric brief share view."""
+    lines = [f"cfxd brief --share: {data['handoffs']:,} handoffs"]
+    lines.append(_counts_line("Decisions", data["decisions"]))
+    if data["skip_reasons"]:
+        lines.append(_counts_line("Skip reasons", data["skip_reasons"]))
+    lines.append(f"Matched: {data['matched']:,}   unmatched: {data['unmatched']:,}")
+    if data["unmatched_reasons"]:
+        lines.append(_counts_line("Unmatched reasons", data["unmatched_reasons"]))
+    lines.append(_counts_line("Target models", data["target_models"]))
+    lines.append(_counts_line("Outcomes", data["outcomes"]))
+    lines.append(
+        f"Prompt bytes: {data['prompt_bytes']['total']:,} total, "
+        f"median {_median_text(data['prompt_bytes']['median'])}"
+    )
+    lines.append(
+        f"Packet bytes: {data['packet_bytes']['total']:,} total, "
+        f"median {_median_text(data['packet_bytes']['median'])}"
+    )
+    lines.append(
+        f"Packet items: {data['packet_items']:,}   briefed files: {data['briefed_files']:,}   "
+        f"re-read of briefed: {data['rereads_of_briefed']:,}   "
+        f"parent-read left out: {data['parent_read_not_briefed']:,}"
+    )
+    t = data["child_tokens"]
+    lines.append(
+        f"Child tokens: {t['total']:,} total (input {t['input']:,}, output {t['output']:,}, "
+        f"cache read {t['cache_read']:,}, cache write {t['cache_creation']:,})"
+    )
+    lines.append(
+        f"Child turns: {data['child_turns']:,}   compactions: {data['compactions']:,}   "
+        f"overflows: {data['overflows']:,}"
+    )
+    if data.get("digests"):
+        lines.append("Digests (private; never paste):")
+        for digest in data["digests"]:
+            lines.append(
+                f"  session {digest['session'] or 'n/a'}   agent {digest['agent'] or 'n/a'}   "
+                f"tool {digest['tool_use'] or 'n/a'}"
+            )
+    lines.append(data["safe_to_paste"])
+    return "\n".join(lines)
 
 
 def _read_briefs(path: Path) -> list[dict[str, Any]]:
@@ -1087,7 +1258,12 @@ def _cmd_brief(args: argparse.Namespace) -> int:
     entries = _read_briefs(state_dir / "briefs.jsonl")
     if args.session:
         entries = [e for e in entries if e.get("session_id") == args.session]
+    share = args.share or args.share_digests
     if not entries:
+        if share:
+            data = _brief_share([])
+            print(json.dumps(data) if args.json else _format_brief_share(data))
+            return 0
         state = "on" if read_config(state_dir).get("brief_v1") else "off"
         if args.json:
             print(json.dumps({"receipts": [], "details": [], "brief_v1": state}))
@@ -1100,6 +1276,10 @@ def _cmd_brief(args: argparse.Namespace) -> int:
         log = Path(tmp) / "briefs.jsonl"
         log.write_text("".join(json.dumps(e) + "\n" for e in entries), encoding="utf-8")
         receipts = join_receipts(log, root)
+    if share:
+        data = _brief_share(receipts, digests=args.share_digests)
+        print(json.dumps(data) if args.json else _format_brief_share(data))
+        return 0
     if args.json:
         details = [
             {
