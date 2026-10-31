@@ -26,6 +26,7 @@ _EXPECTED = {
     "brief_v1": False,
     "carry_back": False,
     "carry_v2": False,
+    "brief_excerpts": False,
 }
 
 

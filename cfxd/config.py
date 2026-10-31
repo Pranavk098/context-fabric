@@ -37,6 +37,8 @@ _DEFAULTS: dict[str, bool] = {
     "carry_back": False,
     # Carry v2 (edited-first block with ranges and constraints) is opt-in.
     "carry_v2": False,
+    # Brief v1 excerpts are opt-in: pointers only until a user asks for file content (M-4).
+    "brief_excerpts": False,
 }
 _CACHE: dict[Path, tuple[int, dict[str, bool]]] = {}
 

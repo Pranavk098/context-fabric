@@ -1,11 +1,14 @@
 """Brief v1 renderer (ADR-0011): a ``Selection`` and an ``Intent`` become a text block and a packet.
 
 Pure given its inputs and the disk: no clock (``now`` is passed in), no randomness. Excerpts are
-read from disk at brief time and hash-checked against the ranges the parent recorded; a file that
-changed, vanished or is not clean UTF-8 text degrades to its pointer line. Every string that comes
-from facts, intent or paths is sanitised with Brief v0's rules; file content keeps ``<``, ``>``
-and backticks but every line is prefixed ``NNNNN| `` and marker-looking lines are withheld, so
-nothing in a file can close the delimiter or forge a section header.
+read from disk at brief time and hash-checked against the ranges the parent recorded, but only
+ranges from the parent's own Read/Edit calls count, only files inside the session's work tree
+and not matching secret-like names are eligible, and every emitted line is asserted to lie in
+an allowed range (M-4). A file that changed, vanished or is not clean UTF-8 text degrades to
+its pointer line. Every string that comes from facts, intent or paths is sanitised with Brief
+v0's rules; file content keeps ``<``, ``>`` and backticks but every line is prefixed
+``NNNNN| `` and marker-looking lines are withheld, so nothing in a file can close the
+delimiter or forge a section header.
 """
 
 from __future__ import annotations
@@ -22,6 +25,7 @@ from typing import Any
 
 from cfxd import carry, packet
 from cfxd.brief import _cap, _sanitize
+from cfxd.brief_select import allowed_ranges
 from cfxd.brief_types import (
     SECTIONS,
     FileItem,
@@ -79,6 +83,8 @@ _TRIM_ORDER = (
 
 _MARKER_RE = re.compile(r"<[^a-z]*context[^a-z]*fabric")
 _FOLD_KINDS = packet.FOLD_KINDS
+# M-4: never excerpt files whose name alone says it holds a credential.
+_SECRET_NAME_RE = re.compile(r"^(?:\.env.*|.*\.pem|.*\.key|id_rsa.*|credentials.*)$", re.IGNORECASE)
 
 
 def fixed_max_bytes() -> int:
@@ -178,6 +184,40 @@ def _read_text(path: str) -> tuple[str, list[str]] | None:
     return _sha16(data), _split_lines(text)
 
 
+def _git_root(cwd: str) -> str:
+    """Nearest ancestor of ``cwd`` holding a ``.git`` entry, else ``cwd`` itself."""
+    start = Path(os.path.abspath(cwd))
+    for parent in (start, *start.parents):
+        if os.path.exists(os.path.join(parent, ".git")):
+            return str(parent)
+    return str(start)
+
+
+def _excerpt_allowed(path: str, cwd: str) -> bool:
+    """M-4: a path may be excerpted only when it resolves inside the session's work tree.
+
+    Symlinks, ``..`` escapes, absolute paths elsewhere, ``.git`` internals and secret-like
+    names keep their pointer line but never their content.
+    """
+    root = os.path.realpath(_git_root(cwd))
+    full = os.path.realpath(path if os.path.isabs(path) else os.path.join(cwd, path))
+    try:
+        rel = Path(full).relative_to(root)
+    except (OSError, ValueError):
+        return False
+    if any(part.casefold() == ".git" for part in rel.parts):
+        return False
+    return _SECRET_NAME_RE.match(os.path.basename(full)) is None
+
+
+def _assert_allowed(start: int, end: int, allowed: tuple[Range, ...]) -> None:
+    """Fail loudly rather than emit a line the parent never read (M-4)."""
+    for number in range(start, end + 1):
+        assert any(a <= number <= b for a, b, _sha, _kind in allowed), (
+            f"excerpt line {number} is outside the ranges the parent read"
+        )
+
+
 def _defines(line: str, symbols: tuple[str, ...]) -> bool:
     for sym in symbols:
         esc = re.escape(sym)
@@ -240,7 +280,8 @@ def _build_excerpt(
     if disk is None:
         return None, True
     sha, file_lines = disk
-    valid = [r for r in item.ranges if r[2] == sha]
+    allowed = allowed_ranges(item.ranges)
+    valid = [r for r in allowed if r[2] == sha]
     if not valid:
         return None, True
     span = _pick_range(item, valid, file_lines)
@@ -262,6 +303,7 @@ def _build_excerpt(
         last = number
     if not body:
         return None, False
+    _assert_allowed(span[0], last, allowed)
     head = f"=== {shown} lines {span[0]}-{last} (sha {sha}) ==="
     return _Excerpt([head, *body, end_line], (span[0], last)), False
 
@@ -387,9 +429,20 @@ def _fold_line(view: dict[str, Any], obs: str) -> str:
 
 
 def render(
-    selection: Selection, intent: Intent, *, cwd: str, session_id: str, now: datetime
+    selection: Selection,
+    intent: Intent,
+    *,
+    cwd: str,
+    session_id: str,
+    now: datetime,
+    excerpts: bool = True,
 ) -> Rendered:
-    """Render the Brief v1 text block and its packet v0 object (ADR-0011)."""
+    """Render the Brief v1 text block and its packet v0 object (ADR-0011).
+
+    ``excerpts=False`` renders pointers only. ``brief_excerpts`` is off by default, so a caller
+    that has read the config passes ``False`` unless the user opted in; ``True`` (the default)
+    keeps the pre-M-4 behaviour for callers that already gated the flag themselves.
+    """
     family = selection.target.family if selection.target.family in FAMILIES else "unknown"
     budgets = selection.budgets
     subs = dict(budgets.sections)
@@ -462,30 +515,34 @@ def render(
             used += cost
 
     # --- excerpts (own share plus whatever task..files left unused) ----------------------------
-    rollover = sum(sub(n) for n in ("task", "constraints", "decisions", "files"))
-    rollover -= bytes_of("task") + bytes_of("constraints") + bytes_of("decisions") + files_cost
-    pool = min(sub("excerpts") + max(rollover, 0), avail - used)
-    per_excerpt = pool // budgets.max_excerpts if budgets.max_excerpts > 0 else 0
     excerpt_of: dict[int, _Excerpt] = {}
     degraded: set[int] = set()
-    remaining = pool
-    for index, (item, shown) in enumerate(candidates):
-        if len(excerpt_of) >= budgets.max_excerpts:
-            break
-        if not item.excerpt or not item.ranges:
-            continue
-        built, bad = _build_excerpt(
-            item, abs_cwd, _rel_path_text(item.path, abs_cwd) or shown, min(per_excerpt, remaining)
-        )
-        if bad:
-            degraded.add(index)
-        elif built is None:
-            dropped["excerpts"] = dropped.get("excerpts", 0) + 1
-        else:
-            cost = sum(_blen(line) + 1 for line in built.lines)
-            excerpt_of[index] = built
-            remaining -= cost
-            used += cost
+    if excerpts:
+        rollover = sum(sub(n) for n in ("task", "constraints", "decisions", "files"))
+        rollover -= bytes_of("task") + bytes_of("constraints") + bytes_of("decisions") + files_cost
+        pool = min(sub("excerpts") + max(rollover, 0), avail - used)
+        per_excerpt = pool // budgets.max_excerpts if budgets.max_excerpts > 0 else 0
+        remaining = pool
+        for index, (item, shown) in enumerate(candidates):
+            if len(excerpt_of) >= budgets.max_excerpts:
+                break
+            if not item.excerpt or not item.ranges or not _excerpt_allowed(item.path, abs_cwd):
+                continue
+            built, bad = _build_excerpt(
+                item,
+                abs_cwd,
+                _rel_path_text(item.path, abs_cwd) or shown,
+                min(per_excerpt, remaining),
+            )
+            if bad:
+                degraded.add(index)
+            elif built is None:
+                dropped["excerpts"] = dropped.get("excerpts", 0) + 1
+            else:
+                cost = sum(_blen(line) + 1 for line in built.lines)
+                excerpt_of[index] = built
+                remaining -= cost
+                used += cost
     body["excerpts"] = [line for i in sorted(excerpt_of) for line in excerpt_of[i].lines]
 
     # --- tried, folds, commands ---------------------------------------------------------------
