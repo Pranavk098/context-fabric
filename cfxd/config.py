@@ -35,6 +35,8 @@ _DEFAULTS: dict[str, bool] = {
     # Brief v1 (ADR-0011) and the sub-agent carry-back are opt-in until the v4 pilot.
     "brief_v1": False,
     "carry_back": False,
+    # Carry v2 (edited-first block with ranges and constraints) is opt-in.
+    "carry_v2": False,
 }
 _CACHE: dict[Path, tuple[int, dict[str, bool]]] = {}
 
