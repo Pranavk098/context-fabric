@@ -5,6 +5,7 @@
 
 ## Commands to run
 ```bash
+uv run cfxd checkup
 uv run cfxd diet --since 30d
 uv run cfxd diet --since 30d --share
 uv run cfxd diet --apply
@@ -28,7 +29,7 @@ uv run cfxd diet --undo
 - Report as plain counts whether any never-used item was a false positive, and the before/after `/context` token counts if you tested `--apply --yes`.
 
 ## Known limits
-- **No saving is proven.** All token and dollar figures are arithmetic estimates from your setup listings; Brief is opt-in and experimental with no proven saving.
+- **No saving is proven.** All token and dollar figures are arithmetic estimates from your setup listings; Brief is opt-in and experimental with no proven saving (E-1 found re-discovery is a small share of total session cost on the maintainer's machine: "1% to 3%, one machine", so Brief is a test, not a promise).
 - **Account-synced plugins cannot be disabled locally** by `diet --apply`; only local plugins can be toggled automatically.
 - **Platform status:** Windows needs Git for Windows for plugin hooks; macOS is not verified by the founder.
-- **One-command `cfxd checkup`:** not available in this build.
+- **One-command summary and retired features:** run `uv run cfxd checkup` for the combined numbers-only summary; `fold`, `bound`, and `checkpoint` are retired and are not part of testing.

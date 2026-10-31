@@ -5,6 +5,7 @@
 
 ## Commands to run
 ```bash
+uv run cfxd checkup
 uv run cfxd fidelity --since 30d
 uv run cfxd fidelity --since all
 ```
@@ -28,6 +29,6 @@ uv run cfxd fidelity --since all
 
 ## Known limits
 - **Proxy, not a verdict:** path mentions are a proxy for state retention; a summary can keep useful state without naming a file, or name a valid file mentioned only in conversation.
-- **No saving is proven:** `fidelity` is a descriptive measurement tool only, and active features such as Brief are opt-in and experimental with no proven saving.
+- **No saving is proven:** `fidelity` is a descriptive measurement tool only, and active features such as Brief are opt-in and experimental with no proven saving (E-1 found re-discovery is a small share of total session cost on the maintainer's machine: "1% to 3%, one machine", so Brief is a test, not a promise).
 - **Platform status:** Windows needs Git for Windows for plugin hooks; macOS is not verified by the founder.
-- **`cfxd fidelity --share` and `cfxd checkup`:** not available in this build.
+- **Flags and retired features:** `cfxd fidelity --share` is not available in this build (use default `uv run cfxd fidelity --since 30d` or `uv run cfxd checkup`); `fold`, `bound`, and `checkpoint` are retired and are not part of testing.
