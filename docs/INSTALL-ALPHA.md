@@ -74,16 +74,14 @@ Each command is `uvx --from git+https://github.com/Pranavk098/context-fabric cfx
 
 | Command | Output |
 | :--- | :--- |
-| `/checkpoint [note]` (inside Claude Code) | experimental, saving unproven: saves the current session's working state plus an optional goal note (up to 300 characters), the last test result, then tells you to run `/clear`; the next session restores it once and marks listed files missing or changed since the save |
-| `checkpoint save [--note TEXT]\|show\|clear [--cwd DIR]` | `save` asks the running helper for a checkpoint (fails if it is not running); `show` prints exactly what the next session would receive (local only); `clear` deletes it |
-| `checkpoint import FILE [--cwd DIR] [--force]` | experimental, tested on logs only: validates a Context Packet v0, rewrites its cwd, re-arms it and writes it as this directory's checkpoint, so the next `/clear` in Claude Code restores it exactly like a native checkpoint; refuses invalid packets and packets older than 24 hours unless `--force`; prints counts only |
+| `checkpoint` | retired (ADR-0013) |
 | `packet build --agent claude\|codex\|opencode [--root DIR] [--session latest\|ID] [--cwd DIR] [--out FILE]` | experimental, tested on logs only: builds a v0 packet from one session log using observed tool calls (files read or edited, masked commands, todos where the agent records them, last recognised test run) through one per-agent tool-name table, and records the agent and mapping in the packet's `source`; prints a counts-only receipt on stderr |
 | `packet render FILE [--format agents-md\|plain] [--cwd DIR]` | experimental: prints the packet as a compact handoff block with a fixed provenance line, files, commands, todos and last test result, at most 3,000 bytes; `--cwd` adds stat-only `[missing]` / `[changed since checkpoint]` marks |
 | `packet install-agents-md [--cwd DIR] [--packet FILE] [--remove]` | experimental: writes or replaces only the marked `<!-- context-fabric:packet v0 -->` block in `<cwd>/AGENTS.md`, or removes it with `--remove`; refuses damaged markers and never touches content outside the block; Codex and OpenCode both read `AGENTS.md`, nothing more is claimed |
 | `packet validate FILE [--cwd DIR] [--json]` | experimental, DRAFT v0: checks a saved packet against the [schema](specs/context-packet-v0.schema.json) and conformance rules — shape, caps, the 3,000-byte render, provenance, masking, control characters, and file staleness with `--cwd` |
 | `doctor` | health, daemon identity, feature flags, hook latency |
 | `status` | running or not, pid, port, version |
-| `stats [--since 7d] [--session ID] [--json]` | folds and hook timings from the daemon's logs |
+| `stats [--since 7d] [--session ID] [--json]` | hook timings from the daemon's logs |
 | `tour [--root DIR] [--yes]` | guided first run: five steps over your own transcripts (doctor, token cost, long sessions, starting context, what to try next); every switch it suggests is experimental and its saving unproven |
 | `audit [--since 7d\|30d\|all] [--json]` | where your sessions' tokens go (reads local transcripts; works without the plugin) |
 | `coverage [--root DIR] [--days 7] [--json]` | experimental measurement: compares the tool calls in your transcripts with the PostToolUse events the helper logged, and reports delivery rates and sessions below 50%; counts only |
@@ -99,8 +97,9 @@ Each command is `uvx --from git+https://github.com/Pranavk098/context-fabric cfx
 | `agent-audit --agent codex\|opencode [--since all]` | counts-only breakdown of Codex or OpenCode session logs (Codex needs the optional `zstandard` decoder) |
 | `replay [--since 30d] [--json]` | simulated saving from shrinking old tool output, with cache effects |
 | `fidelity [--root DIR] [--since 7d\|30d\|all] [--json]` | experimental measurement: how many files a compaction summary names back (recall), how many named paths never appeared before it (possible invention), and the same comparison for a 20-file checkpoint; counts only |
-| `set brief\|carry\|fold\|fold_read\|bound\|coach on\|off` | feature flags (brief and carry on; fold, fold_read, bound and coach off) |
-| `set coach on\|off` | experimental: one plain line at a natural break once a session reaches ~150K tokens and 30 turns, with its cache-read cost and the checkpoint workflow; off by default, saving unproven |
+| `set brief\|carry\|coach on\|off` | feature flags (brief and carry on; coach off) |
+| `fold`, `bound` | retired (ADR-0013) |
+| `set coach on\|off` | experimental: one plain line at a natural break once a session reaches ~150K tokens and 30 turns, with its cache-read cost; off by default, saving unproven |
 | `set idle_notice on\|off` | experimental: on a resume after the prompt cache expired, one user-visible line gives the API-equivalent re-read cost and notes that `/clear` starts cheap; off by default, effect unproven |
 | `stop` | stop the daemon (the next session starts it again) |
 | `evals/plugin_ab` (repo checkout only, not a `cfxd` command) | experimental and unproven: the v2 session-length-stratified A/B chains (`python -m evals.plugin_ab.runner --tasks evals/plugin_ab/tasks_v2.json --stratum long --pilot`); it spends model budget unless `PLUGIN_AB_CLAUDE` points at the fake stand-in |
@@ -113,16 +112,14 @@ All under `~/.cfx/daemon/` (Windows: `C:\Users\<you>\.cfx\daemon\`). Nothing is 
 
 | Path | Content | Kept |
 | :--- | :--- | :--- |
-| `events.jsonl`, `briefs.jsonl`, `carry.jsonl`, `folds.jsonl`, `bound.jsonl`, `coach.jsonl`, `resume.jsonl` | event names, sizes, counts, hashes, latencies | rotated by size |
+| `events.jsonl`, `briefs.jsonl`, `carry.jsonl`, `coach.jsonl`, `resume.jsonl` | event names, sizes, counts, hashes, latencies | rotated by size |
 | `carry/<session>.json` | one note per compacted session: file paths, line counts, recent commands with obvious secrets masked, to-do text | 7 days |
-| `checkpoint/<cwd-hash>.json` | experimental `/checkpoint` package for one directory, same fields as a carry note plus a goal note, the last test runner and result (no command text or output), a saved time and an armed flag; restore stats listed files to mark them missing or changed | 7 days |
-| `obs/` | full copies of folded output (**only if you turn fold on**; may contain code or command output) | 7 days |
 | `token` | per-install secret that authenticates hook calls (readable only by you) | until deleted |
 | `config.json`, `state.json`, `daemon.log` | flags, pid and port, daemon messages | until deleted |
 | `history/week-YYYY-MM-DD.json` | one numbers-only snapshot per `cfxd week --save`: counts, dollar shares and switches on; no names, paths or text | until you delete it |
 
 The helper receives each tool call's input and output in memory while Claude Code runs; it needs them to build brief
-and carry notes. It does not write that content to disk, except the opt-in fold copies.
+and carry notes. It does not write that content to disk.
 
 ## 6. Security model
 

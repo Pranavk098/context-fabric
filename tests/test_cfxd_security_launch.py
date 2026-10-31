@@ -382,11 +382,12 @@ def test_note_stdin_is_read_and_capped(monkeypatch: pytest.MonkeyPatch) -> None:
     assert note is not None and len(note) == 4096
 
 
-def test_checkpoint_command_has_no_write_tool_and_no_wildcard_preapproval() -> None:
+def test_checkpoint_command_is_a_one_line_retired_notice() -> None:
     text = (Path(__file__).resolve().parent.parent / "commands" / "checkpoint.md").read_text(
         encoding="utf-8"
     )
-    header = text.split("---")[1]
-    assert "Write" not in header
-    assert "--note-file" not in text
-    assert "<<'CFX_NOTE_END'" in text
+    lines = [line for line in text.splitlines() if line.strip()]
+    assert len(lines) == 1
+    assert "retired" in lines[0]
+    assert "ADR-0013" in lines[0]
+    assert "allowed-tools" not in text

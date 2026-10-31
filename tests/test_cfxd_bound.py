@@ -11,6 +11,7 @@ from typing import Any
 
 import pytest
 
+from cfxd import bound as bound_mod
 from cfxd.bound import TAIL_LINES, handle_pre_tool_use, wrap_command
 from cfxd.cli import main as cli_main
 from cfxd.config import read_config, set_flag
@@ -40,8 +41,15 @@ SH = _find_sh()
 BASH = SH if os.name == "nt" else shutil.which("bash")
 
 
+# bound is retired (ADR-0013): the config flag always reads false, so the handler
+# tests patch the gate and the retirement itself is covered in test_retired.py.
+_BOUND = {"on": False}
+
+
 @pytest.fixture(autouse=True)
-def _clean() -> Any:
+def _clean(monkeypatch: pytest.MonkeyPatch) -> Any:
+    _BOUND["on"] = False
+    monkeypatch.setattr(bound_mod, "read_config", lambda _state_dir: {"bound": _BOUND["on"]})
     clear()
     yield
     clear()
@@ -58,6 +66,7 @@ def _bash(command: str, **tool_input: Any) -> dict[str, Any]:
 
 def _on(tmp_path: Path) -> None:
     set_flag(tmp_path, "bound", True)
+    _BOUND["on"] = True
 
 
 def _wrapped(command: str) -> dict[str, Any]:
@@ -242,10 +251,11 @@ def test_stats_counts_bounded(tmp_path: Path) -> None:
     assert "Bounded:" in format_human(stats)
 
 
-def test_set_bound_creates_and_removes_flag(tmp_path: Path) -> None:
+def test_set_bound_is_retired(tmp_path: Path) -> None:
     assert cli_main(["set", "bound", "on", "--state-dir", str(tmp_path)]) == 0
-    assert (tmp_path / "bound.on").exists()
-    assert read_config(tmp_path)["bound"] is True
+    assert not (tmp_path / "bound.on").exists()
+    assert read_config(tmp_path)["bound"] is False
+    (tmp_path / "bound.on").write_text("", encoding="utf-8")
     assert cli_main(["set", "bound", "off", "--state-dir", str(tmp_path)]) == 0
     assert not (tmp_path / "bound.on").exists()
     assert read_config(tmp_path)["bound"] is False

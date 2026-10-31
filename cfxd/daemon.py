@@ -33,7 +33,7 @@ from cfxd.brief import sync_range_recording
 from cfxd.carry import install as carry_install
 from cfxd.checkpoint import install as checkpoint_install
 from cfxd.coach import install as coach_install
-from cfxd.fold import install
+from cfxd.fold import purge_obs
 from cfxd.fsutil import ensure_dir, open_log, rotate
 from cfxd.handlers import add_observer, dispatch
 from cfxd.hookclient import (  # noqa: F401  # client-side helpers, re-exported for CLI + launcher
@@ -61,6 +61,7 @@ __all__ = [
 
 STATE_FILE = "state.json"
 EVENTS_FILE = "events.jsonl"
+OBS_PURGE_FILE = ".obs-purged"
 HANDLER_TIMEOUT_MS = 150.0
 # Agent calls may build a Brief v1 packet (1 s deadline inside the handler, hook timeout 2 s).
 AGENT_HANDLER_TIMEOUT_MS = 1300.0
@@ -118,6 +119,22 @@ def read_state(path: Path) -> dict[str, Any] | None:
     except (OSError, ValueError):
         return None
     return state if isinstance(state, dict) else None
+
+
+def _purge_obs_once(state_dir: Path) -> tuple[int, int]:
+    """Delete every fold blob once per version (ADR-0013); return counts only."""
+    marker = state_dir / OBS_PURGE_FILE
+    try:
+        if marker.read_text(encoding="utf-8").strip() == __version__:
+            return 0, 0
+    except OSError:
+        pass
+    files, size = purge_obs(state_dir)
+    try:
+        marker.write_text(__version__, encoding="utf-8")
+    except OSError:
+        pass
+    return files, size
 
 
 def _ensure_token(state_dir: Path) -> str:
@@ -186,7 +203,16 @@ class Daemon:
     def start(self) -> None:
         ensure_dir(self.state_dir)
         self.token = _ensure_token(self.state_dir)
-        install(self.state_dir)
+        purged, purged_bytes = _purge_obs_once(self.state_dir)
+        if purged:
+            self.log_event(
+                {
+                    "ts": datetime.now(UTC).isoformat(),
+                    "event": "obs_purged",
+                    "files": purged,
+                    "bytes": purged_bytes,
+                }
+            )
         brief_install(self.state_dir)
         bound_install(self.state_dir)
         carry_install(self.state_dir)

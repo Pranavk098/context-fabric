@@ -102,9 +102,7 @@ def test_five_steps_in_order(tmp_path: Path) -> None:
     assert "at most 30 turns: 1" in result.stdout
     assert "over 30 turns: 1" in result.stdout
     assert "cfxd diet --apply" in result.stdout
-    assert "cfxd set bound on" in result.stdout
     assert "cfxd set coach on" in result.stdout
-    assert "/context-fabric:checkpoint" in result.stdout
     assert "cfxd week --share" in result.stdout
     assert "docs/TESTING-GUIDE.md" in result.stdout
     assert "Nothing leaves your machine." in result.stdout

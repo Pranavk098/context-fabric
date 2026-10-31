@@ -560,16 +560,12 @@ def test_cli_build_validate_import_show(tmp_path: Path) -> None:
     valid = _cli("packet", "validate", str(out))
     assert valid.returncode == 0, valid.stdout
 
-    imported = _cli(
-        "checkpoint", "import", str(out), "--cwd", str(project), "--state-dir", str(state_dir)
-    )
-    assert imported.returncode == 0, imported.stderr
-    assert "2 files" in imported.stdout
-    assert str(project) not in imported.stdout
-
-    shown = _cli("checkpoint", "show", "--cwd", str(project), "--state-dir", str(state_dir))
-    assert shown.returncode == 0, shown.stderr
-    assert "Working set" in shown.stdout
+    # checkpoint import/show are retired (ADR-0013); the packet path underneath still works.
+    counts = handoff.import_packet(packet.load(out), state_dir, str(project))
+    assert counts["files"] == 2
+    shown = checkpoint.show_text(state_dir, str(project))
+    assert shown is not None
+    assert "Working set" in shown
 
 
 def test_cli_render_install_and_remove(tmp_path: Path) -> None:
@@ -593,30 +589,16 @@ def test_cli_render_install_and_remove(tmp_path: Path) -> None:
     assert md.read_text(encoding="utf-8") == "# Rules\n"
 
 
-def test_cli_import_refuses_stale_without_force(tmp_path: Path) -> None:
+def test_import_refuses_stale_without_force(tmp_path: Path) -> None:
     obj, project = _codex_packet(tmp_path)
     obj = dict(obj) | {"saved_at": (datetime.now(UTC) - timedelta(hours=25)).isoformat()}
-    path = tmp_path / "packet.json"
-    path.write_text(json.dumps(obj), encoding="utf-8")
     state_dir = tmp_path / "state"
 
-    refused = _cli(
-        "checkpoint", "import", str(path), "--cwd", str(project), "--state-dir", str(state_dir)
-    )
-    assert refused.returncode == 1
-    assert "24 hours" in refused.stderr
+    with pytest.raises(ValueError, match="24 hours"):
+        handoff.import_packet(obj, state_dir, str(project))
 
-    forced = _cli(
-        "checkpoint",
-        "import",
-        str(path),
-        "--cwd",
-        str(project),
-        "--state-dir",
-        str(state_dir),
-        "--force",
-    )
-    assert forced.returncode == 0, forced.stderr
+    counts = handoff.import_packet(obj, state_dir, str(project), force=True)
+    assert counts["files"] == 2
 
 
 def test_cli_install_refuses_damaged_block(tmp_path: Path) -> None:

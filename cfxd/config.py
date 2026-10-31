@@ -3,9 +3,10 @@ bound, coach and idle_notice, read from ``<state_dir>/config.json``.
 
 Defaults: brief, brief_policy and carry on; brief_v1, carry_back, fold, fold_read, bound,
 coach and idle_notice off. Brief and carry are on so the alpha produces data; the rest are
-experimental. The daemon is shared across Claude Code sessions, so a file is the only way
-one session can reach the daemon; it is re-read whenever its mtime changes. A missing or
-malformed file falls back to the defaults.
+experimental. Fold, fold_read and bound are retired (ADR-0013): they still have defaults so
+old config files load, but a stored true is read back as false. The daemon is shared across
+Claude Code sessions, so a file is the only way one session can reach the daemon; it is
+re-read whenever its mtime changes. A missing or malformed file falls back to the defaults.
 """
 
 from __future__ import annotations
@@ -43,6 +44,9 @@ _DEFAULTS: dict[str, bool] = {
     "brief_excerpts": False,
 }
 _CACHE: dict[Path, tuple[int, dict[str, bool]]] = {}
+# ADR-0013: retired features (fold, fold_read, bound) read back as off even when an old
+# config file still says true, so a tester build never runs them.
+_RETIRED = ("fold", "fold_read", "bound")
 
 
 def read_config(state_dir: Path) -> dict[str, bool]:
@@ -61,9 +65,9 @@ def read_config(state_dir: Path) -> dict[str, bool]:
 
 
 def set_flag(state_dir: Path, key: str, value: bool) -> None:
-    """Persist one flag, preserving the other."""
+    """Persist one flag, preserving the other (retired keys always store false)."""
     config = read_config(state_dir)
-    config[key] = value
+    config[key] = False if key in _RETIRED else value
     path = state_dir / CONFIG_FILE
     ensure_dir(path.parent)
     fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=".config.", suffix=".tmp")
@@ -88,5 +92,5 @@ def _load(path: Path) -> dict[str, bool]:
     config: dict[str, bool] = {}
     for key, default in _DEFAULTS.items():
         value = obj.get(key)
-        config[key] = value if isinstance(value, bool) else default
+        config[key] = False if key in _RETIRED else (value if isinstance(value, bool) else default)
     return config

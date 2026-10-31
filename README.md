@@ -84,16 +84,16 @@ experimental until a paired test shows they pay.
 | `cfxd ledger` | What the plugin did or changed, each line labelled OBSERVED, ESTIMATED or PROVEN (none proven yet) | experimental |
 | `cfxd refetch` | Measures how much of the context dropped by a compaction or `/clear` the agent reads again | working |
 | `cfxd diet --apply` / `--undo` | Disables fully unused local plugins through Claude Code's own command, with an exact undo | experimental |
-| Checkpoint (`/context-fabric:checkpoint`, `cfxd checkpoint show`, then `/clear`) | Saves a short note of files, commands, todos and an optional goal, and restores it once in the next session | experimental |
+| Checkpoint (`cfxd checkpoint`) | retired (ADR-0013) |
 | `cfxd packet validate` | Checks a saved packet against the DRAFT v0 schema and conformance rules: shape, caps, 3,000-byte render, provenance, masking, control characters, and staleness with `--cwd` | experimental |
 | `cfxd packet build --agent claude\|codex\|opencode` | Builds a v0 packet from a session log using observed tool calls only: files read or edited, masked commands, todos, last test run; records the agent and tool mapping in `source` | experimental, tested on logs only |
-| `cfxd checkpoint import FILE` | Validates a packet, rewrites its cwd and arms it, so the next `/clear` in Claude Code restores it like a native checkpoint; refuses packets older than 24 hours without `--force` | experimental |
+| `cfxd checkpoint import FILE` | retired (ADR-0013) |
 | `cfxd packet render` / `install-agents-md` | Prints a packet as a compact block (at most 3,000 bytes), or writes/removes only its marked block in `AGENTS.md`; Codex and OpenCode both read `AGENTS.md` | experimental, tested on logs only |
-| Bound (`cfxd set bound on`) | Keeps only the last 150 lines of simple test and log commands | experimental, off by default |
+| Bound (`cfxd set bound on`) | retired (ADR-0013) |
 | Coach, idle notice (`cfxd set coach on`, `idle_notice on`) | One plain line when a session gets long, or when a resume finds the cache expired | experimental, off by default |
 | Brief | Gives a sub-agent the files and saved outputs the parent already touched; fires only when a sub-agent runs | experimental |
 | Carry | Snapshots the working set before `/compact`, restores it after; acts only at a compaction, which is rare | experimental |
-| Fold | Replaces very large tool output with a short note plus a pointer to the full copy | off by default |
+| Fold | retired (ADR-0013) |
 | `cfxd stats`, `doctor` | Per-session numbers and a health check, including daemon identity | working |
 
 <img src="docs/assets/diet-example.svg" alt="Example output of cfxd diet --share: first-turn context, itemized setup, never-used items and the estimated effect" width="100%">

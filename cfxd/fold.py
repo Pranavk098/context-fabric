@@ -477,6 +477,23 @@ def _log_fold(
             fh.write(json.dumps(entry) + "\n")
 
 
+def purge_obs(state_dir: Path) -> tuple[int, int]:
+    """Delete every saved output (ADR-0013); return ``(files, bytes)``, best effort."""
+    obs_dir = state_dir / OBS_DIR
+    files = size = 0
+    if not obs_dir.is_dir():
+        return files, size
+    for path in obs_dir.iterdir():
+        try:
+            if path.is_file():
+                files += 1
+                size += path.stat().st_size
+                path.unlink()
+        except OSError:
+            continue
+    return files, size
+
+
 def _prune(state_dir: Path) -> None:
     """Delete saved outputs older than 7 days; best effort, never raises."""
     obs_dir = state_dir / OBS_DIR

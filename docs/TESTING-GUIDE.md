@@ -18,7 +18,7 @@ Be clear about what is and is not known:
 
 - **Brief v1 is experimental and off by default.** It has no measured benefit. You turn it on yourself (section 3).
   Do not expect your usage to drop.
-- **No saving is proven for anything here.** `/checkpoint` is experimental too, with no proven saving.
+- **No saving is proven for anything here.**
 - **Carry-back is unverified and off by default.** It would append a short list of what the sub-agent touched to the
   parent. We have not confirmed that sub-agent events can be attributed to one sub-agent. Leave it off unless we ask.
 - **Codex and OpenCode children receive pointers only:** file paths and edit flags, saved-output metadata, masked
@@ -40,7 +40,7 @@ Start one Claude Code session, then check the helper from a terminal:
 cfxd doctor
 ```
 
-Expect `healthy` and `identity: verified`. The `flags:` line shows `brief`, `carry`, `fold`, `brief_v1` and
+Expect `healthy` and `identity: verified`. The `flags:` line shows `brief`, `carry`, `brief_v1` and
 `carry_back`. If `doctor` fails, see [Known limits](#9-known-limits-and-things-that-may-look-wrong) or the troubleshooting
 table in [`INSTALL-ALPHA.md`](INSTALL-ALPHA.md#7-troubleshooting).
 
@@ -171,9 +171,9 @@ cfxd set brief off
 cfxd set carry_back off
 ```
 
-Other switches, if you turned them on: `cfxd set bound off`, `cfxd set coach off`, `cfxd set idle_notice off`.
-`cfxd set carry off`, `cfxd set fold off` and `cfxd set fold_read off` turn off the older features. Undo experiments with
-`cfxd diet --undo`, `cfxd checkpoint clear` and `cfxd packet install-agents-md --cwd . --remove`.
+Other switches, if you turned them on: `cfxd set coach off`, `cfxd set idle_notice off`.
+`cfxd set carry off` turns off carry. Undo experiments with
+`cfxd diet --undo` and `cfxd packet install-agents-md --cwd . --remove`.
 
 To remove the plugin and delete its data, follow [`INSTALL-ALPHA.md`](INSTALL-ALPHA.md#8-uninstall).
 
@@ -189,10 +189,6 @@ To remove the plugin and delete its data, follow [`INSTALL-ALPHA.md`](INSTALL-AL
 - **Whether a sub-agent's events are attributed correctly is not verified.** This is why carry-back is off.
 - **Account-synced plugins cannot be disabled locally.** `diet --apply` lists them for the claude.ai settings page
   instead.
-- **A checkpoint restores only after `/clear`, and only within 60 minutes.** A normal restart or `/compact` does not
-  consume it.
-- **Bound rewrites only a short list of simple test and log commands.** Pipes, chains, redirects and background runs
-  are left exactly as they were.
 
 ## 10. Other experiments (optional)
 
@@ -202,14 +198,8 @@ changed.
 - **Diet apply and undo.** Lists fully-unused local plugins, then can disable them. `cfxd diet --apply` is a dry run;
   `cfxd diet --apply --yes` disables what it lists; `cfxd diet --undo` restores them. Open a new session and run
   `/context` to compare the setup number.
-- **Bound.** Keeps only the last 150 lines of a short list of simple test and log commands (`cfxd set bound on`, `off`).
-  Report any command that was cut too short.
 - **Coach.** After about 30 turns and 150K context, adds one visible line about cache-read cost (`cfxd set coach on`,
   `off`).
-- **Checkpoint, then `/clear`.** Run `/checkpoint [note]`, then `/clear`; if the short name is not found, use
-  `/context-fabric:checkpoint [note]`. The next session gets one `context-fabric-carry` block with your note, the last
-  test result and files marked `[changed since checkpoint]` or `[missing]`. `cfxd checkpoint show` previews it and
-  `cfxd checkpoint clear` deletes it.
 - **Idle notice.** On a resumed session whose prompt cache expired, shows one line with the API-equivalent re-read
   cost (`cfxd set idle_notice on`, `off`).
 - **Weekly trend.** `cfxd week --save` once a week writes a numbers-only snapshot; after two weeks, `cfxd trend --share`

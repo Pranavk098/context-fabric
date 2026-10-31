@@ -244,25 +244,17 @@ def _cli(*args: str, state_dir: Path) -> subprocess.CompletedProcess[str]:
     )
 
 
-def test_cli_show_and_clear(tmp_path: Path) -> None:
+def test_cli_checkpoint_is_retired(tmp_path: Path) -> None:
     _seed_file("s1", "/proj/a.py")
     checkpoint.handle_checkpoint_save({"cwd": "/proj"}, tmp_path)
+    saved = checkpoint.checkpoint_path(tmp_path, "/proj")
+    before = saved.read_bytes()
 
-    shown = _cli("show", "--cwd", "/proj", state_dir=tmp_path)
-    assert shown.returncode == 0, shown.stderr
-    assert '<context-fabric-carry v="0" trigger="checkpoint">' in shown.stdout
-    assert "local only; not sent anywhere except into your next session" in shown.stdout
-
-    cleared = _cli("clear", "--cwd", "/proj", state_dir=tmp_path)
-    assert cleared.returncode == 0
-    assert "cleared" in cleared.stdout
-    assert not checkpoint.checkpoint_path(tmp_path, "/proj").exists()
-
-    again = _cli("clear", "--cwd", "/proj", state_dir=tmp_path)
-    assert "no checkpoint to clear" in again.stdout
-    missing = _cli("show", "--cwd", "/proj", state_dir=tmp_path)
-    assert missing.returncode == 1
-    assert "no checkpoint" in missing.stderr
+    for action in ("show", "save", "clear", "import"):
+        result = _cli(action, "--cwd", "/proj", state_dir=tmp_path)
+        assert result.returncode == 0, result.stderr
+        assert "checkpoint is retired, see docs/decisions/ADR-0013" in result.stdout
+    assert saved.read_bytes() == before
 
 
 def _ts(offset: float = 0) -> str:

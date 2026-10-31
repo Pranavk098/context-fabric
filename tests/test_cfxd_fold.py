@@ -33,17 +33,16 @@ def test_read_is_not_folded_by_default(tmp_path: Path, monkeypatch: pytest.Monke
     monkeypatch.setattr(fold, "_fold_read_enabled", _REAL_FOLD_READ_ENABLED)
     state_dir = tmp_path / "cfx"
     content = chr(10).join(f"def f{i}(): return {i}" for i in range(3000))
-    # Nothing folds by default.
+    # Nothing folds by default, and the retired flags cannot be turned on.
     assert handle_post_tool_use(_read_payload(content), state_dir) == {}
     assert handle_post_tool_use(_bash_payload(content), state_dir) == {}
-    from cfxd.config import set_flag
+    from cfxd.config import read_config, set_flag
 
-    # fold on, fold_read still off: Bash folds, Read does not.
     set_flag(state_dir, "fold", True)
-    assert handle_post_tool_use(_bash_payload(content), state_dir) != {}
-    assert handle_post_tool_use(_read_payload(content), state_dir) == {}
     set_flag(state_dir, "fold_read", True)
-    assert handle_post_tool_use(_read_payload(content), state_dir) != {}
+    assert read_config(state_dir)["fold"] is False
+    assert handle_post_tool_use(_bash_payload(content), state_dir) == {}
+    assert handle_post_tool_use(_read_payload(content), state_dir) == {}
 
 
 def _read_payload(content: str, *, file_path: str = "mod.py", **file_extra: Any) -> dict[str, Any]:
@@ -264,8 +263,9 @@ def test_end_to_end_daemon(tmp_path: Path) -> None:
         body = json.loads(resp.read())
         conn.close()
         assert resp.status == 200
-        updated = body["hookSpecificOutput"]["updatedToolOutput"]
-        assert "[Context Fabric folded this Read output" in updated["file"]["content"]
+        # Fold is retired: even with the handler patched on, the daemon leaves output alone.
+        assert body == {}
+        assert not (state_dir / "obs").exists()
     finally:
         d.stop()
         clear()

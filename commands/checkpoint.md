@@ -1,16 +1,1 @@
----
-description: Save this session's working state, then start fresh with /clear (experimental)
-allowed-tools: Bash(sh:*)
-disable-model-invocation: true
----
-
-```!
-sh "${CLAUDE_PLUGIN_ROOT}/cfxd/launch.sh" checkpoint-save --note-stdin <<'CFX_NOTE_END'
-$ARGUMENTS
-CFX_NOTE_END
-```
-
-Print the line above unchanged, exactly once. Only if it begins with "Checkpoint saved", then say:
-"Now run /clear to start fresh from this checkpoint." Otherwise say nothing more.
-
-Nothing was sent anywhere; the checkpoint stays in the local Context Fabric state directory.
+The `/checkpoint` command is retired and does nothing; see docs/decisions/ADR-0013-retire-bound-and-checkpoint-hold-carry-v2.md.

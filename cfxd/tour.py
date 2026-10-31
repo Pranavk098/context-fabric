@@ -89,9 +89,8 @@ def _step_long(report: dict[str, Any]) -> list[str]:
     return [
         f"Sessions by turn count: at most 30 turns: {under:,}; over 30 turns: {over:,}.",
         f"Median session: {turns['median']:,.1f} turns. Longest 10%: {turns['p90']:,.1f}+ turns.",
-        "What the plugin does today: /context-fabric:checkpoint saves a local note and tells "
-        "you to /clear, and the coach adds a short note in long sessions. Both are experimental "
-        "and their token saving is unproven.",
+        "What the plugin does today: the coach adds a short note in long sessions. It is "
+        "experimental and its token saving is unproven.",
         "Next: read step 5 for the switches, and how to turn each one off.",
     ]
 
@@ -117,15 +116,9 @@ def _step_next() -> list[str]:
     return [
         "Every switch below is experimental and its saving is unproven. Turn it off the same "
         "way you turned it on.",
-        "  1. cfxd set bound on - keeps only the last 150 lines of test and log commands (pytest, "
-        "npm test, git log, docker logs). Look for whether the agent still finds what it "
-        "needs; turn off with cfxd set bound off.",
-        "  2. cfxd set coach on - adds a short coaching note when a session gets long. Look for "
+        "  1. cfxd set coach on - adds a short coaching note when a session gets long. Look for "
         "whether it helps you notice context growth; turn off with cfxd set coach off.",
-        "  3. /context-fabric:checkpoint then /clear - saves a local note and restores it once "
-        "in the next session. Look for a restored context-fabric-carry block that matches what "
-        "you were doing; clear it with cfxd checkpoint clear.",
-        "  4. cfxd week --save once a week, then cfxd trend - a weekly summary of counts and "
+        "  2. cfxd week --save once a week, then cfxd trend - a weekly summary of counts and "
         "sizes, then week-over-week snapshots. Every change is labelled OBSERVED, not a "
         "counterfactual; nothing is scheduled for you. Paste cfxd week --share if useful.",
         'Feedback: section "6. Send results" in docs/TESTING-GUIDE.md says where to post it. '

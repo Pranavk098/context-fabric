@@ -349,7 +349,7 @@ def test_save_snapshot_exact_numbers_only_content(
         "clear_restarts": 0,
         "hook_delivery_rate": 0.6667,
         "features_on": {
-            "bound": True,
+            "bound": False,
             "coach": False,
             "idle_notice": False,
             "diet_applied": 1,

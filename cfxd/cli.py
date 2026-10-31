@@ -59,6 +59,9 @@ from cfxd.week import format_week, save_snapshot, week
 
 _SHIM_PATH = Path(__file__).with_name("shim.py")
 _IS_WINDOWS = os.name == "nt"
+# ADR-0013: these features stay callable so the notice prints, but never turn on.
+_RETIRED_FLAGS = ("fold", "fold_read", "bound")
+_RETIRED_DOC = "docs/decisions/ADR-0013-retire-bound-and-checkpoint-hold-carry-v2.md"
 
 
 def _add_state_dir(parser: argparse.ArgumentParser) -> None:
@@ -72,7 +75,7 @@ def _add_state_dir(parser: argparse.ArgumentParser) -> None:
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="cfxd", description="Context Fabric daemon")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    subparsers = parser.add_subparsers(dest="command", required=True, metavar="COMMAND")
 
     serve = subparsers.add_parser("serve", help="run the hook daemon")
     serve.add_argument(
@@ -96,7 +99,7 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_state_dir(doctor)
     doctor.set_defaults(func=_cmd_doctor)
 
-    stats = subparsers.add_parser("stats", help="report fold and hook savings from the logs")
+    stats = subparsers.add_parser("stats", help="report hook savings from the logs")
     stats.add_argument("--session", default=None, help="filter both logs to a session id")
     stats.add_argument(
         "--since",
@@ -185,7 +188,7 @@ def _build_parser() -> argparse.ArgumentParser:
     dietp.set_defaults(func=_cmd_diet)
 
     replayp = subparsers.add_parser(
-        "replay", help="offline replay: upper bound on shrinking old tool results"
+        "replay", help="offline replay: upper limit on shrinking old tool results"
     )
     replayp.add_argument("--root", default=None, help=f"transcripts root (default: {DEFAULT_ROOT})")
     replayp.add_argument(
@@ -377,9 +380,7 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_state_dir(ledgerp)
     ledgerp.set_defaults(func=_cmd_ledger)
 
-    checkpoint_parser = subparsers.add_parser(
-        "checkpoint", help="experimental: save, show, import or clear a restart checkpoint"
-    )
+    checkpoint_parser = subparsers.add_parser("checkpoint")
     checkpoint_parser.add_argument("action", choices=["save", "show", "clear", "import"])
     checkpoint_parser.add_argument("file", nargs="?", help="packet file (import only)")
     checkpoint_parser.add_argument("--cwd", default=None, help="directory (default: current)")
@@ -448,9 +449,7 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_state_dir(briefp)
     briefp.set_defaults(func=_cmd_brief)
 
-    setp = subparsers.add_parser(
-        "set", help="toggle brief, carry, fold, fold_read, bound, coach or idle_notice on/off"
-    )
+    setp = subparsers.add_parser("set", help="toggle a feature flag on or off")
     setp.add_argument(
         "flag",
         choices=[
@@ -529,6 +528,9 @@ def _cmd_status(args: argparse.Namespace) -> int:
 
 def _cmd_set(args: argparse.Namespace) -> int:
     state_dir = resolve_state_dir(args.state_dir)
+    if args.value == "on" and args.flag in _RETIRED_FLAGS:
+        print(f"{args.flag} is retired, see {_RETIRED_DOC}")
+        return 0
     set_flag(state_dir, args.flag, args.value == "on")
     if args.flag in ("bound", "coach"):
         # launch.sh reads this flag file to skip Python until the feature is on.
@@ -542,57 +544,7 @@ def _cmd_set(args: argparse.Namespace) -> int:
 
 
 def _cmd_checkpoint(args: argparse.Namespace) -> int:
-    state_dir = resolve_state_dir(args.state_dir)
-    cwd = args.cwd if args.cwd else os.getcwd()
-    if args.action == "import":
-        return _cmd_checkpoint_import(args, state_dir, cwd)
-    if args.action == "clear":
-        cleared = checkpoint.clear(state_dir, cwd)
-        print("cfxd checkpoint: cleared" if cleared else "cfxd checkpoint: no checkpoint to clear.")
-        return 0
-    if args.action == "show":
-        text = checkpoint.show_text(state_dir, cwd)
-        if text is None:
-            print("cfxd checkpoint: no checkpoint for this directory.", file=sys.stderr)
-            return 1
-        print(text)
-        print()
-        print("local only; not sent anywhere except into your next session")
-        return 0
-    state = read_state(state_dir / STATE_FILE)
-    port = state.get("port") if state is not None else None
-    token = read_token(state_dir)
-    if not isinstance(port, int) or state is None or not daemon_alive(state) or token is None:
-        print("cfxd checkpoint: the local helper is not running; start Claude Code first.")
-        return 1
-    payload = json.dumps({"cwd": cwd, "note": args.note}).encode("utf-8")
-    try:
-        status, body = post_hook(port, "checkpoint-save", payload, 5.0, token=token)
-        obj = json.loads(body) if status == 200 else {}
-    except (OSError, ValueError):
-        obj = {}
-    summary = obj.get("summary") if isinstance(obj, dict) else None
-    if not isinstance(summary, str):
-        print("cfxd checkpoint: save failed (no response from the local helper).")
-        return 1
-    print(summary)
-    return 0
-
-
-def _cmd_checkpoint_import(args: argparse.Namespace, state_dir: Path, cwd: str) -> int:
-    if not args.file:
-        print("cfxd checkpoint import: give a packet file.", file=sys.stderr)
-        return 2
-    try:
-        obj = packet.load(Path(args.file))
-        counts = handoff.import_packet(obj, state_dir, cwd, force=args.force)
-    except (OSError, ValueError) as exc:
-        print(f"cfxd checkpoint import: {exc}", file=sys.stderr)
-        return 1
-    print(
-        f"cfxd checkpoint import: {counts['files']} files, {counts['folds']} folds, "
-        f"{counts['commands']} commands, {counts['todos']} todos"
-    )
+    print(f"checkpoint is retired, see {_RETIRED_DOC}")
     return 0
 
 
