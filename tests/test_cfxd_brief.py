@@ -18,7 +18,10 @@ from cfxd.handlers import clear
 
 
 @pytest.fixture(autouse=True)
-def _clean() -> Any:
+def _clean(tmp_path: Path) -> Any:
+    # R-2: these tests cover brief content, not the default-on skip policy.
+    for state in (tmp_path, tmp_path / "cfx"):
+        set_flag(state, "brief_policy", False)
     ss.reset()
     clear()
     yield
