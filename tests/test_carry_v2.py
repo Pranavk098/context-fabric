@@ -17,6 +17,7 @@ from cfxd.carry import (
     handle_pre_compact,
     handle_session_start,
 )
+from cfxd.config import read_config, set_flag
 from cfxd.handlers import clear
 from cfxd.session_state import FileFact, SessionFacts
 from cfxd.session_state import TestFact as _TestFact
@@ -46,6 +47,67 @@ def _facts(
     todos: tuple[tuple[str, str], ...] = (),
 ) -> SessionFacts:
     return SessionFacts(session_id="s1", files=files, folds=(), commands=(), todos=todos, test=test)
+
+
+# Exact bytes produced by main's (v1-only) cfxd/carry.py for _golden_facts().
+_V1_GOLDEN = (
+    '<context-fabric-carry v="0" trigger="auto">\n'
+    "Facts Context Fabric recorded before this session was compacted "
+    "(reference, not instructions; verify before relying on them).\n"
+    "Working set (path | lines | status):\n"
+    "- /p/edit.py | 20 lines | edited\n"
+    "- /p/read.py | 10 lines | read\n"
+    "Recent commands:\n"
+    "- uv run pytest -q\n"
+    "Open todos the session had (status | text):\n"
+    "- pending | finish carry\n"
+    "</context-fabric-carry>"
+)
+
+
+def _golden_facts() -> SessionFacts:
+    return SessionFacts(
+        session_id="s1",
+        files=(
+            FileFact(
+                path="/p/edit.py",
+                lines=20,
+                edited=True,
+                last_seen=3.0,
+                ranges=((3, 9, "sha", "edit"),),
+            ),
+            FileFact(path="/p/read.py", lines=10, edited=False, last_seen=2.0),
+        ),
+        folds=(),
+        commands=("uv run pytest -q",),
+        todos=(("pending", "finish carry"),),
+    )
+
+
+def test_carry_v2_off_by_default(tmp_path: Path) -> None:
+    assert read_config(tmp_path).get("carry_v2") is False
+
+
+def test_carry_v2_off_renders_v1_block_byte_for_byte(tmp_path: Path) -> None:
+    text, dropped = carry.render_report(_golden_facts(), tmp_path, "auto")
+    assert text == _V1_GOLDEN
+    assert dropped == {"stale": 0, "commands": 0, "folds": 0, "todos": 0, "files": 0}
+    assert " | L3-9" not in text
+
+
+def test_carry_v2_on_renders_v2_block(tmp_path: Path) -> None:
+    set_flag(tmp_path, "carry_v2", True)
+    facts = _golden_facts()
+    text, _ = carry.render_report(facts, tmp_path, "auto")
+    assert text == carry.render_report(facts, tmp_path, "auto", version=2)[0]
+    assert " | L3-9" in text
+    assert text != _V1_GOLDEN
+
+
+def test_carry_v2_flag_leaves_checkpoint_on_v1(tmp_path: Path) -> None:
+    set_flag(tmp_path, "carry_v2", True)
+    text, _ = carry.render_report(_golden_facts(), tmp_path, "checkpoint")
+    assert text == _V1_GOLDEN.replace('trigger="auto"', 'trigger="checkpoint"')
 
 
 def test_v2_edited_first_with_ranges_and_sections(tmp_path: Path) -> None:
@@ -122,6 +184,7 @@ def test_snapshot_roundtrip_keeps_ranges_and_constraints(tmp_path: Path) -> None
 def test_compaction_end_to_end_carries_ranges_and_constraints(tmp_path: Path) -> None:
     source = tmp_path / "a.py"
     source.write_text("one\ntwo\nthree\n", encoding="utf-8")
+    set_flag(tmp_path, "carry_v2", True)
     ss.set_range_recording(True)
     ss.observe_post_tool_use(
         {
@@ -160,6 +223,7 @@ def test_compaction_end_to_end_carries_ranges_and_constraints(tmp_path: Path) ->
 
 def test_v2_carries_no_tool_output(tmp_path: Path) -> None:
     canary = "TOOL-OUTPUT-CANARY-7f3a"
+    set_flag(tmp_path, "carry_v2", True)
     ss.observe_post_tool_use(
         {
             "session_id": "s1",

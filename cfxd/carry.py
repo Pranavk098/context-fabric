@@ -519,9 +519,11 @@ def _render(
     constraints: tuple[str, ...] = (),
     version: int | None = None,
 ) -> tuple[str, dict[str, int]]:
-    # Checkpoint keeps the v1 block byte-for-byte; real compactions get carry v2.
+    # Checkpoint keeps the v1 block byte-for-byte; real compactions get carry v2 only
+    # when the carry_v2 flag is on.
     if version is None:
-        version = 1 if trigger == "checkpoint" else 2
+        v2 = trigger != "checkpoint" and read_config(state_dir).get("carry_v2", False)
+        version = 2 if v2 else 1
     if version == 1:
         return _render_v1(facts, state_dir, trigger, note=note, goal=goal, stale=stale)
     return _render_v2(

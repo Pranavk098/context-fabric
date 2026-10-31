@@ -406,6 +406,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "idle_notice",
             "brief_v1",
             "carry_back",
+            "carry_v2",
         ],
         help="feature to toggle",
     )
