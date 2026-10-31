@@ -20,7 +20,11 @@ OpenCode logs can be measured too.
 effect as a receipt you can re-run on your own data, so a saving is checked rather than believed.
 
 **Status:** alpha, Claude Code first. The measurement tools work. The mechanisms that act on context (brief, carry)
-are experimental and have no measured token effect yet; fold is off. **No saving is proven.** The paired benchmark that can show one (short, medium and long sessions) is pre-registered; the full run has not been done.
+are experimental and have no measured token effect yet. **No saving is proven.** Fold, bound and checkpoint-restart
+were retired after they failed their measurements ([ADR-0012](docs/decisions/ADR-0012-retire-fold-and-checkpoint-restart.md),
+[ADR-0013](docs/decisions/ADR-0013-retire-bound-and-checkpoint-hold-carry-v2.md)). The first paired benchmark (v2) ran and was
+**voided** by a measurement fault ([deviation](docs/deviations/2026-10-30-v2-mcp-race-and-double-count.md)); its numbers are
+not evidence of a saving. A second design (v4) exists but is not registered and has not been run.
 [Evidence](#evidence-so-far) lists what we measured, including what did not work.
 
 ## Principles
@@ -32,10 +36,10 @@ are experimental and have no measured token effect yet; fold is off. **No saving
   tool output are never written to them.
 - **Observed facts only.** Briefs and carry notes list paths, line counts and saved-output ids that the daemon saw.
   Tool output is never copied into a prompt, so injected text cannot be amplified.
-- **Reversible.** Anything shortened keeps a byte-exact copy on disk and states where it is.
+- **Reversible.** `diet --apply` writes an exact undo file, and nothing else rewrites your configuration.
 - **Deterministic.** Handlers make no model calls: the same input produces the same output.
 - **Evidence before defaults.** Every number carries an evidence level (anecdote, exploratory, confirmatory). A
-  feature is on by default only while measurements support it; folding was switched off when they did not.
+  feature is on by default only while measurements support it; fold, bound and checkpoint-restart were retired when they did not.
 
 ## Why
 
@@ -176,21 +180,21 @@ in [`docs/engineering/NUMBERS.md`](docs/engineering/NUMBERS.md).
 | Shrinking old tool results (852 sessions and sub-agent runs replayed) | At most about **7%** weighted cost, as an optimistic bound | no proxy built for it |
 | Starting prefix | Median **62K** tokens in context before the first prompt; about 14K from the user's own setup | `diet` reports it |
 | Loops and retries | 1.4% of weighted cost on the same sessions; the top 10% of sessions carry 80% of cost | loop guard not worth building here |
-| After a compaction or `/clear`, how much of the dropped context the agent reads again (`cfxd refetch`, 45 compactions) | Median **0%**, 75th percentile under 1%. An offline restart model bounds the saving on long sessions at about 55-58% if the handoff loses nothing | checkpoint built; paired test registered |
+| After a compaction or `/clear`, how much of the dropped context the agent reads again (`cfxd refetch`, 45 compactions) | Median **0%**, 75th percentile under 1%. An offline restart model bounds the saving on long sessions at about 55-58% if the handoff loses nothing | checkpoint-restart measured more expensive than the shipped plugin, not cheaper; retired (ADR-0013) |
 | What Claude Code's own compaction summary keeps (`cfxd fidelity`, 28 compactions) | Names a median 21% of the files held; **87 of 841** named paths never appeared earlier in the session; **460 of 614** edited files are not named | measurement only; needs other people's logs |
-| Brief, carry | Function end to end; token effect not yet measured | measuring |
+| Brief (sub-agent hand-off) | Replayed over the maintainer's own sessions: the packet names about nine in ten of the files a sub-agent re-reads, but most files it lists are never opened, and re-discovery is only a low single-digit percent of total session cost | opt-in, no claim; testers' logs decide |
+| Carry v2 against v1 at equal size | Restores only a little more of the dropped edited files per byte; most of its headline gain came from a larger allowance | stays off |
 
 ## Roadmap
 
 **Now.** Claude Code plugin (alpha); offline `audit`, `diet`, `waste` and `replay`; brief and carry in experimental state.
 
 **Next.**
-- [x] Checkpoint and restart for long sessions (shipped, experimental). `cfxd refetch` found that agents re-read almost
-      none of what a compaction dropped; whether the restart saves tokens without losing work is the next paired test
+- [x] ~~Checkpoint and restart~~ retired: it re-pays the prompt prefix and measured more expensive (ADR-0013)
 - [x] `cfxd diet --apply` with an exact undo (shipped, experimental; its effect is still to be checked in `/context`)
 - [x] Session coach (shipped, experimental, off by default)
 - [ ] OpenCode and Codex plugin adapters (their session-log readers already exist)
-- [ ] Pre-registered paired benchmark: cache-weighted cost per resolved task, raw data published
+- [ ] Pre-registered paired benchmark: cache-weighted cost per resolved task, raw data published (v2 voided; v4 designed, not registered)
 
 **Later.**
 - [ ] Public Agent Context Benchmark with competitor arms, losses included
