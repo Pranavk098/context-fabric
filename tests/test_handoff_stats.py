@@ -8,6 +8,7 @@ lower/upper attribution.
 
 from __future__ import annotations
 
+import importlib.util
 import json
 from pathlib import Path
 from typing import Any
@@ -59,17 +60,19 @@ def _pair(
     _write(root / "proj" / session / "subagents" / "agent-kid1.jsonl", child_rows)
 
 
-def _spawn(prompt: str, model: str) -> tuple[dict[str, Any], dict[str, Any]]:
+def _spawn(
+    prompt: str, model: str, *, msg: str = "pa", tid: str = "ag1", kid: str = "kid1"
+) -> tuple[dict[str, Any], dict[str, Any]]:
     call = _assistant(
-        "pa",
-        [{"type": "tool_use", "id": "ag1", "name": "Agent", "input": {"prompt": prompt}}],
+        msg,
+        [{"type": "tool_use", "id": tid, "name": "Agent", "input": {"prompt": prompt}}],
         "claude-opus-5-5",
         _PARENT_USAGE,
     )
     result = {
         "type": "user",
-        "message": {"content": [{"type": "tool_result", "tool_use_id": "ag1"}]},
-        "toolUseResult": {"agentId": "kid1", "status": "completed"},
+        "message": {"content": [{"type": "tool_result", "tool_use_id": tid}]},
+        "toolUseResult": {"agentId": kid, "status": "completed"},
     }
     return call, result
 
@@ -157,6 +160,102 @@ def test_golden_counts_shares_and_session_cost(tmp_path: Path) -> None:
         assert swept["packet_bytes"] > swept["relevant_bytes"]
     assert {row["group"] for row in report["packet_sweep"]} == {"all", "opus/sonnet"}
     assert all(row["coverage"] == 1.0 for row in report["packet_sweep"])
+
+
+def _two_children(root: Path) -> None:
+    """One parent with three known files and two sonnet children."""
+    a, b, c, d = (root / "dd" / f"{name}.py" for name in ("a", "b", "c", "d"))
+    parent_reads = _assistant(
+        "p1",
+        [
+            {"type": "tool_use", "id": f"r{i}", "name": "Read", "input": {"file_path": str(p)}}
+            for i, p in enumerate((a, b, c))
+        ],
+        "claude-opus-5-5",
+        _PARENT_USAGE,
+    )
+    s1, r1 = _spawn("first", "claude-sonnet-5-5", msg="pa1", tid="ag1", kid="kid1")
+    s2, r2 = _spawn("second", "claude-sonnet-5-5", msg="pa2", tid="ag2", kid="kid2")
+    _write(root / "proj" / "sess1.jsonl", [parent_reads, s1, r1, s2, r2])
+    subs = root / "proj" / "sess1" / "subagents"
+    _write(
+        subs / "agent-kid1.jsonl",
+        [
+            _read("c1", a, "claude-sonnet-5-5", _CHILD_USAGE),
+            _read("c1", d, "claude-sonnet-5-5", _CHILD_USAGE),
+            _read("c2", b, "claude-sonnet-5-5", _CHILD_USAGE),
+        ],
+    )
+    _write(subs / "agent-kid2.jsonl", [_read("c3", c, "claude-sonnet-5-5", _CHILD_USAGE)])
+
+
+def test_golden_two_children_pooled_shares(tmp_path: Path) -> None:
+    _two_children(tmp_path)
+    report = hs.summarise(hs.collect(tmp_path, _PRICES))
+
+    # Parent: p1 + pa1 + pa2 = 3 messages * $0.006 = $0.018.
+    # kid1: c1 (two calls, one message id, so one turn) + c2 = 2 * $0.0016 = $0.0032.
+    # kid2: c3 = $0.0016.
+    # Total = 0.018 + 0.0032 + 0.0016 = $0.0228.
+    # Lower: c1 has 1 redundant call of 2 (0.0016 * 1/2 = 0.0008), c2 reads b (0.0016),
+    # c3 reads c (0.0016) -> $0.0040.
+    # Upper: every turn that re-reads, whole: 0.0016 + 0.0016 + 0.0016 = $0.0048.
+    assert report["cost_share"] == {
+        "sessions": 1,
+        "excluded": 0,
+        "lower": pytest.approx(0.0040 / 0.0228),
+        "upper": pytest.approx(0.0048 / 0.0228),
+    }
+    assert report["children"] == 2 and report["priced_children"] == 2
+
+
+def _denominator_module() -> Any:
+    path = Path(__file__).resolve().parents[1] / "scripts" / "denominator.py"
+    spec = importlib.util.spec_from_file_location("_denominator_for_test", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_agrees_with_denominator_on_the_same_root(tmp_path: Path) -> None:
+    _two_children(tmp_path)
+    denominator = _denominator_module()
+    ours = hs.summarise(hs.collect(tmp_path, _PRICES))["cost_share"]
+    theirs = denominator.summarise(denominator.collect(tmp_path, _PRICES)["rows"])
+    assert theirs["n"] == ours["sessions"] == 1
+    assert theirs["lower_share"] == pytest.approx(ours["lower"])
+    assert theirs["upper_share"] == pytest.approx(ours["upper"])
+
+
+def test_one_unpriced_child_keeps_the_session_in_the_cost_share(tmp_path: Path) -> None:
+    known = [tmp_path / f"f{i}.py" for i in range(3)]
+    parent_reads = _assistant(
+        "p1",
+        [
+            {"type": "tool_use", "id": f"r{i}", "name": "Read", "input": {"file_path": str(p)}}
+            for i, p in enumerate(known)
+        ],
+        "claude-opus-5-5",
+        _PARENT_USAGE,
+    )
+    s1, r1 = _spawn("priced", "claude-sonnet-5-5", msg="pa1", tid="ag1", kid="kid1")
+    s2, r2 = _spawn("unpriced", "claude-unknown-9", msg="pa2", tid="ag2", kid="kid2")
+    _write(tmp_path / "proj" / "sess1.jsonl", [parent_reads, s1, r1, s2, r2])
+    subs = tmp_path / "proj" / "sess1" / "subagents"
+    _write(subs / "agent-kid1.jsonl", [_read("c1", known[0], "claude-sonnet-5-5", _CHILD_USAGE)])
+    _write(subs / "agent-kid2.jsonl", [_read("c2", known[1], "claude-unknown-9", _CHILD_USAGE)])
+
+    report = hs.summarise(hs.collect(tmp_path, _PRICES))
+    # Parent: p1 + pa1 + pa2 = $0.018; priced kid1 = $0.0016 -> $0.0196.
+    # kid2 has no price and is left out of dollars, but the session stays in the share.
+    assert report["children"] == 2 and report["priced_children"] == 1
+    assert report["cost_share"] == {
+        "sessions": 1,
+        "excluded": 0,
+        "lower": pytest.approx(0.0016 / 0.0196),
+        "upper": pytest.approx(0.0016 / 0.0196),
+    }
 
 
 def _canary(root: Path) -> None:

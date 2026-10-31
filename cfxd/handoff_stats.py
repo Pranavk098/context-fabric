@@ -39,6 +39,7 @@ from cfxd.brief_types import Intent
 from cfxd.routing import (
     _DEFAULT_PRICES,
     _load_prices,
+    _norm_cmd,
     _norm_path,
     _normalize,
     _scan_child_parent,
@@ -190,6 +191,7 @@ def _agent_inputs(objs: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
 def _analyse_child(child: dict[str, Any], parent: dict[str, Any], spawn_idx: int) -> dict[str, Any]:
     """Reads and Gate 1's lower/upper re-discovery attribution for one joined child."""
     known = {p for i, p in parent["known"] if i < spawn_idx}
+    pcmds = {c for i, c in parent["cmds"] if i < spawn_idx}
     turns = child["turns"]
     priced = all(t["cost"] is not None for t in turns if t["usage"] is not None)
     cost = sum(t["cost"] or 0.0 for t in turns) if priced else None
@@ -200,10 +202,12 @@ def _analyse_child(child: dict[str, Any], parent: dict[str, Any], spawn_idx: int
         carry = 0.0
         for cid, name, inp in turn["calls"]:
             path = _tool_path(name, inp) if name in _READ_TOOLS else None
-            if path is None:
-                continue
-            redundant = path in known
-            reads.append((path, redundant))
+            redundant = False
+            if path is not None:
+                redundant = path in known
+                reads.append((path, redundant))
+            elif name == "Bash" and isinstance(inp, dict) and isinstance(inp.get("command"), str):
+                redundant = _norm_cmd(inp["command"]) in pcmds
             if not redundant:
                 continue
             red += 1
@@ -360,18 +364,21 @@ def collect(
         sessions.add(sid)
         children.extend(joined)
         parent_cost, unpriced = _parent_cost(path, families)
-        if unpriced or any(r["cost"] is None for r in joined):
+        priced = [r for r in joined if r["cost"] is not None]
+        # Same rule as scripts/denominator.py: an unpriced child drops that child, not the
+        # whole session; only a session with no priced child (or an unpriced parent) is out.
+        if unpriced or not priced:
             excluded += 1
             continue
-        total = parent_cost + sum(r["cost"] or 0.0 for r in joined)
+        total = parent_cost + sum(r["cost"] or 0.0 for r in priced)
         if total <= 0:
             excluded += 1
             continue
         costed.append(
             {
                 "total": total,
-                "lower": sum(r["lower"] or 0.0 for r in joined),
-                "upper": sum(r["upper"] or 0.0 for r in joined),
+                "lower": sum(r["lower"] or 0.0 for r in priced),
+                "upper": sum(r["upper"] or 0.0 for r in priced),
             }
         )
     return {
@@ -492,7 +499,10 @@ def format_report(report: dict[str, Any]) -> str:
             f"{_pct(cost['upper'])} (upper)"
         )
     if cost["excluded"]:
-        lines.append(f"Sessions excluded from the cost share (unpriced turn): {cost['excluded']}")
+        lines.append(
+            f"Sessions excluded from the cost share (no priced child or unpriced parent): "
+            f"{cost['excluded']}"
+        )
     sweep = report["packet_sweep"]
     if not sweep:
         lines.append("Packet sweep: n/a (no child whose parent knew 3 or more files)")
