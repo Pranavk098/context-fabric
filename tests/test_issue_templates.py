@@ -39,3 +39,21 @@ def test_blank_issues_disabled_with_private_vulnerability_link() -> None:
     assert "contact_links:" in text
     assert "SECURITY.md" in text
     assert "Do not open a public issue for a vulnerability" in text
+
+
+def test_tester_report_form_has_consent_friction_and_leak_checkbox() -> None:
+    text = (TEMPLATES / "tester-feedback.yml").read_text(encoding="utf-8")
+    for field in (
+        "OS and version",
+        "Sessions by model",
+        "Friction log",
+        "Minutes from starting the install",
+        "Consent to use your numbers",
+        "may be aggregated with other testers",
+        "Diet:",
+        "Fidelity:",
+        "Brief (only if you turned it on)",
+    ):
+        assert field in text, f"tester-feedback.yml: missing {field}"
+    assert text.count(SAFE_OUTPUT) == 1
+    assert "required: true" in text

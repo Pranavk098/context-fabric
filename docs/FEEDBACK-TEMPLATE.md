@@ -2,7 +2,10 @@
 
 This page used to hold a copy-and-paste template. It is retired so there is one form to maintain.
 
-Open a **Brief feedback** issue instead:
+Open a **Tester report** issue instead:
+https://github.com/Pranavk098/context-fabric/issues/new?template=tester-feedback.yml
+
+If you tried Brief specifically, the older **Brief feedback** form is still there:
 https://github.com/Pranavk098/context-fabric/issues/new?template=brief-feedback.yml
 
 It asks for the same things (OS, Claude Code and cfxd versions, which experiments you ran, your

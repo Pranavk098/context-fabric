@@ -1,0 +1,120 @@
+name: Tester report
+description: Report what Context Fabric did on your machine (counts only, please)
+labels: ["alpha-feedback", "tester-report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Context Fabric is an alpha. No saving is proven; the point of this build is to check that
+        the **measurement** works on someone else's machine. "It did nothing" and "it broke" are
+        both useful answers. Follow [`docs/TESTING-GUIDE.md`](https://github.com/Pranavk098/context-fabric/blob/main/docs/TESTING-GUIDE.md)
+        and paste **numbers only**: never prompts, file paths, commands or transcript text.
+  - type: input
+    id: os
+    attributes:
+      label: OS and version
+      placeholder: macOS 15.2, Ubuntu 24.04, Windows 11
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Claude Code version and cfxd version
+      description: "`claude --version` and the first line of `cfxd week --share`."
+    validations:
+      required: true
+  - type: dropdown
+    id: usage
+    attributes:
+      label: How do you use Claude Code?
+      options:
+        - Light (a few sessions a week)
+        - Moderate (most days)
+        - Heavy (several long sessions a day)
+        - Mostly headless or SDK
+    validations:
+      required: true
+  - type: input
+    id: repo-type
+    attributes:
+      label: Task and repo type
+      description: In a few words, for example "TypeScript web app, refactors" or "Python data pipeline". No names.
+  - type: input
+    id: sessions-by-model
+    attributes:
+      label: Sessions by model (counts)
+      description: From your `--share` output, for example "Opus 12, Sonnet 30, Haiku 4".
+  - type: textarea
+    id: share-output
+    attributes:
+      label: cfxd checkup --share (or week --share) output
+      description: Paste the whole block. It contains counts, sizes and model ids only. If a command is not in your build, paste `cfxd week --share`.
+      render: text
+  - type: input
+    id: install-minutes
+    attributes:
+      label: Minutes from starting the install to your first report
+  - type: textarea
+    id: friction
+    attributes:
+      label: Friction log
+      description: Install steps that failed or confused you, daemon problems, warnings that were wrong or noisy. One line each.
+  - type: dropdown
+    id: likert-diet
+    attributes:
+      label: "Diet: did the report show you something you did not know and could act on?"
+      options:
+        - 1 - No, nothing new
+        - 2
+        - 3
+        - 4
+        - 5 - Yes, and I acted on it
+        - Did not try
+  - type: dropdown
+    id: likert-fidelity
+    attributes:
+      label: "Fidelity: did the report match what you remember /compact losing?"
+      options:
+        - 1 - No, it looked wrong
+        - 2
+        - 3
+        - 4
+        - 5 - Yes, it matched
+        - Did not try
+  - type: dropdown
+    id: likert-brief
+    attributes:
+      label: "Brief (only if you turned it on): did it change anything you noticed in sub-agents?"
+      options:
+        - 1 - Nothing, or it got in the way
+        - 2
+        - 3
+        - 4
+        - 5 - Clearly helped
+        - Did not try
+  - type: textarea
+    id: surprised
+    attributes:
+      label: What surprised you, and what broke?
+  - type: dropdown
+    id: keep-using
+    attributes:
+      label: Would you keep it installed?
+      options:
+        - "No"
+        - Maybe
+        - "Yes"
+  - type: checkboxes
+    id: consent
+    attributes:
+      label: Consent to use your numbers
+      options:
+        - label: I agree that the counts and percentages above may be aggregated with other testers' and published (no names, no text)
+        - label: You may quote my free-text answers publicly, without my name
+  - type: checkboxes
+    id: safe-output
+    attributes:
+      label: Safe to share
+      options:
+        - label: I pasted only `--share` output or counts, no prompts, paths or commands
+          required: true
