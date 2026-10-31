@@ -298,10 +298,10 @@ def test_share_hides_canaries_keeps_counts(tmp_path: Path) -> None:
     assert conn["tools"] == 2
     assert conn["tool_names_bytes"] == sum(_bytes(t) for t in tools)
     skill = next(it for it in data["items"] if it["kind"] == "skill")
-    assert skill["name"].startswith("skill-")
-    assert skill["group"].startswith("plugin-")
+    assert "name" not in skill and "group" not in skill
+    assert skill["median_bytes"] > 0
     memory = next(it for it in data["items"] if it["kind"] == "memory")
-    assert memory["name"].startswith("file-")
+    assert "name" not in memory
 
 
 def _share_report(names: list[str]) -> dict:

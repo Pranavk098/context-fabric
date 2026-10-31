@@ -560,6 +560,22 @@ def diet(root: Path, since: str = "30d", now: datetime | None = None) -> dict[st
     }
 
 
+def _numeric(report: dict[str, Any]) -> dict[str, Any]:
+    """Deep-copy ``report`` with every name removed; counts, bytes and rates stay."""
+    r: dict[str, Any] = json.loads(json.dumps(report))
+    for item in r["items"]:
+        item.pop("name", None)
+        item.pop("group", None)
+    r["subagent_type_count"] = len(r.pop("subagent_types", []))
+    for section in ("never_used", "used"):
+        for group in r[section]["plugins"]:
+            group.pop("plugin", None)
+            group["skill_count"] = len(group.pop("skills", []))
+        for conn in r[section]["connectors"]:
+            conn.pop("name", None)
+    return r
+
+
 def _anonymize(report: dict[str, Any]) -> dict[str, Any]:
     """Deep-copy ``report`` with every name replaced by a per-report ordinal label."""
     r: dict[str, Any] = json.loads(json.dumps(report))
@@ -615,11 +631,104 @@ def _connector_line(conn: dict[str, Any]) -> str:
     )
 
 
-def format_human(report: dict[str, Any], share: bool = False, dir_name: str = ".") -> str:
+def _format_share(report: dict[str, Any], label: str) -> str:
+    """Numeric-only share view: no skill, plugin, connector, file or hook names."""
+    lines = [f"Claude Code diet, {label}"]
+    header = f"Sessions: {report['sessions']:,}"
+    if report["listing_not_found"]:
+        header += f"   listing not found in {report['listing_not_found']} sessions"
+    lines.append(header)
+    first = report.get("first_turn_tokens_median")
+    if first:
+        lines.append(f"First-turn context (from token usage): median {first:,.0f} tokens")
+        lines.append(
+            f"Itemized below (skills, connectors, memory, hooks): "
+            f"~{report['prefix_tokens_estimated_median']:,.0f} est. tokens. The rest is the "
+            "agent's own system prompt and tool definitions, which you cannot change."
+        )
+    else:
+        lines.append(
+            f"Itemized setup prefix: ~{report['prefix_tokens_estimated_median']:,.0f} est. tokens"
+        )
+
+    counts: dict[str, int] = {}
+    unused: dict[str, int] = {}
+    bytes_by_kind: dict[str, float] = {}
+    for item in report["items"]:
+        kind = str(item["kind"])
+        counts[kind] = counts.get(kind, 0) + 1
+        if item.get("used") is False:
+            unused[kind] = unused.get(kind, 0) + 1
+        bytes_by_kind[kind] = bytes_by_kind.get(kind, 0.0) + float(item["median_bytes"])
+    if counts:
+        lines.append(
+            "Items by kind: "
+            + ", ".join(
+                f"{n:,} {kind}{'s' if n != 1 else ''}"
+                + (f" ({unused.get(kind, 0):,} unused)" if unused.get(kind, 0) else "")
+                for kind, n in sorted(counts.items())
+            )
+        )
+        lines.append(
+            "Median bytes by kind: "
+            + ", ".join(f"{kind} {nbytes:,.0f}" for kind, nbytes in sorted(bytes_by_kind.items()))
+        )
+    else:
+        lines.append("Items by kind: none")
+
+    never = report["never_used"]
+    used = report["used"]
+    lines.append(
+        "Never used (counts only): "
+        f"{sum(g['count'] for g in never['plugins']):,} skills in "
+        f"{len(never['plugins']):,} plugins, {len(never['connectors']):,} connectors"
+    )
+    lines.append(
+        "Used (counts only): "
+        f"{sum(g['count'] for g in used['plugins']):,} skills in "
+        f"{len(used['plugins']):,} plugins, {len(used['connectors']):,} connectors"
+    )
+
+    effect = report["effect"]
+    delta = report.get("delta") or {}
+    if not delta.get("tokens_per_turn"):
+        lines.append("Estimated effect of removing never-used items: none (nothing unused found)")
+    else:
+        lines.append("Estimated effect of removing never-used items (estimate):")
+        window = _SINCE_LABELS.get(str(report["since"]), str(report["since"]))
+        over = "over all time" if report["since"] == "all" else f"over your {window}"
+        priced = (
+            f"about ${delta.get('dollars', 0.0):,.2f} {over} at list price"
+            if delta.get("sessions_priced")
+            else "cost not priced (no known model id)"
+        )
+        lines.append(
+            f"  would remove ~{delta['tokens_per_turn']:,.0f} tokens from every turn; {priced}"
+        )
+        lines.append(
+            f"  ~{effect['total_tokens']:,.0f} tokens not re-read over {effect['turns']:,} turns; "
+            "an estimate from the never-used listing sizes"
+        )
+        unpriced = delta.get("sessions_with_items", 0) - delta.get("sessions_priced", 0)
+        if unpriced:
+            lines.append(f"  {unpriced} session(s) with these items had no priced model id")
+    return "\n".join(lines)
+
+
+def format_human(
+    report: dict[str, Any],
+    share: bool = False,
+    dir_name: str = ".",
+    share_digests: bool = False,
+) -> str:
     """Render the diet report as plain text."""
-    if report["sessions"] == 0:
-        return f"No transcripts found under {dir_name}."
     label = _SINCE_LABELS.get(str(report["since"]), str(report["since"]))
+    if report["sessions"] == 0:
+        if share:
+            return "No transcripts found in this window."
+        return f"No transcripts found under {dir_name}."
+    if share and not share_digests:
+        return _format_share(report, label)
     lines: list[str] = []
     if not share:
         lines.append("contains names from your setup; do not paste")
