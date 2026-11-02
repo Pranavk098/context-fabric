@@ -77,7 +77,7 @@ def test_bucket_counts_dollars_and_shares(tmp_path: Path) -> None:
 
     # 31 turns carry 70% of the dollars, so the long-session rule must fire verbatim.
     assert (
-        "Most of your cost is in long sessions; the checkpoint workflow targets exactly those."
+        "Most of your cost is in long sessions; `cfxd checkup` shows where it goes."
         in report["meaning"]
     )
     assert len(report["meaning"]) <= 4
@@ -129,13 +129,11 @@ def test_unavailable_numbers_are_na_not_guessed(tmp_path: Path) -> None:
     assert report["first_turn_context_median"] is None
     assert report["refetch"]["median_f"] is None
     assert report["diet"]["unused_skills"] is None
-    assert report["receipts"]["folds"] is None
-    assert report["receipts"]["checkpoints"] is None
+    assert report["receipts"]["hook_calls"] is None
     assert report["notes"]["first_turn"] == "no first-turn usage"
     assert report["notes"]["refetch"] == "no compaction events"
     assert report["notes"]["diet"] == "no skill listing in transcripts"
     assert report["notes"]["receipts"] == "no state directory"
-    assert report["notes"]["checkpoints"] == "not recorded by cfxd stats"
 
 
 def test_diet_counts_only(tmp_path: Path) -> None:
@@ -160,21 +158,13 @@ def test_diet_counts_only(tmp_path: Path) -> None:
 def test_receipts_from_stats(tmp_path: Path) -> None:
     _session(tmp_path, "proj", "s1", _turns(2))
     state = tmp_path / "state"
-    _write_log(
-        state / "folds.jsonl",
-        [{"session_id": "s", "bytes_in": 100, "bytes_out": 50, "tool_name": "Bash"}] * 2,
-    )
     _write_log(state / "events.jsonl", [{"session_id": "s", "latency_ms": 5.0, "outcome": "error"}])
-    _write_log(state / "bound.jsonl", [{"event": "bound", "session_id": "s"}])
 
     report = week(tmp_path, 7, state)
 
     receipts = report["receipts"]
-    assert receipts["folds"] == 2
-    assert receipts["bound_rewrites"] == 1
     assert receipts["hook_calls"] == 1
     assert receipts["hook_errors"] == 1
-    assert receipts["checkpoints"] is None
 
 
 def test_json_shape(tmp_path: Path) -> None:
@@ -203,12 +193,9 @@ def test_json_shape(tmp_path: Path) -> None:
     }
     assert set(data["buckets"]["31+"]) == {"sessions", "dollars", "share"}
     assert set(data["receipts"]) == {
-        "folds",
-        "bound_rewrites",
         "hook_calls",
         "hook_errors",
         "hook_rejected",
-        "checkpoints",
         "cold_resumes",
     }
 

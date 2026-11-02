@@ -297,7 +297,7 @@ class Daemon:
             # Counts only: the file names say which class broke, not what text leaked.
             print(
                 f"cfxd: WARNING: {len(violations)} state file(s) exceed their content class; "
-                "run scripts/state_audit.py",
+                "see docs/INSTALL-ALPHA.md (Troubleshooting) and open an issue with this line",
                 file=sys.stderr,
             )
         brief_install(self.state_dir)

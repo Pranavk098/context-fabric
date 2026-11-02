@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import re
 from pathlib import Path
 
@@ -11,6 +12,7 @@ import pytest
 from cfxd.cli import _build_parser
 
 ROOT = Path(__file__).resolve().parents[1]
+CFXD_DIR = ROOT / "cfxd"
 TESTERS_DIR = ROOT / "docs" / "testers"
 README_PATH = ROOT / "README.md"
 FEEDBACK_FORM = ROOT / ".github" / "ISSUE_TEMPLATE" / "tester-feedback.yml"
@@ -177,6 +179,33 @@ def test_retired_features_only_mentioned_as_retired() -> None:
         for line in text.splitlines():
             if RETIRED_RE.search(line):
                 assert "retired" in line.lower(), f"{name}: un-retired mention: {line}"
+
+
+def _docstring_nodes(tree: ast.AST) -> set[int]:
+    """The Constant nodes that are docstrings, which may name developer-only tooling."""
+    nodes: set[int] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            body = node.body
+            if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant):
+                nodes.add(id(body[0].value))
+    return nodes
+
+
+def test_cfxd_output_strings_never_name_the_unshipped_state_audit_script() -> None:
+    offenders: list[str] = []
+    for path in sorted(CFXD_DIR.glob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        docstrings = _docstring_nodes(tree)
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Constant)
+                and isinstance(node.value, str)
+                and "state_audit.py" in node.value
+                and id(node) not in docstrings
+            ):
+                offenders.append(f"{path.name}:{node.lineno}: {node.value}")
+    assert not offenders, "unshipped script named in cfxd output:\n" + "\n".join(offenders)
 
 
 def test_guides_reflect_ground_truth_and_order() -> None:

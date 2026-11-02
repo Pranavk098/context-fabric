@@ -197,7 +197,7 @@ def _share_commands(root: Path, state: Path) -> list[tuple[list[str], str]]:
         ),
         (
             ["ledger", *base, "--days", "30", "--state-dir", str(state), "--share", "--json"],
-            '"checkpoint"',
+            '"notices"',
         ),
         (
             ["brief", *base, "--state-dir", str(state), "--share"],
