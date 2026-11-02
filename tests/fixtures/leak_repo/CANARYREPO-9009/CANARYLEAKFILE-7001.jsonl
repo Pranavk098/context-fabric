@@ -1,0 +1,2 @@
+{"type":"user","message":{"content":[{"type":"text","text":"Read C:\\Users\\canary-home\\CANARYREPO-9009\\main.py and check the key cfx_canary_sk_0000 before you answer."}]}}
+{"type":"assistant","message":{"model":"claude-haiku-4-5-20251001","content":[{"type":"text","text":"Opened /home/canary-home/CANARYREPO-9009/main.py"}],"usage":{"input_tokens":1000,"output_tokens":100}}}

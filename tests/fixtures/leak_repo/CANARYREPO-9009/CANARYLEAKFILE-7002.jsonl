@@ -1,0 +1,1 @@
+{"type":"assistant","message":{"model":"claude-haiku-4-5-20251001","content":[{"type":"tool_use","id":"canary1","name":"Read","input":{"file_path":"C:\\Users\\canary-home\\CANARYREPO-9009\\CANARYLEAKFILE-7002.py"}}],"usage":{"input_tokens":500,"output_tokens":50}}}
