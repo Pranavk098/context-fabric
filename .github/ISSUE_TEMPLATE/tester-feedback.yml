@@ -34,16 +34,64 @@ body:
         - Mostly headless or SDK
     validations:
       required: true
-  - type: input
+  - type: dropdown
+    id: task-type
+    attributes:
+      label: What did you mostly use Claude Code for?
+      options:
+        - Feature work
+        - Bug fixes
+        - Refactoring
+        - Exploration
+        - Other
+    validations:
+      required: true
+  - type: dropdown
     id: repo-type
     attributes:
-      label: Task and repo type
-      description: In a few words, for example "TypeScript web app, refactors" or "Python data pipeline". No names.
+      label: Repo type
+      description: What kind of repo was it? No names, no links.
+      options:
+        - Own project
+        - Employer
+        - Open source
+    validations:
+      required: true
   - type: input
     id: sessions-by-model
     attributes:
       label: Sessions by model (counts)
       description: From your `--share` output, for example "Opus 12, Sonnet 30, Haiku 4".
+  - type: dropdown
+    id: brief-enabled
+    attributes:
+      label: Was Brief enabled in any session?
+      options:
+        - "Yes"
+        - "No"
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: brief-sessions
+    attributes:
+      label: Brief sessions
+      description: How many sessions ran with Brief on (a count, numbers only).
+  - type: dropdown
+    id: carry-enabled
+    attributes:
+      label: Was carry enabled in any session?
+      options:
+        - "Yes"
+        - "No"
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: carry-sessions
+    attributes:
+      label: Carry sessions
+      description: How many sessions ran with carry on (a count, numbers only).
   - type: textarea
     id: share-output
     attributes:
@@ -54,6 +102,19 @@ body:
     id: install-minutes
     attributes:
       label: Minutes from starting the install to your first report
+  - type: dropdown
+    id: friction-category
+    attributes:
+      label: Friction category
+      description: The one that cost you the most time this week.
+      options:
+        - Install
+        - Comprehension
+        - Trust
+        - Performance
+        - None
+    validations:
+      required: true
   - type: textarea
     id: friction
     attributes:
