@@ -3,6 +3,58 @@
 All notable changes to Context Fabric are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.1.1-alpha.2] - 2026-11-02
+
+Third alpha of the Claude Code plugin. **Experimental. No saving is proven.**
+
+### Measurement
+- `week` and `handoff-stats` lead with limit-weighted new tokens (metric `limit-weighted/1`); raw counts
+  sit behind `--verbose`. No plan-limit share is shown, because Anthropic publishes no token-denominated
+  5-hour or weekly limit for any tier (decision D-3), so no figure implies a percentage of your plan.
+- `week --share` emits the `cf-share/2` block: built field by field from an allowlist, validated on both
+  the text and JSON renders, and rejecting unknown, missing or non-canonical keys.
+- `diet` before/after is reported as `observed (this machine, this project, N sessions)`, and every apply
+  step keeps its exact undo, including after an interrupted apply.
+- Deep `cfxd doctor`: six checks (daemon, token, hooks, state dir, Claude Code, launcher) print first,
+  in a fixed order, with no paths, prompts or text in the output.
+- `repeat-share` counts exact and near-duplicate repeats separately over 1,543 transcripts and never sums
+  them; Read re-reads and FILE_UNCHANGED stubs are counted side by side.
+
+### Mechanisms (experimental)
+- Coach control: half of installs, fixed by a hash of the install and never by session or cost, receive a
+  withheld control arm; assignment and outcome are receipted as counts and dollars. Coach is still off by
+  default, and its effect is unproven.
+- The P6 working-set tracker lands as a pure `apply_event` bookkeeping module; it is not wired into the
+  daemon in this release, and no feature depends on it yet.
+- A failed `SubagentStop` no longer stores sub-agent summary text; only the outcome is kept.
+
+### Proof and trust
+- Repeat-share measured 0.1% of new tokens (exact) and 0.0% (near-duplicate), below the frozen 5% bar, so
+  backward dedupe is not built and becomes a framework-track experiment only. Read re-reads are rare (626
+  full re-reads against 5 stubs).
+- Restart break-even is modelled on one machine: 18 of 44 long sessions (40.9%) show a positive-headroom
+  boundary, at a median of about $1.57 per session in list-price equivalents. That is a model, not a
+  measurement, and the registered v2 benchmark still found forced restarts more expensive (ADR-0013).
+- Defaults assertion suite: Brief and carry stay on; Brief v1 excerpts, carry v2, the carry-back, coach
+  and the idle notice stay off; retired features read back as off. Four golden reports (`audit`, `week`,
+  `fidelity`, `handoff-stats`) must reproduce exactly.
+- Copy audit keeps tester guides, README and `cfxd` help free of unqualified claims; the P10 intake
+  validates counts and publishes only consent-gated aggregates.
+
+### Security
+- Startup security checks: the daemon audits the state dir against declared content classes at startup
+  and prints a count only; launcher marker and flag files carry a class too.
+- `cf-share/2` accepts numbers and model families only; name digests exist only behind
+  `--include-name-digests`, which prints a warning and must never be pasted.
+- Injection seeds in the test suite keep restored context treated as untrusted input.
+
+### Docs
+- Tester guides rewritten around checkup -> diet -> brief opt-in, with the verbatim coach study
+  disclosure and two separate consents in the Tester report form.
+- New research note on Codex, Gemini CLI and OpenCode log formats, a cold-install rehearsal checklist and
+  a draft pre-registration for a paired boundary-restart pilot.
+- Added `docs/release-notes/v0.1.1-alpha.2.md`.
+
 ## [0.1.1-alpha.1] - 2026-10-29
 
 Next alpha of the Claude Code plugin. **Experimental. The token saving is still not proven.**

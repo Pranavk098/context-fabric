@@ -32,3 +32,10 @@ def test_versions_agree() -> None:
     assert cfxd.__version__ == project["version"]
     for entry in marketplace["plugins"]:
         assert entry["version"] == plugin["version"], f"marketplace entry {entry['name']} drifts"
+
+
+def test_release_notes_exist_for_the_manifest_version() -> None:
+    plugin = json.loads((ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+    notes = ROOT / "docs" / "release-notes" / f"v{plugin['version']}.md"
+    assert notes.is_file(), f"missing release notes: {notes.relative_to(ROOT).as_posix()}"
+    assert "No saving is proven." in notes.read_text(encoding="utf-8")
