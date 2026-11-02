@@ -8,6 +8,8 @@ renderers accept only a payload that passed :func:`validate_share`.
 from __future__ import annotations
 
 import json
+import math
+import re
 from collections.abc import Mapping
 from importlib.metadata import PackageNotFoundError, version
 from typing import Any
@@ -46,6 +48,8 @@ _COUNTS = (
 )
 _OPTIONAL = ("new_token_equivalents", "rediscovery_share_pct")  # null means "not computed here"
 _TEXT = ("schema", "plugin_version", "metric")
+# A version tag, never free text: no spaces, slashes or path separators. Bounded to 32 chars.
+_VERSION = re.compile(r"[0-9A-Za-z][0-9A-Za-z.+!_-]{0,31}")
 
 
 def _plugin_version() -> str:
@@ -82,6 +86,17 @@ def _number(key: str, value: Any) -> None:
     # bool is an int subclass, so the type test has to name it.
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValueError(f"cf-share/2: {key} must be a number")
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ValueError(f"cf-share/2: {key} must be finite")
+
+
+def _count(key: str, value: Any) -> None:
+    """A count is a non-negative whole number; a float like 3.5 is not a count."""
+    _number(key, value)
+    if value < 0:
+        raise ValueError(f"cf-share/2: {key} must not be negative")
+    if isinstance(value, float) and not value.is_integer():
+        raise ValueError(f"cf-share/2: {key} must be a whole number")
 
 
 def validate_share(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -98,16 +113,26 @@ def validate_share(payload: Mapping[str, Any]) -> dict[str, Any]:
     for key in _TEXT:
         if not isinstance(payload[key], str):
             raise ValueError(f"cf-share/2: {key} must be a string")
+    if payload["metric"] != METRIC:
+        raise ValueError(f"cf-share/2: metric must be {METRIC}")
+    if not _VERSION.fullmatch(payload["plugin_version"]):
+        raise ValueError("cf-share/2: plugin_version must be a version tag")
     for key in _COUNTS:
-        _number(key, payload[key])
+        _count(key, payload[key])
     families = payload["children_by_model_family"]
     if not isinstance(families, Mapping) or set(families) != set(FAMILIES):
         raise ValueError("cf-share/2: children_by_model_family must be exactly opus/sonnet/haiku")
     for family, count in families.items():
-        _number(f"children_by_model_family.{family}", count)
+        _count(f"children_by_model_family.{family}", count)
     for key in _OPTIONAL:
-        if payload[key] is not None:
-            _number(key, payload[key])
+        if payload[key] is None:
+            continue
+        _number(key, payload[key])
+        if payload[key] < 0:
+            raise ValueError(f"cf-share/2: {key} must not be negative")
+    pct = payload["rediscovery_share_pct"]
+    if pct is not None and pct > 100:
+        raise ValueError("cf-share/2: rediscovery_share_pct must be within 0..100")
     if not isinstance(payload["consent_aggregate_publish"], bool):
         raise ValueError("cf-share/2: consent_aggregate_publish must be a boolean")
     return dict(payload)

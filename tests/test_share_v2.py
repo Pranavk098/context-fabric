@@ -185,3 +185,113 @@ def test_text_and_json_golden() -> None:
         "}\n"
     )
     assert json.loads(render_share_json(payload)) == payload
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["limit-weighted/2", "limit-weighted/1 ", "CANARYMETRIC-1234", "limit-weighted/1/home/canary"],
+)
+def test_metric_must_be_exactly_the_constant(value: str) -> None:
+    with pytest.raises(ValueError, match="metric must be limit-weighted/1") as excinfo:
+        validate_share(build_share(_aggregates()) | {"metric": value})
+
+    assert value not in str(excinfo.value)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "v0.1.1 tester",
+        "v0.1.1/service",
+        "../../etc/passwd",
+        "C:\\Users\\canary-home\\build",
+        "CANARYSECRET$1234",
+        "cfx_canary_sk_0000/x",
+        "v" * 33,
+        "",
+    ],
+)
+def test_plugin_version_must_be_a_version_tag(value: str) -> None:
+    with pytest.raises(ValueError, match="plugin_version must be a version tag") as excinfo:
+        validate_share(build_share(_aggregates()) | {"plugin_version": value})
+
+    if value:
+        assert value not in str(excinfo.value)
+
+
+@pytest.mark.parametrize("value", ["v0.1.1-tester.1", "0.1.1a1", "v0.x.0-tester.1", "A_b+1.0!x"])
+def test_a_version_tag_passes(value: str) -> None:
+    payload = build_share(_aggregates()) | {"plugin_version": value}
+
+    assert validate_share(payload)["plugin_version"] == value
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "period_days",
+        "sessions",
+        "turns",
+        "children",
+        "cache_read_tokens",
+        "elisions",
+        "elided_bytes",
+    ],
+)
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf"), -1, -0.5, 3.5])
+def test_every_count_rejects_nan_inf_negative_and_fractions(field: str, bad: float) -> None:
+    with pytest.raises(ValueError, match=field):
+        validate_share(build_share(_aggregates()) | {field: bad})
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf"), -1, 3.5])
+def test_family_counts_reject_nan_inf_negative_and_fractions(bad: float) -> None:
+    payload = build_share(_aggregates())
+    payload["children_by_model_family"] = payload["children_by_model_family"] | {"opus": bad}
+
+    with pytest.raises(ValueError, match="children_by_model_family.opus"):
+        validate_share(payload)
+
+
+@pytest.mark.parametrize("field", ["new_token_equivalents", "rediscovery_share_pct"])
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf"), -1, -0.5])
+def test_optional_numbers_reject_nan_inf_and_negative(field: str, bad: float) -> None:
+    with pytest.raises(ValueError, match=field):
+        validate_share(build_share(_aggregates()) | {field: bad})
+
+
+@pytest.mark.parametrize("bad", [100.5, 101, 1e9])
+def test_rediscovery_share_pct_must_not_exceed_100(bad: float) -> None:
+    with pytest.raises(ValueError, match="rediscovery_share_pct must be within 0..100"):
+        validate_share(build_share(_aggregates()) | {"rediscovery_share_pct": bad})
+
+
+def test_optional_numbers_accept_their_boundaries_and_fractions() -> None:
+    for pct in (0, 100, 11.8):
+        assert (
+            validate_share(build_share(_aggregates() | {"rediscovery_share_pct": pct}))[
+                "rediscovery_share_pct"
+            ]
+            == pct
+        )
+    for value in (0, 0.5, 1234):
+        assert (
+            validate_share(build_share(_aggregates() | {"new_token_equivalents": value}))[
+                "new_token_equivalents"
+            ]
+            == value
+        )
+
+
+def test_build_share_never_clamps_a_bad_aggregate() -> None:
+    bad_aggregates = (
+        {"sessions": -1},
+        {"turns": float("nan")},
+        {"cache_read_tokens": float("inf")},
+        {"rediscovery_share_pct": 250},
+        {"new_token_equivalents": -5},
+        {"children_by_model_family": {"opus": -1}},
+    )
+    for extra in bad_aggregates:
+        with pytest.raises(ValueError):
+            validate_share(build_share(_aggregates() | extra))
