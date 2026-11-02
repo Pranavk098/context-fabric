@@ -1,4 +1,6 @@
-cfxd handoff-stats (aggregates only, one machine)
+cfxd handoff-stats 0.1.1a1 (aggregates only, one machine)
+Limit-weighted new tokens: 13,050 (estimated: price-ratio weights from cfxd/data/limit_weights.toml)
+Limit share: n/a (no official 5-hour or weekly token limit for any plan tier; D-3)
 Sessions with sub-agent transcripts: 1; joined children: 1; priced children: 1
 By child model family:
     family   children   parent knew 3+   read calls   re-reads  re-discovery share

@@ -1,4 +1,6 @@
 cfxd week 0.1.1a1, last 36500 days (experimental)
+Limit-weighted new tokens: 13,050 (estimated: price-ratio weights from cfxd/data/limit_weights.toml)
+Limit share: n/a (no official 5-hour or weekly token limit for any plan tier; decision D-3)
 Sessions: 1 parent session
 Sessions by length (assistant turns, share of API-equivalent dollars):
   2-10: 1 session, $0.00 (100.0% of dollars)
@@ -6,7 +8,6 @@ Sessions by length (assistant turns, share of API-equivalent dollars):
   31+: 0 sessions, $0.00 (0.0% of dollars)
 Total API-equivalent dollars: $0.00
 Cache-read share of tokens: 0.0%
-First-turn context: median 1,000 tokens
 Compactions: 0 boundaries, 0 /clear restarts
 Model switches: 0, premium $0.00
 Refetch after compaction: median f n/a (no compaction events) over 0 events
