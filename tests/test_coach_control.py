@@ -65,19 +65,20 @@ def _receipts(tmp_path: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in text.splitlines()]
 
 
-def _session_for(arm: str) -> str:
+def _install_for(base: Path, arm: str) -> Path:
+    """A state dir whose install hash lands in ``arm`` (D-1 assigns per install, not session)."""
     for i in range(10_000):
-        session = f"synthetic-{i}"
-        if coach._arm(session) == arm:
-            return session
-    raise AssertionError(f"no session found for arm {arm}")
+        state_dir = base / f"install-{i}"
+        if coach._arm(coach._install_id(state_dir)) == arm:
+            return state_dir
+    raise AssertionError(f"no install found for arm {arm}")
 
 
 def _run(path: Path, session: str, state_dir: Path, turns: int = 30) -> list[dict[str, Any]]:
     return [coach.handle_stop(_payload(path, session), state_dir) for _ in range(turns)]
 
 
-def test_arm_is_deterministic_per_session_id() -> None:
+def test_arm_is_deterministic_per_install_id() -> None:
     for session in ("s1", "synthetic-7", "CANARY-1a2b3c"):
         expected = "warned" if sha256(session.encode("utf-8")).digest()[0] % 2 == 0 else "control"
         assert coach._arm(session) == expected
@@ -90,11 +91,11 @@ def test_arm_split_over_200_synthetic_ids_is_roughly_balanced() -> None:
 
 
 def test_control_arm_withholds_and_still_logs(tmp_path: Path) -> None:
-    _on(tmp_path)
-    session = _session_for("control")
+    state_dir = _install_for(tmp_path, "control")
+    _on(state_dir)
     path = _transcript(tmp_path)
-    assert _run(path, session, tmp_path) == [{}] * 30
-    receipts = _receipts(tmp_path)
+    assert _run(path, "s1", state_dir) == [{}] * 30
+    receipts = _receipts(state_dir)
     trigger = [r for r in receipts if r["event"] == "coach_trigger"]
     assert trigger == [
         {
@@ -108,30 +109,28 @@ def test_control_arm_withholds_and_still_logs(tmp_path: Path) -> None:
 
 
 def test_warned_arm_warns_and_still_logs(tmp_path: Path) -> None:
-    _on(tmp_path)
-    session = _session_for("warned")
+    state_dir = _install_for(tmp_path, "warned")
+    _on(state_dir)
     path = _transcript(tmp_path, 182_345)
-    results = _run(path, session, tmp_path)
+    results = _run(path, "s1", state_dir)
     assert results[-1] == {"systemMessage": EXACT_182K_OPUS}
-    trigger = [r for r in _receipts(tmp_path) if r["event"] == "coach_trigger"]
+    trigger = [r for r in _receipts(state_dir) if r["event"] == "coach_trigger"]
     assert [(r["arm"], r["turn"], r["context_tokens"]) for r in trigger] == [
         ("warned", 30, 182_345)
     ]
 
 
 def test_receipts_contain_no_canary_id_or_path(tmp_path: Path) -> None:
-    _on(tmp_path)
     canary = "CANARY-1a2b3c4d5e6f-NEVER-STORE"
-    session = f"{canary}-control"
-    if coach._arm(session) != "control":
-        session = f"{canary}-warned"
+    state_dir = _install_for(tmp_path, "control")
+    _on(state_dir)
     path = tmp_path / f"{canary}.jsonl"
     path.write_text(_usage(150_000) + "\n", encoding="utf-8")
-    _run(path, session, tmp_path)
-    text = (tmp_path / coach.COACH_LOG).read_text(encoding="utf-8")
+    _run(path, f"{canary}-session", state_dir)
+    text = (state_dir / coach.COACH_LOG).read_text(encoding="utf-8")
     assert canary not in text
     assert str(path) not in text
-    assert all("session_id" not in r or r["session_id"] is None for r in _receipts(tmp_path))
+    assert all("session_id" not in r or r["session_id"] is None for r in _receipts(state_dir))
 
 
 def test_flag_off_output_and_receipts_are_unchanged(tmp_path: Path) -> None:

@@ -56,7 +56,9 @@ def _clean(monkeypatch: pytest.MonkeyPatch) -> Any:
 
 
 def _on(tmp_path: Path) -> None:
+    # coach_control defaults on (D-1); these tests are about the nudge itself.
     set_flag(tmp_path, "coach", True)
+    set_flag(tmp_path, "coach_control", False)
 
 
 def _usage(context: int, model: str = "claude-opus-5-5") -> str:

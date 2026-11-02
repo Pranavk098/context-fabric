@@ -1,12 +1,14 @@
 """On/off switches for brief, brief_policy, carry, brief_v1, carry_back, fold, fold_read,
 bound, coach and idle_notice, read from ``<state_dir>/config.json``.
 
-Defaults: brief, brief_policy and carry on; brief_v1, carry_back, fold, fold_read, bound,
-coach and idle_notice off. Brief and carry are on so the alpha produces data; the rest are
-experimental. Fold, fold_read and bound are retired (ADR-0013): they still have defaults so
-old config files load, but a stored true is read back as false. The daemon is shared across
-Claude Code sessions, so a file is the only way one session can reach the daemon; it is
-re-read whenever its mtime changes. A missing or malformed file falls back to the defaults.
+Defaults: brief, brief_policy, carry and coach_control on; brief_v1, carry_back, fold,
+fold_read, bound, coach and idle_notice off. Brief and carry are on so the alpha produces
+data; coach_control is on by decision D-1 and only matters once the coach itself is on; the
+rest are experimental. Fold, fold_read and bound are retired (ADR-0013): they still have
+defaults so old config files load, but a stored true is read back as false. The daemon is
+shared across Claude Code sessions, so a file is the only way one session can reach the
+daemon; it is re-read whenever its mtime changes. A missing or malformed file falls back to
+the defaults.
 """
 
 from __future__ import annotations
@@ -32,8 +34,9 @@ _DEFAULTS: dict[str, bool] = {
     "fold_read": False,
     "bound": False,
     "coach": False,
-    # A/B half of the nudge sessions withheld, both arms receipted (F-4).
-    "coach_control": False,
+    # D-1: the A/B half of nudge sessions withheld is on in the tester build, so the
+    # control arm collects data; both arms are receipted (F-4).
+    "coach_control": True,
     "idle_notice": False,
     # Brief v1 (ADR-0011) and the sub-agent carry-back are opt-in until the v4 pilot.
     "brief_v1": False,
