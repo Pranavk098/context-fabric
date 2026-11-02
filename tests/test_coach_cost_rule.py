@@ -27,7 +27,7 @@ OPUS = "claude-opus-5-5"
 UNPRICED = "claude-made-up-9"
 EXACT_182K_UNPRICED = (
     "Context Fabric: this session is at ~182K tokens; each turn now re-reads it. "
-    "If this is a natural break: /context-fabric:checkpoint, then /clear. "
+    "If this is a natural break: /clear starts a fresh context. "
     "Turn this off: cfxd set coach off"
 )
 

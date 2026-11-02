@@ -1,6 +1,6 @@
 # Context Fabric Tester Guides
 
-> **Coach study disclosure (coach is off by default):** You are in a measurement study if you turn coach on. Half of testers see coach prompts and half do not; which half you are in is fixed by a hash of your install. You can leave the study any time with `cfxd set coach off`.
+> **Coach study disclosure (coach is on by default):** You are in a measurement study unless you turn coach off. Half of testers see coach prompts and half do not; which half you are in is fixed by a hash of your install, and the other half only has would-have-shown counts logged (counts and dollars, never text). You can leave the study any time with `cfxd set coach off`.
 
 ## Key terms (plain words)
 - **Prefix** (starting prefix): the fixed setup sent at the start of a session and re-read on every turn—Claude Code's system prompt and tool definitions, plus your skill listings, MCP connector tools and instructions, memory files, and hook output.

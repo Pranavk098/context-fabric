@@ -229,3 +229,17 @@ def test_flag_off_writes_nothing_new(tmp_path: Path) -> None:
     set_flag(tmp_path, "coach_control", True)
     _nudge(tmp_path, path, turns=40)
     assert not (tmp_path / coach.COACH_LOG).exists()
+
+
+def test_default_config_is_coach_on_and_control_half_sees_no_prompt(tmp_path: Path) -> None:
+    # Coach and the control arm are on by shipped default (D-1): no set_flag calls here.
+    control = _install_for(tmp_path / "c", "control")
+    warned = _install_for(tmp_path / "w", "warned")
+    path = _transcript(tmp_path / "s.jsonl", 182_345)
+    control_out = [coach.handle_stop(_payload(path, "c1"), control) for _ in range(40)]
+    warned_out = [coach.handle_stop(_payload(path, "w1"), warned) for _ in range(40)]
+    assert control_out == [{}] * 40
+    assert any("systemMessage" in out for out in warned_out)
+    # The withheld half still leaves counts-only would-have-shown receipts.
+    assert {r["outcome"] for r in _receipts(control, "coach_nudge")} >= {"withheld"}
+    assert all(r.get("session_id") is None for r in _receipts(control))

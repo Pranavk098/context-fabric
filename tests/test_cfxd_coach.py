@@ -41,7 +41,7 @@ SH = _find_sh()
 EXACT_182K_OPUS = (
     "Context Fabric: this session is at ~182K tokens; each turn now re-reads it "
     "(about $0.04 at Opus 5.5 cache-read prices, API-equivalent). If this is a natural "
-    "break: /context-fabric:checkpoint, then /clear. Turn this off: cfxd set coach off"
+    "break: /clear starts a fresh context. Turn this off: cfxd set coach off"
 )
 
 
@@ -146,7 +146,7 @@ def test_ten_turn_cooldown(tmp_path: Path) -> None:
 def test_unknown_model_omits_dollars(tmp_path: Path) -> None:
     assert coach.nudge_text(182_345, "claude-made-up-9") == (
         "Context Fabric: this session is at ~182K tokens; each turn now re-reads it. "
-        "If this is a natural break: /context-fabric:checkpoint, then /clear. "
+        "If this is a natural break: /clear starts a fresh context. "
         "Turn this off: cfxd set coach off"
     )
     _on(tmp_path)
@@ -229,6 +229,7 @@ def test_receipt_is_content_free(tmp_path: Path) -> None:
 
 def test_setting_off_and_env_opt_out(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     transcript = _transcript(tmp_path, 150_000)
+    set_flag(tmp_path, "coach", False)
     for _ in range(30):
         assert coach.handle_stop(_payload(transcript), tmp_path) == {}
     assert not (tmp_path / coach.COACH_LOG).exists()

@@ -1,7 +1,7 @@
 """Stop hook: one plain, user-visible nudge when a session is long and expensive.
 
-Experimental and off by default (``cfxd set coach on``): the saving is not yet
-proven. Nothing is sent to the model; only a ``systemMessage`` the user sees.
+Experimental and on by default as a measurement study (``cfxd set coach off`` leaves it): the
+saving is not yet proven. Nothing is sent to the model; only a ``systemMessage`` the user sees.
 The transcript is read only at its tail, and receipts hold numbers and ids only.
 
 Under ``coach_control`` (on by default, D-1) half of installs get a withheld control:
@@ -218,7 +218,7 @@ def nudge_text(context: int, model: str | None) -> str:
     return (
         f"Context Fabric: this session is at ~{round(context / 1000)}K tokens; "
         f"each turn now re-reads it{priced}. If this is a natural break: "
-        "/context-fabric:checkpoint, then /clear. Turn this off: cfxd set coach off"
+        "/clear starts a fresh context. Turn this off: cfxd set coach off"
     )
 
 

@@ -12,7 +12,7 @@ Fourth alpha of the Claude Code plugin. **Experimental. No saving is proven.**
   still Claude Code.
 
 ### Mechanisms (experimental)
-- Coach, still off by default, now fires on the frozen rule of turn 15 and $0.50 cache-read cost instead of
+- Coach is now on by default (half of installs see prompts; the other half only has would-have-shown counts logged), and fires on the frozen rule of turn 15 and $0.50 cache-read cost instead of
   the old token/turn rule.
 
 ### Proof and trust

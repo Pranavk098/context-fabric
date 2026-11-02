@@ -18,9 +18,10 @@ README_PATH = ROOT / "README.md"
 FEEDBACK_FORM = ROOT / ".github" / "ISSUE_TEMPLATE" / "tester-feedback.yml"
 
 STUDY_DISCLOSURE = (
-    "You are in a measurement study if you turn coach on. Half of testers see coach prompts "
-    "and half do not; which half you are in is fixed by a hash of your install. You can leave "
-    "the study any time with `cfxd set coach off`."
+    "You are in a measurement study unless you turn coach off. Half of testers see coach "
+    "prompts and half do not; which half you are in is fixed by a hash of your install, and "
+    "the other half only has would-have-shown counts logged (counts and dollars, never text). "
+    "You can leave the study any time with `cfxd set coach off`."
 )
 
 BANNED_RE = re.compile(

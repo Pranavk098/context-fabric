@@ -92,7 +92,7 @@ experimental until a paired test shows they pay.
 | `cfxd checkpoint import FILE` | retired (ADR-0013) |
 | `cfxd packet render` / `install-agents-md` | Prints a packet as a compact block (at most 3,000 bytes), or writes/removes only its marked block in `AGENTS.md`; Codex and OpenCode both read `AGENTS.md` | experimental, tested on logs only |
 | Bound (`cfxd set bound on`) | retired (ADR-0013) |
-| Coach, idle notice (`cfxd set coach on`, `idle_notice on`) | One plain line when a session gets long, or when a resume finds the cache expired. Coach is off by default; turning it on joins an install-hash measurement study (half see prompts, half do not; leave any time with `cfxd set coach off`) | experimental, off by default |
+| Coach, idle notice (`cfxd set coach on`, `idle_notice on`) | One plain line when a session gets long, or when a resume finds the cache expired. Coach is on by default and joins you to an install-hash measurement study (half see prompts, half do not; leave any time with `cfxd set coach off`); idle notice is off by default | experimental |
 | Brief | Gives a sub-agent the working-set files and recent state the parent already touched; fires only when a sub-agent runs | experimental |
 | Carry | Snapshots the working set before `/compact`, restores it after; acts only at a compaction, which is rare | experimental |
 | Fold | retired (ADR-0013) |
@@ -187,7 +187,7 @@ in [`docs/engineering/NUMBERS.md`](docs/engineering/NUMBERS.md).
 **Next.**
 - [x] ~~Checkpoint and restart~~ retired: it re-pays the prompt prefix and measured more expensive (ADR-0013)
 - [x] `cfxd diet --apply` with an exact undo (shipped, experimental; its effect is still to be checked in `/context`)
-- [x] Session coach (shipped, experimental, off by default)
+- [x] Session coach (shipped, experimental, on by default as a measurement study)
 - [ ] OpenCode and Codex plugin adapters (their session-log readers already exist)
 - [ ] Pre-registered paired benchmark: cache-weighted cost per resolved task, raw data published (v2 voided; v4 designed, not registered)
 

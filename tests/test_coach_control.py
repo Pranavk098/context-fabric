@@ -16,7 +16,7 @@ from cfxd.handlers import clear
 EXACT_182K_OPUS = (
     "Context Fabric: this session is at ~182K tokens; each turn now re-reads it "
     "(about $0.04 at Opus 5.5 cache-read prices, API-equivalent). If this is a natural "
-    "break: /context-fabric:checkpoint, then /clear. Turn this off: cfxd set coach off"
+    "break: /clear starts a fresh context. Turn this off: cfxd set coach off"
 )
 
 
