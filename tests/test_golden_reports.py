@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pytest
 
+from cfxd import __version__
 from cfxd.cli import main as cli_main
 
 GOLDEN = Path(__file__).with_name("golden")
@@ -42,7 +43,8 @@ def test_golden_report_is_exact(
     monkeypatch.setenv("CFX_HOME", str(tmp_path))
     args = [arg.format(state=tmp_path) for arg in (*argv, "--root", str(GOLDEN))]
     assert cli_main(args) == 0
-    actual = capsys.readouterr().out.replace("\r\n", "\n")
+    # The release version changes on every bump; the goldens hold a placeholder instead.
+    actual = capsys.readouterr().out.replace("\r\n", "\n").replace(__version__, "{VERSION}")
     expected = (REPORTS / f"{name}.txt").read_text(encoding="utf-8")
     assert actual == expected
 

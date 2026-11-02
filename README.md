@@ -13,8 +13,9 @@
 </div>
 
 Context Fabric measures where a coding agent's context and tokens go, from your own session transcripts, and is
-building tools that keep long sessions lean. Hooks: Claude Code only. Reports: Claude Code; Codex and OpenCode
-logs can be measured offline with `cfxd agent-audit`.
+building tools that keep long sessions lean. Hooks: Claude Code only. Reports: Claude Code, and Codex (beta:
+`cfxd audit --source codex`, `cfxd week --source codex`, counts only, no price guessed). OpenCode logs can be
+measured offline with `cfxd agent-audit`.
 
 **Objective:** keep the context a coding agent re-reads on every turn as small as the work allows, and show every
 effect as a receipt you can re-run on your own data, so nothing is believed without one.

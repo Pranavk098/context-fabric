@@ -1,4 +1,4 @@
-cfxd week 0.1.1a1, last 36500 days (experimental)
+cfxd week {VERSION}, last 36500 days (experimental)
 Limit-weighted new tokens: 13,050 (estimated: price-ratio weights from cfxd/data/limit_weights.toml)
 Limit share: n/a (no official 5-hour or weekly token limit for any plan tier; decision D-3)
 Sessions: 1 parent session
