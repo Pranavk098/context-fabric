@@ -102,7 +102,7 @@ def test_control_arm_withholds_and_still_logs(tmp_path: Path) -> None:
             "ts": trigger[0]["ts"],
             "event": "coach_trigger",
             "arm": "control",
-            "turn": 30,
+            "turn": 17,
             "context_tokens": 150_000,
         }
     ]
@@ -112,11 +112,11 @@ def test_warned_arm_warns_and_still_logs(tmp_path: Path) -> None:
     state_dir = _install_for(tmp_path, "warned")
     _on(state_dir)
     path = _transcript(tmp_path, 182_345)
-    results = _run(path, "s1", state_dir)
+    results = _run(path, "s1", state_dir, turns=15)
     assert results[-1] == {"systemMessage": EXACT_182K_OPUS}
     trigger = [r for r in _receipts(state_dir) if r["event"] == "coach_trigger"]
     assert [(r["arm"], r["turn"], r["context_tokens"]) for r in trigger] == [
-        ("warned", 30, 182_345)
+        ("warned", 15, 182_345)
     ]
 
 
@@ -136,10 +136,10 @@ def test_receipts_contain_no_canary_id_or_path(tmp_path: Path) -> None:
 def test_flag_off_output_and_receipts_are_unchanged(tmp_path: Path) -> None:
     _on(tmp_path, control=False)
     path = _transcript(tmp_path, 182_345)
-    results = _run(path, "s1", tmp_path)
+    results = _run(path, "s1", tmp_path, turns=15)
     assert results[-1] == {"systemMessage": EXACT_182K_OPUS}
     receipts = _receipts(tmp_path)
-    assert [r["event"] for r in receipts] == ["coach_nudge"] * 30
+    assert [r["event"] for r in receipts] == ["coach_nudge"] * 15
     last = receipts[-1]
     assert set(last) == {
         "ts",
@@ -151,7 +151,7 @@ def test_flag_off_output_and_receipts_are_unchanged(tmp_path: Path) -> None:
         "outcome",
     }
     assert last["session_id"] == "s1"
-    assert (last["context_tokens"], last["turns"], last["outcome"]) == (182_345, 30, "shown")
+    assert (last["context_tokens"], last["turns"], last["outcome"]) == (182_345, 15, "shown")
 
 
 def test_coach_off_emits_nothing_in_either_mode(tmp_path: Path) -> None:

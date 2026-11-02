@@ -31,6 +31,9 @@ COACH_LOG = "coach.jsonl"
 TAIL_BYTES = 64 * 1024
 CONTEXT_THRESHOLD = 150_000
 TURN_THRESHOLD = 30
+# The frozen tester setting (docs/plans/2026-11-02-coach-threshold-decision.md).
+COACH_FIRE_TURN = 15
+COACH_FIRE_COST_USD = 0.50
 COOLDOWN_TURNS = 10
 GROWTH_TOKENS = 100_000
 # Turns to watch after a nudge, and how far context must fall to count as a reset.
@@ -82,14 +85,31 @@ def handle_stop(payload: dict[str, Any], state_dir: Path) -> dict[str, Any]:
         with _lock:
             session = _STATE.setdefault(
                 session_id,
-                {"turns": 0, "last_context": 0, "last_turn": 0, "pending": None},
+                {
+                    "turns": 0,
+                    "cost_so_far": 0.0,
+                    "priced": False,
+                    "last_context": 0,
+                    "last_turn": 0,
+                    "pending": None,
+                },
             )
             session["turns"] += 1
             turns = session["turns"]
+            dollars = _turn_cost(model, context)
+            if dollars is not None:
+                session["cost_so_far"] = session.get("cost_so_far", 0.0) + dollars
+                session["priced"] = True
             settled = _settle(session, turns, context, model)
             last_context = session["last_context"]
             last_turn = session["last_turn"]
-            if context < CONTEXT_THRESHOLD or turns < TURN_THRESHOLD:
+            if session.get("priced"):
+                # The frozen cost rule, the same sum the sweep models.
+                fires = turns >= COACH_FIRE_TURN and session["cost_so_far"] >= COACH_FIRE_COST_USD
+            else:
+                # No price for this session: the old token+turn rule, unchanged.
+                fires = context >= CONTEXT_THRESHOLD and turns >= TURN_THRESHOLD
+            if not fires:
                 outcome = "below_threshold"
             elif last_turn and (
                 turns - last_turn < COOLDOWN_TURNS or context - last_context < GROWTH_TOKENS

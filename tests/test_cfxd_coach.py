@@ -94,7 +94,8 @@ def _receipts(tmp_path: Path) -> list[dict[str, Any]]:
 
 def test_context_threshold_is_exact(tmp_path: Path) -> None:
     _on(tmp_path)
-    transcript = _transcript(tmp_path, 149_999)
+    # Unpriced: this is the old token+turn rule, kept for models with no price.
+    transcript = _transcript(tmp_path, 149_999, model="claude-made-up-9")
     for _ in range(30):
         assert coach.handle_stop(_payload(transcript), tmp_path) == {}
     assert {r["outcome"] for r in _receipts(tmp_path)} == {"below_threshold"}
@@ -102,7 +103,7 @@ def test_context_threshold_is_exact(tmp_path: Path) -> None:
 
 def test_turn_threshold_is_exact(tmp_path: Path) -> None:
     _on(tmp_path)
-    transcript = _transcript(tmp_path, 150_000)
+    transcript = _transcript(tmp_path, 150_000, model="claude-made-up-9")
     for _ in range(29):
         assert coach.handle_stop(_payload(transcript), tmp_path) == {}
     assert coach.handle_stop(_payload(transcript), tmp_path) != {}
@@ -111,7 +112,7 @@ def test_turn_threshold_is_exact(tmp_path: Path) -> None:
 def test_message_is_exact(tmp_path: Path) -> None:
     _on(tmp_path)
     transcript = _transcript(tmp_path, 182_345)
-    for _ in range(29):
+    for _ in range(14):
         coach.handle_stop(_payload(transcript), tmp_path)
     assert coach.handle_stop(_payload(transcript), tmp_path) == {"systemMessage": EXACT_182K_OPUS}
 
@@ -119,7 +120,7 @@ def test_message_is_exact(tmp_path: Path) -> None:
 def test_second_nudge_needs_100k_growth(tmp_path: Path) -> None:
     _on(tmp_path)
     transcript = _transcript(tmp_path, 150_000)
-    for _ in range(30):
+    for _ in range(17):
         last = coach.handle_stop(_payload(transcript), tmp_path)
     assert last != {}
     _transcript(tmp_path, 249_999)
@@ -133,7 +134,7 @@ def test_second_nudge_needs_100k_growth(tmp_path: Path) -> None:
 def test_ten_turn_cooldown(tmp_path: Path) -> None:
     _on(tmp_path)
     transcript = _transcript(tmp_path, 150_000)
-    for _ in range(30):
+    for _ in range(17):
         coach.handle_stop(_payload(transcript), tmp_path)
     _transcript(tmp_path, 400_000)
     for _ in range(9):
@@ -212,7 +213,7 @@ def test_receipt_is_content_free(tmp_path: Path) -> None:
         + "\n",
         encoding="utf-8",
     )
-    for _ in range(30):
+    for _ in range(17):
         coach.handle_stop(_payload(transcript), tmp_path)
     text = (tmp_path / coach.COACH_LOG).read_text(encoding="utf-8")
     assert canary not in text
@@ -220,7 +221,7 @@ def test_receipt_is_content_free(tmp_path: Path) -> None:
     receipt = _receipts(tmp_path)[-1]
     assert receipt["event"] == "coach_nudge"
     assert receipt["context_tokens"] == 150_000
-    assert receipt["turns"] == 30
+    assert receipt["turns"] == 17
     assert receipt["model"] == "claude-opus-5-5"
     assert receipt["outcome"] == "shown"
     assert receipt["session_id"] == "s1"

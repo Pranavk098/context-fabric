@@ -140,7 +140,7 @@ def test_shown_and_would_have_shown_are_both_receipted(tmp_path: Path) -> None:
     warned = _install_for(tmp_path / "w", "warned")
     _on(warned)
     path = _transcript(tmp_path / "s.jsonl", 182_345)
-    _nudge(warned, path, turns=29)
+    _nudge(warned, path, turns=14)
     assert coach.handle_stop(_payload(path), warned)["systemMessage"].startswith("Context Fabric")
     assert {r["arm"] for r in _receipts(warned, "coach_trigger")} == {"warned"}
 
@@ -154,7 +154,7 @@ def test_action_is_restart_when_context_is_reset(tmp_path: Path) -> None:
     state_dir = _install_for(tmp_path, "control")
     _on(state_dir)
     path = _transcript(tmp_path / "s.jsonl", 182_345)
-    _nudge(state_dir, path, turns=30)
+    _nudge(state_dir, path, turns=15)
     _transcript(path, 40_000)
     assert coach.handle_stop(_payload(path), state_dir) == {}
     outcome = _receipts(state_dir, "coach_outcome")
@@ -171,7 +171,7 @@ def test_action_is_none_after_n_turns_and_cost_is_summed(tmp_path: Path) -> None
     state_dir = _install_for(tmp_path, "control")
     _on(state_dir)
     path = _transcript(tmp_path / "s.jsonl", 182_345)
-    _nudge(state_dir, path, turns=30)
+    _nudge(state_dir, path, turns=15)
     for step in range(1, coach.ACTION_TURNS + 1):
         _transcript(path, 182_345 + step * 1_000)
         assert coach.handle_stop(_payload(path), state_dir) == {}
@@ -187,7 +187,7 @@ def test_action_is_end_when_a_new_session_starts(tmp_path: Path) -> None:
     state_dir = _install_for(tmp_path, "control")
     _on(state_dir)
     path = _transcript(tmp_path / "s.jsonl", 182_345)
-    _nudge(state_dir, path, turns=30)
+    _nudge(state_dir, path, turns=15)
     coach.install(state_dir)
     dispatch("SessionStart", {"session_id": "s1"})  # the nudge's own session may resume
     assert _receipts(state_dir, "coach_outcome") == []
@@ -200,7 +200,7 @@ def test_action_is_dismiss_when_the_coach_is_turned_off(tmp_path: Path) -> None:
     state_dir = _install_for(tmp_path, "control")
     _on(state_dir)
     path = _transcript(tmp_path / "s.jsonl", 182_345)
-    _nudge(state_dir, path, turns=30)
+    _nudge(state_dir, path, turns=15)
     set_flag(state_dir, "coach", False)
     assert coach.handle_stop(_payload(path), state_dir) == {}
     assert coach.handle_stop(_payload(path), state_dir) == {}
