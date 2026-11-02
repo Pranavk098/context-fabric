@@ -17,7 +17,7 @@ building tools that keep long sessions lean. Hooks: Claude Code only. Reports: C
 logs can be measured offline with `cfxd agent-audit`.
 
 **Objective:** keep the context a coding agent re-reads on every turn as small as the work allows, and show every
-effect as a receipt you can re-run on your own data, while no saving is proven.
+effect as a receipt you can re-run on your own data, so nothing is believed without one.
 
 **Status:** alpha, Claude Code first. The measurement tools work. The mechanisms that act on context (brief, carry)
 are experimental and have no measured token effect yet. **No saving is proven.** Fold, bound and checkpoint-restart were retired after they failed their measurements ([ADR-0012](docs/decisions/ADR-0012-retire-fold-and-checkpoint-restart.md), [ADR-0013](docs/decisions/ADR-0013-retire-bound-and-checkpoint-hold-carry-v2.md)). The first paired benchmark (v2) ran and was
