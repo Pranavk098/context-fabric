@@ -344,3 +344,31 @@ def test_duplicate_copies_and_unpriced_models_are_counted_not_modelled(
     assert "duplicate copies skipped: 1" in out
     assert "unpriced model: 1" in out
     assert "40+ turn sessions (the D-2 population): 1" in out
+
+
+def _headroom(recall: float | None, t: int) -> float:
+    turns = [_turn(f"m{i}", 2000 + 800 * i) for i in range(4)]
+    scanned, _index = rb.scan_turns(turns, _FAMILIES)
+    result = rb.simulate(scanned, [t], scanned[0].prompt, 768, _ENTRY, recall=recall)
+    return result["rows"][0][1]
+
+
+def test_complete_recall_and_no_recall_agree() -> None:
+    assert _headroom(1.0, 3) == pytest.approx(_headroom(None, 3))
+
+
+def test_missed_context_is_regathered_as_new_tokens_not_cache_reads() -> None:
+    # Restart at 3 pays for the missed half of what turns 0-2 gathered beyond the prefix:
+    # (1 - 0.5) x (3600 - 2000) = 800 tokens at the 3.75 $/Mtok cache-write price.
+    assert _headroom(None, 3) - _headroom(0.5, 3) == pytest.approx(800 * 3.75 / 1e6)
+
+
+def test_regathered_tokens_join_the_restarted_context() -> None:
+    # Restart at 2: lost = 0.5 x (2800 - 2000) = 400, written once, then read on turn 3.
+    assert _headroom(None, 2) - _headroom(0.5, 2) == pytest.approx(
+        400 * 3.75 / 1e6 + 400 * 0.3 / 1e6
+    )
+
+
+def test_lower_recall_never_raises_headroom() -> None:
+    assert _headroom(0.331, 3) <= _headroom(0.469, 3) <= _headroom(1.0, 3)
