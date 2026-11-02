@@ -48,4 +48,3 @@ source = "https://support.claude.com/en/articles/11647753-how-do-usage-and-lengt
 as_of = "2026-11-02"
 basis = "estimate"
 # no five_hour_tokens, no week_tokens: no official figure exists
-# verified Ultra accounts have no 5-hour limit at all, so that window can never be shared
