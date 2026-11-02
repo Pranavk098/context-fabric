@@ -149,18 +149,35 @@ def test_state_dir_check_writable_and_content_classes(tmp_path: Path) -> None:
     assert not missing.ok and "not writable" in missing.detail
 
 
-def test_claude_code_check_reports_version_and_fails_closed() -> None:
+def test_claude_code_check_reports_version_and_warns_when_missing() -> None:
     found = checkup._claude_code_check(_fake_claude("2.1.0 (Claude Code)"))
-    assert found.ok and found.detail == "version 2.1.0 (Claude Code)"
+    assert found.ok and not found.warn and found.detail == "version 2.1.0 (Claude Code)"
 
     def missing(*args: Any, **kwargs: Any) -> Any:
         raise FileNotFoundError("claude")
 
     absent = checkup._claude_code_check(missing)
-    assert not absent.ok and absent.fix == checkup._claude_install()
+    assert absent.ok and absent.warn
+    assert absent.detail == (
+        "not found on PATH (fine if you use the desktop app or an IDE extension)"
+    )
+    assert absent.fix == checkup._claude_install()
 
     failed = checkup._claude_code_check(lambda *a, **k: SimpleNamespace(returncode=1, stdout=""))
-    assert not failed.ok
+    assert failed.ok and failed.warn
+
+
+def test_warn_line_prints_the_install_as_optional() -> None:
+    check = checkup.DoctorCheck(
+        "claude code", True, "not found on PATH", "curl -fsSL x | bash", warn=True
+    )
+    line = check.line()
+    assert "WARN" in line
+    assert "PASS" not in line and "FAIL" not in line
+    assert "install the CLI: curl -fsSL x | bash" in line
+    text = checkup.format_doctor([check])
+    assert "WARN  not found on PATH" in text
+    assert "install the CLI: curl -fsSL x | bash" in text
 
 
 def test_launcher_check_windows_needs_sh_and_python(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -205,6 +222,28 @@ def test_doctor_runs_six_checks_in_order_without_paths(
     assert "FAIL  no state file" in text
     assert "PASS  present; readable only by you" in text
     assert str(tmp_path) not in text
+
+
+def test_a_missing_cli_leaves_every_check_ok(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    state = tmp_path / "cfx"
+    state.mkdir()
+    (state / "token").write_text("abc", encoding="utf-8")
+    monkeypatch.setattr(checkup, "token_permission_warning", lambda _path: None)
+
+    def missing(*args: Any, **kwargs: Any) -> Any:
+        raise FileNotFoundError("claude")
+
+    checks = checkup.doctor(
+        state,
+        plugin_root=_hooks_root(tmp_path),
+        runner=missing,
+        which=lambda name: f"/usr/bin/{name}",
+    )
+    assert {check.name for check in checks if not check.ok} == {"daemon"}
+    assert [check.warn for check in checks] == [False, False, False, False, True, False]
+    assert "WARN" in checkup.format_doctor(checks)
 
 
 # --- the structured hook log ------------------------------------------------------

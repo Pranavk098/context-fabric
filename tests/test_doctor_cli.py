@@ -70,6 +70,34 @@ def test_failing_check_exits_1_and_prints_its_fix(
     assert "cfxd doctor: unhealthy" in out
 
 
+def test_warning_check_exits_0_but_a_real_failure_still_exits_1(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    warn = DoctorCheck(
+        "claude code",
+        True,
+        "not found on PATH (fine if you use the desktop app or an IDE extension)",
+        "curl -fsSL https://claude.ai/install.sh | bash",
+        warn=True,
+    )
+    checks = _passing_checks()
+    checks[4] = warn
+    monkeypatch.setattr(cli, "deep_doctor", lambda state_dir: checks)
+    _reachable(monkeypatch)
+    code = cli._cmd_doctor(argparse.Namespace(state_dir=str(tmp_path / "cfx")))
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "WARN  not found on PATH" in out
+    assert "install the CLI: curl -fsSL https://claude.ai/install.sh | bash" in out
+    assert "cfxd doctor: healthy" in out
+
+    broken = _passing_checks()
+    broken[1] = DoctorCheck("token", False, "missing", FIX)
+    broken[4] = warn
+    monkeypatch.setattr(cli, "deep_doctor", lambda state_dir: broken)
+    assert cli._cmd_doctor(argparse.Namespace(state_dir=str(tmp_path / "cfx"))) == 1
+
+
 def test_daemon_down_prints_checks_before_the_hint(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Path
 ) -> None:

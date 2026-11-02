@@ -54,6 +54,7 @@ _ESTIMATE = "an estimate, not a bill"
 _PLUGIN_ROOT = Path(__file__).resolve().parent.parent
 _REQUIRED_HOOKS = ("SessionStart", "PreCompact", "PreToolUse", "PostToolUse", "Stop")
 _PLUGIN_REINSTALL = "claude plugin install context-fabric@context-fabric"
+_CLI_ABSENT = "not found on PATH (fine if you use the desktop app or an IDE extension)"
 
 
 def _diet_section(root: Path, since: str, now: datetime) -> tuple[dict[str, Any] | None, list[str]]:
@@ -140,17 +141,24 @@ def _subagent_section(root: Path) -> tuple[dict[str, Any] | None, list[str]]:
 
 @dataclass(frozen=True)
 class DoctorCheck:
-    """One diagnostic line: what was checked, its detail, and the exact fix on failure."""
+    """One diagnostic line: what was checked, its detail, and the exact fix on failure.
+
+    ``warn`` marks a line that is worth telling the tester about but is not a failure:
+    ``ok`` stays true, so no ``doctor()`` consumer fails on it.
+    """
 
     name: str
     ok: bool
     detail: str
     fix: str | None = None
+    warn: bool = False
 
     def line(self) -> str:
-        status = "PASS" if self.ok else "FAIL"
+        status = "WARN" if self.warn else "PASS" if self.ok else "FAIL"
         text = f"  {self.name:<12} {status}  {self.detail}"
-        return text if self.fix is None else f"{text}; fix: {self.fix}"
+        if self.fix is None:
+            return text
+        return f"{text}; {'install the CLI' if self.warn else 'fix'}: {self.fix}"
 
 
 def _state_dir_fix() -> str:
@@ -274,16 +282,20 @@ def _state_dir_check(state_dir: Path) -> DoctorCheck:
 
 
 def _claude_code_check(runner: Callable[..., Any] | None = None) -> DoctorCheck:
-    """The host agent is installed and reports a version."""
+    """The host agent is installed and reports a version.
+
+    A missing CLI is a WARN: the desktop app and IDE extensions need no ``claude`` on
+    PATH, so their users must not be told the install is unhealthy.
+    """
     run = runner or subprocess.run
     try:
         proc = run(["claude", "--version"], capture_output=True, text=True, timeout=10)
     except (OSError, subprocess.SubprocessError):
-        return DoctorCheck("claude code", False, "not found on PATH", _claude_install())
+        return DoctorCheck("claude code", True, _CLI_ABSENT, _claude_install(), warn=True)
     out = proc.stdout if isinstance(proc.stdout, str) else ""
     version = out.strip().splitlines()[0][:60] if out.strip() else ""
     if proc.returncode != 0 or not version:
-        return DoctorCheck("claude code", False, "not found on PATH", _claude_install())
+        return DoctorCheck("claude code", True, _CLI_ABSENT, _claude_install(), warn=True)
     return DoctorCheck("claude code", True, f"version {version}")
 
 
