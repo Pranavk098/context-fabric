@@ -18,6 +18,7 @@ from typing import Any
 
 from cfxd.daemon import EVENTS_FILE, percentile
 from cfxd.fsutil import iter_json_lines
+from cfxd.logs.codex import report as codex_report
 from cfxd.usage_dedupe import MessageUsage
 
 DEFAULT_ROOT = Path.home() / ".claude" / "projects"
@@ -485,8 +486,16 @@ def _group_summary(
     }
 
 
-def audit(root: Path, since: str = "30d", now: datetime | None = None) -> dict[str, Any]:
-    """Aggregate counts-only audit stats over every transcript under ``root``."""
+def audit(
+    root: Path, since: str = "30d", now: datetime | None = None, source: str = "claude"
+) -> dict[str, Any]:
+    """Aggregate counts-only audit stats over every transcript under ``root``.
+
+    ``source="codex"`` returns the Codex (beta) report instead; render it with
+    ``cfxd.logs.codex.format_report``. The Claude path is unchanged.
+    """
+    if source != "claude":
+        return codex_report(root, since, now)
     if now is None:
         now = datetime.now(UTC)
     delta = _SINCE_DELTAS.get(since)

@@ -22,6 +22,7 @@ from cfxd.diet import diet
 from cfxd.dietapply import _read_records, _write_record
 from cfxd.fsutil import ensure_dir
 from cfxd.limit_metric import limit_weighted_new_tokens, load_weights, sensitivity
+from cfxd.logs.codex import report as codex_report
 from cfxd.refetch import refetch
 from cfxd.replay import _parse_ts
 from cfxd.routing import (
@@ -151,8 +152,15 @@ def week(
     state_dir: Path | None = None,
     now: datetime | None = None,
     share: bool = False,
+    source: str = "claude",
 ) -> dict[str, Any]:
-    """Aggregate one weekly report from the existing analyzers; never guesses a number."""
+    """Aggregate one weekly report from the existing analyzers; never guesses a number.
+
+    ``source="codex"`` returns the Codex (beta) report instead; render it with
+    ``cfxd.logs.codex.format_report``. The Claude path is unchanged.
+    """
+    if source != "claude":
+        return codex_report(root, f"{days}d", now)
     if now is None:
         now = datetime.now(UTC)
     since = _since_key(days)

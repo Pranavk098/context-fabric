@@ -49,6 +49,8 @@ from cfxd.fidelity import fidelity
 from cfxd.fidelity import format_fidelity as format_fidelity_report
 from cfxd.handoff_stats import main as handoff_stats_main
 from cfxd.ledger import format_ledger, ledger
+from cfxd.logs import get_source
+from cfxd.logs.codex import format_report as format_codex_report
 from cfxd.refetch import format_refetch, refetch
 from cfxd.replay import format_replay, replay
 from cfxd.routing import format_human as format_routing
@@ -87,6 +89,16 @@ def _digests(args: argparse.Namespace) -> bool:
     if chosen:
         print(_DIGEST_WARNING, file=sys.stderr)
     return chosen
+
+
+def _add_source_flag(parser: argparse.ArgumentParser) -> None:
+    """Pick the transcript source; ``codex`` is beta and off by default."""
+    parser.add_argument(
+        "--source",
+        choices=("claude", "codex"),
+        default="claude",
+        help="transcript source (default: claude; codex is beta)",
+    )
 
 
 def _add_state_dir(parser: argparse.ArgumentParser) -> None:
@@ -145,6 +157,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="time window by file mtime (default: 30d)",
     )
     auditp.add_argument("--json", action="store_true", help="emit a single JSON object")
+    _add_source_flag(auditp)
     auditp.set_defaults(func=_cmd_audit)
 
     covp = subparsers.add_parser(
@@ -375,6 +388,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="also write one numbers-only snapshot per day for cfxd trend",
     )
     _add_state_dir(weekp)
+    _add_source_flag(weekp)
     weekp.set_defaults(func=_cmd_week)
 
     trendp = subparsers.add_parser(
@@ -848,11 +862,22 @@ def _cmd_stats(args: argparse.Namespace) -> int:
     return 0
 
 
+def _transcript_root(args: argparse.Namespace) -> Path:
+    """``--root`` when given, else the selected source's default root."""
+    if args.root:
+        return Path(args.root)
+    if args.source == "claude":
+        return DEFAULT_ROOT
+    return get_source(args.source).default_root()
+
+
 def _cmd_audit(args: argparse.Namespace) -> int:
-    root = Path(args.root) if args.root else DEFAULT_ROOT
-    report = audit(root, args.since)
+    root = _transcript_root(args)
+    report = audit(root, args.since, source=args.source)
     if args.json:
         print(json.dumps(report))
+    elif args.source == "codex":
+        print(format_codex_report(report, "audit"))
     else:
         print(format_audit(report, root.name))
     return 0
@@ -1015,16 +1040,24 @@ def _cmd_week(args: argparse.Namespace) -> int:
     if args.days < 1:
         print("cfxd week: --days must be at least 1", file=sys.stderr)
         return 2
-    root = Path(args.root) if args.root else DEFAULT_ROOT
+    root = _transcript_root(args)
     state_dir = resolve_state_dir(args.state_dir)
     digests = _digests(args)
     share = args.share or digests
-    week_report = week(root, args.days, state_dir, share=share)
+    if args.source != "claude" and (share or args.save):
+        print(
+            "cfxd week: --share and --save are Claude Code only (Codex is beta)",
+            file=sys.stderr,
+        )
+        return 2
+    week_report = week(root, args.days, state_dir, share=share, source=args.source)
     if args.json:
         data = dict(week_report)
         if share:
             data["cf_share"] = validate_share(build_share(share_aggregates(week_report)))
         print(json.dumps(data))
+    elif args.source == "codex":
+        print(format_codex_report(week_report, "week", f"last {args.days} days"))
     else:
         print(format_week(week_report, share=share, verbose=args.verbose))
     if args.save:

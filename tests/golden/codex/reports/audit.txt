@@ -1,0 +1,10 @@
+Codex (beta) audit, all time
+Sessions: 2, turns: 3, tool calls: 1
+Tokens: input 1,200 (uncached), cache read 1,200, cache write 0, output 120 (2,520 total)
+Cache-read share of tokens: 47.6%
+Dollars: no price for this model (gpt-5, gpt-5-codex); counts and token totals only, no price is guessed.
+Models:
+  gpt-5-codex: 2 turns, 2,100 tokens
+  gpt-5: 1 turn, 420 tokens
+Cache write is always 0: Codex records no separate cache-write tier.
+This report contains counts and token totals only; no paths, prompts or commands.
