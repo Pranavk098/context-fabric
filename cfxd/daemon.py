@@ -11,13 +11,17 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import secrets
 import socket
 import socketserver
+import stat
+import subprocess
 import sys
 import tempfile
 import threading
 import time
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeout
 from datetime import UTC, datetime
@@ -33,7 +37,8 @@ from cfxd.brief import sync_range_recording
 from cfxd.carry import install as carry_install
 from cfxd.checkpoint import install as checkpoint_install
 from cfxd.coach import install as coach_install
-from cfxd.fold import purge_obs
+from cfxd.content_class import audit_state_dir
+from cfxd.fold import OBS_DIR, purge_obs
 from cfxd.fsutil import ensure_dir, open_log, rotate
 from cfxd.handlers import add_observer, dispatch
 from cfxd.hookclient import (  # noqa: F401  # client-side helpers, re-exported for CLI + launcher
@@ -62,6 +67,7 @@ __all__ = [
 STATE_FILE = "state.json"
 EVENTS_FILE = "events.jsonl"
 OBS_PURGE_FILE = ".obs-purged"
+BIND_HOST = "127.0.0.1"
 HANDLER_TIMEOUT_MS = 150.0
 # Agent calls may build a Brief v1 packet (1 s deadline inside the handler, hook timeout 2 s).
 AGENT_HANDLER_TIMEOUT_MS = 1300.0
@@ -131,6 +137,10 @@ def _purge_obs_once(state_dir: Path) -> tuple[int, int]:
         pass
     files, size = purge_obs(state_dir)
     try:
+        (state_dir / OBS_DIR).rmdir()  # the blobs are gone; retire the directory too
+    except OSError:
+        pass
+    try:
         marker.write_text(__version__, encoding="utf-8")
     except OSError:
         pass
@@ -170,6 +180,65 @@ def daemon_alive(state: dict[str, Any]) -> bool:
     return _health_ok(port)
 
 
+_BROAD_PRINCIPALS = ("everyone", "users", "authenticated users")
+_READ_ACE = ("F", "M", "R", "RX")
+_ACE_RE = re.compile(r"^\s*(.+?):((?:\([^)]*\))+)\s*$")
+_UNVERIFIED_ACL = (
+    "cfxd: WARNING: could not verify the ACL on {path}; "
+    "keep the state directory inside your user profile"
+)
+
+
+def require_loopback_bind(host: str) -> None:
+    """Startup guard: cfxd is a 127.0.0.1 service and must never bind a routable address."""
+    if host != BIND_HOST:
+        raise RuntimeError(f"refusing to bind {host!r}: cfxd binds {BIND_HOST} only")
+
+
+def token_permission_warning(
+    token_path: Path,
+    *,
+    platform_name: str | None = None,
+    runner: Callable[..., Any] | None = None,
+) -> str | None:
+    """Loud warning when the token file is not limited to the current user, else ``None``."""
+    if (platform_name or os.name) != "nt":
+        try:
+            mode = stat.S_IMODE(token_path.stat().st_mode)
+        except OSError:
+            return None
+        if mode & 0o077 == 0:
+            return None
+        return (
+            f"cfxd: WARNING: {token_path} is readable by other users (mode {mode:o}); "
+            f"run: chmod 600 {token_path}"
+        )
+    return _windows_acl_warning(token_path, runner)
+
+
+def _windows_acl_warning(token_path: Path, runner: Callable[..., Any] | None) -> str | None:
+    """Windows has no 0600: warn when a broad group holds a read ACE on the token file."""
+    run = runner or subprocess.run
+    try:
+        proc = run(["icacls", str(token_path)], capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        return _UNVERIFIED_ACL.format(path=token_path)
+    if proc.returncode != 0:
+        return _UNVERIFIED_ACL.format(path=token_path)
+    for line in proc.stdout.splitlines():
+        match = _ACE_RE.match(line.strip())
+        if match is None:
+            continue
+        principal = match.group(1).strip().lower().rsplit("\\", 1)[-1]
+        grants = any(token in _READ_ACE for token in re.findall(r"\(([^)]*)\)", match.group(2)))
+        if grants and principal in _BROAD_PRINCIPALS:
+            return (
+                f"cfxd: WARNING: {token_path} grants read to '{principal}'; "
+                "keep the state directory inside your user profile"
+            )
+    return None
+
+
 def _field(payload: dict[str, Any], key: str) -> str | None:
     value = payload.get(key)
     if isinstance(value, str):
@@ -202,7 +271,11 @@ class Daemon:
 
     def start(self) -> None:
         ensure_dir(self.state_dir)
+        require_loopback_bind(BIND_HOST)
         self.token = _ensure_token(self.state_dir)
+        permission_warning = token_permission_warning(self.state_dir / TOKEN_FILE)
+        if permission_warning is not None:
+            print(permission_warning, file=sys.stderr)
         purged, purged_bytes = _purge_obs_once(self.state_dir)
         if purged:
             self.log_event(
@@ -213,6 +286,14 @@ class Daemon:
                     "bytes": purged_bytes,
                 }
             )
+        violations = audit_state_dir(self.state_dir)
+        if violations:
+            # Counts only: the file names say which class broke, not what text leaked.
+            print(
+                f"cfxd: WARNING: {len(violations)} state file(s) exceed their content class; "
+                "run scripts/state_audit.py",
+                file=sys.stderr,
+            )
         brief_install(self.state_dir)
         bound_install(self.state_dir)
         carry_install(self.state_dir)
@@ -222,7 +303,7 @@ class Daemon:
         sync_range_recording(self.state_dir)
         add_observer("PostToolUse", lambda _payload: sync_range_recording(self.state_dir))
         add_observer("PostToolUse", session_state.observe_post_tool_use)
-        httpd = _CfxdServer(("127.0.0.1", self._port), _Handler)
+        httpd = _CfxdServer((BIND_HOST, self._port), _Handler)
         httpd.daemon = self
         self._httpd = httpd
         self.port = httpd.server_address[1]

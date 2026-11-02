@@ -15,6 +15,9 @@ one source for humans and this checker) and verifies, per entry:
 ``stale_patterns`` must not occur in their scoped docs (or, unscoped, anywhere under the
 repo except docs listed in ``historical_ok`` and the registry itself).
 
+``check_security_carry_bytes`` keeps SECURITY.md's carry byte figures equal to the constants
+in ``cfxd/carry.py``, so the "3,000 vs 4 KB" drift cannot happen twice.
+
 Exit status 0 when clean, 1 with a report of every failed check. ``--verbose`` prints all.
 """
 
@@ -182,6 +185,31 @@ def _symbol_exists(spec: str) -> bool:
     return getattr(module, attr, None) is not None
 
 
+_CARRY_DOC_RE = re.compile(r"up to ([\d,]+) bytes \(v1: ([\d,]+)\)")
+
+
+def check_security_carry_bytes(root: Path, report: list[tuple[bool, str]]) -> None:
+    """SECURITY.md's carry byte figures must equal ``cfxd.carry``'s constants."""
+    try:
+        text = (root / "SECURITY.md").read_text(encoding="utf-8")
+    except OSError:
+        return  # no security doc in this root (doc-guard tests run on synthetic trees)
+    match = _CARRY_DOC_RE.search(text)
+    if match is None:
+        report.append((False, "security carry bytes: no 'up to N bytes (v1: M)' figure found"))
+        return
+    v2_doc, v1_doc = (int(group.replace(",", "")) for group in match.groups())
+    carry = importlib.import_module("cfxd.carry")
+    v2_code = int(carry.CARRY_V2_CAP_BYTES)
+    v1_code = int(carry.RENDER_CAP_BYTES)
+    report.append(
+        (
+            v2_doc == v2_code and v1_doc == v1_code,
+            f"security carry bytes: doc v2={v2_doc} v1={v1_doc}, code v2={v2_code} v1={v1_code}",
+        )
+    )
+
+
 def _check_capabilities(root: Path, report: list[tuple[bool, str]]) -> None:
     docs = _all_docs(root)
     for item in CAPABILITY_REGISTRY:
@@ -222,6 +250,7 @@ def run(registry_path: Path = REGISTRY, root: Path = ROOT) -> list[tuple[bool, s
         check_entry(entry, root, report)
     check_stale(registry, root, registry_path, report)
     _check_capabilities(root, report)
+    check_security_carry_bytes(root, report)
     return report
 
 
