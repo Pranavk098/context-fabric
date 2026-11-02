@@ -25,6 +25,8 @@ from typing import Any
 
 FLOOR = 3  # the minimum credible dataset, named before tester week
 FRICTION = ("install", "comprehension", "trust", "performance")
+# Fields that are counts: a developer's median is rounded to a whole number.
+COUNTS = ("sessions", "turns", "children", "brief_sessions", "carry_sessions", "elisions")
 
 
 def load(path: Path) -> tuple[list[dict[str, Any]], int]:
@@ -47,32 +49,65 @@ def load(path: Path) -> tuple[list[dict[str, Any]], int]:
     return records, unreadable
 
 
+def _values(records: list[dict[str, Any]], section: str, key: str) -> list[float]:
+    return [
+        float(record[section][key])
+        for record in records
+        if isinstance(record[section][key], (int, float))
+    ]
+
+
+def _developer_row(developer: str, records: list[dict[str, Any]]) -> dict[str, Any]:
+    """One row per developer: the per-field median over that developer's consented records."""
+
+    def value(section: str, key: str) -> float | int | None:
+        numbers = _values(records, section, key)
+        if not numbers:
+            return None
+        median = statistics.median(numbers)
+        return int(round(median)) if key in COUNTS else median
+
+    def friction(name: str) -> int:
+        return int(round(statistics.median([r["feedback"]["friction"][name] for r in records])))
+
+    return {
+        "developer": developer,
+        # A developer reports one OS family; sorted() keeps a mixed input deterministic.
+        "os": sorted({record["feedback"]["os_family"] for record in records})[0],
+        "submissions": len(records),
+        "sessions": value("share", "sessions"),
+        "turns": value("share", "turns"),
+        "children": value("share", "children"),
+        "new_token_equivalents": value("share", "new_token_equivalents"),
+        "rediscovery_share_pct": value("share", "rediscovery_share_pct"),
+        "brief_sessions": value("feedback", "brief_sessions"),
+        "carry_sessions": value("feedback", "carry_sessions"),
+        "elisions": value("share", "elisions"),
+        "friction": {name: friction(name) for name in FRICTION},
+    }
+
+
 def aggregate(records: list[dict[str, Any]], unreadable: int = 0) -> dict[str, Any]:
-    """Consent partition plus one row per consented developer."""
-    rows = []
+    """Consent partition plus one row per consented developer.
+
+    A developer who submits twice is one developer, not two: their records collapse to one row
+    of per-field medians, and the floor counts distinct developers.
+    """
+    grouped: dict[str, list[dict[str, Any]]] = {}
     excluded = 0
     for record in records:
-        share, feedback = record["share"], record["feedback"]
-        if share.get("consent_aggregate_publish") is not True:
+        if record["share"].get("consent_aggregate_publish") is not True:
             excluded += 1
             continue
-        rows.append(
-            {
-                "developer": feedback["developer"],
-                "os": feedback["os_family"],
-                "sessions": share["sessions"],
-                "turns": share["turns"],
-                "children": share["children"],
-                "new_token_equivalents": share["new_token_equivalents"],
-                "rediscovery_share_pct": share["rediscovery_share_pct"],
-                "brief_sessions": feedback["brief_sessions"],
-                "carry_sessions": feedback["carry_sessions"],
-                "elisions": share["elisions"],
-                "friction": feedback["friction"],
-            }
-        )
-    rows.sort(key=lambda row: row["developer"])
-    return {"rows": rows, "excluded": excluded, "unreadable": unreadable, "read": len(records)}
+        grouped.setdefault(record["feedback"]["developer"], []).append(record)
+    rows = [_developer_row(developer, grouped[developer]) for developer in sorted(grouped)]
+    return {
+        "rows": rows,
+        "excluded": excluded,
+        "unreadable": unreadable,
+        "read": len(records),
+        "consented_records": len(records) - excluded,
+    }
 
 
 def median_range(values: list[float]) -> tuple[float, float, float] | None:
@@ -119,7 +154,11 @@ def render(data: dict[str, Any]) -> str:
     w("## Consent")
     w("")
     w(f"- Records read: {data['read']}")
-    w(f"- Consented to aggregate-and-publish counts (in the tables below): {len(rows)}")
+    w(f"- Consented developers (one row each): {len(rows)}")
+    w(
+        "- Consented to aggregate-and-publish counts "
+        f"(records in the tables below): {data['consented_records']}"
+    )
     w(f"- Product fixes only, excluded from every table: {data['excluded']}")
     if data["unreadable"]:
         w(f"- Unreadable lines skipped: {data['unreadable']}")
@@ -142,21 +181,25 @@ def render(data: dict[str, Any]) -> str:
     w("## Per developer")
     w("")
     w(
-        "| developer | OS | sessions | turns | children | limit-weighted new tokens "
-        "| re-discovery share | brief sessions | carry sessions | elisions |"
+        "| developer | OS | submissions | sessions | turns | children "
+        "| limit-weighted new tokens | re-discovery share | brief sessions | carry sessions "
+        "| elisions |"
     )
-    w("|---|---|---|---|---|---|---|---|---|---|")
+    w("|---|---|---|---|---|---|---|---|---|---|---|")
     for row in rows:
         w(
-            f"| {row['developer']} | {row['os']} | {row['sessions']} | {row['turns']} | "
-            f"{row['children']} | {_tokens(row['new_token_equivalents'])} | "
+            f"| {row['developer']} | {row['os']} | {row['submissions']} | {row['sessions']} | "
+            f"{row['turns']} | {row['children']} | {_tokens(row['new_token_equivalents'])} | "
             f"{_pct(row['rediscovery_share_pct'])} | {row['brief_sessions']} | "
             f"{row['carry_sessions']} | {row['elisions']} |"
         )
     w("")
     w("## Across developers")
     w("")
-    w("One row per developer; the range is across developers, not across sessions.")
+    w(
+        "One row per developer, each row the median of that developer's submissions; the range "
+        "is across developers, not across sessions or submissions."
+    )
     w("")
     w(
         _compare(
@@ -169,7 +212,9 @@ def render(data: dict[str, Any]) -> str:
     w(_compare("Limit-weighted new tokens (observed)", rows, "new_token_equivalents", _tokens))
     w(_compare("Sessions (observed)", rows, "sessions", lambda v: f"{v:.0f}"))
     w("")
-    w("## Friction counts (consented records)")
+    w("## Friction counts (per developer)")
+    w("")
+    w("Each developer's counts are the median over their submissions; the column sums them.")
     w("")
     w("| category | occurrences |")
     w("|---|---|")

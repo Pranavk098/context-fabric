@@ -242,6 +242,77 @@ def test_per_developer_median_and_range_never_a_pooled_mean() -> None:
     assert "mean" not in text.lower()
 
 
+def test_one_developer_submitting_twice_does_not_reach_the_floor() -> None:
+    records = [
+        _record("dev-01", sessions=4),
+        _record("dev-01", sessions=6, rediscovery=5.0),
+        _record("dev-02", rediscovery=4.0),
+    ]
+    text = _aggregate(records)
+    assert "qualitative round only" in text
+    assert "Consented developers: 2" in text
+    assert "| developer |" not in text
+
+
+def test_three_distinct_developers_clear_the_floor() -> None:
+    records = [
+        _record("dev-01"),
+        _record("dev-01", sessions=6, rediscovery=5.0),
+        _record("dev-02", rediscovery=4.0),
+        _record("dev-03", rediscovery=10.0),
+    ]
+    text = _aggregate(records)
+    assert "| developer |" in text
+    assert "Consented developers (one row each): 3" in text
+    assert "(3 developers)" in text  # the range counts distinct developers, not records
+
+
+def test_developer_row_is_the_median_of_their_records() -> None:
+    records = [
+        _record("dev-01", rediscovery=1.0, sessions=4),
+        _record("dev-01", rediscovery=7.0, sessions=7),
+        _record("dev-02", rediscovery=2.0),
+        _record("dev-03", rediscovery=6.0),
+    ]
+    text = _aggregate(records)
+    dev01 = next(line for line in text.splitlines() if line.startswith("| dev-01 "))
+    assert "4.0%" in dev01  # median of 1.0 and 7.0, not the pooled 8.0/2
+    assert "| 6 |" in dev01  # median sessions 5.5 rounded to a whole count
+    assert "| 2 |" in dev01  # submissions column
+    assert "median 4.0%" in text
+    assert "range 2.0% to 6.0%" in text
+
+
+def test_rows_are_ordered_by_developer_whatever_the_input_order() -> None:
+    records = [
+        _record("dev-03"),
+        _record("dev-01", sessions=6),
+        _record("dev-02", rediscovery=4.0),
+        _record("dev-01", rediscovery=3.0),
+    ]
+    developers = [
+        line.split("|")[1].strip()
+        for line in _aggregate(records).splitlines()
+        if line.startswith("| dev-")
+    ]
+    assert developers == ["dev-01", "dev-02", "dev-03"]
+
+
+def test_unconsented_records_of_a_consenting_developer_are_the_only_exclusion() -> None:
+    records = [
+        _record("dev-01", rediscovery=2.0),
+        _record("dev-01", consent=False, rediscovery=50.0),
+        _record("dev-02", rediscovery=4.0),
+        _record("dev-03", rediscovery=6.0),
+    ]
+    text = _aggregate(records)
+    dev01 = next(line for line in text.splitlines() if line.startswith("| dev-01 "))
+    assert "2.0%" in dev01  # the unconsented record never reaches the row
+    assert "| 1 |" in dev01  # one consented submission
+    assert "excluded from every table: 1" in text
+    assert "Consented developers (one row each): 3" in text
+
+
 def test_limit_share_is_unavailable_and_tokens_lead() -> None:
     records = [_record(f"dev-0{i}") for i in range(1, 4)]
     text = _aggregate(records)
