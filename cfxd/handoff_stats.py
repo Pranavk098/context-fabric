@@ -31,11 +31,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from cfxd import __version__
 from cfxd.bound import test_key_any
 from cfxd.brief_receipts import _iter_jsonl
 from cfxd.brief_render import HEADERS, render
 from cfxd.brief_select import BUDGET_BYTES, resolve_target, select
 from cfxd.brief_types import Intent
+from cfxd.limit_metric import limit_weighted_new_tokens, load_weights, sensitivity
 from cfxd.routing import (
     _DEFAULT_PRICES,
     _load_prices,
@@ -74,6 +76,24 @@ _SAFE = "safe to paste: counts and percentages only"
 
 def _share(num: float, den: float) -> float | None:
     return num / den if den > 0 else None
+
+
+def _usage(tokens: dict[str, int]) -> dict[str, int]:
+    """routing's per-turn token table in ``limit_metric``'s usage field names."""
+    return {
+        "input_tokens": tokens["input"],
+        "cache_creation_input_tokens": tokens["cache_creation_5m"] + tokens["cache_creation_1h"],
+        "cache_read_input_tokens": tokens["cache_read"],
+        "output_tokens": tokens["output"],
+    }
+
+
+def _add_usage(total: dict[str, int], usage: dict[str, Any] | None) -> None:
+    """Add one raw usage record; a missing or malformed count adds zero."""
+    for key in total:
+        value = (usage or {}).get(key)
+        if isinstance(value, int) and not isinstance(value, bool):
+            total[key] += value
 
 
 def _pct(value: float | None) -> str:
@@ -293,17 +313,24 @@ def _sweep(
 # ------------------------------------------------------------------ collection
 
 
-def _parent_cost(path: Path, families: dict[str, Any]) -> tuple[float, bool]:
-    """Parent dollars and whether any turn had an unpriced model."""
+def _parent_cost(path: Path, families: dict[str, Any]) -> tuple[float, bool, dict[str, int], int]:
+    """Parent dollars, whether any turn was unpriced, its usage, and its turn count."""
     total = 0.0
     unpriced = False
+    usage: dict[str, int] = dict.fromkeys(
+        ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "output_tokens"),
+        0,
+    )
+    turns = 0
     for turn in _scan_turns(path, families):
+        turns += 1
+        _add_usage(usage, _usage(turn["tokens"]))
         family = turn["family"]
         if family is None:
             unpriced = True
             continue
         total += _turn_dollars(families[family], turn["tokens"], turn["prompt"])
-    return total, unpriced
+    return total, unpriced, usage, turns
 
 
 def collect(
@@ -316,6 +343,11 @@ def collect(
     costed: list[dict[str, Any]] = []
     excluded = 0
     seen: set[str] = set()
+    usage: dict[str, int] = dict.fromkeys(
+        ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "output_tokens"),
+        0,
+    )
+    turns = 0
     for path in sorted(root.glob("*/*.jsonl")) if root.is_dir() else []:
         sid = path.stem
         sub = path.with_suffix("") / "subagents"
@@ -341,6 +373,9 @@ def collect(
             child = _scan_child_turns(child_path, parent["msg_ids"], families)
             if not child["turns"]:
                 continue
+            turns += len(child["turns"])
+            for turn in child["turns"]:
+                _add_usage(usage, turn["usage"])
             record = _analyse_child(child, parent, spawn_idx)
             if record["parent_known"] >= 3:
                 spawn_input = inputs.get(tid, {})
@@ -364,7 +399,9 @@ def collect(
             continue
         sessions.add(sid)
         children.extend(joined)
-        parent_cost, unpriced = _parent_cost(path, families)
+        parent_cost, unpriced, parent_usage, parent_turns = _parent_cost(path, families)
+        _add_usage(usage, parent_usage)
+        turns += parent_turns
         priced = [r for r in joined if r["cost"] is not None]
         # Same rule as scripts/denominator.py: an unpriced child drops that child, not the
         # whole session; only a session with no priced child (or an unpriced parent) is out.
@@ -388,6 +425,8 @@ def collect(
         "costed": costed,
         "excluded": excluded,
         "budgets": list(budgets),
+        "usage": usage,
+        "turns": turns,
     }
 
 
@@ -438,11 +477,34 @@ def summarise(data: dict[str, Any]) -> dict[str, Any]:
                     ),
                 }
             )
+    usage = data["usage"]
+    weights = None
+    try:
+        weights = load_weights()
+    except (OSError, ValueError, KeyError):
+        pass
+    limit_tokens = (
+        round(limit_weighted_new_tokens(usage, weights), 1) if weights is not None else None
+    )
+    sensitivity_table = (
+        {label: round(value, 1) for label, value in sensitivity(usage, weights).items()}
+        if weights is not None
+        else None
+    )
+    read_calls = sum(row["read_calls"] for row in families)
+    rereads = sum(row["rereads"] for row in families)
     return {
         "sessions": data["sessions"],
+        "turns": data["turns"],
         "children": len(kids),
         "priced_children": sum(1 for k in kids if k["cost"] is not None),
         "families": families,
+        "rediscovery_share_pct": round(100 * rereads / read_calls, 1) if read_calls else None,
+        "usage": usage,
+        "limit_weighted_new_tokens": limit_tokens,
+        "limit_share": None,
+        "limit_share_reason": "no official 5-hour or weekly token limit for any plan tier; D-3",
+        "sensitivity": sensitivity_table,
         "cost_share": {
             "sessions": len(rows),
             "excluded": data["excluded"],
@@ -458,9 +520,21 @@ def _row(values: tuple[str, ...], widths: tuple[int, ...]) -> str:
     return "  " + " ".join(v.rjust(w) for v, w in zip(values, widths, strict=True))
 
 
-def format_report(report: dict[str, Any]) -> str:
+def _limit_lines(report: dict[str, Any]) -> list[str]:
+    """The lead: limit-weighted tokens, then the D-3 fallback that no limit share exists."""
+    value = report["limit_weighted_new_tokens"]
+    tokens = "n/a (no usage recorded)" if value is None else f"{value:,.0f}"
+    return [
+        f"Limit-weighted new tokens: {tokens} "
+        "(estimated: price-ratio weights from cfxd/data/limit_weights.toml)",
+        f"Limit share: n/a ({report['limit_share_reason']})",
+    ]
+
+
+def format_report(report: dict[str, Any], verbose: bool = False) -> str:
     """The numbers-only block, ending with the safe-to-paste line."""
-    lines = ["cfxd handoff-stats (aggregates only, one machine)"]
+    lines = [f"cfxd handoff-stats {__version__} (aggregates only, one machine)"]
+    lines.extend(_limit_lines(report))
     lines.append(
         f"Sessions with sub-agent transcripts: {report['sessions']}; "
         f"joined children: {report['children']}; priced children: {report['priced_children']}"
@@ -529,8 +603,26 @@ def format_report(report: dict[str, Any]) -> str:
                     sweep_widths,
                 )
             )
+    if verbose:
+        _usage_lines(report, lines)
     lines.append(_SAFE)
     return "\n".join(lines)
+
+
+def _usage_lines(report: dict[str, Any], lines: list[str]) -> None:
+    """The ``--verbose`` appendix: raw token counts and the w_read sensitivity table."""
+    usage = report["usage"]
+    lines.append(
+        "Raw tokens (appendix): input {input_tokens:,}, cache write "
+        "{cache_creation_input_tokens:,}, cache read {cache_read_input_tokens:,}, "
+        "output {output_tokens:,}".format(**usage)
+    )
+    table = report["sensitivity"]
+    if table is not None:
+        lines.append(
+            "Sensitivity (w_read): "
+            + ", ".join(f"{label} -> {value:,.1f}" for label, value in table.items())
+        )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -550,6 +642,11 @@ def main(argv: list[str] | None = None) -> int:
         help="numeric aggregates only (the default; kept for command-line symmetry)",
     )
     parser.add_argument("--json", action="store_true", help="emit a single JSON object")
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="also print raw token counts and the w_read sensitivity table",
+    )
     args = parser.parse_args(argv)
     prices = _load_prices(_DEFAULT_PRICES)
     data = collect(args.root, prices)
@@ -560,7 +657,7 @@ def main(argv: list[str] | None = None) -> int:
             print(_EMPTY)
         return 0
     report = summarise(data)
-    print(json.dumps(report) if args.json else format_report(report))
+    print(json.dumps(report) if args.json else format_report(report, verbose=args.verbose))
     return 0
 
 
