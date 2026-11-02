@@ -8,7 +8,9 @@ numbered label (``skill-1``, ``connector-3``) so a tester can paste the result.
 
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 import re
 from datetime import UTC, datetime
 from pathlib import Path
@@ -27,6 +29,10 @@ from cfxd.usage_dedupe import MessageUsage
 # Item kinds that can be disabled (the only ones in the "never used" report).
 _DISABLE_KINDS = ("skill", "connector")
 _MTOK = 1_000_000.0
+# Sessions summarised into the before-apply baseline (their median first-turn prefix).
+_BASELINE_SESSIONS = 10
+# Fewer after-apply sessions than this in a project is not a comparison.
+_MIN_AFTER_APPLY = 3
 
 _LABEL_PREFIX = {
     "skill": "skill",
@@ -131,6 +137,7 @@ def _scan(path: Path) -> dict[str, Any]:
     listing_seen = False
     assistant_seen = 0
     first_turn_tokens: int | None = None
+    first_turn_prefix: int | None = None
 
     dedupe = MessageUsage(_iter_objects(path))
     for obj in _iter_objects(path):
@@ -224,6 +231,13 @@ def _scan(path: Path) -> dict[str, Any]:
                         )
                         if isinstance(v := usage.get(k), int) and not isinstance(v, bool)
                     )
+                if first_turn_prefix is None:
+                    # The prefix turn 1 had to write and send: cache write plus new input.
+                    first_turn_prefix = sum(
+                        v
+                        for k in ("input_tokens", "cache_creation_input_tokens")
+                        if isinstance(v := usage.get(k), int) and not isinstance(v, bool)
+                    )
             assistant_seen += 1
 
         for block in blocks:
@@ -258,6 +272,7 @@ def _scan(path: Path) -> dict[str, Any]:
         "model": model,
         "listing_seen": listing_seen,
         "first_turn_tokens": first_turn_tokens,
+        "first_turn_prefix": first_turn_prefix,
     }
 
 
@@ -419,6 +434,95 @@ def _delta(
     }
 
 
+def _state_dir() -> Path:
+    home = os.environ.get("CFX_HOME")
+    return Path(home) if home else Path.home() / ".cfx"
+
+
+def _project_key(path: Path) -> str:
+    """Stable per-project key: a hash of the transcript's project directory name."""
+    return hashlib.sha256(path.parent.name.encode("utf-8")).hexdigest()[:16]
+
+
+def _session_key(path: Path) -> str:
+    return hashlib.sha256(path.name.encode("utf-8")).hexdigest()[:16]
+
+
+def _baseline_path() -> Path:
+    return _state_dir() / "diet" / "baseline.json"
+
+
+def _write_private(path: Path, data: dict[str, Any]) -> None:
+    """Atomic 0600 JSON write, so a crash never leaves a half-written file."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        json.dump(data, fh, indent=2, sort_keys=True)
+        fh.write("\n")
+    os.replace(tmp, path)
+    try:
+        os.chmod(path, 0o600)
+    except OSError:
+        pass
+
+
+def _load_baseline() -> dict[str, dict[str, Any]]:
+    try:
+        data = json.loads(_baseline_path().read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    projects = data.get("projects") if isinstance(data, dict) else None
+    if not isinstance(projects, dict):
+        return {}
+    return {k: v for k, v in projects.items() if isinstance(k, str) and isinstance(v, dict)}
+
+
+def save_baseline(entries: dict[str, dict[str, Any]], applied_at: float) -> None:
+    """Store each project's pre-apply first-turn size; a later apply replaces that project's."""
+    projects = _load_baseline()
+    for key, entry in entries.items():
+        projects[key] = {
+            "applied_at": applied_at,
+            "applied_on": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "n": entry["n"],
+            "first_turn_tokens_median": entry["median"],
+            "sessions": entry["sessions"],
+        }
+    _write_private(_baseline_path(), {"projects": projects})
+
+
+def _observed(projects: dict[str, list[tuple[float, str, int | None]]]) -> list[dict[str, Any]]:
+    """After-apply sessions in a project, compared with that same project's baseline only."""
+    out: list[dict[str, Any]] = []
+    for key, base in sorted(_load_baseline().items()):
+        before = base.get("first_turn_tokens_median")
+        n = base.get("n")
+        applied_at = base.get("applied_at")
+        seen = base.get("sessions")
+        if (
+            not isinstance(before, int)
+            or not isinstance(n, int)
+            or not isinstance(applied_at, int | float)
+        ):
+            continue
+        known = seen if isinstance(seen, list) else []
+        after = [
+            value
+            for mtime, session, value in projects.get(key, [])
+            if mtime > applied_at and session not in known and value is not None
+        ]
+        out.append(
+            {
+                "baseline_sessions": n,
+                "before_tokens": before,
+                "after_sessions": len(after),
+                "after_tokens": round(_med(after)) if len(after) >= _MIN_AFTER_APPLY else None,
+            }
+        )
+    return out
+
+
 def diet(root: Path, since: str = "30d", now: datetime | None = None) -> dict[str, Any]:
     """Aggregate starting-prefix dead weight across parent transcripts under ``root``."""
     if now is None:
@@ -441,6 +545,8 @@ def diet(root: Path, since: str = "30d", now: datetime | None = None) -> dict[st
     session_prefix_bytes: list[int] = []
     first_turn_tokens: list[int] = []
     per_session: list[dict[str, Any]] = []
+    # project key -> (mtime, session key, first-turn prefix) for every parent transcript
+    projects: dict[str, list[tuple[float, str, int | None]]] = {}
 
     for path in parents:
         r = _scan(path)
@@ -495,6 +601,13 @@ def diet(root: Path, since: str = "30d", now: datetime | None = None) -> dict[st
             + sum(r["memory"].values())
             + sum(r["hooks"].values())
         )
+        try:
+            mtime = path.stat().st_mtime
+        except OSError:
+            mtime = 0.0
+        projects.setdefault(_project_key(path), []).append(
+            (mtime, _session_key(path), r["first_turn_prefix"])
+        )
 
     n_sessions = len(parents) - listing_not_found
     items: list[dict[str, Any]] = []
@@ -533,6 +646,18 @@ def diet(root: Path, since: str = "30d", now: datetime | None = None) -> dict[st
     )
     never_tokens = never_tokens_total / total_turns if total_turns else 0.0
 
+    # What `diet apply --yes` stores as the before numbers: the last sessions per project.
+    apply_baseline: dict[str, dict[str, Any]] = {}
+    for key, sessions in projects.items():
+        last = sorted(sessions, key=lambda s: s[0])[-_BASELINE_SESSIONS:]
+        values = [value for _mtime, _session, value in last if value is not None]
+        if values:
+            apply_baseline[key] = {
+                "n": len(values),
+                "median": round(_med(values)),
+                "sessions": [session for _mtime, session, _value in last],
+            }
+
     return {
         "since": since,
         "sessions": len(parents),
@@ -557,12 +682,15 @@ def diet(root: Path, since: str = "30d", now: datetime | None = None) -> dict[st
             "total_tokens": round(never_tokens_total, 1),
         },
         "delta": _delta(per_session, never_keys, _price_families()),
+        "apply_baseline": apply_baseline,
+        "observed": _observed(projects),
     }
 
 
 def _numeric(report: dict[str, Any]) -> dict[str, Any]:
     """Deep-copy ``report`` with every name removed; counts, bytes and rates stay."""
     r: dict[str, Any] = json.loads(json.dumps(report))
+    r.pop("apply_baseline", None)  # apply-time internals, never part of a share
     for item in r["items"]:
         item.pop("name", None)
         item.pop("group", None)
@@ -579,6 +707,7 @@ def _numeric(report: dict[str, Any]) -> dict[str, Any]:
 def _anonymize(report: dict[str, Any]) -> dict[str, Any]:
     """Deep-copy ``report`` with every name replaced by a per-report ordinal label."""
     r: dict[str, Any] = json.loads(json.dumps(report))
+    r.pop("apply_baseline", None)  # apply-time internals, never part of a share
     counters: dict[str, int] = {}
     labels: dict[tuple[str, str], str] = {}
 
@@ -629,6 +758,27 @@ def _connector_line(conn: dict[str, Any]) -> str:
         f"{conn['median_bytes']:,.0f} bytes  ~{conn['per_turn_tokens']:,.0f} est. tokens/turn  "
         f"{conn['share'] * 100:.1f}% of prefix"
     )
+
+
+def _observed_lines(report: dict[str, Any]) -> list[str]:
+    """The one place the word "smaller" is allowed (R9): a labelled, per-project observation."""
+    obs = report.get("observed") or []
+    lines: list[str] = []
+    for i, entry in enumerate(obs, 1):
+        label = f"observed (this machine, this project, {entry['baseline_sessions']} sessions)"
+        head = f"After apply, project {i}: {label}" if len(obs) > 1 else f"After apply: {label}"
+        lines.append(head)
+        if entry["after_sessions"] < _MIN_AFTER_APPLY:
+            lines.append("  not enough sessions yet")
+            continue
+        before, after = entry["before_tokens"], entry["after_tokens"]
+        diff = before - after
+        lines.append(f"  first-turn prefix: {before:,} tokens before, {after:,} tokens after")
+        lines.append(
+            f"  {abs(diff):,} tokens {'smaller' if diff >= 0 else 'larger'} "
+            f"over {entry['after_sessions']} sessions since apply"
+        )
+    return lines
 
 
 def _format_share(report: dict[str, Any], label: str) -> str:
@@ -712,6 +862,7 @@ def _format_share(report: dict[str, Any], label: str) -> str:
         unpriced = delta.get("sessions_with_items", 0) - delta.get("sessions_priced", 0)
         if unpriced:
             lines.append(f"  {unpriced} session(s) with these items had no priced model id")
+    lines.extend(_observed_lines(report))
     return "\n".join(lines)
 
 
@@ -796,6 +947,7 @@ def format_human(
         if unpriced:
             lines.append(f"  {unpriced} session(s) with these items had no priced model id")
 
+    lines.extend(_observed_lines(report))
     lines.append("To act:")
     lines.append(
         "  disable a plugin:    claude plugin disable <plugin>@<marketplace>   (or /plugin panel)"
