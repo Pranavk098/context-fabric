@@ -12,7 +12,7 @@ Events are plain dicts carrying the hook's fields plus ``"event"``:
     {"event": "message", "role": "user"|"parent", "text": str, ...}
     {"event": "PostToolUse", "tool_name": str, "tool_input": dict,
      "tool_response": Any, "line_ranges"?: [[start, end]], "turn"?: int}
-    {"event": "SubagentStop", "files": [str], "outcome": str|bool, "summary"?: str}
+    {"event": "SubagentStop", "files": [str], "outcome": str|bool}
     {"event": "PreCompact"}
 
 An event shape the tracker cannot place changes nothing; an empty field is honest.
@@ -33,6 +33,7 @@ from cfxd.session_state import _FILE_TOOLS, _exit_ok, _file_fact
 
 MAX_FILES = 200
 MAX_TEXT_ITEMS = 20
+_SUBAGENT_FAILED = "sub-agent returned a failed outcome"
 _PARENT_ROLES = frozenset({"user", "parent"})
 
 
@@ -159,7 +160,7 @@ def _post_tool_use(ws: WorkingSet, event: dict[str, Any]) -> WorkingSet:
 
 
 def _subagent_stop(ws: WorkingSet, event: dict[str, Any]) -> WorkingSet:
-    """Merge a child's compact return: files it edited and a failed outcome, no history."""
+    """Merge a child's compact return: files it edited and a fixed failed label, no child text."""
     turn = _turn(ws, event)
     files = event.get("files")
     edited = ws.edited_files
@@ -169,11 +170,9 @@ def _subagent_stop(ws: WorkingSet, event: dict[str, Any]) -> WorkingSet:
                 edited = _upsert_edited(edited, EditedFile(path, (), turn, True))
     tried = ws.tried_failed
     outcome = event.get("outcome")
-    summary = event.get("summary")
-    if (outcome is False or outcome == "failed") and isinstance(summary, str):
-        item = _cap(_sanitize(summary), INTENT_ITEM_MAX_BYTES).strip()
-        if item:
-            tried = _merge_tried(tried, [TriedFailed(item, turn)])
+    if outcome is False or outcome == "failed":
+        # R10: the child's summary is model/tool-derived text, so it is never read.
+        tried = _merge_tried(tried, [TriedFailed(_SUBAGENT_FAILED, turn)])
     return replace(ws, edited_files=edited, tried_failed=tried)
 
 
