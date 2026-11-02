@@ -13,11 +13,12 @@ import os
 import re
 import shutil
 import subprocess
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from cfxd.diet import _connector_line, _plugin_line
+from cfxd.diet import _connector_line, _plugin_line, _state_dir, _write_private, save_baseline
 
 PROTECTED = ("context-fabric",)
 _TIMEOUT_S = 60
@@ -188,22 +189,12 @@ def _account_lines(skills: list[dict[str, Any]], connectors: list[dict[str, Any]
 
 
 def _record_dir() -> Path:
-    home = os.environ.get("CFX_HOME")
-    return (Path(home) if home else Path.home() / ".cfx") / "diet"
+    return _state_dir() / "diet"
 
 
 def _write_record(path: Path, record: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(path.name + ".tmp")
-    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w", encoding="utf-8") as fh:
-        json.dump(record, fh, indent=2, sort_keys=True)
-        fh.write("\n")
-    os.replace(tmp, path)
-    try:
-        os.chmod(path, 0o600)
-    except OSError:
-        pass
+    """Kept as the name ``cfxd.week`` imports; the atomic 0600 writer lives in ``diet``."""
+    _write_private(path, record)
 
 
 def _read_records() -> list[tuple[Path, dict[str, Any]]]:
@@ -323,6 +314,10 @@ def apply_report(report: dict[str, Any], yes: bool = False) -> int:
     _write_record(record_path, record)
 
     if successes:
+        # Before numbers for `cfxd diet`: first-turn prefix of the last sessions, per project.
+        baseline = report.get("apply_baseline") or {}
+        if baseline:
+            save_baseline(baseline, time.time())
         print(f"Disabled: {', '.join(successes)}")
     for pid, reason in failures:
         print(f"FAILED to disable {pid}: {reason}")
@@ -358,13 +353,14 @@ def undo_records(all_records: bool = False) -> int:
         state = _status(after)
         for entry in record.get("plugins") or []:
             pid = str(entry.get("id"))
-            if not entry.get("applied"):
-                continue
             if not _valid_target(pid, entry.get("scope")):
                 print(f"  {pid}: not applied (invalid id)")
                 continue
             if pid not in state:
                 print(f"  {pid}: no longer installed; skipped")
+                continue
+            if state[pid] is True:
+                # Already enabled, e.g. a disable that failed or an append the crash cut short.
                 continue
             args = ["plugin", "enable", pid, "--scope", str(entry["scope"])]
             code, out = _run(exe, args)
