@@ -1,7 +1,7 @@
-# Tester guide: `cfxd fidelity`
+# Tester guide: `cfxd fidelity` (compaction reference)
 
 ## What it does
-`cfxd fidelity` scans your local Claude Code transcripts for `/compact` boundaries and compares the file paths named in each compaction summary against the files the session actually read or edited beforehand. It reports counts and rates only—how many touched or edited files were kept or dropped, and how many named paths never appeared earlier in the session.
+`cfxd fidelity` scans your local Claude Code transcripts for **compaction** boundaries (`/compact`, when Claude Code replaces earlier turns of a long session with a summary to free context space, while keeping the starting **prefix** of system prompt, tool definitions, skills, connectors, memory, and hooks) and compares the file paths named in each compaction summary against the session's **working set** (the files read or edited and test commands observed before the compaction). It reports counts and rates only—how many touched or edited files were kept or dropped, and how many named paths never appeared earlier in the session.
 
 ## Commands to run
 ```bash
@@ -9,7 +9,7 @@ uv run cfxd checkup
 uv run cfxd fidelity --since 30d
 uv run cfxd fidelity --since all
 ```
-*(Note: `--share` is not available in this build on `cfxd fidelity`; the default output already prints aggregate numbers and counts only, with no paths, names, summary text, or hashes.)*
+*(Note: `--share` is not available on `cfxd fidelity`; the default output already prints aggregate numbers and counts only, with no paths, names, summary text, or hashes.)*
 
 ## What the output means
 - **Frozen metrics v1 (M1, M2, M3):**
@@ -24,11 +24,11 @@ uv run cfxd fidelity --since all
 3. After a `/compact` in your own work, check by hand whether an edited file you still needed was dropped or whether an unseen path came from your conversation rather than a tool call.
 
 ## What to send back
-- Send the numeric output of `uv run cfxd fidelity --since 30d` (and `uv run cfxd week --share` if reporting weekly).
-- Numbers only: never paste session prompts, summary text, file paths, or commands.
+- Send the numeric output of `uv run cfxd fidelity --since 30d` (or `uv run cfxd checkup`, plus `uv run cfxd week --share`, which emits the `cf-share/2` block leading with limit-weighted new tokens under `limit-weighted/1`, raw tokens behind `--verbose`, and no plan-tier limit share per decision D-3).
+- Numbers only: never pass `--include-name-digests` on share commands (it prints a warning and must never be pasted), and never paste session prompts, summary text, file paths, or commands.
 
 ## Known limits
-- **Proxy, not a verdict:** path mentions are a proxy for state retention; a summary can keep useful state without naming a file, or name a valid file mentioned only in conversation.
-- **No saving is proven:** `fidelity` is a descriptive measurement tool only, and active features such as Brief are opt-in and experimental with no proven saving (E-1 found re-discovery is a small share of total session cost on the maintainer's machine: "1% to 3%, one machine", so Brief is a test, not a promise).
+- **Proxy, not a verdict:** path mentions are a proxy for working-set state retention; a summary can keep useful state without naming a file, or name a valid file mentioned only in conversation.
+- **No saving is proven:** `fidelity` is a descriptive measurement tool only, and active features such as Brief are opt-in and experimental with no saving proven (E-1 found re-discovery is a small share of total session cost on the maintainer's machine: "1% to 3%, one machine", so Brief is a test, not a promise).
 - **Platform status:** Windows needs Git for Windows for plugin hooks; macOS is not verified by the founder.
 - **Flags and retired features:** `cfxd fidelity --share` is not available in this build (use default `uv run cfxd fidelity --since 30d` or `uv run cfxd checkup`); `fold`, `bound`, and `checkpoint` are retired and are not part of testing.

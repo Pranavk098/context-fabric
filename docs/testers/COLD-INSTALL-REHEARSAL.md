@@ -54,8 +54,8 @@ Target: **`start` to `first report` under 10 minutes (`< 10:00`)** on both runs.
 | **`start`** | Clean terminal open in rehearsal profile; clock starts at Step 4.1 | `00:00` | `00:00` | `00:00` | |
 | **`install done`** | Prerequisites verified (`INSTALL-ALPHA.md` §1) and `context-fabric@context-fabric` installed (§2) | | | `< 05:00` | |
 | **`daemon healthy`** | First Claude Code session started; `cfxd doctor` (or `python -m cfxd doctor`) prints `healthy` and `identity: verified` (§3) | | | `< 07:00` | |
-| **`first report`** | `cfxd checkup` and `cfxd week --share` finish and print `safe to paste: counts and percentages only` | | | **`< 10:00` (hard gate)** | |
-| **`first diet look`** | `cfxd diet --since 30d`, `cfxd diet --since 30d --share`, and dry-run `cfxd diet --apply` inspected (`docs/testers/diet.md`) | | | `< 13:00` | |
+| **`first report`** | `cfxd checkup` and `cfxd week --share` finish (`week` leads with `limit-weighted/1` tokens and appends the `cf-share/2` block) | | | **`< 10:00` (hard gate)** | |
+| **`first diet look`** | `cfxd diet --since 30d`, `cfxd diet --since 30d --share`, and dry-run `cfxd diet --apply` (undo: `cfxd diet --undo`) inspected (`docs/testers/diet.md`) | | | `< 13:00` | |
 
 ---
 
@@ -162,7 +162,7 @@ uv run cfxd week --share
 Verify:
 - [ ] `cfxd checkup` prints the three sections in fixed order: `1. Diet`, `2. Fidelity`, `3. Sub-agents`.
 - [ ] `cfxd checkup` ends with `safe to paste: counts and percentages only`.
-- [ ] `cfxd week --share` prints a version header and ends with `safe to paste: counts and percentages only`.
+- [ ] `cfxd week --share` leads with limit-weighted new tokens (`limit-weighted/1`; raw tokens behind `--verbose`; no plan-tier limit share per decision D-3), appends the `cf-share/2` block, and ends with `Safe to paste: counts, sizes and model ids only.`.
 - [ ] Output contains counts, percentages, and model family ids only—no file paths, prompts, commands, or skill names.
 
 Record the **`first report`** time in the [Stopwatch Table](#3-stopwatch-table). **Must be under 10:00.**
@@ -174,19 +174,19 @@ Run the command sequence from `docs/testers/diet.md`:
 ```bash
 uv run cfxd diet --since 30d
 uv run cfxd diet --since 30d --share
-uv run cfxd diet --apply
+uv run cfxd diet --apply          # dry run; undo any apply with: uv run cfxd diet --undo
 ```
 
 If testing `--apply --yes` and `--undo` from `docs/testers/diet.md`:
 
 ```bash
-uv run cfxd diet --apply --yes
+uv run cfxd diet --apply --yes    # undo with: uv run cfxd diet --undo
 uv run cfxd diet --undo
 ```
 
 Verify:
 - [ ] `cfxd diet --since 30d` shows first-turn context, itemized prefix estimates (labelled as an estimate, not a bill), and used vs. never-used items.
-- [ ] `cfxd diet --since 30d --share` replaces all item names with numbered labels and prints aggregate numbers only.
+- [ ] `cfxd diet --since 30d --share` prints numeric aggregates only (name digests exist only behind `--include-name-digests`, which prints a warning and must never be pasted).
 - [ ] `cfxd diet --apply` acts as a dry run unless `--yes` is passed, and `cfxd diet --undo` restores any disabled local plugins.
 
 Record the **`first diet look`** time in the [Stopwatch Table](#3-stopwatch-table).
@@ -202,8 +202,10 @@ uv run cfxd fidelity --since all
 
 # From docs/testers/brief-opt-in.md
 uv run cfxd handoff-stats --share
+uv run cfxd handoff-stats --verbose
 uv run cfxd set brief_v1 on
 uv run cfxd brief
+uv run cfxd brief --paste-safe
 uv run cfxd brief --share
 uv run cfxd set brief_v1 off
 uv run cfxd ledger --days 30 --share

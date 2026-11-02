@@ -13,18 +13,16 @@
 </div>
 
 Context Fabric measures where a coding agent's context and tokens go, from your own session transcripts, and is
-building tools that keep long sessions lean. It is a Claude Code plugin plus offline command-line tools; Codex and
-OpenCode logs can be measured too.
+building tools that keep long sessions lean. Hooks: Claude Code only. Reports: Claude Code; Codex and OpenCode
+logs can be measured offline with `cfxd agent-audit`.
 
 **Objective:** keep the context a coding agent re-reads on every turn as small as the work allows, and show every
-effect as a receipt you can re-run on your own data, so a saving is checked rather than believed.
+effect as a receipt you can re-run on your own data, while no saving is proven.
 
 **Status:** alpha, Claude Code first. The measurement tools work. The mechanisms that act on context (brief, carry)
-are experimental and have no measured token effect yet. **No saving is proven.** Fold, bound and checkpoint-restart
-were retired after they failed their measurements ([ADR-0012](docs/decisions/ADR-0012-retire-fold-and-checkpoint-restart.md),
-[ADR-0013](docs/decisions/ADR-0013-retire-bound-and-checkpoint-hold-carry-v2.md)). The first paired benchmark (v2) ran and was
+are experimental and have no measured token effect yet. **No saving is proven.** Fold, bound and checkpoint-restart were retired after they failed their measurements ([ADR-0012](docs/decisions/ADR-0012-retire-fold-and-checkpoint-restart.md), [ADR-0013](docs/decisions/ADR-0013-retire-bound-and-checkpoint-hold-carry-v2.md)). The first paired benchmark (v2) ran and was
 **voided** by a measurement fault ([deviation](docs/deviations/2026-10-30-v2-mcp-race-and-double-count.md)); its numbers are
-not evidence of a saving. A second design (v4) exists but is not registered and has not been run.
+not evidence of a saving (no saving is proven). A second design (v4) exists but is not registered and has not been run.
 [Evidence](#evidence-so-far) lists what we measured, including what did not work.
 
 ## Principles
@@ -34,11 +32,11 @@ not evidence of a saving. A second design (v4) exists but is not registered and 
 - **Local only.** The daemon binds `127.0.0.1` and makes no network calls. There is no telemetry.
 - **Content-free receipts.** Logs hold event names, sizes, counts, hashes and latencies. File contents, prompts and
   tool output are never written to them.
-- **Observed facts only.** Briefs and carry notes list paths, line counts and saved-output ids that the daemon saw.
+- **Observed facts only.** Briefs and carry notes list paths, line counts and recent commands that the daemon saw.
   Tool output is never copied into a prompt, so injected text cannot be amplified.
-- **Reversible.** `diet --apply` writes an exact undo file, and nothing else rewrites your configuration.
+- **Reversible.** `cfxd diet --apply` writes an exact undo file (`cfxd diet --undo`), and nothing else rewrites your configuration.
 - **Deterministic.** Handlers make no model calls: the same input produces the same output.
-- **Evidence before defaults.** Every number carries an evidence level (anecdote, exploratory, confirmatory). A
+- **Evidence before defaults.** Every number carries an evidence level (*measured*, *observed*, *estimated*). A
   feature is on by default only while measurements support it; fold, bound and checkpoint-restart were retired when they did not.
 
 ## Why
@@ -46,13 +44,13 @@ not evidence of a saving. A second design (v4) exists but is not registered and 
 In an agent session, cost grows with *turns × context size*, because the whole window is re-read on every turn. Four
 sources of waste are visible in real transcripts:
 
-- **Starting prefix.** The window opens with Claude Code's own system prompt and tool definitions, plus your skill
+- **Starting prefix.** The fixed setup sent at the start of a session and re-read on every turn: Claude Code's own system prompt and tool definitions, plus your skill
   and tool listings, connector instructions, memory and hook output. On the machine we measured, the median first-turn
   context was 62K tokens, of which about 14K came from the user's own setup.
 - **Long sessions.** On the machine we measured, sessions of 40+ turns carried 95% of the cost, because the whole
   window is re-read on every turn.
-- **Cold-start sub-agents.** A sub-agent begins with nothing, or with a copy of everything.
-- **State lost at `/compact`.** After compaction the agent re-discovers which files and outputs it was working with.
+- **Cold-start sub-agents.** A sub-agent begins with nothing, or with a copy of everything, instead of the parent's **working set** (the files read or edited, commands, to-dos and test state observed so far).
+- **State lost at `/compact`.** After **compaction** (when Claude Code replaces earlier turns with a summary to free context space) the agent re-discovers which files and outputs in its working set it was working with.
 - **Oversized tool output.** One large result stays in the window for every later turn.
 
 Most developers cannot see any of this. Context Fabric shows it per session; the tools that act on it stay
@@ -60,13 +58,12 @@ experimental until a paired test shows they pay.
 
 ## How it works
 
-<img src="docs/assets/how-it-works.svg" alt="Architecture: agents, hook layer, local daemon with observe, brief, carry and fold, receipts ledger, and an offline audit and replay lane" width="100%">
+<img src="docs/assets/how-it-works.svg" alt="Architecture: agents, hook layer, local daemon with observe, brief and carry, receipts ledger, and an offline audit and replay lane" width="100%">
 
 1. The agent's hooks call a small launcher. It starts the daemon on the first session and forwards each event.
 2. The daemon records what the session touched, builds a brief or a carry note when the event calls for one, and
    writes a receipt.
-3. Offline, `audit` and `replay` read your own transcripts and report where tokens go and what shrinking would have
-   saved. They work without the plugin installed.
+3. Offline, `audit` and `replay` read your own transcripts and report where tokens go and the replay upper limit on shrinking old tool results (no saving is proven). They work without the plugin installed.
 
 ## What it does today
 
@@ -74,36 +71,35 @@ experimental until a paired test shows they pay.
 | :--- | :--- | :--- |
 | `cfxd audit` | Counts-only breakdown of your transcripts: starting prefix by item, tool results, repeated reads, sub-agents, compactions | working |
 | `cfxd coverage` | Compares transcript tool calls with the PostToolUse events the helper logged, reporting hook delivery rates; counts only | experimental |
-| `cfxd diet` | Lists your starting-prefix items (skills, connectors, memory, hooks), which you never used in 30 days, and what each costs every turn | working |
+| `cfxd diet` | Lists your starting-prefix items (skills, connectors, memory, hooks), which you never used in 30 days, what each costs every turn (estimate), and after `cfxd diet --apply` (undo: `cfxd diet --undo`) whether the first-turn prefix is smaller, labelled `observed (this machine, this project, N sessions)` | working |
 | `cfxd waste` | Measures how much cost sits in loops, retry streaks, the most expensive sessions and repeated discovery | working |
-| `cfxd routing` | Splits your sessions' tokens and API-equivalent dollars by model and by main conversation versus sub-agents, and shows what a cheaper sub-agent tier would change (price only, quality unmeasured) | working |
+| `cfxd routing` | Splits your sessions' tokens and API-equivalent dollars by model and by main conversation versus sub-agents, and shows what a lower-priced sub-agent tier would change (price only, quality unmeasured) | working |
 | `cfxd agent-audit` | The same counts-only breakdown for Codex and OpenCode session logs | working |
-| `cfxd replay` | Simulates shrinking old tool output on your sessions, with prompt-cache effects, and reports the bound | working |
+| `cfxd replay` | Simulates shrinking old tool output on your sessions, with prompt-cache effects, and reports the upper limit | working |
 | `cfxd tour` | A guided five-step first run over your own transcripts | working |
-| `cfxd week --share` | A one-command weekly summary of counts that is safe to paste | working |
+| `cfxd week --share` | One-command weekly summary leading with limit-weighted new tokens (metric `limit-weighted/1`; raw tokens behind `--verbose`; no plan-tier limit share because Anthropic publishes no token-denominated 5-hour or weekly limit, decision D-3); `--share` appends the `cf-share/2` block (numbers and model families only, safe to paste) | working |
 | `cfxd trend` | Week-over-week snapshots from `cfxd week --save`, each change labelled OBSERVED (a before/after, not a counterfactual) | experimental |
-| `cfxd handoff-stats` | Sub-agent re-discovery by child model family, its share of session cost, and the Brief packet sweep at 2/6/12/20 KB; numbers only, safe to paste | experimental |
+| `cfxd handoff-stats` | Sub-agent re-discovery by child model family, its share of session cost, and the Brief packet sweep at 2/6/12/20 KB; leads with limit-weighted new tokens (`limit-weighted/1`, raw tokens behind `--verbose`, no plan-tier limit share per D-3); numbers only, safe to paste | experimental |
 | `cfxd checkup` | One numeric tester report in fixed order: unused skills and connectors with prefix cost per turn, compaction-fidelity counts M1/M2/M3, then sub-agent re-discovery by child model family; numbers only, safe to paste | experimental |
-| `cfxd brief` | Lists each sub-agent handoff Brief logged: target model, packet size, why items were chosen, what the child re-read anyway. Needs `cfxd set brief_v1 on`; experimental | experimental |
+| `cfxd brief` | Lists each sub-agent handoff Brief logged: target model, packet size, why items were chosen, what the child re-read anyway. `--paste-safe` replaces relative paths with `file-N`; `--share` is numeric only; needs `cfxd set brief_v1 on`; experimental | experimental |
 | `cfxd ledger` | What the plugin did or changed, each line labelled OBSERVED, ESTIMATED or PROVEN (none proven yet) | experimental |
 | `cfxd refetch` | Measures how much of the context dropped by a compaction or `/clear` the agent reads again | working |
-| `cfxd diet --apply` / `--undo` | Disables fully unused local plugins through Claude Code's own command, with an exact undo | experimental |
+| `cfxd diet --apply` / `--undo` | Disables fully unused local plugins through Claude Code's own command, with an exact undo (`cfxd diet --undo`) | experimental |
 | Checkpoint (`cfxd checkpoint`) | retired (ADR-0013) |
-| `cfxd packet validate` | Checks a saved packet against the DRAFT v0 schema and conformance rules: shape, caps, 3,000-byte render, provenance, masking, control characters, and staleness with `--cwd` | experimental |
+| `cfxd packet validate` | Checks a packet file against the DRAFT v0 schema and conformance rules: shape, caps, 3,000-byte render, provenance, masking, control characters, and staleness with `--cwd` | experimental |
 | `cfxd packet build --agent claude\|codex\|opencode` | Builds a v0 packet from a session log using observed tool calls only: files read or edited, masked commands, todos, last test run; records the agent and tool mapping in `source` | experimental, tested on logs only |
 | `cfxd checkpoint import FILE` | retired (ADR-0013) |
 | `cfxd packet render` / `install-agents-md` | Prints a packet as a compact block (at most 3,000 bytes), or writes/removes only its marked block in `AGENTS.md`; Codex and OpenCode both read `AGENTS.md` | experimental, tested on logs only |
 | Bound (`cfxd set bound on`) | retired (ADR-0013) |
-| Coach, idle notice (`cfxd set coach on`, `idle_notice on`) | One plain line when a session gets long, or when a resume finds the cache expired | experimental, off by default |
-| Brief | Gives a sub-agent the files and saved outputs the parent already touched; fires only when a sub-agent runs | experimental |
+| Coach, idle notice (`cfxd set coach on`, `idle_notice on`) | One plain line when a session gets long, or when a resume finds the cache expired. Coach is off by default; turning it on joins an install-hash measurement study (half see prompts, half do not; leave any time with `cfxd set coach off`) | experimental, off by default |
+| Brief | Gives a sub-agent the working-set files and recent state the parent already touched; fires only when a sub-agent runs | experimental |
 | Carry | Snapshots the working set before `/compact`, restores it after; acts only at a compaction, which is rare | experimental |
 | Fold | retired (ADR-0013) |
 | `cfxd stats`, `doctor` | Per-session numbers and a health check, including daemon identity | working |
 
 <img src="docs/assets/diet-example.svg" alt="Example output of cfxd diet --share: first-turn context, itemized setup, never-used items and the estimated effect" width="100%">
 
-Real output of `cfxd diet --share` on one developer's last 30 days, with skill, plugin and connector names replaced by
-numbered labels. Without `--share` it prints the real names, for your own screen only.
+Real output of `cfxd diet --share` on one developer's last 30 days (numeric aggregates only; pseudonymous name digests exist only behind `--include-name-digests`, which prints a warning and must never be pasted). Without `--share` it prints the real names, for your own screen only.
 
 ## Try it
 
@@ -159,10 +155,8 @@ only; nothing leaves your machine:
 uvx --from git+https://github.com/Pranavk098/context-fabric cfxd audit
 ```
 
-**Help test it.** Follow [`docs/TESTING-GUIDE.md`](docs/TESTING-GUIDE.md) (about 15 minutes of setup, then normal
-use), then open a
-[Brief feedback issue](https://github.com/Pranavk098/context-fabric/issues/new?template=brief-feedback.yml) with the
-output of `audit` and `stats`. Use it on your own computer only for now; see [`SECURITY.md`](SECURITY.md).
+**Help test it.** Follow [`docs/testers/README.md`](docs/testers/README.md) and [`docs/TESTING-GUIDE.md`](docs/TESTING-GUIDE.md) (first run `cfxd checkup` or `cfxd week --share` from your existing logs, then `cfxd diet`, then the optional Brief opt-in), then open a
+[Tester report issue](https://github.com/Pranavk098/context-fabric/issues/new?template=tester-feedback.yml) with counts only. Use it on your own computer only for now; see [`SECURITY.md`](SECURITY.md).
 
 Remove it: `claude plugin uninstall context-fabric@context-fabric`. Full steps and what is stored on disk:
 [`docs/INSTALL-ALPHA.md`](docs/INSTALL-ALPHA.md).
@@ -198,7 +192,7 @@ in [`docs/engineering/NUMBERS.md`](docs/engineering/NUMBERS.md).
 
 **Later.**
 - [ ] Public Agent Context Benchmark with competitor arms, losses included
-- [ ] Cache-aware shrinking on an API gateway, if the replay bound is exceeded on other users' data
+- [ ] Cache-aware shrinking on an API gateway, if the replay upper limit is exceeded on other users' data
 - [ ] Framework adapters (LangGraph, DeepAgents) and shared memory across agents and teammates
 
 [Docs](docs/README.md) · [Install guide](docs/INSTALL-ALPHA.md) · [Testing guide](docs/TESTING-GUIDE.md) ·
