@@ -1,0 +1,51 @@
+# Inputs for the limit-weighted "new tokens" metric (P8). Loaded by cfxd/limit_metric.py.
+#
+# Weights are price ratios against new input tokens, not token counts. Re-check them
+# against the pricing page before relying on them.
+#   w_write   a 5-minute cache write costs 1.25x new input on every model family priced
+#             in prices.json; a 1-hour write costs 2.0x and is not modelled here.
+#   w_output  output costs 5x new input across those families.
+#   w_read    cache reads at roughly 1/67 of new input: ONE account measurement, single
+#             and unverified. It is a parameter, not a constant; sensitivity() reruns the
+#             headline at 1/30 and 1/100 so a wrong ratio cannot silently flip a result.
+# Source for the ratios: https://platform.claude.com/docs/en/about-claude/pricing
+# as_of = "2026-10-24" (the date carried by cfxd/data/prices.json)
+
+[weights]
+w_write = 1.25
+w_read = 0.014925373134328358  # 1/67
+w_output = 5.0
+
+# Plan-tier denominators (decision D-3). A token figure is allowed only from an official
+# published source, labelled estimate with its URL and date; a tier with no official
+# figure keeps no denominator and limit_share() returns None for it. Never invent one.
+#
+# Checked 2026-11-02: Anthropic publishes no token-denominated 5-hour or weekly limit for
+# any plan tier. The help centre describes both windows in relative terms ("5x the Pro
+# plan's usage") and the plan cards say there is "no fixed message count".
+#   https://support.claude.com/en/articles/11647753-how-do-usage-and-length-limits-work
+#   https://claude.com/pricing
+# The API rate limits are token figures, but per minute (ITPM/OTPM), not per 5-hour or
+# weekly window, so they are not denominators here.
+#
+# To add a figure later, put it in the tier table with source, as_of and
+# basis = "estimate"; load_limits() refuses a figure without all three.
+
+[tier.pro]
+source = "https://support.claude.com/en/articles/11647753-how-do-usage-and-length-limits-work"
+as_of = "2026-11-02"
+basis = "estimate"
+# no five_hour_tokens, no week_tokens: no official figure exists
+
+[tier.max]
+source = "https://support.claude.com/en/articles/11647753-how-do-usage-and-length-limits-work"
+as_of = "2026-11-02"
+basis = "estimate"
+# no five_hour_tokens, no week_tokens: no official figure exists
+
+[tier.ultra]
+source = "https://support.claude.com/en/articles/11647753-how-do-usage-and-length-limits-work"
+as_of = "2026-11-02"
+basis = "estimate"
+# no five_hour_tokens, no week_tokens: no official figure exists
+# verified Ultra accounts have no 5-hour limit at all, so that window can never be shared
