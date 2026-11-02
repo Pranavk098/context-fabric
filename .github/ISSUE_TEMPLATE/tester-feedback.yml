@@ -166,9 +166,17 @@ body:
         - Maybe
         - "Yes"
   - type: checkboxes
+    id: coach-study-consent
+    attributes:
+      label: Consent to be in the coach measurement study
+      description: "You are in a measurement study if you turn coach on. Half of testers see coach prompts and half do not; which half you are in is fixed by a hash of your install. You can leave the study any time with `cfxd set coach off`."
+      options:
+        - label: I consent to participate in the coach measurement study if I turn coach on
+  - type: checkboxes
     id: consent
     attributes:
-      label: Consent to use your numbers
+      label: Consent to publish aggregated counts
+      description: Consent to publish aggregates is separate from consent to be in the coach measurement study.
       options:
         - label: I agree that the counts and percentages above may be aggregated with other testers' and published (no names, no text)
         - label: You may quote my free-text answers publicly, without my name
