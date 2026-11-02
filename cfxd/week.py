@@ -8,6 +8,7 @@ long-session pattern saves tokens is still unproven.
 
 from __future__ import annotations
 
+import json
 import statistics
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -20,9 +21,18 @@ from cfxd.config import read_config
 from cfxd.diet import diet
 from cfxd.dietapply import _read_records, _write_record
 from cfxd.fsutil import ensure_dir
+from cfxd.limit_metric import limit_weighted_new_tokens, load_weights, sensitivity
 from cfxd.refetch import refetch
 from cfxd.replay import _parse_ts
-from cfxd.routing import _DEFAULT_PRICES, _load_prices, _scan_turns, _turn_dollars, routing
+from cfxd.routing import (
+    _DEFAULT_PRICES,
+    _load_prices,
+    _normalize,
+    _scan_turns,
+    _turn_dollars,
+    routing,
+)
+from cfxd.share import FAMILIES, build_share, render_share_text, validate_share
 from cfxd.stats import _read_objects, collect_stats
 
 _BUCKETS = (("2-10", 2, 10), ("11-30", 11, 30), ("31+", 31, None))
@@ -37,6 +47,60 @@ def _since_key(days: int) -> str:
     key = f"{days}d"
     _SINCE_DELTAS[key] = timedelta(days=days)
     return key
+
+
+def _usage(tokens: dict[str, int]) -> dict[str, int]:
+    """routing's per-turn token table in ``limit_metric``'s usage field names."""
+    return {
+        "input_tokens": tokens["input"],
+        "cache_creation_input_tokens": tokens["cache_creation_5m"] + tokens["cache_creation_1h"],
+        "cache_read_input_tokens": tokens["cache_read"],
+        "output_tokens": tokens["output"],
+    }
+
+
+def _limit_lines(report: dict[str, Any]) -> list[str]:
+    """The lead: limit-weighted tokens, then the D-3 fallback that no limit share exists."""
+    value = report["limit_weighted_new_tokens"]
+    tokens = "n/a (no usage recorded)" if value is None else f"{value:,.0f}"
+    return [
+        f"Limit-weighted new tokens: {tokens} "
+        "(estimated: price-ratio weights from cfxd/data/limit_weights.toml)",
+        f"Limit share: n/a ({report['notes']['limit_share']})",
+    ]
+
+
+def _first_family(path: Path) -> str | None:
+    """First model recorded in a child transcript, as opus/sonnet/haiku; None if unreadable."""
+    try:
+        with path.open(encoding="utf-8", errors="replace") as handle:
+            for line in handle:
+                try:
+                    obj = json.loads(line)
+                except ValueError:
+                    continue
+                message = obj.get("message")
+                model = message.get("model") if isinstance(message, dict) else None
+                if isinstance(model, str) and model.strip():
+                    name = _normalize(model)
+                    return next((family for family in FAMILIES if name.startswith(family)), None)
+    except OSError:
+        return None
+    return None
+
+
+def _child_families(paths: list[Path]) -> dict[str, int]:
+    """Child transcripts per parent, counted by model family, for the share payload."""
+    counts = dict.fromkeys(FAMILIES, 0)
+    for path in paths:
+        subagents = path.with_suffix("") / "subagents"
+        if not subagents.is_dir():
+            continue
+        for child in subagents.glob("agent-*.jsonl"):
+            family = _first_family(child)
+            if family is not None:
+                counts[family] += 1
+    return counts
 
 
 def _meaning(report: dict[str, Any]) -> list[str]:
@@ -142,6 +206,23 @@ def week(
     cache_read_share = (
         round(tokens["cache_read"] / token_total, 4) if token_total and tokens else None
     )
+    usage = _usage(tokens) if tokens is not None else None
+    weights = None
+    if usage is not None:
+        try:
+            weights = load_weights()
+        except (OSError, ValueError, KeyError):
+            notes["limit_metric"] = "weight table unavailable"
+    limit_tokens = (
+        round(limit_weighted_new_tokens(usage, weights), 1)
+        if usage is not None and weights is not None
+        else None
+    )
+    sensitivity_table = (
+        {label: round(value, 1) for label, value in sensitivity(usage, weights).items()}
+        if usage is not None and weights is not None
+        else None
+    )
     switches = (
         {
             "count": route["model_switches"]["cold"]
@@ -195,11 +276,16 @@ def week(
     else:
         notes["receipts"] = "no state directory"
     notes["checkpoints"] = "not recorded by cfxd stats"
+    notes["limit_share"] = (
+        "no official 5-hour or weekly token limit for any plan tier; decision D-3"
+    )
+    child_families = _child_families(parents)
     hook_delivery = coverage(root, state_dir, days, now=now) if state_dir is not None else None
 
     report: dict[str, Any] = {
         "version": __version__,
         "days": days,
+        "turns": sum(turns for turns, _d in per_session),
         "sessions": len(parents),
         "sessions_under_2_turns": sum(1 for turns, _d in per_session if turns < 2),
         "dollars_total": total_dollars,
@@ -210,6 +296,13 @@ def week(
         ),
         "buckets": buckets,
         "cache_read_share_tokens": cache_read_share,
+        "cache_read_tokens": tokens["cache_read"] if tokens is not None else 0,
+        "usage": usage,
+        "limit_weighted_new_tokens": limit_tokens,
+        "limit_share": None,
+        "sensitivity": sensitivity_table,
+        "children": sum(child_families.values()),
+        "children_by_model_family": child_families,
         "first_turn_context_median": first_turn,
         "compactions": compactions,
         "clear_restarts": refetch_report["clear_restarts"]["linked"],
@@ -228,6 +321,23 @@ def week(
     }
     report["meaning"] = _meaning(report)
     return report
+
+
+def share_aggregates(report: dict[str, Any]) -> dict[str, Any]:
+    """The cf-share/2 fields this report can fill; ``build_share`` copies only these."""
+    return {
+        "period_days": report["days"],
+        "sessions": report["sessions"],
+        "turns": report["turns"],  # parent turns; a session is counted once
+        "children": report["children"],
+        "children_by_model_family": report["children_by_model_family"],
+        "new_token_equivalents": report["limit_weighted_new_tokens"],
+        "cache_read_tokens": report["cache_read_tokens"],
+        # Dedupe (P5) is parked after the P4 demotion: this build never elides anything.
+        "elisions": 0,
+        "elided_bytes": 0,
+        "consent_aggregate_publish": False,
+    }
 
 
 def _history_dir(state_dir: Path) -> Path:
@@ -324,10 +434,11 @@ def _value(value: float | None, reason: str, spec: str) -> str:
     return f"n/a ({reason})" if value is None else format(value, spec)
 
 
-def format_week(report: dict[str, Any], share: bool = False) -> str:
+def format_week(report: dict[str, Any], share: bool = False, verbose: bool = False) -> str:
     """Render the weekly report as plain text (counts, sizes and model ids only)."""
     notes: dict[str, str] = report["notes"]
     lines = [f"cfxd week {report['version']}, last {report['days']} days (experimental)"]
+    lines.extend(_limit_lines(report))
     if report["sessions"] == 0:
         lines.append("No transcripts found in this window.")
     else:
@@ -354,11 +465,13 @@ def format_week(report: dict[str, Any], share: bool = False) -> str:
         cache = report["cache_read_share_tokens"]
         cache_text = "n/a (no tokens recorded)" if cache is None else f"{cache * 100:.1f}%"
         lines.append(f"Cache-read share of tokens: {cache_text}")
-        lines.append(
-            "First-turn context: median "
-            + _value(report["first_turn_context_median"], notes.get("first_turn", ""), ",.0f")
-            + " tokens"
-        )
+        if verbose:
+            lines.append(
+                "First-turn context: median "
+                + _value(report["first_turn_context_median"], notes.get("first_turn", ""), ",.0f")
+                + " tokens"
+            )
+            _usage_lines(report, lines)
         lines.append(
             f"Compactions: {report['compactions']:,} boundaries, "
             f"{report['clear_restarts']:,} /clear restarts"
@@ -390,8 +503,28 @@ def format_week(report: dict[str, Any], share: bool = False) -> str:
     lines.append("What this means:")
     lines.extend(f"  - {sentence}" for sentence in report["meaning"])
     if share:
+        payload = validate_share(build_share(share_aggregates(report)))
+        lines.append("")
+        lines.append(render_share_text(payload).rstrip())
         lines.append(_SAFE)
     return "\n".join(lines)
+
+
+def _usage_lines(report: dict[str, Any], lines: list[str]) -> None:
+    """The ``--verbose`` appendix: raw token counts and the w_read sensitivity table."""
+    usage = report["usage"]
+    if usage is not None:
+        lines.append(
+            "Raw tokens (appendix): input {input_tokens:,}, cache write "
+            "{cache_creation_input_tokens:,}, cache read {cache_read_input_tokens:,}, "
+            "output {output_tokens:,}".format(**usage)
+        )
+    table = report["sensitivity"]
+    if table is not None:
+        lines.append(
+            "Sensitivity (w_read): "
+            + ", ".join(f"{label} -> {value:,.1f}" for label, value in table.items())
+        )
 
 
 def _hook_delivery_line(report: dict[str, Any]) -> str:
