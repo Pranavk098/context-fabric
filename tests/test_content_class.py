@@ -11,6 +11,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import re
 import stat
 from collections.abc import Iterator
 from pathlib import Path
@@ -25,6 +26,7 @@ from cfxd.content_class import (
     COUNTS,
     FORBIDDEN,
     INDEX,
+    MARKER,
     OPAQUE,
     SECRET,
     SNAPSHOT,
@@ -84,6 +86,9 @@ def daemon(tmp_path: Path) -> Iterator[Daemon]:
     [
         ("token", SECRET.name),
         (".obs-purged", SECRET.name),
+        ("welcomed", MARKER.name),
+        ("bound.on", MARKER.name),
+        ("coach.on", MARKER.name),
         ("state.json", COUNTS.name),
         ("config.json", COUNTS.name),
         ("events.jsonl", COUNTS.name),
@@ -107,6 +112,64 @@ def test_classify_declares_each_state_file(rel: str, name: str) -> None:
 def test_obs_store_and_unknown_files_are_violations() -> None:
     assert classify(Path("obs/deadbeef.txt")) == FORBIDDEN
     assert classify(Path("mystery.json")) == UNDECLARED
+
+
+_CFXD = Path(__file__).resolve().parents[1] / "cfxd"
+_STATE_JOIN = re.compile(r'state_dir\s*/\s*"([^"]+)"')
+_NAME_CONSTANT = re.compile(r'\b([A-Za-z_][A-Za-z0-9_]*)\s*=\s*"([^"]+)"')
+# Directories classify() matches by their first part, so a probe file names the shape.
+_DIR_SAMPLES = {"history": "week-2026-11-01.json", "briefs": "ab12/tu-1.json"}
+
+
+def _state_dir_names() -> set[str]:
+    """Every state-dir-relative name the code can create, found statically.
+
+    Limits: the scan reads ``state_dir / "<literal>"`` joins and module constants whose
+    name ends in _LOG/_FILE/_DIR/_MARKER. A name built only inside an f-string (e.g.
+    ``state_dir / f"{flag}.on"``) or returned from a helper that receives the state dir
+    is invisible here; it is covered only if it also appears as a literal or constant,
+    so a new write target should reuse a constant to stay caught.
+    """
+    names: set[str] = set()
+    for source in sorted(_CFXD.glob("*.py")):
+        text = source.read_text(encoding="utf-8")
+        names.update(_STATE_JOIN.findall(text))
+        names.update(
+            value
+            for const, value in _NAME_CONSTANT.findall(text)
+            if const.endswith(("_LOG", "_FILE", "_DIR", "_MARKER"))
+        )
+    return names
+
+
+def _probe(name: str) -> Path:
+    return Path(name) / _DIR_SAMPLES.get(name, "probe.json")
+
+
+def test_every_state_dir_name_in_the_code_is_classified() -> None:
+    names = _state_dir_names()
+    assert {"events.jsonl", "token", "welcomed", "carry", "briefs"} <= names
+    missing = sorted(
+        name
+        for name in names
+        if classify(Path(name)) == UNDECLARED and classify(_probe(name)) == UNDECLARED
+    )
+    assert missing == []
+
+
+def test_a_state_dir_with_one_file_of_every_declared_name_audits_clean(tmp_path: Path) -> None:
+    for name in sorted(_state_dir_names()):
+        if name == "obs":
+            continue  # forbidden by design (ADR-0013)
+        path = tmp_path / (_probe(name) if classify(Path(name)) == UNDECLARED else Path(name))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("{}" if path.name.endswith(".json") else "x", encoding="utf-8")
+    assert audit_state_dir(tmp_path) == []
+
+
+def test_a_marker_over_its_cap_fails(tmp_path: Path) -> None:
+    (tmp_path / "welcomed").write_text("x" * 100, encoding="utf-8")
+    assert audit_state_dir(tmp_path) == ["welcomed: oversized"]
 
 
 # ------------------------------------------------------------------------- audit
@@ -224,6 +287,22 @@ def test_startup_warns_when_a_state_file_exceeds_its_class(
         err = capsys.readouterr().err
         assert "1 state file(s) exceed their content class" in err
         assert planted not in err
+    finally:
+        d.stop()
+
+
+def test_startup_is_silent_on_the_launcher_markers(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    state = tmp_path / "cfx"
+    state.mkdir()
+    for name in ("welcomed", "bound.on", "coach.on"):
+        (state / name).touch()
+    d = Daemon(state, 0)
+    d.start()
+    try:
+        assert "exceed their content class" not in capsys.readouterr().err
+        assert audit_state_dir(state) == []
     finally:
         d.stop()
 

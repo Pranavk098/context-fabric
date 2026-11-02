@@ -2,8 +2,10 @@
 
 Counts-only files may hold numbers, ids, hashes and short single-line labels; bounded-prose
 files (carry and checkpoint snapshots) may hold paths, todo lines and constraint sentences;
-Brief packet files hold pointers, ranges and counts. Excerpt text, prompt text and tool-output
-text are not a declared class, and ``obs/`` (the retired fold blob store) is forbidden.
+Brief packet files hold pointers, ranges and counts; marker files (the one-time welcome and
+the launch.sh on/off flags) are empty or one short version string. Excerpt text, prompt text
+and tool-output text are not a declared class, and ``obs/`` (the retired fold blob store) is
+forbidden.
 
 ``audit_state_dir`` returns one ``"<relative path>: <reason>"`` per file that carries more than
 its class allows, so an empty list is a pass. The daemon runs it at startup and prints the count
@@ -25,6 +27,7 @@ PROSE_MAX_CHARS = 4_000  # one command line or path in a snapshot/packet
 SNAPSHOT_MAX_BYTES = 64 * 1024  # carry.MAX_SNAPSHOT_FILE_BYTES
 INDEX_MAX_BYTES = 16 * 1024  # carry.SNAPSHOT_CAP_BYTES: the packet JSON cap
 SECRET_MAX_BYTES = 128
+MARKER_MAX_BYTES = 64  # one-time welcome and the launch.sh on/off flag files
 OBS_DIR = "obs"
 FORBIDDEN = "forbidden"
 UNDECLARED = "undeclared"
@@ -44,6 +47,7 @@ COUNTS = ContentClass("counts", None, COUNTS_MAX_CHARS)
 INDEX = ContentClass("index", INDEX_MAX_BYTES, PROSE_MAX_CHARS, single_line=False)
 SNAPSHOT = ContentClass("snapshot", SNAPSHOT_MAX_BYTES, PROSE_MAX_CHARS, single_line=False)
 SECRET = ContentClass("secret", SECRET_MAX_BYTES, SECRET_MAX_BYTES)
+MARKER = ContentClass("marker", MARKER_MAX_BYTES, MARKER_MAX_BYTES)
 # Launcher stdout/stderr: not a data store, so only the size of the state dir bounds it.
 OPAQUE = ContentClass("opaque", None, None, single_line=False)
 
@@ -58,6 +62,8 @@ def classify(rel: Path) -> ContentClass | str:
         return FORBIDDEN
     if name in ("token", ".obs-purged"):
         return SECRET
+    if name in ("welcomed", "bound.on", "coach.on"):
+        return MARKER  # launch.py's welcome marker and the launch.sh flag files
     if name in ("state.json", "config.json") or name.endswith(".jsonl"):
         return COUNTS
     if name == "python":
