@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -375,3 +376,34 @@ def test_every_command_answers_version_with_the_plugin_version(command: list[str
 
     assert result.returncode == 0, result.stderr
     assert __version__ in result.stdout
+
+
+# ------------------------------------------------------------------ retired features
+
+_GOLDEN = ROOT / "tests" / "golden"
+_RETIRED_RE = re.compile(r"\b(?:fold|bound|checkpoint)\b", re.IGNORECASE)
+_RETIRED_CASES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("week", ("week", "--root", str(_GOLDEN), "--days", "36500", "--state-dir", "{state}")),
+    (
+        "week-share",
+        ("week", "--root", str(_GOLDEN), "--days", "36500", "--state-dir", "{state}", "--share"),
+    ),
+    ("ledger", ("ledger", "--root", str(_GOLDEN), "--days", "36500", "--state-dir", "{state}")),
+    ("checkup", ("checkup", "--root", str(_GOLDEN), "--since", "all")),
+    ("doctor", ("doctor", "--state-dir", "{state}")),
+    ("handoff-stats", ("handoff-stats", "--root", str(_GOLDEN))),
+)
+
+
+@pytest.mark.parametrize(("name", "argv"), _RETIRED_CASES, ids=[c[0] for c in _RETIRED_CASES])
+def test_tester_output_never_names_a_retired_feature(
+    name: str, argv: tuple[str, ...], tmp_path: Path
+) -> None:
+    state = tmp_path / "state"
+    result = _run([part.format(state=state) for part in argv], state)
+    output = result.stdout + result.stderr
+
+    assert not _RETIRED_RE.findall(output), f"{name}: {_RETIRED_RE.findall(output)}"
+    assert "scripts/state_audit.py" not in output
+    if name != "doctor":  # doctor exits 1 without a running daemon; its text still matters
+        assert result.returncode == 0, result.stderr

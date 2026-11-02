@@ -18,13 +18,11 @@ from typing import Any
 
 from cfxd import __version__
 from cfxd.audit import _SINCE_DELTAS, _discover
-from cfxd.checkpoint import CHECKPOINT_LOG
 from cfxd.daemon import percentile
 from cfxd.dietapply import _read_records
-from cfxd.refetch import _CLEAR_GAP, _scan, refetch
+from cfxd.refetch import _scan, refetch
 from cfxd.replay import _parse_ts, replay
-from cfxd.routing import _DEFAULT_PRICES, _load_prices, _scan_turns
-from cfxd.stats import _read_objects, collect_stats
+from cfxd.stats import collect_stats
 
 _HEADER = (
     "No saving is proven. Lines are labelled OBSERVED, ESTIMATED or PROVEN; "
@@ -32,16 +30,10 @@ _HEADER = (
 )
 _SAFE = "Safe to paste: counts, sizes and model ids only."
 _NOT_COUNTERFACTUAL = "Other changes also move this number; it is not a counterfactual."
-_ASSUMPTION = (
-    "assumes you would have kept using the old session for as many turns, "
-    "and that nothing was lost by restarting"
-)
 _CEILING_LABEL = "offline ceiling, assumes a perfect handoff; not a forecast"
-_NOT_LINKABLE = "n/a (cannot link restores to sessions)"
 _MIN_AFTER = 3
 _RESET_K = 40
 _SUMMARY_TOKENS = 2000
-_MTOK = 1_000_000.0
 
 
 def _session(path: Path) -> dict[str, Any] | None:
@@ -123,109 +115,6 @@ def _diet(sessions: list[dict[str, Any]]) -> dict[str, Any]:
     return {"applies": applies}
 
 
-def _receipts(state_dir: Path, cutoff: datetime) -> list[dict[str, Any]]:
-    events: list[dict[str, Any]] = []
-    for entry in _read_objects(state_dir / CHECKPOINT_LOG):
-        ts = _parse_ts(entry.get("ts"))
-        if ts is None or ts < cutoff:
-            continue
-        events.append(entry)
-    return events
-
-
-def _link_new(
-    sessions: list[dict[str, Any]], session_id: Any, ts: datetime
-) -> dict[str, Any] | None:
-    """The restored session: by receipt session id, else the only one starting within 10 min."""
-    if isinstance(session_id, str) and session_id:
-        for session in sessions:
-            if session["session_id"] == session_id:
-                return session
-    candidates = [s for s in sessions if ts <= s["first_ts"] <= ts + _CLEAR_GAP]
-    return candidates[0] if len(candidates) == 1 else None
-
-
-def _link_old(
-    sessions: list[dict[str, Any]], new: dict[str, Any], ts: datetime
-) -> dict[str, Any] | None:
-    """The session that ended just before the restore, in the same project directory."""
-    candidates = [
-        s
-        for s in sessions
-        if s is not new
-        and s["dir"] == new["dir"]
-        and s["last_ts"] is not None
-        and s["last_ts"] <= ts
-    ]
-    if not candidates:
-        return None
-    return max(candidates, key=lambda s: s["last_ts"])
-
-
-def _cache_read_price(
-    path: Path, families: dict[str, Any] | None
-) -> tuple[str | None, float | None]:
-    """Model id and cache-read price per Mtok of the session's first priced turn."""
-    if families is None:
-        return None, None
-    for turn in _scan_turns(path, families):
-        family = turn["family"]
-        if family is not None:
-            return str(family), float(families[family]["cache_read"])
-    return None, None
-
-
-def _checkpoint(
-    sessions: list[dict[str, Any]],
-    events: list[dict[str, Any]],
-    families: dict[str, Any] | None,
-) -> dict[str, Any]:
-    saves = sum(
-        1 for e in events if e.get("event") == "checkpoint_save" and e.get("outcome") == "saved"
-    )
-    restores = [
-        e
-        for e in events
-        if e.get("event") == "checkpoint_restore" and e.get("outcome") == "restored"
-    ]
-    estimates: list[dict[str, Any]] = []
-    for event in restores:
-        ts = _parse_ts(event.get("ts"))
-        if ts is None:
-            continue
-        new = _link_new(sessions, event.get("session_id"), ts)
-        if new is None:
-            continue
-        old = _link_old(sessions, new, ts)
-        if old is None:
-            continue
-        model, price = _cache_read_price(new["path"], families)
-        if price is None:
-            continue
-        avoided = max(0, int(old["last_ctx"]) - int(new["first_ctx"]))
-        dollars = avoided * int(new["turns"]) * price / _MTOK
-        estimates.append(
-            {
-                "old_ctx": old["last_ctx"],
-                "new_ctx": new["first_ctx"],
-                "avoided_tokens": avoided,
-                "turns": new["turns"],
-                "model": model,
-                "cache_read_per_mtok": price,
-                "dollars": round(dollars, 6),
-            }
-        )
-    return {
-        "saves": saves,
-        "restores": len(restores),
-        "linked": len(estimates),
-        "tokens_avoided": sum(e["avoided_tokens"] for e in estimates),
-        "dollars_avoided": round(sum(float(e["dollars"]) for e in estimates), 6),
-        "estimates": estimates,
-        "assumption": _ASSUMPTION,
-    }
-
-
 def _ceiling(root: Path, since: str, f_median: float | None, now: datetime) -> dict[str, Any]:
     """Replay's own reset model at k=40, S=2000 and the measured median re-fetch fraction."""
     ceiling: dict[str, Any] = {
@@ -270,26 +159,18 @@ def ledger(
     parents, _subs = _discover(root, cutoff)
     sessions = [s for p in parents if (s := _session(p)) is not None]
 
-    try:
-        families: dict[str, Any] | None = _load_prices(_DEFAULT_PRICES)["families"]
-    except (OSError, ValueError, KeyError):
-        families = None
-
     refetch_report = refetch(root, since, now=now)
     f_median = refetch_report["f"]["median"] if refetch_report["events_analyzed"] else None
 
     if state_dir is not None:
         stats = collect_stats(state_dir, "all", now=now)
         notices: dict[str, Any] | None = {
-            "bound_rewrites": stats["bounded"],
             "coach_nudges": stats["nudges"],
             "idle_notices": stats["cold_resumes"]["receipts"],
             "cold_resumes": stats["cold_resumes"]["count"],
         }
-        checkpoint = _checkpoint(sessions, _receipts(state_dir, cutoff), families)
     else:
         notices = None
-        checkpoint = _checkpoint(sessions, [], families)
 
     return {
         "version": __version__,
@@ -298,7 +179,6 @@ def ledger(
         "sessions_scanned": len(sessions),
         "header": _HEADER,
         "diet": _diet(sessions),
-        "checkpoint": checkpoint,
         "notices": notices,
         "ceiling": _ceiling(root, since, f_median, now),
         "proven": "none yet",
@@ -341,39 +221,12 @@ def _diet_lines(report: dict[str, Any]) -> list[str]:
     return lines
 
 
-def _checkpoint_lines(report: dict[str, Any]) -> list[str]:
-    c = report["checkpoint"]
-    lines = [
-        f"Checkpoint (OBSERVED counts, ESTIMATED effect): {c['saves']:,} saves, "
-        f"{c['restores']:,} restores"
-    ]
-    if c["restores"] == 0:
-        lines.append("  no restore receipts; nothing to estimate")
-        return lines
-    if c["linked"] == 0:
-        lines.append(f"  {_NOT_LINKABLE}")
-        return lines
-    for index, e in enumerate(c["estimates"], start=1):
-        lines.append(
-            f"  restore {index}: {float(e['old_ctx']):,.0f} -> {float(e['new_ctx']):,.0f} tokens, "
-            f"avoided {e['avoided_tokens']:,} tokens x {e['turns']:,} turns at "
-            f"{e['model']} ${float(e['cache_read_per_mtok']):.2f}/Mtok cache read = "
-            f"${float(e['dollars']):.4f}"
-        )
-    lines.append(f"  avoided {c['tokens_avoided']:,} tokens, about ${c['dollars_avoided']:,.4f}")
-    lines.append(f"  {_ASSUMPTION}")
-    if c["linked"] < c["restores"]:
-        lines.append(f"  {c['restores'] - c['linked']} restore(s) not linkable to a session")
-    return lines
-
-
 def _notices_lines(report: dict[str, Any]) -> list[str]:
     notices = report["notices"]
     if notices is None:
-        return ["Bound / coach / idle notice (OBSERVED): n/a (no state directory)"]
+        return ["Coach / idle notice (OBSERVED): n/a (no state directory)"]
     return [
-        "Bound / coach / idle notice (OBSERVED, counts from receipts only, no dollars): "
-        f"bound rewrites {notices['bound_rewrites']:,}, "
+        "Coach / idle notice (OBSERVED, counts from receipts only, no dollars): "
         f"coach nudges {notices['coach_nudges']:,}, "
         f"idle notices {notices['idle_notices']:,} "
         f"(cold resumes {notices['cold_resumes']:,})"
@@ -400,7 +253,6 @@ def format_ledger(report: dict[str, Any], share: bool = False) -> str:
     if report["sessions"] == 0:
         lines.append("No transcripts found in this window.")
     lines.extend(_diet_lines(report))
-    lines.extend(_checkpoint_lines(report))
     lines.extend(_notices_lines(report))
     lines.extend(_ceiling_lines(report))
     lines.append(f"PROVEN: {report['proven']}")

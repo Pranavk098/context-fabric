@@ -130,120 +130,12 @@ def test_undone_diet_record_is_ignored(tmp_path: Path, monkeypatch: pytest.Monke
     assert "n/a (no applied diet records)" in format_ledger(report)
 
 
-def _checkpoint_fixture(tmp_path: Path) -> tuple[Path, Path]:
-    root = tmp_path / "root"
-    old_start = datetime(2026, 1, 15, 10, 0, tzinfo=UTC)
-    old_lines = [
-        _assistant(_usage(20000), old_start),
-        _assistant(_usage(25000), old_start + timedelta(minutes=10)),
-        _assistant(_usage(30000), old_start + timedelta(minutes=20)),
-    ]
-    _session(root, "proj", "old", old_start, old_lines)
-    new_start = datetime(2026, 1, 15, 10, 35, tzinfo=UTC)
-    new_lines = [
-        _assistant(_usage(5000), new_start),
-        _assistant(_usage(6000), new_start + timedelta(minutes=5)),
-        _assistant(_usage(7000), new_start + timedelta(minutes=10)),
-        _assistant(_usage(8000), new_start + timedelta(minutes=15)),
-    ]
-    _session(root, "proj", "new", new_start, new_lines)
-    state = tmp_path / "state"
-    _write_log(
-        state / "checkpoint.jsonl",
-        [
-            {
-                "ts": "2026-01-15T10:00:00+00:00",
-                "session_id": "old",
-                "event": "checkpoint_save",
-                "outcome": "saved",
-            },
-            {
-                "ts": "2026-01-15T10:30:00+00:00",
-                "session_id": "new",
-                "event": "checkpoint_restore",
-                "outcome": "restored",
-            },
-        ],
-    )
-    return root, state
-
-
-def test_checkpoint_linking_and_dollar_estimate(tmp_path: Path) -> None:
-    root, state = _checkpoint_fixture(tmp_path)
-
-    report = ledger(root, 30, state, now=_NOW)
-
-    c = report["checkpoint"]
-    assert (c["saves"], c["restores"], c["linked"]) == (1, 1, 1)
-    assert c["tokens_avoided"] == 25000
-    # 25,000 tokens x 4 turns x $0.30 per Mtok.
-    assert c["dollars_avoided"] == pytest.approx(0.03, abs=1e-9)
-    text = format_ledger(report)
-    assert "avoided 25,000 tokens x 4 turns at sonnet-4-5 $0.30/Mtok cache read = $0.0300" in text
-    assert (
-        "assumes you would have kept using the old session for as many turns, "
-        "and that nothing was lost by restarting"
-    ) in text
-
-
-def test_checkpoint_links_by_time_when_receipt_has_no_session_id(tmp_path: Path) -> None:
-    root, state = _checkpoint_fixture(tmp_path)
-    _write_log(
-        state / "checkpoint.jsonl",
-        [
-            {
-                "ts": "2026-01-15T10:30:00+00:00",
-                "session_id": None,
-                "event": "checkpoint_restore",
-                "outcome": "restored",
-            }
-        ],
-    )
-
-    report = ledger(root, 30, state, now=_NOW)
-
-    assert report["checkpoint"]["linked"] == 1
-    assert report["checkpoint"]["tokens_avoided"] == 25000
-
-
-def test_unlinkable_restore_prints_na(tmp_path: Path) -> None:
-    root = tmp_path / "root"
-    start = datetime(2026, 1, 15, 9, 0, tzinfo=UTC)
-    _session(root, "proj", "lone", start, [_assistant(_usage(9000), start)])
-    state = tmp_path / "state"
-    _write_log(
-        state / "checkpoint.jsonl",
-        [
-            {
-                "ts": "2026-01-15T10:30:00+00:00",
-                "session_id": "ghost",
-                "event": "checkpoint_restore",
-                "outcome": "restored",
-            }
-        ],
-    )
-
-    report = ledger(root, 30, state, now=_NOW)
-
-    assert report["checkpoint"]["restores"] == 1
-    assert report["checkpoint"]["linked"] == 0
-    assert report["checkpoint"]["dollars_avoided"] == 0.0
-    assert "n/a (cannot link restores to sessions)" in format_ledger(report)
-
-
-def test_bound_coach_idle_counts_from_receipts(tmp_path: Path) -> None:
+def test_coach_idle_counts_from_receipts(tmp_path: Path) -> None:
     root = tmp_path / "root"
     start = datetime(2026, 1, 15, 10, 0, tzinfo=UTC)
     _session(root, "proj", "s1", start, [_assistant(_usage(), start)])
     state = tmp_path / "state"
     ts = "2026-01-15T10:05:00+00:00"
-    _write_log(
-        state / "bound.jsonl",
-        [
-            {"ts": ts, "session_id": "s", "event": "bound"},
-            {"ts": ts, "session_id": "s", "event": "bound"},
-        ],
-    )
     _write_log(
         state / "coach.jsonl",
         [{"ts": ts, "session_id": "s", "event": "coach_nudge", "outcome": "shown"}],
@@ -266,14 +158,11 @@ def test_bound_coach_idle_counts_from_receipts(tmp_path: Path) -> None:
 
     notices = report["notices"]
     assert notices == {
-        "bound_rewrites": 2,
         "coach_nudges": 1,
         "idle_notices": 2,
         "cold_resumes": 1,
     }
-    assert "bound rewrites 2, coach nudges 1, idle notices 2 (cold resumes 1)" in format_ledger(
-        report
-    )
+    assert "coach nudges 1, idle notices 2 (cold resumes 1)" in format_ledger(report)
 
 
 def test_ceiling_equals_the_replay_model(tmp_path: Path) -> None:
@@ -338,7 +227,6 @@ def test_empty_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert report["sessions"] == 0
     assert report["diet"]["applies"] == []
-    assert (report["checkpoint"]["saves"], report["checkpoint"]["restores"]) == (0, 0)
     assert report["notices"] is None
     assert report["ceiling"]["pct_bounded"] is None
     assert "No transcripts found in this window." in text
@@ -363,20 +251,10 @@ def test_json_shape(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         "sessions",
         "header",
         "diet",
-        "checkpoint",
         "notices",
         "ceiling",
         "proven",
         "share",
-    }
-    assert set(data["checkpoint"]) == {
-        "saves",
-        "restores",
-        "linked",
-        "tokens_avoided",
-        "dollars_avoided",
-        "estimates",
-        "assumption",
     }
     assert set(data["ceiling"]) == {"label", "k", "summary_tokens", "f", "pct_bounded"}
     assert set(data["diet"]["applies"][0]) >= {

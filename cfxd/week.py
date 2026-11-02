@@ -38,9 +38,7 @@ from cfxd.stats import _read_objects, collect_stats
 
 _BUCKETS = (("2-10", 2, 10), ("11-30", 11, 30), ("31+", 31, None))
 _SAFE = "Safe to paste: counts, sizes and model ids only."
-_LONG_SESSION_LINE = (
-    "Most of your cost is in long sessions; the checkpoint workflow targets exactly those."
-)
+_LONG_SESSION_LINE = "Most of your cost is in long sessions; `cfxd checkup` shows where it goes."
 
 
 def _since_key(days: int) -> str:
@@ -264,26 +262,20 @@ def week(
 
     receipts: dict[str, Any] = dict.fromkeys(
         (
-            "folds",
-            "bound_rewrites",
             "hook_calls",
             "hook_errors",
             "hook_rejected",
-            "checkpoints",
             "cold_resumes",
         )
     )
     if state_dir is not None:
         stats = collect_stats(state_dir, "all", now=now)
-        receipts["folds"] = stats["folds"]["count"]
-        receipts["bound_rewrites"] = stats["bounded"]
         receipts["hook_calls"] = stats["hooks"]["count"]
         receipts["hook_errors"] = stats["hooks"]["errors"]
         receipts["hook_rejected"] = stats["hooks"]["rejected"]
         receipts["cold_resumes"] = stats["cold_resumes"]
     else:
         notes["receipts"] = "no state directory"
-    notes["checkpoints"] = "not recorded by cfxd stats"
     notes["limit_share"] = (
         "no official 5-hour or weekly token limit for any plan tier; decision D-3"
     )
@@ -551,15 +543,12 @@ def _hook_delivery_line(report: dict[str, Any]) -> str:
 def _receipt_lines(report: dict[str, Any]) -> list[str]:
     r = report["receipts"]
     notes = report["notes"]
-    if r["folds"] is None:
+    if r["hook_calls"] is None:
         lines = [f"Plugin receipts (cfxd stats): n/a ({notes.get('receipts', '')})"]
     else:
-        checkpoints = _value(None, notes["checkpoints"], ",.0f")
         lines = [
-            f"Plugin receipts (cfxd stats, all time): {r['folds']:,} fold rewrites, "
-            f"{r['bound_rewrites']:,} bound rewrites, {r['hook_calls']:,} hook calls "
-            f"({r['hook_errors']:,} errors, {r['hook_rejected']:,} rejected), "
-            f"checkpoints {checkpoints}"
+            f"Plugin receipts (cfxd stats, all time): {r['hook_calls']:,} hook calls "
+            f"({r['hook_errors']:,} errors, {r['hook_rejected']:,} rejected)"
         ]
     cold = r["cold_resumes"]
     if cold is None:

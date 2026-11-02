@@ -33,7 +33,7 @@ from typing import Any
 
 from cfxd.audit import DEFAULT_ROOT
 from cfxd.config import read_config
-from cfxd.content_class import audit_state_dir
+from cfxd.content_class import OBS_DIR, audit_state_dir
 from cfxd.daemon import (
     STATE_FILE,
     get_health,
@@ -55,6 +55,10 @@ _PLUGIN_ROOT = Path(__file__).resolve().parent.parent
 _REQUIRED_HOOKS = ("SessionStart", "PreCompact", "PreToolUse", "PostToolUse", "Stop")
 _PLUGIN_REINSTALL = "claude plugin install context-fabric@context-fabric"
 _CLI_ABSENT = "not found on PATH (fine if you use the desktop app or an IDE extension)"
+_STATE_FIX = "see docs/INSTALL-ALPHA.md (Troubleshooting) and open an issue with this line"
+_OBS_WARN = (
+    "retired fold files found; they are removed when the daemon next starts (restart Claude Code)"
+)
 
 
 def _diet_section(root: Path, since: str, now: datetime) -> tuple[dict[str, Any] | None, list[str]]:
@@ -272,11 +276,13 @@ def _state_dir_check(state_dir: Path) -> DoctorCheck:
     os.unlink(tmp)
     violations = audit_state_dir(state_dir)
     if violations:
+        if all(v.startswith(f"{OBS_DIR}/") for v in violations):
+            return DoctorCheck("state dir", True, _OBS_WARN, warn=True)
         return DoctorCheck(
             "state dir",
             False,
             f"writable, but {len(violations)} file(s) exceed their content class",
-            "python scripts/state_audit.py",
+            _STATE_FIX,
         )
     return DoctorCheck("state dir", True, "writable; 0 content-class violations")
 

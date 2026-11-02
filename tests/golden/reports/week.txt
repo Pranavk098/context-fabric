@@ -12,7 +12,7 @@ Compactions: 0 boundaries, 0 /clear restarts
 Model switches: 0, premium $0.00
 Refetch after compaction: median f n/a (no compaction events) over 0 events
 Diet: 1 unused skills, 1 unused connectors, ~12 est. tokens/turn (counts only)
-Plugin receipts (cfxd stats, all time): 0 fold rewrites, 0 bound rewrites, 0 hook calls (0 errors, 0 rejected), checkpoints n/a (not recorded by cfxd stats)
+Plugin receipts (cfxd stats, all time): 0 hook calls (0 errors, 0 rejected)
 Cold resumes (from receipts): n/a (no resume receipts)
 Hook delivery: n/a (no sessions with hook events to compare)
 What this means:

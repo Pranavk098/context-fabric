@@ -141,12 +141,41 @@ def test_state_dir_check_writable_and_content_classes(tmp_path: Path) -> None:
 
     (state / "notes.txt").write_text("undeclared", encoding="utf-8")
     failed = checkup._state_dir_check(state)
-    assert not failed.ok
+    assert not failed.ok and not failed.warn
     assert "1 file(s) exceed their content class" in failed.detail
-    assert failed.fix == "python scripts/state_audit.py"
+    assert failed.fix == (
+        "see docs/INSTALL-ALPHA.md (Troubleshooting) and open an issue with this line"
+    )
+    assert "scripts/state_audit.py" not in (failed.fix or "")
 
     missing = checkup._state_dir_check(tmp_path / "absent")
     assert not missing.ok and "not writable" in missing.detail
+
+
+def test_obs_only_violations_warn_but_do_not_fail(tmp_path: Path) -> None:
+    state = tmp_path / "cfx"
+    (state / "obs").mkdir(parents=True)
+    (state / "obs" / "blob.json").write_text("{}", encoding="utf-8")
+
+    check = checkup._state_dir_check(state)
+
+    assert check.ok and check.warn
+    assert "retired fold files found" in check.detail
+    assert "removed when the daemon next starts (restart Claude Code)" in check.detail
+    line = check.line()
+    assert "WARN" in line and "FAIL" not in line and "PASS" not in line
+
+
+def test_one_non_obs_violation_beside_obs_still_fails(tmp_path: Path) -> None:
+    state = tmp_path / "cfx"
+    (state / "obs").mkdir(parents=True)
+    (state / "obs" / "blob.json").write_text("{}", encoding="utf-8")
+    (state / "notes.txt").write_text("undeclared", encoding="utf-8")
+
+    failed = checkup._state_dir_check(state)
+
+    assert not failed.ok and not failed.warn
+    assert "2 file(s) exceed their content class" in failed.detail
 
 
 def test_claude_code_check_reports_version_and_warns_when_missing() -> None:
