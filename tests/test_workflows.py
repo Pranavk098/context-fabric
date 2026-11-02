@@ -53,7 +53,7 @@ def test_security_scan_is_weekly_and_read_only() -> None:
     permissions = text.split("permissions:", 1)[1].split("jobs:", 1)[0]
     assert "contents: read" in permissions
     assert "write" not in permissions
-    assert "uvx bandit -r cfxd -ll -q -b .bandit-allow" in text
+    assert "uvx bandit==1.9.4 -r cfxd -ll -q -b .bandit-allow" in text
     assert "uv export --locked --no-hashes" in text
     assert "uvx pip-audit -r" in text
 
@@ -84,3 +84,11 @@ def test_bandit_allowlist_is_documented_and_narrow() -> None:
     assert allow["results"]
     assert all(item["test_id"] == "B608" for item in allow["results"])
     assert all(item["_why"] for item in allow["results"])
+
+
+def test_release_runs_the_security_gates() -> None:
+    text = (WORKFLOWS / "release.yml").read_text(encoding="utf-8")
+    assert "uvx bandit==1.9.4 -r cfxd -ll -q -b .bandit-allow" in text
+    assert "uvx pip-audit -r" in text
+    # The gates run before anything is built or attested.
+    assert text.index("uvx pip-audit") < text.index("uv build")

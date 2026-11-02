@@ -18,7 +18,7 @@ jobs:
         with:
           version: "0.11.3"
       - name: Bandit
-        run: uvx bandit -r cfxd -ll -q -b .bandit-allow
+        run: uvx bandit==1.9.4 -r cfxd -ll -q -b .bandit-allow
       - name: Export locked requirements
         run: uv export --locked --no-hashes --no-emit-project --format requirements-txt --output-file "$RUNNER_TEMP/requirements.txt"
       - name: pip-audit

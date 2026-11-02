@@ -46,6 +46,11 @@ jobs:
           uv run mypy protocol evals kernel sidecar adapters cfxd
           uv run pytest -q
           uv run python scripts/check_docs_numbers.py
+      - name: Security gates (same as the security workflow)
+        run: |
+          uvx bandit==1.9.4 -r cfxd -ll -q -b .bandit-allow
+          uv export --locked --no-hashes --no-emit-project --format requirements-txt --output-file "$RUNNER_TEMP/requirements.txt"
+          uvx pip-audit -r "$RUNNER_TEMP/requirements.txt"
       - name: Build sdist and wheel
         run: uv build
       - name: Checksums

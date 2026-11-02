@@ -412,7 +412,7 @@ def _opencode_db(root: Path | None) -> Path:
 
 def _opencode_session(con: sqlite3.Connection, session: str | None) -> str | None:
     order = "time_updated DESC" if "time_updated" in _columns(con, "session") else "id DESC"
-    rows = con.execute(f'SELECT id FROM "session" ORDER BY {order}').fetchall()
+    rows = con.execute(f'SELECT id FROM "session" ORDER BY {order}').fetchall()  # nosec B608 - order is one of two literals chosen above
     ids = [row[0] for row in rows if isinstance(row[0], str)]
     if not ids:
         return None
@@ -443,8 +443,9 @@ def _opencode_facts(root: Path | None, session: str | None, cwd: str) -> Session
             return None
         acc = _Facts(cwd)
         ts_col = "time_created" if "time_created" in _columns(con, "part") else "NULL"
+        # ts_col is one of two literals chosen above; the session id is a bound parameter.
         sql = (
-            "SELECT data, " + ts_col + ' FROM "part" WHERE session_id = ? '
+            "SELECT data, " + ts_col + ' FROM "part" WHERE session_id = ? '  # nosec B608
             "ORDER BY " + ts_col + ", id"
         )
         for data, stamp in con.execute(sql, (sid,)):
