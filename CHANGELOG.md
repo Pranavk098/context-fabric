@@ -3,6 +3,30 @@
 All notable changes to Context Fabric are documented here.
 Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.1.1-alpha.3] - 2026-11-02
+
+Fourth alpha of the Claude Code plugin. **Experimental. No saving is proven.**
+
+### Measurement
+- Codex logs are readable with `--source codex` (beta); output stays counts-only and the default source is
+  still Claude Code.
+
+### Mechanisms (experimental)
+- Coach, still off by default, now fires on the frozen rule of turn 15 and $0.50 cache-read cost instead of
+  the old token/turn rule.
+
+### Proof and trust
+- Tester-visible output in `week`, `ledger` and `doctor` no longer mentions the retired fold, bound or
+  checkpoint features.
+
+### Security
+- `cfxd doctor` reports a missing Claude Code CLI or leftover retired fold files as WARN, not FAIL, so an
+  unverified host check no longer reads as an unhealthy install.
+
+### Docs
+- The coach threshold was written down in `docs/plans/2026-11-02-coach-threshold-decision.md` before any
+  tester data, and this release's notes were added.
+
 ## [0.1.1-alpha.2] - 2026-11-02
 
 Third alpha of the Claude Code plugin. **Experimental. No saving is proven.**
