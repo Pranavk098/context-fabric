@@ -24,6 +24,8 @@ from cfxd.audit import DEFAULT_ROOT, audit, coverage
 from cfxd.audit import format_coverage as format_coverage_report
 from cfxd.audit import format_human as format_audit
 from cfxd.brief_receipts import BriefReceipt, join_receipts, path_sha16, receipts_to_json
+from cfxd.checkup import doctor as deep_doctor
+from cfxd.checkup import format_doctor as format_deep_doctor
 from cfxd.checkup import main as checkup_main
 from cfxd.config import read_config, set_flag
 from cfxd.console import ensure_utf8_output
@@ -726,11 +728,20 @@ def _mcp_churn_warning(root: Path, since: str = "7d") -> str | None:
     )
 
 
+def _tilde(path: Path) -> str:
+    """Show a path relative to the home directory, so doctor output stays paste-safe."""
+    try:
+        rel = path.resolve().relative_to(Path.home().resolve())
+    except (OSError, ValueError):
+        return str(path)
+    return "~" if not rel.parts else f"~/{rel.as_posix()}"
+
+
 def _sh_check() -> tuple[bool, str]:
     """The hooks run ``sh launch.sh``; Windows gets that from Git for Windows."""
     found = shutil.which("sh")
     if found:
-        return True, f"sh:          found ({found})"
+        return True, f"sh:          found ({_tilde(Path(found))})"
     return False, (
         "sh:          NOT found. Windows needs Git for Windows: "
         + "https://git-scm.com/download/win\n"
@@ -738,15 +749,20 @@ def _sh_check() -> tuple[bool, str]:
     )
 
 
+_DAEMON_DOWN = "daemon not running: start Claude Code, or run: python -m cfxd serve"
+
+
 def _cmd_doctor(args: argparse.Namespace) -> int:
     state_dir = resolve_state_dir(args.state_dir)
     _warn_outside_profile(state_dir)
-    sh_ok, sh_line = _sh_check()
+    checks = deep_doctor(state_dir)
+    print(format_deep_doctor(checks))
+    failed = any(not check.ok for check in checks)
     state_file = state_dir / STATE_FILE
     state = read_state(state_file)
     if state is None:
-        print(f"cfxd doctor: no state file at {state_file}; is the daemon running?")
-        return 1
+        print(f"cfxd doctor: no state file at {_tilde(state_file)}; {_DAEMON_DOWN}")
+        return 1 if failed else 0
     port = state.get("port")
     if not isinstance(port, int):
         print("cfxd doctor: state file is malformed")
@@ -754,9 +770,11 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
 
     try:
         health_status, health_body = get_health(port)
-    except OSError as exc:
-        print(f"cfxd doctor: /health unreachable: {exc}")
-        return 1
+    except OSError:
+        print(f"cfxd doctor: {_DAEMON_DOWN}")
+        return 1 if failed else 0
+
+    sh_ok, sh_line = _sh_check()
     try:
         health = json.loads(health_body)
     except ValueError:
@@ -808,7 +826,7 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
         f"p95={shim_p95:.2f} ms ({shim_failures} failed)"
     )
 
-    if not healthy or not sh_ok or ok_trips != len(samples) or p95 > 50.0:
+    if failed or not healthy or not sh_ok or ok_trips != len(samples) or p95 > 50.0:
         print("cfxd doctor: unhealthy")
         return 1
     print("cfxd doctor: healthy")
