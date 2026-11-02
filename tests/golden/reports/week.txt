@@ -1,0 +1,19 @@
+cfxd week 0.1.1a1, last 36500 days (experimental)
+Sessions: 1 parent session
+Sessions by length (assistant turns, share of API-equivalent dollars):
+  2-10: 1 session, $0.00 (100.0% of dollars)
+  11-30: 0 sessions, $0.00 (0.0% of dollars)
+  31+: 0 sessions, $0.00 (0.0% of dollars)
+Total API-equivalent dollars: $0.00
+Cache-read share of tokens: 0.0%
+First-turn context: median 1,000 tokens
+Compactions: 0 boundaries, 0 /clear restarts
+Model switches: 0, premium $0.00
+Refetch after compaction: median f n/a (no compaction events) over 0 events
+Diet: 1 unused skills, 1 unused connectors, ~12 est. tokens/turn (counts only)
+Plugin receipts (cfxd stats, all time): 0 fold rewrites, 0 bound rewrites, 0 hook calls (0 errors, 0 rejected), checkpoints n/a (not recorded by cfxd stats)
+Cold resumes (from receipts): n/a (no resume receipts)
+Hook delivery: n/a (no sessions with hook events to compare)
+What this means:
+  - No session ran past 30 assistant turns, so there is nothing to optimise yet.
+  - 1 unused skills and 1 unused connectors cost about 12 est. tokens per turn before you type.

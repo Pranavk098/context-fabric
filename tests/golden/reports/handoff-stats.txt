@@ -1,0 +1,16 @@
+cfxd handoff-stats (aggregates only, one machine)
+Sessions with sub-agent transcripts: 1; joined children: 1; priced children: 1
+By child model family:
+    family   children   parent knew 3+   read calls   re-reads  re-discovery share
+     haiku          1                1            3          2               66.7%
+    sonnet          0                0            0          0                 n/a
+      opus          0                0            0          0                 n/a
+     other          0                0            0          0                 n/a
+Re-discovery cost as a share of total session cost (parent + children, 1 sessions): 46.0% (lower) to 49.5% (upper)
+Packet sweep for children whose parent knew 3 or more files:
+    budget         group   children   coverage  bytes-weighted precision
+      2 KB           all          1     100.0%                      7.3%
+      6 KB           all          1     100.0%                      7.3%
+     12 KB           all          1     100.0%                      7.3%
+     20 KB           all          1     100.0%                      7.3%
+safe to paste: counts and percentages only

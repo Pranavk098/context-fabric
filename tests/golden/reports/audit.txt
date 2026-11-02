@@ -1,0 +1,56 @@
+Claude Code transcripts, all time
+Sessions: 1   sub-agent sessions: 1
+Turns: 5 total, median 5.0, p90 5.0, 0 sessions over 30 turns
+Tool-result bytes:
+  Read: 2 results, 6 bytes (p50 3, p90 4, max 4, 0 over 10 KB, 0 over 25 KB)
+  Edit: 1 results, 6 bytes (p50 6, p90 6, max 6, 0 over 10 KB, 0 over 25 KB)
+  Bash: 1 results, 4 bytes (p50 4, p90 4, max 4, 0 over 10 KB, 0 over 25 KB)
+  Agent: 1 results, 4 bytes (p50 4, p90 4, max 4, 0 over 10 KB, 0 over 25 KB)
+  Skill: 1 results, 2 bytes (p50 2, p90 2, max 2, 0 over 10 KB, 0 over 25 KB)
+Share of tool-result bytes over 10 KB: Read 0.0%, Edit 0.0%, Bash 0.0%, Agent 0.0%, Skill 0.0%
+Persisted-output stubs: 0
+Repeated full Reads: 0 (0.0% of Read result bytes), file-unchanged dedup: 0
+Compactions: 0 boundaries, turns after last compaction median 0.0, p90 0.0
+Sub-agents: 1, weighted tokens 9,000.0, first-touch fraction median 0.667, mean 0.667, 0 never touched a known file
+Context composition (parents):
+  total 352 bytes (~88 est. tokens)
+  tool_use_input: 6 blocks, 219 bytes (62.2%, ~55 est. tokens) (Edit 29, Write 0, Bash 26, Agent 84, other 80)
+  attachment:deferred_tools_delta: 2 blocks, 60 bytes (17.1%, ~15 est. tokens)
+  attachment:skill_listing: 1 blocks, 33 bytes (9.4%, ~8 est. tokens)
+  tool_result: 6 blocks, 22 bytes (6.2%, ~6 est. tokens)
+  attachment:mcp_instructions_delta: 2 blocks, 18 bytes (5.1%, ~4 est. tokens)
+  assistant_text: 0 blocks, 0 bytes (0.0%, ~0 est. tokens)
+  assistant_thinking: 0 blocks, 0 bytes (0.0%, ~0 est. tokens)
+  compact_summary: 0 blocks, 0 bytes (0.0%, ~0 est. tokens)
+  other categories: 5, 0.0%
+Starting prefix (first 3 turns, parents) median bytes / whole-session median:
+  assistant_text: 0 / 0
+  assistant_thinking: 0 / 0
+  tool_use_input: 80 / 219
+  tool_result: 8 / 22
+  user_text: 0 / 0
+  system_reminder: 0 / 0
+  hook_additional_context: 0 / 0
+  compact_summary: 0 / 0
+  image: 0 / 0
+  other: 0 / 0
+First-turn context (parents): median usage 1,000 tokens vs 20 est. visible tokens -> ratio 48.78
+Starting prefix by item (first 3 assistant turns, parents):
+  tool_use_input: 80 bytes (~20 est. tokens) in 1 sessions
+  attachment:deferred_tools_delta: 40 bytes (~10 est. tokens) in 1 sessions
+  attachment:skill_listing: 33 bytes (~8 est. tokens) in 1 sessions
+  attachment:mcp_instructions_delta: 9 bytes (~2 est. tokens) in 1 sessions
+  tool_result: 8 bytes (~2 est. tokens) in 1 sessions
+  typical starting prefix visible in the transcript: 170 bytes (~42 est. tokens)
+Context composition (sub-agents):
+  total 2,145 bytes (~536 est. tokens)
+  tool_result: 5 blocks, 2,000 bytes (93.2%, ~500 est. tokens)
+  tool_use_input: 5 blocks, 145 bytes (6.8%, ~36 est. tokens) (Edit 31, Write 0, Bash 25, Agent 0, other 89)
+  assistant_text: 0 blocks, 0 bytes (0.0%, ~0 est. tokens)
+  assistant_thinking: 0 blocks, 0 bytes (0.0%, ~0 est. tokens)
+  compact_summary: 0 blocks, 0 bytes (0.0%, ~0 est. tokens)
+  hook_additional_context: 0 blocks, 0 bytes (0.0%, ~0 est. tokens)
+  image: 0 blocks, 0 bytes (0.0%, ~0 est. tokens)
+  other: 0 blocks, 0 bytes (0.0%, ~0 est. tokens)
+  other categories: 2, 0.0%
+This report contains counts and sizes only; no paths, commands or text.

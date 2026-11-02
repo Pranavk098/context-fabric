@@ -1,0 +1,1 @@
+No compactions to analyse under golden (all time): 1 sessions scanned, 0 compaction boundaries skipped (no summary text or no files held). Run /compact in a session, then try again.
