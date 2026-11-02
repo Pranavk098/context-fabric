@@ -198,14 +198,14 @@ def simulate(
             continue
         restart = opening
         for i in range(t, n):
+            tokens = turns[i].tokens
             ctx = prefix + packet + max(0, turns[i].prompt - turns[t - 1].prompt)
-            price = _price_for(entry, ctx)
-            # Turn t writes prefix + packet (already charged) and reads only the new growth.
-            read = max(0, ctx - (prefix + packet)) if i == t else ctx
-            restart += (
-                read * float(price["cache_read"])
-                + turns[i].tokens["output"] * float(price["output"])
-            ) / _MTOK
+            # The turn's own new tokens (input, cache creation) cost what continuing pays
+            # for them; only the rest of the restarted context is a cache read. Turn t
+            # writes prefix + packet (already charged) and reads only the growth beyond it.
+            fresh = tokens["input"] + tokens["cache_creation_5m"] + tokens["cache_creation_1h"]
+            read = max(0, ctx - (prefix + packet)) if i == t else max(0, ctx - fresh)
+            restart += _turn_dollars(entry, {**tokens, "cache_read": read}, ctx)
         rows.append((t, cont[t] - restart, cont[t]))
     crossed = next((r for r in rows if r[1] > 0), None)
     return {

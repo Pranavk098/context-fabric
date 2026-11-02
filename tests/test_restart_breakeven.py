@@ -33,6 +33,23 @@ def _usage(prompt: int) -> dict[str, int]:
     }
 
 
+def _row(mid: str, *, read: int, cc5m: int = 0, output: int = 0) -> dict[str, Any]:
+    """An assistant turn whose prompt is exactly ``read + cc5m`` tokens."""
+    message = {
+        "id": mid,
+        "model": _MODEL,
+        "usage": {
+            "input_tokens": 0,
+            "cache_creation": {"ephemeral_5m_input_tokens": cc5m, "ephemeral_1h_input_tokens": 0},
+            "cache_read_input_tokens": read,
+            "output_tokens": output,
+        },
+        "stop_reason": "end_turn",
+        "content": [],
+    }
+    return {"type": "assistant", "message": message}
+
+
 def _turn(mid: str, prompt: int, blocks: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     message = {
         "id": mid,
@@ -184,7 +201,8 @@ def test_restart_opening_cost_is_prefix_plus_packet_at_the_write_price() -> None
     # prefix + packet instead, so a prefix this close to the context is a net loss.
     assert cont == pytest.approx((10 * 3 + 4390 * 0.3 + 100 * 15) / 1e6)
     opening = (2000 + packet) * 3.75 / 1e6
-    anticipated = opening + (800 * 0.3 + 100 * 15) / 1e6
+    # The restarted turn pays its own new tokens (here 10 input) and reads only the growth.
+    anticipated = opening + (10 * 3 + 800 * 0.3 + 100 * 15) / 1e6
     assert anticipated == pytest.approx(cont - headroom)
 
 
@@ -205,6 +223,50 @@ def test_a_bigger_packet_lowers_headroom() -> None:
     thin = rb.simulate(turns, [6], turns[0].prompt, 0, _ENTRY)["rows"][0][1]
     fat = rb.simulate(turns, [6], turns[0].prompt, 3000, _ENTRY)["rows"][0][1]
     assert thin > fat
+
+
+def test_new_tokens_on_the_restarted_path_are_not_free() -> None:
+    # 50 turns, each writing 2,000 new cache tokens over an 83,000-token prefix, so the
+    # measured prefix (85,000) is exactly the context at the turn-1 boundary.
+    rows = [_row(f"m{i}", read=83_000 + 2_000 * i, cc5m=2_000, output=100) for i in range(50)]
+    turns, _index = rb.scan_turns(rows, _FAMILIES)
+    assert turns[0].prompt == 85_000
+    packet = 768
+    simulated = rb.simulate(turns, [1, 2], turns[0].prompt, packet, _ENTRY)
+    assert [t for t, _h, _c in simulated["rows"]] == [1, 2]
+    assert all(headroom <= 0 for _t, headroom, _c in simulated["rows"])
+
+    def pre_fix(t: int) -> float:
+        # The reviewed bug: cache read of the whole context plus output, new tokens free.
+        restart = (turns[0].prompt + packet) * 3.75 / 1e6
+        cont = sum(
+            rb._turn_dollars(_ENTRY, turns[i].tokens, turns[i].prompt) for i in range(t, len(turns))
+        )
+        for i in range(t, len(turns)):
+            ctx = turns[0].prompt + packet + (turns[i].prompt - turns[t - 1].prompt)
+            read = max(0, ctx - (turns[0].prompt + packet)) if i == t else ctx
+            restart += (read * 0.3 + turns[i].tokens["output"] * 15) / 1e6
+        return cont - restart
+
+    # 49 turns of 2,000 tokens read at 0.3 instead of written at 3.75: a fake $0.031 win.
+    assert pre_fix(1) == pytest.approx(0.0309, abs=1e-3)
+
+
+def test_a_long_grown_context_makes_a_restart_genuinely_win() -> None:
+    # 45 turns over a 2,000-token prefix: each adds 2,000 cache-write tokens, 100 output,
+    # packet 0. sonnet-4-5 prices per Mtok: input 3, write 3.75, read 0.3, output 15.
+    rows = [_row(f"m{i}", read=2_000 * i, cc5m=2_000, output=100) for i in range(45)]
+    turns, _index = rb.scan_turns(rows, _FAMILIES)
+    _t, headroom, cont = rb.simulate(turns, [20], turns[0].prompt, 0, _ENTRY)["rows"][0]
+    # Continuing, turns 20..44: 0.3 * 2,000i + 2,000 * 3.75 + 100 * 15 = 9,000 + 600i
+    # micro-dollars; 25 turns = 225,000 + 600 * 800 = 705,000 = $0.705.
+    # Restart: write the 2,000-token prefix at 3.75 = 7,500. Turn 20 reads the 2,000-token
+    # growth = 600, writes its 2,000 new tokens = 7,500, outputs 1,500 -> 9,600. Turns
+    # 21..44 read 2,000j (j = 2..25) = 0.3 * 2,000 * 324 = 194,400, write 24 * 7,500 =
+    # 180,000, output 24 * 1,500 = 36,000 -> 410,400. Restarted total = 427,500 = $0.4275,
+    # so the headroom is 0.705 - 0.4275 = $0.2775.
+    assert cont == pytest.approx(0.705)
+    assert headroom == pytest.approx(0.2775)
 
 
 def test_a_session_that_only_ties_is_context_and_never_the_bar_figure() -> None:
