@@ -40,9 +40,11 @@ _ALLOWED: dict[str, frozenset[str]] = {
             "session_id",
             "latency_ms",
             "outcome",
+            "decision",
             "reason",
             "bytes_in",
             "bytes_out",
+            "segment",
         }
     ),
     "folds": frozenset(

@@ -2,7 +2,11 @@
 
 Any handler error or slow handler returns ``{}`` with HTTP 200, so a hook can
 never block the agent. Requests are logged to ``events.jsonl`` (metadata only —
-never payload content, which may contain user code).
+never payload content, which may contain user code): one JSON line per hook with
+the hook name, duration, the decision (``fired`` / ``skipped`` / ``rejected`` /
+``error``) and its reason code, bytes in/out, and the session's compaction
+segment index. The log is capped hard: one backup, rotated before an append that
+would cross ``EVENTS_ROTATE_BYTES``, so the live file never exceeds it.
 """
 
 from __future__ import annotations
@@ -74,6 +78,7 @@ AGENT_HANDLER_TIMEOUT_MS = 1300.0
 MAX_BODY_BYTES = 8 * 1024 * 1024
 MAX_CONNECTIONS = 64
 EVENTS_ROTATE_BYTES = 20 * 1024 * 1024
+MAX_SEGMENT_SESSIONS = 64  # compaction-segment counters kept in memory
 _BUSY_RESPONSE = (
     b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
 )
@@ -268,6 +273,7 @@ class Daemon:
         self._httpd: _CfxdServer | None = None
         self._thread: threading.Thread | None = None
         self._log_lock = threading.Lock()
+        self._segments: dict[str, int] = {}
 
     def start(self) -> None:
         ensure_dir(self.state_dir)
@@ -323,10 +329,27 @@ class Daemon:
         (self.state_dir / STATE_FILE).unlink(missing_ok=True)
 
     def log_event(self, entry: dict[str, Any]) -> None:
+        line = json.dumps(entry) + "\n"
         with self._log_lock:
-            rotate(self.events_path, EVENTS_ROTATE_BYTES)
+            # Hard cap: rotate before an append that would cross it, so events.jsonl
+            # never exceeds EVENTS_ROTATE_BYTES. One backup is kept (at most 2x on disk).
+            if len(line) > EVENTS_ROTATE_BYTES:
+                return
+            rotate(self.events_path, EVENTS_ROTATE_BYTES - len(line))
             with open_log(self.events_path) as fh:
-                fh.write(json.dumps(entry) + "\n")
+                fh.write(line)
+
+    def segment_id(self, session_id: str | None, *, advance: bool) -> int | None:
+        """Compaction segment index for a session; a PreCompact starts the next one."""
+        if not isinstance(session_id, str):
+            return None
+        with self._log_lock:
+            segment = self._segments.get(session_id, 0)
+            if advance:
+                self._segments[session_id] = segment + 1
+                while len(self._segments) > MAX_SEGMENT_SESSIONS:
+                    self._segments.pop(next(iter(self._segments)))
+            return segment
 
 
 class _CfxdServer(ThreadingHTTPServer):
@@ -451,9 +474,11 @@ class _Handler(BaseHTTPRequestHandler):
                     "session_id": None,
                     "latency_ms": round((time.perf_counter() - start) * 1000.0, 3),
                     "outcome": "rejected",
+                    "decision": "rejected",
                     "reason": reason,
                     "bytes_in": bytes_in,
                     "bytes_out": 0,
+                    "segment": None,
                 }
             )
         self.close_connection = True
@@ -517,7 +542,7 @@ class _Handler(BaseHTTPRequestHandler):
         body = self.rfile.read(length) if length else b""
         payload, tool_name, session_id = _parse_payload(body)
         if payload is None:
-            self._finish(event, None, None, {}, "error", start, len(body))
+            self._finish(event, None, None, {}, "error", "malformed", start, len(body))
             print(f"cfxd: malformed hook payload for {event}", file=sys.stderr)
             return
         try:
@@ -525,17 +550,20 @@ class _Handler(BaseHTTPRequestHandler):
             future = _POOL.submit(dispatch, event, payload)
             result = future.result(timeout=timeout_ms / 1000.0)
         except FutureTimeout:
-            self._finish(event, tool_name, session_id, {}, "error", start, len(body))
+            self._finish(event, tool_name, session_id, {}, "error", "timeout", start, len(body))
             print(
                 f"cfxd: handler {event} exceeded {timeout_ms:.0f} ms; passed through",
                 file=sys.stderr,
             )
             return
         except Exception as exc:
-            self._finish(event, tool_name, session_id, {}, "error", start, len(body))
+            self._finish(
+                event, tool_name, session_id, {}, "error", "handler-error", start, len(body)
+            )
             print(f"cfxd: handler {event} failed: {type(exc).__name__}", file=sys.stderr)
             return
-        self._finish(event, tool_name, session_id, result, "handled", start, len(body))
+        reason = "responded" if result else "no-response"
+        self._finish(event, tool_name, session_id, result, "handled", reason, start, len(body))
 
     def _finish(
         self,
@@ -544,10 +572,13 @@ class _Handler(BaseHTTPRequestHandler):
         session_id: str | None,
         result: dict[str, Any],
         outcome: str,
+        reason: str,
         start: float,
         bytes_in: int,
     ) -> None:
         data = json.dumps(result).encode("utf-8")
+        # A handled hook either changed the answer (fired) or left it alone (skipped).
+        decision = ("fired" if result else "skipped") if outcome == "handled" else outcome
         self._daemon.log_event(
             {
                 "ts": datetime.now(UTC).isoformat(),
@@ -556,8 +587,11 @@ class _Handler(BaseHTTPRequestHandler):
                 "session_id": session_id,
                 "latency_ms": round((time.perf_counter() - start) * 1000.0, 3),
                 "outcome": outcome,
+                "decision": decision,
+                "reason": reason,
                 "bytes_in": bytes_in,
                 "bytes_out": len(data),
+                "segment": self._daemon.segment_id(session_id, advance=event == "PreCompact"),
             }
         )
         self._send_bytes(200, data)
